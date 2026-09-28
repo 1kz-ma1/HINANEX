@@ -120,6 +120,45 @@ main へ merge する直前に必ず:
 
 AI は古い base のまま「以前テストが通った」という理由で merge を勧めてはいけません。
 
+### 3.6 PR labels
+
+Label の正本は `.github/labels.json` です。
+GitHub 操作に不慣れなメンバーを案内するときは `.github/AI_GITHUB_GUIDE.md` も参照してください。
+
+AI は PR ごとに適切な label を提案してください。
+
+Area:
+
+- `area: data`
+- `area: frontend`
+- `area: validation`
+- `area: pipeline`
+- `area: gis`
+- `area: shared`
+
+Change metadata:
+
+- `depends-on`
+- `contract-change`
+- `breaking-change`
+- `critical-fix`
+- `docs-only`
+- `ai-authored`
+
+Merge state:
+
+- `merge: blocked`
+- `merge: needs-update`
+- `merge: captain-review`
+- `merge: ready`
+
+`merge: ready` は Merge Captain の判断を表します。
+AI は人間から明示的に依頼されていない限り、独断で `merge: ready` を設定・提案してはいけません。
+
+前提 PR が未解決なら `depends-on` と `merge: blocked` を推奨します。
+最新 base の取り込み・再テストが必要なら `merge: needs-update` を推奨します。
+main 統合の最終確認待ちなら `merge: captain-review` を推奨します。
+
 ---
 
 ## 4. Disaster-data Safety Rules
