@@ -1,0 +1,15 @@
+---
+description: HINANEX repository-wide AI development guardrails
+alwaysApply: true
+---
+
+Before editing any file, read and follow `/AGENTS.md`.
+Also read the nearest nested `AGENTS.md` for the target directory.
+
+Do not push/merge directly to main.
+Do not invent missing disaster data.
+Preserve shared contract semantics.
+Respect role ownership and PR dependencies.
+Use small diffs and run the required tests.
+
+If repository rules conflict, `/AGENTS.md` is authoritative.
