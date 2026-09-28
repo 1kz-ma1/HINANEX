@@ -11,7 +11,7 @@ $RequiredCheck = "test"
 function Require-Command {
     param([string]$Name)
     if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
-        throw "'$Name' が見つかりません。GitHub CLI をインストールしてから再実行してください。"
+        throw "Required command not found: $Name"
     }
 }
 
@@ -24,12 +24,12 @@ Write-Host "Checking latest '$RequiredCheck' workflow on $Branch..."
 $latestRun = gh run list --repo $Repo --workflow test.yml --branch $Branch --limit 1 --json status,conclusion,databaseId,headSha,url | ConvertFrom-Json
 
 if (-not $latestRun) {
-    throw "main 上の test workflow 実行履歴がありません。先に CI を1回成功させてください。"
+    throw "No test workflow run was found on main. Run CI successfully before enabling protection."
 }
 
 $run = @($latestRun)[0]
 if ($run.status -ne "completed" -or $run.conclusion -ne "success") {
-    throw "最新の test workflow が green ではありません。status=$($run.status), conclusion=$($run.conclusion)。Protection を有効化する前に CI を修正してください。"
+    throw "Latest test workflow is not green. status=$($run.status), conclusion=$($run.conclusion)"
 }
 
 Write-Host "Latest test workflow: success"
@@ -89,4 +89,4 @@ Write-Host "- Branch deletion disabled"
 Write-Host "- Rules apply to repository admins / Merge Captain"
 Write-Host ""
 Write-Host "Verify with:"
-Write-Host "  .\\scripts\\setup-main-protection.ps1 -VerifyOnly"
+Write-Host "  .\\scripts\\run-main-protection.ps1 -VerifyOnly"
