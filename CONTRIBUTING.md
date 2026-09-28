@@ -119,9 +119,25 @@ AI が作成・修正した PR には最低限以下を記載します。
 
 AI は `main` への merge、force push、テスト削除による失敗隠蔽、防災データの推測補完を行ってはいけません。
 
+## PR Labels
+
+PR の状態と担当を label で表します。
+
+- Area: `area: data`, `area: frontend`, `area: validation`, `area: pipeline`, `area: gis`, `area: shared`
+- Dependency / change: `depends-on`, `contract-change`, `breaking-change`, `critical-fix`, `docs-only`, `ai-authored`
+- Merge state: `merge: blocked`, `merge: needs-update`, `merge: captain-review`, `merge: ready`
+
+`merge: ready` は Merge Captain が最終確認後に使用します。
+AI は前提 PR がある場合に `depends-on` と `merge: blocked` を推奨し、最新 base への追従が必要なら `merge: needs-update` を推奨します。
+
+Label 定義の正本は `.github/labels.json` です。
+詳しい AI 向け GitHub 操作ガイドは `.github/AI_GITHUB_GUIDE.md` を参照してください。
+
 ## 詳細ルール
 
 - AI 共通ルール: `AGENTS.md`
+- AI向けGitHub操作: `.github/AI_GITHUB_GUIDE.md`
+- Label定義: `.github/labels.json`
 - D / pipeline: `pipeline/AGENTS.md`
 - D の Git 運用ドキュメント: `pipeline/docs/GIT_WORKFLOW.md`
 - 統合チェック: `pipeline/docs/INTEGRATION_CHECKLIST.md`
