@@ -141,3 +141,14 @@ Label 定義の正本は `.github/labels.json` です。
 - D / pipeline: `pipeline/AGENTS.md`
 - D の Git 運用ドキュメント: `pipeline/docs/GIT_WORKFLOW.md`
 - 統合チェック: `pipeline/docs/INTEGRATION_CHECKLIST.md`
+
+## main Protection
+
+`main` は Pull Request と required check `test` で保護します。
+
+main に統合するPRは:
+- 最新 main へ追従する
+- CI `test` を green にする
+- Merge Captain の最終確認を受ける
+
+必要な初期設定と確認方法は `.github/MAIN_PROTECTION.md` を参照してください。

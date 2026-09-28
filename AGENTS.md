@@ -411,3 +411,22 @@ HINANEX では AI の開発速度よりも、
 **分からない値を埋めるより null にする。**
 **依存関係を無視して merge するより待つ。**
 **大きく書き換えるより小さく安全に変更する。**
+
+## 14. main Branch Protection and Required Checks
+
+`main` は GitHub 側の branch protection でも保護します。
+
+Required check:
+- `test`
+
+AI は main 統合前に以下を満たす必要があります。
+
+- Pull Request 経由である。
+- 最新 main を取り込んでいる。
+- required check `test` が成功している。
+- force push や protection 回避を提案しない。
+- failing test を削除・skipして green に見せない。
+
+Branch protection の設定手順と確認方法は `.github/MAIN_PROTECTION.md` を参照してください。
+
+required check が red / pending の PR は `merge: ready` と扱ってはいけません。
