@@ -1,0 +1,692 @@
+{
+  "$defs": {
+    "ApplicationReadinessAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "discoverability": {
+          "$ref": "#/$defs/MetricScore"
+        },
+        "accessibility": {
+          "$ref": "#/$defs/MetricScore"
+        },
+        "machine_readability": {
+          "$ref": "#/$defs/MetricScore"
+        },
+        "interoperability": {
+          "$ref": "#/$defs/MetricScore"
+        },
+        "geospatial_usability": {
+          "$ref": "#/$defs/MetricScore"
+        },
+        "update_automation": {
+          "$ref": "#/$defs/MetricScore"
+        },
+        "reusability": {
+          "$ref": "#/$defs/MetricScore"
+        },
+        "semantic_fitness": {
+          "$ref": "#/$defs/MetricScore"
+        }
+      },
+      "required": [
+        "discoverability",
+        "accessibility",
+        "machine_readability",
+        "interoperability",
+        "geospatial_usability",
+        "update_automation",
+        "reusability",
+        "semantic_fitness"
+      ],
+      "title": "ApplicationReadinessAssessment",
+      "type": "object"
+    },
+    "CapabilityAssessment": {
+      "additionalProperties": false,
+      "description": "1地域における1 Capability の判定結果。",
+      "properties": {
+        "region_code": {
+          "title": "Region Code",
+          "type": "string"
+        },
+        "region_name": {
+          "title": "Region Name",
+          "type": "string"
+        },
+        "capability_code": {
+          "title": "Capability Code",
+          "type": "string"
+        },
+        "capability_name": {
+          "title": "Capability Name",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/CapabilityStatus"
+        },
+        "dependency_results": {
+          "items": {
+            "$ref": "#/$defs/CapabilityDependencyResult"
+          },
+          "title": "Dependency Results",
+          "type": "array"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "assessed_at": {
+          "format": "date-time",
+          "title": "Assessed At",
+          "type": "string"
+        },
+        "engine_version": {
+          "default": "0.9",
+          "title": "Engine Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "region_code",
+        "region_name",
+        "capability_code",
+        "capability_name",
+        "status",
+        "assessed_at"
+      ],
+      "title": "CapabilityAssessment",
+      "type": "object"
+    },
+    "CapabilityDependencyResult": {
+      "additionalProperties": false,
+      "description": "1つの依存 DataRequirement の Capability 向け判定。",
+      "properties": {
+        "requirement_code": {
+          "title": "Requirement Code",
+          "type": "string"
+        },
+        "criticality": {
+          "$ref": "#/$defs/Criticality"
+        },
+        "status": {
+          "$ref": "#/$defs/DependencyStatus"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "requirement_code",
+        "criticality",
+        "status"
+      ],
+      "title": "CapabilityDependencyResult",
+      "type": "object"
+    },
+    "CapabilityStatus": {
+      "enum": [
+        "FULL",
+        "DEGRADED",
+        "BLOCKED",
+        "UNKNOWN",
+        "NOT_APPLICABLE"
+      ],
+      "title": "CapabilityStatus",
+      "type": "string"
+    },
+    "Criticality": {
+      "description": "Capability と DataRequirement の依存関係における重要度。\n\nDataRequirement 自体の固定属性ではない。\n同じ DataRequirement でも Capability によって重要度は変わり得る。",
+      "enum": [
+        1,
+        2,
+        3
+      ],
+      "title": "Criticality",
+      "type": "integer"
+    },
+    "DataQualityAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "completeness": {
+          "$ref": "#/$defs/MetricScore"
+        },
+        "coverage": {
+          "$ref": "#/$defs/MetricScore"
+        },
+        "timeliness": {
+          "$ref": "#/$defs/MetricScore"
+        },
+        "validity": {
+          "$ref": "#/$defs/MetricScore"
+        },
+        "consistency": {
+          "$ref": "#/$defs/MetricScore"
+        },
+        "accuracy_confidence": {
+          "$ref": "#/$defs/MetricScore"
+        },
+        "traceability": {
+          "$ref": "#/$defs/MetricScore"
+        }
+      },
+      "required": [
+        "completeness",
+        "coverage",
+        "timeliness",
+        "validity",
+        "consistency",
+        "accuracy_confidence",
+        "traceability"
+      ],
+      "title": "DataQualityAssessment",
+      "type": "object"
+    },
+    "DatasetAssessment": {
+      "additionalProperties": false,
+      "description": "Assessment result for one NormalizedDataset.",
+      "properties": {
+        "region_code": {
+          "title": "Region Code",
+          "type": "string"
+        },
+        "region_name": {
+          "title": "Region Name",
+          "type": "string"
+        },
+        "requirement_code": {
+          "title": "Requirement Code",
+          "type": "string"
+        },
+        "discovery_status": {
+          "$ref": "#/$defs/DiscoveryStatus"
+        },
+        "data_quality": {
+          "$ref": "#/$defs/DataQualityAssessment"
+        },
+        "application_readiness": {
+          "$ref": "#/$defs/ApplicationReadinessAssessment"
+        },
+        "record_count": {
+          "minimum": 0,
+          "title": "Record Count",
+          "type": "integer"
+        },
+        "findings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Findings",
+          "type": "array"
+        },
+        "assessed_at": {
+          "format": "date-time",
+          "title": "Assessed At",
+          "type": "string"
+        },
+        "assessment_version": {
+          "default": "0.9",
+          "title": "Assessment Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "region_code",
+        "region_name",
+        "requirement_code",
+        "discovery_status",
+        "data_quality",
+        "application_readiness",
+        "record_count",
+        "assessed_at"
+      ],
+      "title": "DatasetAssessment",
+      "type": "object"
+    },
+    "DependencyStatus": {
+      "enum": [
+        "READY",
+        "DEGRADED",
+        "BLOCKED",
+        "UNKNOWN",
+        "NOT_APPLICABLE"
+      ],
+      "title": "DependencyStatus",
+      "type": "string"
+    },
+    "DiscoveryStatus": {
+      "enum": [
+        "AVAILABLE",
+        "PARTIAL",
+        "NOT_MACHINE_READABLE",
+        "ACCESS_RESTRICTED",
+        "NOT_FOUND",
+        "UNKNOWN",
+        "NOT_APPLICABLE"
+      ],
+      "title": "DiscoveryStatus",
+      "type": "string"
+    },
+    "Evidence": {
+      "additionalProperties": false,
+      "description": "データや評価結果の根拠となる情報。",
+      "properties": {
+        "source_name": {
+          "title": "Source Name",
+          "type": "string"
+        },
+        "source_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Url"
+        },
+        "publisher": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Publisher"
+        },
+        "published_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Published At"
+        },
+        "fetched_at": {
+          "format": "date-time",
+          "title": "Fetched At",
+          "type": "string"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "source_format": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Format"
+        },
+        "retrieval_method": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retrieval Method"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        }
+      },
+      "required": [
+        "source_name",
+        "fetched_at"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "ExportMeta": {
+      "additionalProperties": false,
+      "description": "統合出力そのもののメタデータ。",
+      "properties": {
+        "schema_version": {
+          "default": "0.9",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "title": "Generated At",
+          "type": "string"
+        },
+        "dataset_count": {
+          "minimum": 0,
+          "title": "Dataset Count",
+          "type": "integer"
+        },
+        "assessment_count": {
+          "minimum": 0,
+          "title": "Assessment Count",
+          "type": "integer"
+        },
+        "capability_count": {
+          "minimum": 0,
+          "title": "Capability Count",
+          "type": "integer"
+        },
+        "gap_count": {
+          "minimum": 0,
+          "title": "Gap Count",
+          "type": "integer"
+        },
+        "recommendation_count": {
+          "minimum": 0,
+          "title": "Recommendation Count",
+          "type": "integer"
+        },
+        "evidence_count": {
+          "minimum": 0,
+          "title": "Evidence Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "generated_at",
+        "dataset_count",
+        "assessment_count",
+        "capability_count",
+        "gap_count",
+        "recommendation_count",
+        "evidence_count"
+      ],
+      "title": "ExportMeta",
+      "type": "object"
+    },
+    "GapItem": {
+      "additionalProperties": false,
+      "properties": {
+        "capability_code": {
+          "title": "Capability Code",
+          "type": "string"
+        },
+        "requirement_code": {
+          "title": "Requirement Code",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/GapKind"
+        },
+        "severity": {
+          "$ref": "#/$defs/GapSeverity"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "capability_status": {
+          "$ref": "#/$defs/CapabilityStatus"
+        }
+      },
+      "required": [
+        "capability_code",
+        "requirement_code",
+        "kind",
+        "severity",
+        "reason",
+        "capability_status"
+      ],
+      "title": "GapItem",
+      "type": "object"
+    },
+    "GapKind": {
+      "description": "Gapの扱い方。\n\nCONFIRMED_IMPROVEMENT:\n    不足・品質低下を十分に確認できており、改善候補として扱える。\n\nINVESTIGATION:\n    データの存在・取得可否・評価状態が十分に確認できず、\n    追加調査を優先する。自治体側の不足とは断定しない。",
+      "enum": [
+        "CONFIRMED_IMPROVEMENT",
+        "INVESTIGATION"
+      ],
+      "title": "GapKind",
+      "type": "string"
+    },
+    "GapSeverity": {
+      "enum": [
+        "HIGH",
+        "MEDIUM",
+        "LOW"
+      ],
+      "title": "GapSeverity",
+      "type": "string"
+    },
+    "MetricScore": {
+      "additionalProperties": false,
+      "description": "A 0-4 score. None means not assessed/unknown, not zero quality.",
+      "properties": {
+        "score": {
+          "anyOf": [
+            {
+              "maximum": 4,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Score"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "title": "MetricScore",
+      "type": "object"
+    },
+    "NormalizedDataset": {
+      "additionalProperties": false,
+      "description": "各データソースを HINANEX 共通形式へ正規化した結果。",
+      "properties": {
+        "region_code": {
+          "title": "Region Code",
+          "type": "string"
+        },
+        "region_name": {
+          "title": "Region Name",
+          "type": "string"
+        },
+        "requirement_code": {
+          "title": "Requirement Code",
+          "type": "string"
+        },
+        "records": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Records",
+          "type": "array"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "normalized_at": {
+          "format": "date-time",
+          "title": "Normalized At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "region_code",
+        "region_name",
+        "requirement_code",
+        "normalized_at"
+      ],
+      "title": "NormalizedDataset",
+      "type": "object"
+    },
+    "Recommendation": {
+      "additionalProperties": false,
+      "properties": {
+        "capability_code": {
+          "title": "Capability Code",
+          "type": "string"
+        },
+        "requirement_code": {
+          "title": "Requirement Code",
+          "type": "string"
+        },
+        "recommendation_type": {
+          "$ref": "#/$defs/RecommendationType"
+        },
+        "priority": {
+          "$ref": "#/$defs/GapSeverity"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "actions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Actions",
+          "type": "array"
+        },
+        "rationale": {
+          "title": "Rationale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "capability_code",
+        "requirement_code",
+        "recommendation_type",
+        "priority",
+        "title",
+        "rationale"
+      ],
+      "title": "Recommendation",
+      "type": "object"
+    },
+    "RecommendationType": {
+      "enum": [
+        "IMPROVE_DATA",
+        "INVESTIGATE_DATA"
+      ],
+      "title": "RecommendationType",
+      "type": "string"
+    },
+    "RegionInfo": {
+      "additionalProperties": false,
+      "description": "B/Cへ渡す地域識別情報。",
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "name"
+      ],
+      "title": "RegionInfo",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "HINANEX B/C引き渡し用の1地域1JSON契約。\n\nBは自治体固有の元形式を意識せず、このSchemaだけを読む。\nCは requirement_code / capability_code と各reason/evidenceを辿り、\nSource -> Normalized -> Assessment -> Capability -> Gap -> Recommendation\nの判定根拠を確認できる。",
+  "properties": {
+    "region": {
+      "$ref": "#/$defs/RegionInfo"
+    },
+    "datasets": {
+      "items": {
+        "$ref": "#/$defs/NormalizedDataset"
+      },
+      "title": "Datasets",
+      "type": "array"
+    },
+    "assessments": {
+      "items": {
+        "$ref": "#/$defs/DatasetAssessment"
+      },
+      "title": "Assessments",
+      "type": "array"
+    },
+    "capabilities": {
+      "items": {
+        "$ref": "#/$defs/CapabilityAssessment"
+      },
+      "title": "Capabilities",
+      "type": "array"
+    },
+    "gaps": {
+      "items": {
+        "$ref": "#/$defs/GapItem"
+      },
+      "title": "Gaps",
+      "type": "array"
+    },
+    "recommendations": {
+      "items": {
+        "$ref": "#/$defs/Recommendation"
+      },
+      "title": "Recommendations",
+      "type": "array"
+    },
+    "meta": {
+      "$ref": "#/$defs/ExportMeta"
+    }
+  },
+  "required": [
+    "region",
+    "meta"
+  ],
+  "title": "RegionExport",
+  "type": "object"
+}

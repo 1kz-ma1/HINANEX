@@ -1,0 +1,33 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+
+# HINANEX runtime artifacts
+# Raw official downloads and derived JSON are reproducible and can be large.
+data/raw/**
+!data/raw/.gitkeep
+data/normalized/*.json
+!data/normalized/.gitkeep
+data/output/*.json
+!data/output/.gitkeep
+
+# Temporary source files / exports
+*.tmp
+*.log
+~$*
