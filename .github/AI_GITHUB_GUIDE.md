@@ -158,3 +158,16 @@ AI に例えば次のように依頼できます。
 > mainに統合したい。自分でmergeせず、Merge Captainが判断できる状態までPRを整えて。
 
 AI は操作を推測せず、現在 branch / status / remote / dependency を確認しながら案内してください。
+
+## 9. main の required check
+
+main への PR では GitHub Actions の `test` が required check です。
+
+AI は:
+- red の原因を確認してから修正する
+- CIを回避しない
+- test削除・skipでgreenに見せない
+- pending / red のPRをmerge可能と案内しない
+- 最新mainへ追従後に再度greenを確認する
+
+Branch protection の詳細は `.github/MAIN_PROTECTION.md` を参照してください。
