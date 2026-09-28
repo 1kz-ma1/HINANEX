@@ -1,0 +1,82 @@
+[
+  {
+    "name": "merge: blocked",
+    "color": "d73a4a",
+    "description": "Do not merge; dependency or unresolved issue remains."
+  },
+  {
+    "name": "merge: needs-update",
+    "color": "fbca04",
+    "description": "Update with the latest base branch and rerun checks."
+  },
+  {
+    "name": "merge: captain-review",
+    "color": "5319e7",
+    "description": "Awaiting Merge Captain final integration review."
+  },
+  {
+    "name": "merge: ready",
+    "color": "0e8a16",
+    "description": "Merge Captain confirmed this PR is ready for its target branch."
+  },
+  {
+    "name": "area: data",
+    "color": "1d76db",
+    "description": "A / Data Research area."
+  },
+  {
+    "name": "area: frontend",
+    "color": "a371f7",
+    "description": "B / Frontend area."
+  },
+  {
+    "name": "area: validation",
+    "color": "0e8a16",
+    "description": "C / Validation area."
+  },
+  {
+    "name": "area: pipeline",
+    "color": "d93f0b",
+    "description": "D / Pipeline area."
+  },
+  {
+    "name": "area: gis",
+    "color": "2da44e",
+    "description": "E / GIS area."
+  },
+  {
+    "name": "area: shared",
+    "color": "6e7781",
+    "description": "Cross-cutting repository or shared contract change."
+  },
+  {
+    "name": "depends-on",
+    "color": "b60205",
+    "description": "This PR depends on another PR or branch."
+  },
+  {
+    "name": "contract-change",
+    "color": "fb8f44",
+    "description": "Changes a shared contract, schema, or cross-role interface."
+  },
+  {
+    "name": "breaking-change",
+    "color": "b60205",
+    "description": "Introduces a backward-incompatible change."
+  },
+  {
+    "name": "ai-authored",
+    "color": "ededed",
+    "description": "AI authored or materially modified this PR."
+  },
+  {
+    "name": "critical-fix",
+    "color": "8b0000",
+    "description": "Critical fix that should be considered before normal integration work."
+  },
+  {
+    "name": "docs-only",
+    "color": "c5def5",
+    "description": "Documentation or repository guidance only."
+  }
+]
