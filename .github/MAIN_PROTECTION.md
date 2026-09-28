@@ -39,12 +39,14 @@ main への最終 merge は Merge Captain が行います。
 Protection は Git 管理ファイルだけでは有効になりません。
 repository admin 権限を持つ人が一度だけ設定します。
 
-PowerShell:
+PowerShell（正規の入口）:
 
 ```powershell
 cd C:\HINANEX
-.\scripts\setup-main-protection.ps1
+.\scripts\run-main-protection.ps1
 ```
+
+`run-main-protection.ps1` は既存 setup script を UTF-8 として明示的に読み込むため、Windows PowerShell でも文字コード差による ParserError を避けられます。
 
 スクリプトは protection を設定する前に、main の最新 `test` workflow が成功していることを確認します。
 CI が赤い場合は設定を中止します。
@@ -60,7 +62,7 @@ gh auth login
 ## Verify
 
 ```powershell
-.\scripts\setup-main-protection.ps1 -VerifyOnly
+.\scripts\run-main-protection.ps1 -VerifyOnly
 ```
 
 または GitHub の repository Settings から Branch protection / Rules を確認できます。

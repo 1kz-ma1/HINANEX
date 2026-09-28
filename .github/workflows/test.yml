@@ -46,3 +46,16 @@ jobs:
           cp contracts/region_export.schema.json /tmp/region_export.schema.json
           python generate_contract_schema.py
           diff -u /tmp/region_export.schema.json contracts/region_export.schema.json
+
+      - name: Parse branch protection PowerShell scripts
+        shell: pwsh
+        working-directory: .
+        run: |
+          $files = @(
+            "scripts/setup-main-protection.ps1",
+            "scripts/run-main-protection.ps1"
+          )
+          foreach ($file in $files) {
+            $content = Get-Content -Raw -Encoding UTF8 $file
+            $null = [scriptblock]::Create($content)
+          }
