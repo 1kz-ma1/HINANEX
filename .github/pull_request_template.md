@@ -86,6 +86,8 @@
 - [ ] target/base branchと最新mainの差分を確認した
 - [ ] main側のshared CI / Contract / test infrastructure変更が今回へ影響しないか確認した
 - [ ] 前提PR / stacked PRの有無を確認した
+- [ ] role-scoped PRでは変更が担当ディレクトリ内だけであることを確認した
+- [ ] Shared / 他担当変更が必要なら別PRへ切り分けた
 - [ ] tests結果を Passed / Failed / Not run に分けて記載した
 - [ ] required checkがred/pendingならIntegration ready扱いにしていない
 - [ ] 必要なら `merge: needs-update` / `merge: blocked` を提案した

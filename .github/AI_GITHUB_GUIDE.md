@@ -128,6 +128,21 @@ Reason:
 
 AI はこの4つを混同しません。
 
+
+### 自動 Scope Guard
+
+role-scoped branch の PR では CI が変更ファイルを確認します。
+
+```text
+feature/b-*
+  ↓
+frontend/** の変更 → PASS
+.github/** や pipeline/** の変更 → FAIL
+```
+
+担当外の変更が必要な場合、role PR の中で直さず Shared / 別担当 PR として分離してください。
+CI を通すために workflow や他担当テストを同じ PR で変更することは禁止です。
+
 ## 4. 前提 PR がある場合
 
 前提変更が未マージでも開発を止める必要はありません。

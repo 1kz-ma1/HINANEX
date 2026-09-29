@@ -221,6 +221,25 @@ AI は以下を同じ「完了」と表現してはいけません。
 
 AI は Implementation complete / PR created の段階で Merge ready と扱ってはいけません。
 
+
+### 3.8 Automated Scope Guard
+
+role-scoped branch では、担当外ファイルの変更を CI で拒否します。
+
+対象例:
+
+- `feature/a-*`, `fix/a-*`, `role/a-data` → `data-research/**` のみ
+- `feature/b-*`, `fix/b-*`, `role/b-frontend` → `frontend/**` のみ
+- `feature/c-*`, `fix/c-*`, `role/c-validation` → `validation/**` のみ
+- `feature/d-*`, `fix/d-*`, `role/d-pipeline` → `pipeline/**` のみ
+- `feature/e-*`, `fix/e-*`, `role/e-gis` → `gis/**` のみ
+
+例えば B の PR で `.github/workflows/**` や `pipeline/**` を変更すると Scope Guard は失敗します。
+
+CI や Shared Contract を変更する必要が本当にある場合は、担当 feature PR に混ぜず、`area: shared` の別 PR として切り分けてください。
+
+Scope Guard を green にする目的で branch 名を偽装したり、guard 自体を role PR 内で変更したりしてはいけません。
+
 ---
 
 ## 4. Disaster-data Safety Rules
