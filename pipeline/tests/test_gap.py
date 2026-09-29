@@ -93,6 +93,10 @@ class GapTests(unittest.TestCase):
         self.assertEqual(capability.status, CapabilityStatus.BLOCKED)
         self.assertEqual(result.gaps[0].kind, GapKind.CONFIRMED_IMPROVEMENT)
         self.assertEqual(result.gaps[0].severity, GapSeverity.HIGH)
+        actions = result.recommendations[0].actions
+        self.assertTrue(any("現在取得しているSource" in action for action in actions))
+        self.assertTrue(any("別の公式データ" in action for action in actions))
+        self.assertTrue(any("推定値を公式値として扱わない" in action for action in actions))
 
     def test_unknown_metric_creates_investigation_gap(self) -> None:
         dataset_assessment = assessment(validity=None)
