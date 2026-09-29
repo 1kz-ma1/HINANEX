@@ -1,0 +1,71 @@
+{
+  "region": {
+    "code": "15100",
+    "name": "新潟県新潟市"
+  },
+  "datasets": [
+    {
+      "region_code": "15100",
+      "region_name": "新潟県新潟市",
+      "requirement_code": "shelter_location",
+      "records": [
+        {
+          "id": "test-niigata-mappable",
+          "name": "TEST 新潟 coordinate record",
+          "latitude": 37.9,
+          "longitude": 139.02,
+          "address": null,
+          "administrative_area": null,
+          "facility_type": "designated_emergency_evacuation_site",
+          "supported_disasters": null,
+          "accessibility": null,
+          "capacity": null,
+          "detail_url": null,
+          "notes": "synthetic E/D contract test record; not a real facility"
+        },
+        {
+          "id": "test-niigata-null",
+          "name": "TEST 新潟 null-coordinate record",
+          "latitude": null,
+          "longitude": null,
+          "address": null,
+          "administrative_area": null,
+          "facility_type": "designated_emergency_evacuation_site",
+          "supported_disasters": null,
+          "accessibility": null,
+          "capacity": null,
+          "detail_url": null,
+          "notes": "synthetic E/D contract test record; not a real facility"
+        }
+      ],
+      "evidence": [
+        {
+          "source_name": "HINANEX E/D CONTRACT TEST",
+          "source_url": null,
+          "publisher": "HINANEX Development Test",
+          "published_at": null,
+          "fetched_at": "2026-09-29T00:00:00Z",
+          "license": null,
+          "source_format": "SYNTHETIC_TEST",
+          "retrieval_method": "LOCAL_DETERMINISTIC_TEST",
+          "notes": "Synthetic integration fixture. Not official disaster data."
+        }
+      ],
+      "normalized_at": "2026-09-29T00:00:00Z"
+    }
+  ],
+  "assessments": [],
+  "capabilities": [],
+  "gaps": [],
+  "recommendations": [],
+  "meta": {
+    "schema_version": "0.9",
+    "generated_at": "2026-09-29T00:00:00Z",
+    "dataset_count": 1,
+    "assessment_count": 0,
+    "capability_count": 0,
+    "gap_count": 0,
+    "recommendation_count": 0,
+    "evidence_count": 1
+  }
+}
