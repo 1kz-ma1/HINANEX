@@ -149,6 +149,20 @@ Reason:
 
 AI はこれらを同じ「完了」と表現してはいけません。
 
+
+## Automated Scope Guard
+
+担当 feature / role branch の PR では、変更パスを CI で検証します。
+
+- A: `data-research/**`
+- B: `frontend/**`
+- C: `validation/**`
+- D: `pipeline/**`
+- E: `gis/**`
+
+担当外ファイルが必要になった場合は、その PR に混ぜず shared / dependent PR として切り分けます。
+特に `.github/workflows/**`、root governance、他担当の tests を role PR から変更して CI を通すことは禁止です。
+
 ## PR Labels
 
 PR の状態と担当を label で表します。
