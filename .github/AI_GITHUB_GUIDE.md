@@ -50,6 +50,84 @@ role/b-frontend
 
 この段階では main に入れる必要はありません。
 
+
+## 3.5 PR Creation Gate
+
+feature branch の実装が終わっても、すぐに「統合準備完了」と判断しません。
+
+AI は PR を作る前に次を確認します。
+
+```text
+Implementation complete
+        ↓
+target/base branch を確認
+        ↓
+最新 main との差分を確認
+        ↓
+依存 PR / shared change を確認
+        ↓
+tests / CI を確認
+        ↓
+PR created
+        ↓
+必要なら base 更新 + 再テスト
+        ↓
+Integration ready
+        ↓
+Merge Captain review
+        ↓
+Merge ready
+```
+
+### base が古い場合
+
+role branch が main より古いこと自体は問題ではありません。
+ただし、main 側の次の変更が今回の検証へ影響する場合は更新が必要です。
+
+- `.github/workflows/**`
+- shared Contract / Schema
+- repository structure
+- shared scripts
+- AI / contribution rules
+- test infrastructure
+
+AI は `main...<target-base>` を比較し、影響する変更を取り込んでいない場合は `merge: needs-update` を提案してください。
+
+### CI が red / pending の場合
+
+- merge を勧めない。
+- 通常の ready 状態として扱わない。
+- base 更新で直るなら先に更新する。
+- 直せない場合は Draft または `merge: blocked` / `merge: needs-update` として提出する。
+- 「自分の差分が原因ではない」だけでは green 扱いにしない。
+
+### テスト結果の書き方
+
+```text
+Passed:
+- node --test: 6 passed
+
+Failed:
+- required check test: failed
+
+Not run:
+- browser E2E
+
+Reason:
+- target role branch が最新 main の CI 修正を未取り込み
+```
+
+一部成功を「すべて成功」とまとめないでください。
+
+### 完了状態の言葉
+
+- Implementation complete = 実装終了
+- PR created = PR作成済み
+- Integration ready = target branch へ統合可能な候補
+- Merge ready = Merge Captain が最終確認済み
+
+AI はこの4つを混同しません。
+
 ## 4. 前提 PR がある場合
 
 前提変更が未マージでも開発を止める必要はありません。

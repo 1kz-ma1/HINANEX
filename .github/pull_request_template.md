@@ -33,9 +33,36 @@
 - 影響する担当:
 - migration:
 
+## Integration readiness
+
+- Target/base branch:
+- Base vs latest main:
+- Shared CI / Contract / repository structure の影響:
+- Current state:
+  - [ ] Implementation complete
+  - [ ] PR created
+  - [ ] Integration ready
+  - [ ] Merge ready（Merge Captainのみ）
+
+<!-- base更新が必要なら merge: needs-update。依存/未解決があれば merge: blocked -->
+
 ## Tests
 
-<!-- 実行したコマンドと結果。未実行なら理由を書く -->
+### Passed
+
+<!-- 成功したコマンドと結果 -->
+
+### Failed
+
+<!-- 失敗がなければ none -->
+
+### Not run
+
+<!-- 未実行がなければ none -->
+
+### Reason / Notes
+
+<!-- 失敗・未実行・base差分の影響など -->
 
 ## Data assumptions
 
@@ -54,8 +81,14 @@
 
 ## Checklist
 
-- [ ] 最新の対象baseを確認した
-- [ ] 必要なtests / CIを実行した、または未実行理由を記載した
+- [ ] `git status` と現在branchを確認した
+- [ ] PRのtarget/base branchを確認した
+- [ ] target/base branchと最新mainの差分を確認した
+- [ ] main側のshared CI / Contract / test infrastructure変更が今回へ影響しないか確認した
+- [ ] 前提PR / stacked PRの有無を確認した
+- [ ] tests結果を Passed / Failed / Not run に分けて記載した
+- [ ] required checkがred/pendingならIntegration ready扱いにしていない
+- [ ] 必要なら `merge: needs-update` / `merge: blocked` を提案した
 - [ ] `score=null` と `score=0` を混同していない
 - [ ] `NOT_FOUND` を自治体の未公開と断定していない
 - [ ] Rawデータ・秘密情報・ローカル絶対パスをコミットしていない
