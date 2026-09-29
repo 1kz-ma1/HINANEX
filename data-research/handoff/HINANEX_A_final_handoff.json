@@ -997,4 +997,842 @@
       "published_at": null,
       "updated_at": "2025-07-02",
       "fetched_at": "2026-09-29",
+      "license": null,      "retrieval_method": "exact_name_join",
+      "machine_readable": false,
+      "human_review_required": false,
+      "notes": "避難所補完施設のうち38施設をバリアフリーマップ掲載名と完全一致で自動対応。船堀コミュニティ会館は公式施設ページで補助確認。学校等の指定避難所全体を網羅するアクセシビリティデータではないためRequirement全体はPARTIAL。"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "region_code": "23100",
+      "requirement_code": null,
+      "requirement_name": "避難所アクセシビリティ",
+      "dataset_name": "指定避難所 × なごやバリアフリーお出かけナビ 確定一致",
+      "discovery_status": "PARTIAL",
+      "source_url": "https://barrierfree.city.nagoya.jp/facilities/",
+      "download_url": null,
+      "publisher": "名古屋市",
+      "source_format": "HTML",
+      "published_at": null,
+      "updated_at": null,
+      "fetched_at": "2026-09-29",
       "license": null,
+      "retrieval_method": "exact_name_address_join",
+      "machine_readable": true,
+      "human_review_required": false,
+      "notes": "現時点で稲永スポーツセンター、パロマ瑞穂アリーナを施設名+住所一致で確定。ナビ自体が避難所全体を網羅しないため未一致施設は設備なしではなくnull/NOT_FOUND扱い。"
+    },
+    {
+      "region_name": "3地域共通",
+      "region_code": null,
+      "requirement_code": null,
+      "requirement_name": "Repository Contract / Code Mapping",
+      "dataset_name": "HINANEX repository formal region codes and current DataRequirement implementation",
+      "discovery_status": "AVAILABLE",
+      "source_url": "https://github.com/1kz-ma1/HINANEX",
+      "download_url": null,
+      "publisher": "HINANEX project repository",
+      "source_format": "GitHub source / Markdown / Python",
+      "published_at": null,
+      "updated_at": "2026-09-29",
+      "fetched_at": "2026-09-29",
+      "license": null,
+      "retrieval_method": "connected_github_repository_read",
+      "machine_readable": true,
+      "human_review_required": false,
+      "notes": "正式地域コード: 江戸川区=13123, 新潟市=15100, 名古屋市=23100。現行D-MVPで正式実装済みDataRequirementコードは shelter_location。shelter_disaster_compatibility / shelter_accessibility / shelter_capacity / flood hazard / inundation depth はARCHITECTURE.md上で今後拡張候補であり正式コード未実装のため、本Manifestではrequirement_code=nullを維持。"
+    }
+  ],
+  "flood_conditions": [
+    {
+      "region_name": "東京都江戸川区",
+      "river_name": "荒川",
+      "condition_scope": "荒川流域",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "72",
+      "rainfall_total_mm": "632",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "river_name": "利根川",
+      "condition_scope": "利根川・八斗島上流域",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "72",
+      "rainfall_total_mm": "491",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "river_name": "江戸川",
+      "condition_scope": "利根川・八斗島上流域",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "72",
+      "rainfall_total_mm": "491",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "river_name": "中川・綾瀬川",
+      "condition_scope": "中川・綾瀬川流域",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "48",
+      "rainfall_total_mm": "596",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "新潟県新潟市",
+      "river_name": "加治川",
+      "condition_scope": "加治川",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "15",
+      "rainfall_total_mm": "460",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "新潟県新潟市",
+      "river_name": "新井郷川ほか",
+      "condition_scope": "新井郷川・福島潟等",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "48",
+      "rainfall_total_mm": "833",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "新潟県新潟市",
+      "river_name": "太田川ほか",
+      "condition_scope": "太田川・松岡川・芋卸江川",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "48",
+      "rainfall_total_mm": "897",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "新潟県新潟市",
+      "river_name": "安野川ほか",
+      "condition_scope": "安野川系",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "775",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "新潟県新潟市",
+      "river_name": "阿賀野川",
+      "condition_scope": "阿賀野川",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "48",
+      "rainfall_total_mm": "382",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "新潟県新潟市",
+      "river_name": "早出川",
+      "condition_scope": "早出川",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "48",
+      "rainfall_total_mm": "809",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "新潟県新潟市",
+      "river_name": "通船川・栗ノ木川下流",
+      "condition_scope": "通船川・栗ノ木川下流",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "813",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "新潟県新潟市",
+      "river_name": "信濃川",
+      "condition_scope": "信濃川",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "48",
+      "rainfall_total_mm": "633",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "新潟県新潟市",
+      "river_name": "栗ノ木川上流ほか",
+      "condition_scope": "栗ノ木川上流・鳥屋野潟等",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "48",
+      "rainfall_total_mm": "895",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "新潟県新潟市",
+      "river_name": "小阿賀野川・能代川",
+      "condition_scope": "小阿賀野川・能代川",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "731",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "新潟県新潟市",
+      "river_name": "東大通川",
+      "condition_scope": "東大通川",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "813",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "新潟県新潟市",
+      "river_name": "五社川",
+      "condition_scope": "五社川",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "813",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "新潟県新潟市",
+      "river_name": "西川",
+      "condition_scope": "西川",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "813",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "新潟県新潟市",
+      "river_name": "新川ほか",
+      "condition_scope": "新川・大通川等",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "36",
+      "rainfall_total_mm": "734",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "新潟県新潟市",
+      "river_name": "鷲ノ木大通川・西大通川",
+      "condition_scope": "鷲ノ木大通川・西大通川",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "48",
+      "rainfall_total_mm": "271",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "新潟県新潟市",
+      "river_name": "中ノ口川",
+      "condition_scope": "中ノ口川",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "48",
+      "rainfall_total_mm": "633",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "新潟県新潟市",
+      "river_name": "矢川ほか",
+      "condition_scope": "矢川系",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "769",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "新潟県新潟市",
+      "river_name": "大河津分水路",
+      "condition_scope": "信濃川流域",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "48",
+      "rainfall_total_mm": "331",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "新潟県新潟市",
+      "river_name": "坂本川・白勢川・宝川",
+      "condition_scope": "坂本川・白勢川・宝川",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "1",
+      "rainfall_total_mm": "150",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "river_name": "庄内川",
+      "condition_scope": "庄内川",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "578",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "river_name": "矢田川",
+      "condition_scope": "矢田川流域",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "735",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "river_name": "香流川",
+      "condition_scope": "香流川流域",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "836",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "river_name": "新川",
+      "condition_scope": "新川",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "751",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "river_name": "五条川",
+      "condition_scope": "五条川上流",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "815",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "river_name": "五条川",
+      "condition_scope": "五条川下流",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "736",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "river_name": "青木川",
+      "condition_scope": "青木川",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "805",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "river_name": "大山川",
+      "condition_scope": "大山川",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "815",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "river_name": "新川流域その他河川",
+      "condition_scope": "新川流域・その他河川",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "836",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "river_name": "堀川・新堀川",
+      "condition_scope": "堀川流域",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "793",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "river_name": "八田川・生地川",
+      "condition_scope": "八田川流域",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "836",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "river_name": "長戸川・野添川",
+      "condition_scope": "長戸川・野添川流域",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "836",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "river_name": "内津川ほか",
+      "condition_scope": "内津川流域",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "836",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "river_name": "天白川系",
+      "condition_scope": "天白川流域",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "774",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "river_name": "扇川",
+      "condition_scope": "扇川流域",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "836",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "river_name": "山崎川",
+      "condition_scope": "山崎川流域",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "836",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "river_name": "日光川",
+      "condition_scope": "日光川",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "713",
+      "evidence_status": "CONFIRMED"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "river_name": "日光川支川",
+      "condition_scope": "日光川流域・支川",
+      "scenario": "想定最大規模",
+      "rainfall_duration_hours": "24",
+      "rainfall_total_mm": "836",
+      "evidence_status": "SUPPORTING"
+    }
+  ],
+  "accessibility_matches": [
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "小松川さくらホール",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "平井コミュニティ会館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "中平井コミュニティ会館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "小松川図書館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "共育プラザ平井",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "松江区民プラザ",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "コミュニティプラザ一之江",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "松江コミュニティ会館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "一之江コミュニティ会館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "松島コミュニティ会館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "中央図書館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "共育プラザ一之江",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "南葛西会館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "北葛西コミュニティ会館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "二之江コミュニティ会館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "新田コミュニティ会館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "清新町コミュニティ会館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "臨海町コミュニティ会館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "東葛西コミュニティ会館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "長島桑川コミュニティ会館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "葛西図書館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "西葛西図書館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "共育プラザ葛西",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "小岩アーバンプラザ",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "西小岩コミュニティ会館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "北小岩コミュニティ会館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "南小岩コミュニティ会館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "小岩図書館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "共育プラザ小岩",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "共育プラザ南小岩",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "上一色コミュニティセンター",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "東部フレンドホール",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "瑞江コミュニティ会館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "江戸川コミュニティ会館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "東部図書館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "共育プラザ南篠崎",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "子ども未来館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "鹿骨区民館",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME",
+      "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
+      "human_review_required": "False",
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+    },
+    {
+      "region_name": "東京都江戸川区",
+      "facility_name": "船堀コミュニティ会館",
+      "match_status": "PARTIAL",
+      "match_method": "EXACT_NAME_PLUS_OFFICIAL_ADDRESS",
+      "accessibility_source": "江戸川区公式施設ページ",
+      "human_review_required": "False",
+      "notes": "公共施設版バリアフリーPDFでは確認できず。公式施設ページで施設名・住所（船堀1-3-1）と一部アクセシビリティ情報を確認。包括的設備項目はnullを維持。"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "facility_name": "稲永スポーツセンター",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME_ADDRESS",
+      "accessibility_source": "なごやバリアフリーお出かけナビ",
+      "human_review_required": "False",
+      "notes": "名古屋市の指定緊急避難場所・指定避難所一覧と、バリアフリーナビの施設名・住所が一致。"
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "facility_name": "パロマ瑞穂アリーナ",
+      "match_status": "MATCHED",
+      "match_method": "EXACT_NAME_ADDRESS",
+      "accessibility_source": "なごやバリアフリーお出かけナビ",
+      "human_review_required": "False",
+      "notes": "名古屋市の指定避難所一覧と、バリアフリーナビの施設名・住所（田辺通3丁目4番地）が一致。"
+    }
+  ],
+  "remaining_tasks": [
+    {
+      "task": "HINANEX GitHubリポジトリ特定・Contract確認",
+      "status": "RESOLVED",
+      "result": "1kz-ma1/HINANEX を特定。root/data-research/pipeline AGENTS、CONTRIBUTING、AI_GITHUB_GUIDE、HANDOFF_A、HANDOFF_CONTRACT v1.0、ARCHITECTURE、model/adaptersを確認。",
+      "remaining": "なし",
+      "human_review_required": "False"
+    },
+    {
+      "task": "region_code確定",
+      "status": "RESOLVED",
+      "result": "江戸川区=13123、新潟市=15100、名古屋市=23100。",
+      "remaining": "なし",
+      "human_review_required": "False"
+    },
+    {
+      "task": "requirement_code確定",
+      "status": "RESOLVED_CURRENT_MVP_ONLY",
+      "result": "現行D-MVPで正式実装済みは shelter_location のみ。既存Adapterが直接扱うEvidenceにのみ付与。",
+      "remaining": "洪水・アクセシビリティ等はD側でDataRequirement追加時に正式コードを定義する必要あり。A側では推測しない。",
+      "human_review_required": "False"
+    },
+    {
+      "task": "新潟市・名古屋市 A31a×自治体境界 実空間交差",
+      "status": "BLOCKED_TECHNICAL",
+      "result": "国交省2025 A31aの県別GeoJSONファイル名・サイズ・属性・ライセンスを公式ページで確認済み。取得URL規則も補助情報で確認したが、この実行環境からZIP実体を直接取得できず。",
+      "remaining": "D/E環境でA31a-25_15_10/20_GEOJSON.zip と A31a-25_23_10/20_GEOJSON.zip を取得し、N03-2026市境界とintersection。",
+      "human_review_required": "False"
+    },
+    {
+      "task": "江戸川区・新潟市の避難施設法定/現行対応",
+      "status": "RESOLVED_PARTIALLY",
+      "result": "新潟市現行指定避難所335施設を公式集計で確認。江戸川区は法定指定避難所/指定緊急避難場所の位置付け確認済み。",
+      "remaining": "江戸川区独自CSV全行を法定区分へ完全自動マッピングするには行単位照合が残る。",
+      "human_review_required": "False"
+    },
+    {
+      "task": "江戸川区・名古屋市 アクセシビリティJOIN",
+      "status": "RESOLVED_PARTIALLY",
+      "result": "完全一致/施設名+住所一致ルールと確定一致例を作成。",
+      "remaining": "公式アクセシビリティソース自体が指定避難所全体を網羅しないためRequirementはPARTIALのまま。",
+      "human_review_required": "False"
+    }
+  ],
+  "notes": [
+    "Capability / Gap / Recommendation はA担当では評価・確定しない。",
+    "未確認値は推測せず null / UNKNOWN / PARTIAL / NOT_FOUND 等で保持する。",
+    "NOT_FOUND は『現在のHINANEX探索経路では確認できなかった』の意味。",
+    "A31a×N03の実空間intersectionのみ実行環境制約で未実施。D/E側で機械処理可能。"
+  ]
+}
