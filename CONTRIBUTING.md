@@ -119,9 +119,80 @@ AI が作成・修正した PR には最低限以下を記載します。
 
 AI は `main` への merge、force push、テスト削除による失敗隠蔽、防災データの推測補完を行ってはいけません。
 
+
+## PR Creation Gate
+
+「実装完了」と「統合可能」は別です。
+
+PR 作成前に、現在 branch、target/base、最新 main との差分、依存 PR、Shared Contract / CI への影響、必要な tests / CI を確認してください。
+
+role branch が main より古い場合でも作業は継続できますが、main 側の shared CI / Contract / repository structure / test infrastructure 等の変更が今回の検証へ影響する場合は、統合前に最新化して再テストします。
+
+required check や必要な CI が red / pending の PR は Integration ready と扱いません。
+原因が既知の base 側問題でも、無視して merge せず、`merge: needs-update` または `merge: blocked` を使って状態を明示してください。
+
+Tests は以下を分けて記録します。
+
+```text
+Passed:
+Failed:
+Not run:
+Reason:
+```
+
+状態の意味:
+
+- Implementation complete: 実装が完了
+- PR created: PR作成済み
+- Integration ready: base鮮度・依存・tests/CIを確認済み
+- Merge ready: Merge Captainが最終確認済み
+
+AI はこれらを同じ「完了」と表現してはいけません。
+
+
+## Automated Scope Guard
+
+担当 feature / role branch の PR では、変更パスを CI で検証します。
+
+- A: `data-research/**`
+- B: `frontend/**`
+- C: `validation/**`
+- D: `pipeline/**`
+- E: `gis/**`
+
+担当外ファイルが必要になった場合は、その PR に混ぜず shared / dependent PR として切り分けます。
+特に `.github/workflows/**`、root governance、他担当の tests を role PR から変更して CI を通すことは禁止です。
+
+## PR Labels
+
+PR の状態と担当を label で表します。
+
+- Area: `area: data`, `area: frontend`, `area: validation`, `area: pipeline`, `area: gis`, `area: shared`
+- Dependency / change: `depends-on`, `contract-change`, `breaking-change`, `critical-fix`, `docs-only`, `ai-authored`
+- Merge state: `merge: blocked`, `merge: needs-update`, `merge: captain-review`, `merge: ready`
+
+`merge: ready` は Merge Captain が最終確認後に使用します。
+AI は前提 PR がある場合に `depends-on` と `merge: blocked` を推奨し、最新 base への追従が必要なら `merge: needs-update` を推奨します。
+
+Label 定義の正本は `.github/labels.json` です。
+詳しい AI 向け GitHub 操作ガイドは `.github/AI_GITHUB_GUIDE.md` を参照してください。
+
 ## 詳細ルール
 
 - AI 共通ルール: `AGENTS.md`
+- AI向けGitHub操作: `.github/AI_GITHUB_GUIDE.md`
+- Label定義: `.github/labels.json`
 - D / pipeline: `pipeline/AGENTS.md`
 - D の Git 運用ドキュメント: `pipeline/docs/GIT_WORKFLOW.md`
 - 統合チェック: `pipeline/docs/INTEGRATION_CHECKLIST.md`
+
+## main Protection
+
+`main` は Pull Request と required check `test` で保護します。
+
+main に統合するPRは:
+- 最新 main へ追従する
+- CI `test` を green にする
+- Merge Captain の最終確認を受ける
+
+必要な初期設定と確認方法は `.github/MAIN_PROTECTION.md` を参照してください。

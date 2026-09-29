@@ -1,0 +1,52 @@
+name: Sync repository labels
+
+"on":
+  push:
+    branches: [main]
+    paths:
+      - ".github/labels.json"
+      - ".github/workflows/sync-labels.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  sync-labels:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create or update labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json
+          import subprocess
+          from pathlib import Path
+
+          labels = json.loads(Path(".github/labels.json").read_text(encoding="utf-8"))
+
+          for label in labels:
+              subprocess.run(
+                  [
+                      "gh",
+                      "label",
+                      "create",
+                      label["name"],
+                      "--repo",
+                      "${{ github.repository }}",
+                      "--color",
+                      label["color"],
+                      "--description",
+                      label["description"],
+                      "--force",
+                  ],
+                  check=True,
+              )
+          PY

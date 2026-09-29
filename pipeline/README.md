@@ -66,6 +66,18 @@ python -m unittest discover -s tests -v
 
 PRではGitHub Actionsが同じテストを実行し、コミット済みJSON SchemaがPydanticモデルと同期していることも検証します。
 
+## A → D Integration Check
+
+A担当のEvidence handoffとD Pipelineの接続前提は、通常のunit testに加えて実データ出力でも確認できます。
+
+```powershell
+python run_all_workflows.py
+python verify_d_mvp.py
+python verify_a_handoff_integration.py
+```
+
+詳細は `docs/A_D_INTEGRATION.md` を参照してください。
+
 ## バージョン
 
 - Project release: `v1.0-D-MVP`

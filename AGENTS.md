@@ -120,6 +120,126 @@ main へ merge する直前に必ず:
 
 AI は古い base のまま「以前テストが通った」という理由で merge を勧めてはいけません。
 
+### 3.6 PR labels
+
+Label の正本は `.github/labels.json` です。
+GitHub 操作に不慣れなメンバーを案内するときは `.github/AI_GITHUB_GUIDE.md` も参照してください。
+
+AI は PR ごとに適切な label を提案してください。
+
+Area:
+
+- `area: data`
+- `area: frontend`
+- `area: validation`
+- `area: pipeline`
+- `area: gis`
+- `area: shared`
+
+Change metadata:
+
+- `depends-on`
+- `contract-change`
+- `breaking-change`
+- `critical-fix`
+- `docs-only`
+- `ai-authored`
+
+Merge state:
+
+- `merge: blocked`
+- `merge: needs-update`
+- `merge: captain-review`
+- `merge: ready`
+
+`merge: ready` は Merge Captain の判断を表します。
+AI は人間から明示的に依頼されていない限り、独断で `merge: ready` を設定・提案してはいけません。
+
+前提 PR が未解決なら `depends-on` と `merge: blocked` を推奨します。
+最新 base の取り込み・再テストが必要なら `merge: needs-update` を推奨します。
+main 統合の最終確認待ちなら `merge: captain-review` を推奨します。
+
+
+### 3.7 PR Creation Gate / Integration Readiness
+
+AI は「実装が終わった」ことと「PRを統合候補として提出できる」ことを区別してください。
+
+PR 作成前に最低限、以下を確認します。
+
+1. `git status`
+2. 現在 branch
+3. PR の target/base branch
+4. target/base branch と最新 `main` の差分
+5. CI / tests の状態
+6. 前提 PR / stacked PR の有無
+7. Shared Contract / Schema / CI / Infrastructure の変更有無
+
+#### Base freshness
+
+role branch は常に main と同一である必要はありません。
+ただし、main 側の変更が今回の検証・契約・統合に影響する場合は、古い base のまま統合候補にしてはいけません。
+
+特に main 側で次が変更されている場合は影響を確認してください。
+
+- `.github/workflows/**`
+- shared Contract / Schema
+- repository structure
+- shared scripts
+- `AGENTS.md` / `CONTRIBUTING.md`
+- test infrastructure
+
+影響する変更を取り込んでいない場合は `merge: needs-update` として扱い、target/base を更新してから tests / CI を再実行します。
+
+#### CI gate
+
+required check または今回の変更に必要な CI が `red` / `pending` の場合:
+
+- merge を勧めない。
+- 「Integration ready」「Merge ready」「実装完了ですべて確認済み」と表現しない。
+- 原因が base 側の既知問題でも無視しない。
+- 更新で解消できる場合は base を更新して再実行する。
+- すぐ解消できない場合は Draft または `merge: blocked` / `merge: needs-update` として人間へ報告する。
+
+#### Test result reporting
+
+一部のテストだけが成功した場合に「tests passed」と総括してはいけません。
+PR では最低限、以下を分けて記載してください。
+
+- Passed
+- Failed
+- Not run
+- Reason
+
+#### Completion terminology
+
+AI は以下を同じ「完了」と表現してはいけません。
+
+- **Implementation complete**: コードや文書の実装が完了した。
+- **PR created**: PR を作成した。
+- **Integration ready**: base の鮮度・依存関係・必要 tests / CI を確認し、target branch へ統合可能な候補になった。
+- **Merge ready**: Merge Captain が最終確認し、統合可能と判断した。
+
+AI は Implementation complete / PR created の段階で Merge ready と扱ってはいけません。
+
+
+### 3.8 Automated Scope Guard
+
+role-scoped branch では、担当外ファイルの変更を CI で拒否します。
+
+対象例:
+
+- `feature/a-*`, `fix/a-*`, `role/a-data` → `data-research/**` のみ
+- `feature/b-*`, `fix/b-*`, `role/b-frontend` → `frontend/**` のみ
+- `feature/c-*`, `fix/c-*`, `role/c-validation` → `validation/**` のみ
+- `feature/d-*`, `fix/d-*`, `role/d-pipeline` → `pipeline/**` のみ
+- `feature/e-*`, `fix/e-*`, `role/e-gis` → `gis/**` のみ
+
+例えば B の PR で `.github/workflows/**` や `pipeline/**` を変更すると Scope Guard は失敗します。
+
+CI や Shared Contract を変更する必要が本当にある場合は、担当 feature PR に混ぜず、`area: shared` の別 PR として切り分けてください。
+
+Scope Guard を green にする目的で branch 名を偽装したり、guard 自体を role PR 内で変更したりしてはいけません。
+
 ---
 
 ## 4. Disaster-data Safety Rules
@@ -372,3 +492,22 @@ HINANEX では AI の開発速度よりも、
 **分からない値を埋めるより null にする。**
 **依存関係を無視して merge するより待つ。**
 **大きく書き換えるより小さく安全に変更する。**
+
+## 14. main Branch Protection and Required Checks
+
+`main` は GitHub 側の branch protection でも保護します。
+
+Required check:
+- `test`
+
+AI は main 統合前に以下を満たす必要があります。
+
+- Pull Request 経由である。
+- 最新 main を取り込んでいる。
+- required check `test` が成功している。
+- force push や protection 回避を提案しない。
+- failing test を削除・skipして green に見せない。
+
+Branch protection の設定手順と確認方法は `.github/MAIN_PROTECTION.md` を参照してください。
+
+required check が red / pending の PR は `merge: ready` と扱ってはいけません。
