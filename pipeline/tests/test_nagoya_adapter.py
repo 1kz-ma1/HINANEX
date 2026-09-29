@@ -27,6 +27,10 @@ class NagoyaShelterAdapterTests(unittest.TestCase):
         self.assertTrue(links[0][1].endswith("chikusa.xls"))
         self.assertEqual(links[1][0], "東区")
 
+    def test_dataset_scope_explicitly_excludes_outdoor_files(self) -> None:
+        self.assertIn("16区別の屋内施設Excelのみ", NagoyaShelterAdapter.DATASET_SCOPE_NOTE)
+        self.assertIn("屋外施設データは含めていない", NagoyaShelterAdapter.DATASET_SCOPE_NOTE)
+
     def test_extracts_page_update_date(self) -> None:
         html = "<p>ページID1013492 更新日 2026年9月15日</p>"
         updated = NagoyaShelterAdapter.extract_page_update_date(html)
