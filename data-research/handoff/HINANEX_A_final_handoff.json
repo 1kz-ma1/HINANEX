@@ -631,7 +631,7 @@
       "dataset_name": "指定緊急避難場所・指定避難所の一覧表（屋内施設16区＋屋外施設）",
       "discovery_status": "AVAILABLE",
       "source_url": "https://www.city.nagoya.jp/bousaiportal/hinan/1013390/1013492.html",
-      "download_url": "16区別屋内施設Excel＋屋外2Excel（公式ページから個別取得）",
+      "download_url": null,
       "publisher": null,
       "source_format": "Excel (.xls)",
       "published_at": null,
@@ -641,7 +641,7 @@
       "retrieval_method": null,
       "machine_readable": null,
       "human_review_required": false,
-      "notes": "屋内施設は16区別。PDF版でも列構造を公式資料で確認。洪水・内水対応を直接保持できる。"
+      "notes": "屋内施設は16区別。PDF版でも列構造を公式資料で確認。洪水・内水対応を直接保持できる。 | download_url補足: 16区別屋内施設Excel＋屋外2Excel（公式ページから個別取得）"
     },
     {
       "region_name": "愛知県名古屋市",
@@ -651,7 +651,7 @@
       "dataset_name": "指定緊急避難場所・指定避難所の一覧表（屋内施設16区）",
       "discovery_status": "AVAILABLE",
       "source_url": "https://www.city.nagoya.jp/bousaiportal/hinan/1013390/1013492.html",
-      "download_url": "16区別屋内施設Excel（公式ページから個別取得）",
+      "download_url": null,
       "publisher": null,
       "source_format": "Excel (.xls)",
       "published_at": null,
@@ -661,7 +661,7 @@
       "retrieval_method": null,
       "machine_readable": null,
       "human_review_required": false,
-      "notes": "指定避難所列が同一Excel内にあるため、指定緊急避難場所との関係を同一行で保持可能。"
+      "notes": "指定避難所列が同一Excel内にあるため、指定緊急避難場所との関係を同一行で保持可能。 | download_url補足: 16区別屋内施設Excel（公式ページから個別取得）"
     },
     {
       "region_name": "愛知県名古屋市",
@@ -671,7 +671,7 @@
       "dataset_name": "指定緊急避難場所・指定避難所の一覧表",
       "discovery_status": "AVAILABLE",
       "source_url": "https://www.city.nagoya.jp/bousaiportal/hinan/1013390/1013492.html",
-      "download_url": "16区別屋内施設Excel",
+      "download_url": null,
       "publisher": null,
       "source_format": "Excel (.xls)",
       "published_at": null,
@@ -681,7 +681,7 @@
       "retrieval_method": null,
       "machine_readable": null,
       "human_review_required": false,
-      "notes": "洪水MVPでは『洪水・内水』列を使用可能。数字は避難可能階数を表す。"
+      "notes": "洪水MVPでは『洪水・内水』列を使用可能。数字は避難可能階数を表す。 | download_url補足: 16区別屋内施設Excel"
     },
     {
       "region_name": "3地域共通",
@@ -691,7 +691,7 @@
       "dataset_name": "国土地理院 指定緊急避難場所・指定避難所データ",
       "discovery_status": "AVAILABLE",
       "source_url": "https://hinanmap.gsi.go.jp/hinanjocp/hinanbasho/koukaidate.html",
-      "download_url": "市町村別CSV / 地理院タイルGeoJSON",
+      "download_url": null,
       "publisher": null,
       "source_format": "CSV / GeoJSON",
       "published_at": null,
@@ -701,7 +701,7 @@
       "retrieval_method": null,
       "machine_readable": null,
       "human_review_required": false,
-      "notes": "市町村提供・公開同意済みデータのみ。自治体公式データとの照合用に有効。最新性は市町村公式を優先。"
+      "notes": "市町村提供・公開同意済みデータのみ。自治体公式データとの照合用に有効。最新性は市町村公式を優先。 | download_url補足: 市町村別CSV / 地理院タイルGeoJSON"
     },
     {
       "region_name": "東京都江戸川区",
@@ -997,7 +997,8 @@
       "published_at": null,
       "updated_at": "2025-07-02",
       "fetched_at": "2026-09-29",
-      "license": null,      "retrieval_method": "exact_name_join",
+      "license": null,
+      "retrieval_method": "exact_name_join",
       "machine_readable": false,
       "human_review_required": false,
       "notes": "避難所補完施設のうち38施設をバリアフリーマップ掲載名と完全一致で自動対応。船堀コミュニティ会館は公式施設ページで補助確認。学校等の指定避難所全体を網羅するアクセシビリティデータではないためRequirement全体はPARTIAL。"
@@ -1049,369 +1050,410 @@
       "river_name": "荒川",
       "condition_scope": "荒川流域",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "72",
-      "rainfall_total_mm": "632",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 72,
+      "rainfall_total_mm": 632,
+      "evidence_status": "CONFIRMED",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
       "river_name": "利根川",
       "condition_scope": "利根川・八斗島上流域",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "72",
-      "rainfall_total_mm": "491",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 72,
+      "rainfall_total_mm": 491,
+      "evidence_status": "CONFIRMED",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
       "river_name": "江戸川",
       "condition_scope": "利根川・八斗島上流域",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "72",
-      "rainfall_total_mm": "491",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 72,
+      "rainfall_total_mm": 491,
+      "evidence_status": "CONFIRMED",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
       "river_name": "中川・綾瀬川",
       "condition_scope": "中川・綾瀬川流域",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "48",
-      "rainfall_total_mm": "596",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 48,
+      "rainfall_total_mm": 596,
+      "evidence_status": "CONFIRMED",
+      "region_code": "13123"
     },
     {
       "region_name": "新潟県新潟市",
       "river_name": "加治川",
       "condition_scope": "加治川",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "15",
-      "rainfall_total_mm": "460",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 15,
+      "rainfall_total_mm": 460,
+      "evidence_status": "CONFIRMED",
+      "region_code": "15100"
     },
     {
       "region_name": "新潟県新潟市",
       "river_name": "新井郷川ほか",
       "condition_scope": "新井郷川・福島潟等",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "48",
-      "rainfall_total_mm": "833",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 48,
+      "rainfall_total_mm": 833,
+      "evidence_status": "CONFIRMED",
+      "region_code": "15100"
     },
     {
       "region_name": "新潟県新潟市",
       "river_name": "太田川ほか",
       "condition_scope": "太田川・松岡川・芋卸江川",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "48",
-      "rainfall_total_mm": "897",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 48,
+      "rainfall_total_mm": 897,
+      "evidence_status": "CONFIRMED",
+      "region_code": "15100"
     },
     {
       "region_name": "新潟県新潟市",
       "river_name": "安野川ほか",
       "condition_scope": "安野川系",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "775",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 775,
+      "evidence_status": "CONFIRMED",
+      "region_code": "15100"
     },
     {
       "region_name": "新潟県新潟市",
       "river_name": "阿賀野川",
       "condition_scope": "阿賀野川",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "48",
-      "rainfall_total_mm": "382",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 48,
+      "rainfall_total_mm": 382,
+      "evidence_status": "CONFIRMED",
+      "region_code": "15100"
     },
     {
       "region_name": "新潟県新潟市",
       "river_name": "早出川",
       "condition_scope": "早出川",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "48",
-      "rainfall_total_mm": "809",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 48,
+      "rainfall_total_mm": 809,
+      "evidence_status": "CONFIRMED",
+      "region_code": "15100"
     },
     {
       "region_name": "新潟県新潟市",
       "river_name": "通船川・栗ノ木川下流",
       "condition_scope": "通船川・栗ノ木川下流",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "813",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 813,
+      "evidence_status": "CONFIRMED",
+      "region_code": "15100"
     },
     {
       "region_name": "新潟県新潟市",
       "river_name": "信濃川",
       "condition_scope": "信濃川",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "48",
-      "rainfall_total_mm": "633",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 48,
+      "rainfall_total_mm": 633,
+      "evidence_status": "CONFIRMED",
+      "region_code": "15100"
     },
     {
       "region_name": "新潟県新潟市",
       "river_name": "栗ノ木川上流ほか",
       "condition_scope": "栗ノ木川上流・鳥屋野潟等",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "48",
-      "rainfall_total_mm": "895",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 48,
+      "rainfall_total_mm": 895,
+      "evidence_status": "CONFIRMED",
+      "region_code": "15100"
     },
     {
       "region_name": "新潟県新潟市",
       "river_name": "小阿賀野川・能代川",
       "condition_scope": "小阿賀野川・能代川",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "731",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 731,
+      "evidence_status": "CONFIRMED",
+      "region_code": "15100"
     },
     {
       "region_name": "新潟県新潟市",
       "river_name": "東大通川",
       "condition_scope": "東大通川",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "813",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 813,
+      "evidence_status": "CONFIRMED",
+      "region_code": "15100"
     },
     {
       "region_name": "新潟県新潟市",
       "river_name": "五社川",
       "condition_scope": "五社川",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "813",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 813,
+      "evidence_status": "CONFIRMED",
+      "region_code": "15100"
     },
     {
       "region_name": "新潟県新潟市",
       "river_name": "西川",
       "condition_scope": "西川",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "813",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 813,
+      "evidence_status": "CONFIRMED",
+      "region_code": "15100"
     },
     {
       "region_name": "新潟県新潟市",
       "river_name": "新川ほか",
       "condition_scope": "新川・大通川等",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "36",
-      "rainfall_total_mm": "734",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 36,
+      "rainfall_total_mm": 734,
+      "evidence_status": "CONFIRMED",
+      "region_code": "15100"
     },
     {
       "region_name": "新潟県新潟市",
       "river_name": "鷲ノ木大通川・西大通川",
       "condition_scope": "鷲ノ木大通川・西大通川",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "48",
-      "rainfall_total_mm": "271",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 48,
+      "rainfall_total_mm": 271,
+      "evidence_status": "CONFIRMED",
+      "region_code": "15100"
     },
     {
       "region_name": "新潟県新潟市",
       "river_name": "中ノ口川",
       "condition_scope": "中ノ口川",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "48",
-      "rainfall_total_mm": "633",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 48,
+      "rainfall_total_mm": 633,
+      "evidence_status": "CONFIRMED",
+      "region_code": "15100"
     },
     {
       "region_name": "新潟県新潟市",
       "river_name": "矢川ほか",
       "condition_scope": "矢川系",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "769",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 769,
+      "evidence_status": "CONFIRMED",
+      "region_code": "15100"
     },
     {
       "region_name": "新潟県新潟市",
       "river_name": "大河津分水路",
       "condition_scope": "信濃川流域",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "48",
-      "rainfall_total_mm": "331",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 48,
+      "rainfall_total_mm": 331,
+      "evidence_status": "CONFIRMED",
+      "region_code": "15100"
     },
     {
       "region_name": "新潟県新潟市",
       "river_name": "坂本川・白勢川・宝川",
       "condition_scope": "坂本川・白勢川・宝川",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "1",
-      "rainfall_total_mm": "150",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 1,
+      "rainfall_total_mm": 150,
+      "evidence_status": "CONFIRMED",
+      "region_code": "15100"
     },
     {
       "region_name": "愛知県名古屋市",
       "river_name": "庄内川",
       "condition_scope": "庄内川",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "578",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 578,
+      "evidence_status": "CONFIRMED",
+      "region_code": "23100"
     },
     {
       "region_name": "愛知県名古屋市",
       "river_name": "矢田川",
       "condition_scope": "矢田川流域",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "735",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 735,
+      "evidence_status": "CONFIRMED",
+      "region_code": "23100"
     },
     {
       "region_name": "愛知県名古屋市",
       "river_name": "香流川",
       "condition_scope": "香流川流域",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "836",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 836,
+      "evidence_status": "CONFIRMED",
+      "region_code": "23100"
     },
     {
       "region_name": "愛知県名古屋市",
       "river_name": "新川",
       "condition_scope": "新川",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "751",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 751,
+      "evidence_status": "CONFIRMED",
+      "region_code": "23100"
     },
     {
       "region_name": "愛知県名古屋市",
       "river_name": "五条川",
       "condition_scope": "五条川上流",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "815",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 815,
+      "evidence_status": "CONFIRMED",
+      "region_code": "23100"
     },
     {
       "region_name": "愛知県名古屋市",
       "river_name": "五条川",
       "condition_scope": "五条川下流",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "736",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 736,
+      "evidence_status": "CONFIRMED",
+      "region_code": "23100"
     },
     {
       "region_name": "愛知県名古屋市",
       "river_name": "青木川",
       "condition_scope": "青木川",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "805",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 805,
+      "evidence_status": "CONFIRMED",
+      "region_code": "23100"
     },
     {
       "region_name": "愛知県名古屋市",
       "river_name": "大山川",
       "condition_scope": "大山川",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "815",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 815,
+      "evidence_status": "CONFIRMED",
+      "region_code": "23100"
     },
     {
       "region_name": "愛知県名古屋市",
       "river_name": "新川流域その他河川",
       "condition_scope": "新川流域・その他河川",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "836",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 836,
+      "evidence_status": "CONFIRMED",
+      "region_code": "23100"
     },
     {
       "region_name": "愛知県名古屋市",
       "river_name": "堀川・新堀川",
       "condition_scope": "堀川流域",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "793",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 793,
+      "evidence_status": "CONFIRMED",
+      "region_code": "23100"
     },
     {
       "region_name": "愛知県名古屋市",
       "river_name": "八田川・生地川",
       "condition_scope": "八田川流域",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "836",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 836,
+      "evidence_status": "CONFIRMED",
+      "region_code": "23100"
     },
     {
       "region_name": "愛知県名古屋市",
       "river_name": "長戸川・野添川",
       "condition_scope": "長戸川・野添川流域",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "836",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 836,
+      "evidence_status": "CONFIRMED",
+      "region_code": "23100"
     },
     {
       "region_name": "愛知県名古屋市",
       "river_name": "内津川ほか",
       "condition_scope": "内津川流域",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "836",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 836,
+      "evidence_status": "CONFIRMED",
+      "region_code": "23100"
     },
     {
       "region_name": "愛知県名古屋市",
       "river_name": "天白川系",
       "condition_scope": "天白川流域",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "774",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 774,
+      "evidence_status": "CONFIRMED",
+      "region_code": "23100"
     },
     {
       "region_name": "愛知県名古屋市",
       "river_name": "扇川",
       "condition_scope": "扇川流域",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "836",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 836,
+      "evidence_status": "CONFIRMED",
+      "region_code": "23100"
     },
     {
       "region_name": "愛知県名古屋市",
       "river_name": "山崎川",
       "condition_scope": "山崎川流域",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "836",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 836,
+      "evidence_status": "CONFIRMED",
+      "region_code": "23100"
     },
     {
       "region_name": "愛知県名古屋市",
       "river_name": "日光川",
       "condition_scope": "日光川",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "713",
-      "evidence_status": "CONFIRMED"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 713,
+      "evidence_status": "CONFIRMED",
+      "region_code": "23100"
     },
     {
       "region_name": "愛知県名古屋市",
       "river_name": "日光川支川",
       "condition_scope": "日光川流域・支川",
       "scenario": "想定最大規模",
-      "rainfall_duration_hours": "24",
-      "rainfall_total_mm": "836",
-      "evidence_status": "SUPPORTING"
+      "rainfall_duration_hours": 24,
+      "rainfall_total_mm": 836,
+      "evidence_status": "SUPPORTING",
+      "region_code": "23100"
     }
   ],
   "accessibility_matches": [
@@ -1421,8 +1463,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1430,8 +1473,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1439,8 +1483,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1448,8 +1493,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1457,8 +1503,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1466,8 +1513,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1475,8 +1523,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1484,8 +1533,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1493,8 +1543,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1502,8 +1553,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1511,8 +1563,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1520,8 +1573,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1529,8 +1583,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1538,8 +1593,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1547,8 +1603,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1556,8 +1613,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1565,8 +1623,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1574,8 +1633,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1583,8 +1643,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1592,8 +1653,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1601,8 +1663,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1610,8 +1673,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1619,8 +1683,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1628,8 +1693,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1637,8 +1703,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1646,8 +1713,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1655,8 +1723,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1664,8 +1733,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1673,8 +1743,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1682,8 +1753,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1691,8 +1763,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1700,8 +1773,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1709,8 +1783,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1718,8 +1793,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1727,8 +1803,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1736,8 +1813,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1745,8 +1823,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1754,8 +1833,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME",
       "accessibility_source": "江戸川区バリアフリーマップ 公共施設版",
-      "human_review_required": "False",
-      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。"
+      "human_review_required": false,
+      "notes": "避難所補完施設側の公式施設名とバリアフリーマップ掲載名を完全一致で対応。",
+      "region_code": "13123"
     },
     {
       "region_name": "東京都江戸川区",
@@ -1763,8 +1843,9 @@
       "match_status": "PARTIAL",
       "match_method": "EXACT_NAME_PLUS_OFFICIAL_ADDRESS",
       "accessibility_source": "江戸川区公式施設ページ",
-      "human_review_required": "False",
-      "notes": "公共施設版バリアフリーPDFでは確認できず。公式施設ページで施設名・住所（船堀1-3-1）と一部アクセシビリティ情報を確認。包括的設備項目はnullを維持。"
+      "human_review_required": false,
+      "notes": "公共施設版バリアフリーPDFでは確認できず。公式施設ページで施設名・住所（船堀1-3-1）と一部アクセシビリティ情報を確認。包括的設備項目はnullを維持。",
+      "region_code": "13123"
     },
     {
       "region_name": "愛知県名古屋市",
@@ -1772,8 +1853,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME_ADDRESS",
       "accessibility_source": "なごやバリアフリーお出かけナビ",
-      "human_review_required": "False",
-      "notes": "名古屋市の指定緊急避難場所・指定避難所一覧と、バリアフリーナビの施設名・住所が一致。"
+      "human_review_required": false,
+      "notes": "名古屋市の指定緊急避難場所・指定避難所一覧と、バリアフリーナビの施設名・住所が一致。",
+      "region_code": "23100"
     },
     {
       "region_name": "愛知県名古屋市",
@@ -1781,8 +1863,9 @@
       "match_status": "MATCHED",
       "match_method": "EXACT_NAME_ADDRESS",
       "accessibility_source": "なごやバリアフリーお出かけナビ",
-      "human_review_required": "False",
-      "notes": "名古屋市の指定避難所一覧と、バリアフリーナビの施設名・住所（田辺通3丁目4番地）が一致。"
+      "human_review_required": false,
+      "notes": "名古屋市の指定避難所一覧と、バリアフリーナビの施設名・住所（田辺通3丁目4番地）が一致。",
+      "region_code": "23100"
     }
   ],
   "remaining_tasks": [
@@ -1791,42 +1874,42 @@
       "status": "RESOLVED",
       "result": "1kz-ma1/HINANEX を特定。root/data-research/pipeline AGENTS、CONTRIBUTING、AI_GITHUB_GUIDE、HANDOFF_A、HANDOFF_CONTRACT v1.0、ARCHITECTURE、model/adaptersを確認。",
       "remaining": "なし",
-      "human_review_required": "False"
+      "human_review_required": false
     },
     {
       "task": "region_code確定",
       "status": "RESOLVED",
       "result": "江戸川区=13123、新潟市=15100、名古屋市=23100。",
       "remaining": "なし",
-      "human_review_required": "False"
+      "human_review_required": false
     },
     {
       "task": "requirement_code確定",
       "status": "RESOLVED_CURRENT_MVP_ONLY",
       "result": "現行D-MVPで正式実装済みは shelter_location のみ。既存Adapterが直接扱うEvidenceにのみ付与。",
       "remaining": "洪水・アクセシビリティ等はD側でDataRequirement追加時に正式コードを定義する必要あり。A側では推測しない。",
-      "human_review_required": "False"
+      "human_review_required": false
     },
     {
       "task": "新潟市・名古屋市 A31a×自治体境界 実空間交差",
       "status": "BLOCKED_TECHNICAL",
       "result": "国交省2025 A31aの県別GeoJSONファイル名・サイズ・属性・ライセンスを公式ページで確認済み。取得URL規則も補助情報で確認したが、この実行環境からZIP実体を直接取得できず。",
       "remaining": "D/E環境でA31a-25_15_10/20_GEOJSON.zip と A31a-25_23_10/20_GEOJSON.zip を取得し、N03-2026市境界とintersection。",
-      "human_review_required": "False"
+      "human_review_required": false
     },
     {
       "task": "江戸川区・新潟市の避難施設法定/現行対応",
       "status": "RESOLVED_PARTIALLY",
       "result": "新潟市現行指定避難所335施設を公式集計で確認。江戸川区は法定指定避難所/指定緊急避難場所の位置付け確認済み。",
       "remaining": "江戸川区独自CSV全行を法定区分へ完全自動マッピングするには行単位照合が残る。",
-      "human_review_required": "False"
+      "human_review_required": false
     },
     {
       "task": "江戸川区・名古屋市 アクセシビリティJOIN",
       "status": "RESOLVED_PARTIALLY",
       "result": "完全一致/施設名+住所一致ルールと確定一致例を作成。",
       "remaining": "公式アクセシビリティソース自体が指定避難所全体を網羅しないためRequirementはPARTIALのまま。",
-      "human_review_required": "False"
+      "human_review_required": false
     }
   ],
   "notes": [
