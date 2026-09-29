@@ -159,6 +159,68 @@ AI は人間から明示的に依頼されていない限り、独断で `merge:
 最新 base の取り込み・再テストが必要なら `merge: needs-update` を推奨します。
 main 統合の最終確認待ちなら `merge: captain-review` を推奨します。
 
+
+### 3.7 PR Creation Gate / Integration Readiness
+
+AI は「実装が終わった」ことと「PRを統合候補として提出できる」ことを区別してください。
+
+PR 作成前に最低限、以下を確認します。
+
+1. `git status`
+2. 現在 branch
+3. PR の target/base branch
+4. target/base branch と最新 `main` の差分
+5. CI / tests の状態
+6. 前提 PR / stacked PR の有無
+7. Shared Contract / Schema / CI / Infrastructure の変更有無
+
+#### Base freshness
+
+role branch は常に main と同一である必要はありません。
+ただし、main 側の変更が今回の検証・契約・統合に影響する場合は、古い base のまま統合候補にしてはいけません。
+
+特に main 側で次が変更されている場合は影響を確認してください。
+
+- `.github/workflows/**`
+- shared Contract / Schema
+- repository structure
+- shared scripts
+- `AGENTS.md` / `CONTRIBUTING.md`
+- test infrastructure
+
+影響する変更を取り込んでいない場合は `merge: needs-update` として扱い、target/base を更新してから tests / CI を再実行します。
+
+#### CI gate
+
+required check または今回の変更に必要な CI が `red` / `pending` の場合:
+
+- merge を勧めない。
+- 「Integration ready」「Merge ready」「実装完了ですべて確認済み」と表現しない。
+- 原因が base 側の既知問題でも無視しない。
+- 更新で解消できる場合は base を更新して再実行する。
+- すぐ解消できない場合は Draft または `merge: blocked` / `merge: needs-update` として人間へ報告する。
+
+#### Test result reporting
+
+一部のテストだけが成功した場合に「tests passed」と総括してはいけません。
+PR では最低限、以下を分けて記載してください。
+
+- Passed
+- Failed
+- Not run
+- Reason
+
+#### Completion terminology
+
+AI は以下を同じ「完了」と表現してはいけません。
+
+- **Implementation complete**: コードや文書の実装が完了した。
+- **PR created**: PR を作成した。
+- **Integration ready**: base の鮮度・依存関係・必要 tests / CI を確認し、target branch へ統合可能な候補になった。
+- **Merge ready**: Merge Captain が最終確認し、統合可能と判断した。
+
+AI は Implementation complete / PR created の段階で Merge ready と扱ってはいけません。
+
 ---
 
 ## 4. Disaster-data Safety Rules
