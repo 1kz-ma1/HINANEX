@@ -119,6 +119,36 @@ AI が作成・修正した PR には最低限以下を記載します。
 
 AI は `main` への merge、force push、テスト削除による失敗隠蔽、防災データの推測補完を行ってはいけません。
 
+
+## PR Creation Gate
+
+「実装完了」と「統合可能」は別です。
+
+PR 作成前に、現在 branch、target/base、最新 main との差分、依存 PR、Shared Contract / CI への影響、必要な tests / CI を確認してください。
+
+role branch が main より古い場合でも作業は継続できますが、main 側の shared CI / Contract / repository structure / test infrastructure 等の変更が今回の検証へ影響する場合は、統合前に最新化して再テストします。
+
+required check や必要な CI が red / pending の PR は Integration ready と扱いません。
+原因が既知の base 側問題でも、無視して merge せず、`merge: needs-update` または `merge: blocked` を使って状態を明示してください。
+
+Tests は以下を分けて記録します。
+
+```text
+Passed:
+Failed:
+Not run:
+Reason:
+```
+
+状態の意味:
+
+- Implementation complete: 実装が完了
+- PR created: PR作成済み
+- Integration ready: base鮮度・依存・tests/CIを確認済み
+- Merge ready: Merge Captainが最終確認済み
+
+AI はこれらを同じ「完了」と表現してはいけません。
+
 ## PR Labels
 
 PR の状態と担当を label で表します。
