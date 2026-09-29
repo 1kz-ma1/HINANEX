@@ -103,3 +103,25 @@ PR candidate v5でも江戸川区のみ表示範囲確認用fixtureを使用す�
 11. 地域切替中に旧地域の非同期fetch結果が後着しても描画しない。
 12. `detail_url` は `http/https` のみ外部リンク化する。
 13. E担当外のファイル変更を必要としない。
+
+
+## 9. Integration test
+
+E側のdeterministic fixtureは、実在施設を模倣せず `TEST` recordとして生成する。
+
+`generate_d_regionexport_fixtures.py` はDの実装中の `NormalizedDataset` / `ShelterRecord` / `build_region_export()` をimportしてRegionExportを生成し、E adapterが3地域を読めることを確認する。
+
+期待値:
+
+- 江戸川区: 2 records / 1 map / 1 missing
+- 新潟市: 2 records / 1 map / 1 missing
+- 名古屋市: 2 records / 0 map / 2 missing
+
+テストfixtureは契約確認専用であり、防災情報として利用しない。
+
+実行例:
+
+```powershell
+python gis/tests/generate_d_regionexport_fixtures.py
+node gis/tests/region_exports.integration.test.js
+```
