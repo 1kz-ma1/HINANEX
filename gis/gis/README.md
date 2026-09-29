@@ -57,8 +57,13 @@ node --check gis/gis/js/d_region_adapter.js
 node --check gis/gis/js/map.js
 node gis/tests/d_region_adapter.test.js
 node gis/tests/map_controller.test.js
+python gis/tests/generate_d_regionexport_fixtures.py
+node gis/tests/region_exports.integration.test.js
 ```
 
 `map_controller.test.js` はD RegionExport 0.9相当の3地域fixtureを使い、地域切替・座標欠損・`file://` guardをブラウザ非依存で検証します。
 
 詳細は `../E_GIS_SPEC.md` を参照してください。
+
+
+`region_exports.integration.test.js` は、Dの実際のRegionExport builderから生成したdeterministic fixtureをE adapterへ通し、D→E Contractの接続を確認します。fixtureはすべて合成TEST recordで、実在の防災情報ではありません。
