@@ -1,4 +1,9 @@
+import sys
 import unittest
+from pathlib import Path
+
+SCRIPTS_DIR = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(SCRIPTS_DIR))
 
 from check_pr_scope import find_scope_violations, role_key_for_branch
 
