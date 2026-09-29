@@ -18,10 +18,18 @@ function Require-Command {
 Require-Command "gh"
 
 Write-Host "Checking GitHub authentication..."
-gh auth status | Out-Host
+& gh auth status
+if ($LASTEXITCODE -ne 0) {
+    throw "GitHub authentication check failed. Run 'gh auth login' and try again."
+}
 
 Write-Host "Checking latest '$RequiredCheck' workflow on $Branch..."
-$latestRun = gh run list --repo $Repo --workflow test.yml --branch $Branch --limit 1 --json status,conclusion,databaseId,headSha,url | ConvertFrom-Json
+$latestRunJson = & gh run list --repo $Repo --workflow test.yml --branch $Branch --limit 1 --json status,conclusion,databaseId,headSha,url
+if ($LASTEXITCODE -ne 0) {
+    throw "Failed to query the latest '$RequiredCheck' workflow run."
+}
+
+$latestRun = $latestRunJson | ConvertFrom-Json
 
 if (-not $latestRun) {
     throw "No test workflow run was found on main. Run CI successfully before enabling protection."
@@ -38,7 +46,15 @@ Write-Host "Run: $($run.url)"
 if ($VerifyOnly) {
     Write-Host ""
     Write-Host "Current main protection:"
-    gh api "repos/$Repo/branches/$Branch/protection" | Out-Host
+
+    $verifyResponse = & gh api "repos/$Repo/branches/$Branch/protection"
+    $verifyExitCode = $LASTEXITCODE
+    $verifyResponse | Out-Host
+
+    if ($verifyExitCode -ne 0) {
+        throw "Failed to read branch protection. gh exit code: $verifyExitCode"
+    }
+
     exit 0
 }
 
@@ -67,11 +83,23 @@ $payload = @{
 $tempFile = Join-Path $env:TEMP "hinanex-main-protection.json"
 
 try {
-    $payload | ConvertTo-Json -Depth 10 | Set-Content -Path $tempFile -Encoding utf8
+    $json = $payload | ConvertTo-Json -Depth 10 -Compress
+
+    # Write UTF-8 without BOM so GitHub can parse the request body consistently
+    # in both Windows PowerShell 5.1 and PowerShell 7+.
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($tempFile, $json, $utf8NoBom)
 
     Write-Host ""
     Write-Host "Applying protection to ${Repo}:$Branch ..."
-    gh api --method PUT -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "repos/$Repo/branches/$Branch/protection" --input $tempFile | Out-Host
+
+    $applyResponse = & gh api --method PUT -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "repos/$Repo/branches/$Branch/protection" --input $tempFile
+    $applyExitCode = $LASTEXITCODE
+    $applyResponse | Out-Host
+
+    if ($applyExitCode -ne 0) {
+        throw "Failed to apply branch protection. gh exit code: $applyExitCode"
+    }
 }
 finally {
     if (Test-Path $tempFile) {
