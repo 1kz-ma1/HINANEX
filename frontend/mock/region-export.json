@@ -1,0 +1,66 @@
+{
+  "region": {
+    "code": "DEMO-000",
+    "name": "UI確認用地域（架空）"
+  },
+  "datasets": [
+    {
+      "region_code": "DEMO-000",
+      "region_name": "UI確認用地域（架空）",
+      "requirement_code": "shelter_location",
+      "records": [],
+      "evidence": [
+        {
+          "source_name": "UIテスト用合成データ",
+          "source_url": null,
+          "publisher": null,
+          "published_at": null,
+          "fetched_at": "2026-09-29T00:00:00Z",
+          "license": null,
+          "source_format": "JSON",
+          "retrieval_method": "ローカルfixture",
+          "notes": "画面表示の確認専用です。実在する自治体・施設・公開データを表しません。"
+        }
+      ],
+      "normalized_at": "2026-09-29T00:00:00Z"
+    }
+  ],
+  "assessments": [],
+  "capabilities": [
+    {
+      "region_code": "DEMO-000",
+      "region_name": "UI確認用地域（架空）",
+      "capability_code": "shelter_discovery",
+      "capability_name": "Shelter Discovery",
+      "status": "DEGRADED",
+      "dependency_results": [
+        {
+          "requirement_code": "shelter_location",
+          "criticality": 3,
+          "status": "DEGRADED",
+          "reasons": [
+            "UI表示確認用に固定した状態です。実際の評価結果ではありません。"
+          ]
+        }
+      ],
+      "reasons": [
+        "このCapability状態と理由は、表示検証のために固定した合成データです。",
+        "実際の画面ではD担当が出力したRegionExportの値をそのまま表示します。"
+      ],
+      "assessed_at": "2026-09-29T00:00:00Z",
+      "engine_version": "0.9"
+    }
+  ],
+  "gaps": [],
+  "recommendations": [],
+  "meta": {
+    "schema_version": "0.9",
+    "generated_at": "2026-09-29T00:00:00Z",
+    "dataset_count": 1,
+    "assessment_count": 0,
+    "capability_count": 1,
+    "gap_count": 0,
+    "recommendation_count": 0,
+    "evidence_count": 1
+  }
+}
