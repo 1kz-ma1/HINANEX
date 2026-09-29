@@ -47,17 +47,19 @@ class ReleaseMetadataTests(unittest.TestCase):
         )
 
     def test_integration_ready_files_exist(self):
+        pipeline_root = Path(__file__).resolve().parents[1]
+        repository_root = pipeline_root.parent
         required = [
-            Path(".github/workflows/test.yml"),
-            Path(".github/pull_request_template.md"),
-            Path("docs/ARCHITECTURE.md"),
-            Path("docs/HANDOFF_A.md"),
-            Path("docs/HANDOFF_B.md"),
-            Path("docs/HANDOFF_C.md"),
-            Path("docs/HANDOFF_E.md"),
-            Path("docs/GIT_WORKFLOW.md"),
-            Path("docs/INTEGRATION_CHECKLIST.md"),
-            Path("docs/D_MVP_COMPLETION_v1.0.md"),
+            repository_root / ".github/workflows/test.yml",
+            repository_root / ".github/pull_request_template.md",
+            pipeline_root / "docs/ARCHITECTURE.md",
+            pipeline_root / "docs/HANDOFF_A.md",
+            pipeline_root / "docs/HANDOFF_B.md",
+            pipeline_root / "docs/HANDOFF_C.md",
+            pipeline_root / "docs/HANDOFF_E.md",
+            pipeline_root / "docs/GIT_WORKFLOW.md",
+            pipeline_root / "docs/INTEGRATION_CHECKLIST.md",
+            pipeline_root / "docs/D_MVP_COMPLETION_v1.0.md",
         ]
         missing = [str(path) for path in required if not path.exists()]
         self.assertEqual(missing, [])
