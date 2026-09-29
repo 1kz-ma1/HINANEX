@@ -31,3 +31,12 @@
 ## Excel
 
 人間確認用Excelは会話成果物として別途保持しています。Repositoryにはgenerated artifactを追加せず、Dの自動テスト対象はJSONを正本とします。
+
+
+## Machine-readable guarantees
+
+- `human_review_required` is JSON boolean (`true` / `false`), not a string.
+- `flood_conditions` and `accessibility_matches` contain the formal `region_code` for municipality-specific rows.
+- `download_url` is either an actual HTTP(S) URL or `null`. Explanatory text belongs in `notes`.
+- Confirmed `rainfall_duration_hours` and `rainfall_total_mm` values are JSON numbers.
+- Undefined future DataRequirement codes remain `null`; A does not invent D-side requirement codes.
