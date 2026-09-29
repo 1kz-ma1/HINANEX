@@ -87,6 +87,12 @@ class NagoyaShelterAdapter(SourceAdapter):
         "tsunami": ["tsunami"],
     }
 
+    DATASET_SCOPE_NOTE = (
+        "このshelter_location Datasetは、公式ページで区別に公開されている"
+        "16区別の屋内施設Excelのみを対象とし、同ページ上の屋外施設データは"
+        "含めていない。"
+    )
+
     def __init__(self) -> None:
         self._page_updated_at: datetime | None = None
 
@@ -188,6 +194,7 @@ class NagoyaShelterAdapter(SourceAdapter):
                             "公式ページで区別に公開されている屋内施設Excelを取得。"
                             "所在地は保持するが、このExcelから緯度経度は得られないため"
                             "座標は推測・自動ジオコーディングせずnullのまま保持する。"
+                            + self.DATASET_SCOPE_NOTE
                         ),
                     )
                 )
