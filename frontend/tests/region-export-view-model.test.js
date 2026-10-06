@@ -86,6 +86,7 @@ test("published_at=nullでもEvidenceを表示モデルへ変換できる", () =
 
   assert.equal(evidence.length, 1);
   assert.equal(evidence[0].publishedAt, null);
+  assert.equal(evidence[0].requirementLabel, "避難所位置データ");
   assert.equal(evidence[0].notes, "公開日を推測しない表示の確認用です。");
 });
 

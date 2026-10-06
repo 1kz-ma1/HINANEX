@@ -1,4 +1,5 @@
 import { formatDateTime, list, textOrNull } from "./view-model-utils.js";
+import { getRequirementLabel } from "./display-labels.js";
 
 const dataQualityMetrics = Object.freeze([
   ["completeness", "完全性"],
@@ -116,6 +117,7 @@ function buildAssessmentViewModel(assessment) {
 
   return {
     requirementCode,
+    requirementLabel: getRequirementLabel(requirementCode),
     discoveryCode: assessment.discovery_status,
     discoveryLabel: discovery.label,
     discoveryDescription: discovery.description,

@@ -17,28 +17,24 @@
           <span class="brand-mark" aria-hidden="true"><span></span></span>
           <span>HINANEX</span>
         </a>
-        <div class="header-meta">
-          <span class="meta-pill">B / Frontend</span>
-          <span class="meta-pill meta-pill--accent" id="schemaVersion">Contract —</span>
-        </div>
+        <span class="header-label">地域データ分析</span>
       </header>
 
       <main>
         <section class="hero" aria-labelledby="pageTitle">
           <div>
-            <p class="eyebrow">Regional detail / SC02</p>
+            <p class="eyebrow">地域分析</p>
             <h1 id="pageTitle">
               <span>地域の可能性を、</span>
               <span>根拠までたどる。</span>
             </h1>
             <p class="hero-copy">
-              D担当のRegionExportを再計算せず、できること・品質・不足・次の行動を一画面で確認します。
+              地域で利用できる防災データと、その品質・課題・根拠を一画面で確認します。
             </p>
           </div>
           <div class="region-context" aria-live="polite">
             <span>対象地域</span>
             <strong id="regionName">読み込み中</strong>
-            <small id="generatedAt">生成日時を確認しています</small>
           </div>
         </section>
 
@@ -49,45 +45,95 @@
           </p>
         </div>
 
-        <section class="source-panel" aria-labelledby="sourcePanelTitle">
-          <div class="source-panel-copy">
-            <p class="eyebrow">Runtime data</p>
-            <h2 id="sourcePanelTitle">D RegionExportを表示</h2>
-            <p>pipelineが生成した3地域のRegionExportを直接読み込みます。取得できない場合はJSONを手動選択できます。</p>
+        <section class="region-picker" aria-labelledby="regionPickerTitle">
+          <div>
+            <p class="eyebrow">地域選択</p>
+            <h2 id="regionPickerTitle">分析する地域を選ぶ</h2>
           </div>
-          <div class="source-panel-controls">
-            <label class="source-field">
-              <span>地域</span>
-              <select id="regionSelect">
-                <option value="13123">東京都 江戸川区</option>
-                <option value="15100">新潟県 新潟市</option>
-                <option value="23100">愛知県 名古屋市</option>
-              </select>
-            </label>
-            <button id="reloadRegionExport" class="source-button source-button--primary" type="button">D出力を再読込</button>
-            <label class="source-button" for="regionExportFile">JSONを選択</label>
-            <input id="regionExportFile" class="source-file-input" type="file" accept="application/json,.json" />
-            <button id="loadDemoData" class="source-button source-button--quiet" type="button">合成デモ</button>
+          <div class="region-segments" role="group" aria-label="分析する地域">
+            <button class="region-button is-active" type="button" data-region-code="13123" aria-pressed="true">
+              江戸川区
+            </button>
+            <button class="region-button" type="button" data-region-code="15100" aria-pressed="false">
+              新潟市
+            </button>
+            <button class="region-button" type="button" data-region-code="23100" aria-pressed="false">
+              名古屋市
+            </button>
           </div>
-          <small id="sourceStatus" class="source-status" aria-live="polite">D出力を読み込んでいます。</small>
         </section>
 
+        <section class="analysis-summary" aria-labelledby="summaryTitle">
+          <div class="section-heading section-heading--summary">
+            <div>
+              <p class="eyebrow">分析サマリー</p>
+              <h2 id="summaryTitle">地域分析結果</h2>
+            </div>
+            <p>分析済みの値を再評価せず、そのまま要約しています。</p>
+          </div>
+          <div id="summaryRoot" class="summary-root" aria-live="polite">
+            <div class="loading-card">
+              <span class="loading-dot" aria-hidden="true"></span>
+              地域分析結果を読み込んでいます
+            </div>
+          </div>
+        </section>
+
+        <details class="developer-settings" id="developerSettings">
+          <summary>
+            <span>詳細設定</span>
+            <small>データの再読込・手動確認</small>
+          </summary>
+          <div class="source-panel" aria-labelledby="sourcePanelTitle">
+            <div class="source-panel-copy">
+              <p class="eyebrow">開発者向け設定</p>
+              <h2 id="sourcePanelTitle">RegionExportの読込設定</h2>
+              <p>生成済みデータの再読込、手動JSON、UI確認用の合成データを使用できます。</p>
+              <dl class="runtime-meta">
+                <div>
+                  <dt>Contract Version</dt>
+                  <dd id="schemaVersion">—</dd>
+                </div>
+                <div>
+                  <dt>generated_at</dt>
+                  <dd id="generatedAt">確認中</dd>
+                </div>
+              </dl>
+            </div>
+            <div class="source-panel-controls">
+              <label class="source-field">
+                <span>読込対象</span>
+                <select id="regionSelect">
+                  <option value="13123">東京都 江戸川区</option>
+                  <option value="15100">新潟県 新潟市</option>
+                  <option value="23100">愛知県 名古屋市</option>
+                </select>
+              </label>
+              <button id="reloadRegionExport" class="source-button source-button--primary" type="button">RegionExportを再読込</button>
+              <label class="source-button" for="regionExportFile">JSONを手動読込</label>
+              <input id="regionExportFile" class="source-file-input" type="file" accept="application/json,.json" />
+              <button id="loadDemoData" class="source-button source-button--quiet" type="button">合成デモを表示</button>
+            </div>
+            <small id="sourceStatus" class="source-status" aria-live="polite">RegionExportを読み込んでいます。</small>
+          </div>
+        </details>
+
         <nav class="section-nav" aria-label="地域詳細の表示項目">
-          <a href="#overview">基本情報</a>
-          <a href="#capabilities">Capability</a>
-          <a href="#assessments">品質・利用適性</a>
-          <a href="#gaps">Gap</a>
-          <a href="#recommendations">Recommendation</a>
-          <a href="#evidence">Evidence</a>
+          <a href="#overview">概要</a>
+          <a href="#capabilities">できること</a>
+          <a href="#assessments">データ品質</a>
+          <a href="#gaps">課題</a>
+          <a href="#recommendations">改善案</a>
+          <a href="#evidence">根拠</a>
         </nav>
 
         <section class="workspace" id="overview" aria-labelledby="overviewTitle">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Region overview</p>
-              <h2 id="overviewTitle">地域基本情報</h2>
+              <p class="eyebrow">概要</p>
+              <h2 id="overviewTitle">地域の分析内訳</h2>
             </div>
-            <p>RegionExportに記録された対象地域と出力件数です。</p>
+            <p>分析結果に記録された対象地域と出力件数です。</p>
           </div>
           <div id="overviewRoot" class="overview-root" aria-live="polite"></div>
         </section>
@@ -95,8 +141,8 @@
         <section class="workspace" id="capabilities" aria-labelledby="capabilityTitle">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Capability profile</p>
-              <h2 id="capabilityTitle">現在のデータで可能な支援</h2>
+              <p class="eyebrow">Capability</p>
+              <h2 id="capabilityTitle">できること</h2>
             </div>
             <p>状態、理由、依存関係を一続きで確認できます。</p>
           </div>
@@ -112,10 +158,10 @@
         <section class="workspace" id="assessments" aria-labelledby="assessmentTitle">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Dataset assessment</p>
-              <h2 id="assessmentTitle">データ品質と利用適性</h2>
+              <p class="eyebrow">Dataset Assessment</p>
+              <h2 id="assessmentTitle">データ品質</h2>
             </div>
-            <p>0点と未評価を分け、D担当のscoreとreasonをそのまま表示します。</p>
+            <p>0点と未評価を分け、分析結果のscoreとreasonをそのまま表示します。</p>
           </div>
           <div id="assessmentRoot" class="assessment-root" aria-live="polite"></div>
         </section>
@@ -124,7 +170,7 @@
           <div class="section-heading">
             <div>
               <p class="eyebrow">Gap</p>
-              <h2 id="gapTitle">不足・未確認事項</h2>
+              <h2 id="gapTitle">課題</h2>
             </div>
             <p>確認済みの改善候補と、追加調査が必要な項目を区別します。</p>
           </div>
@@ -135,7 +181,7 @@
           <div class="section-heading">
             <div>
               <p class="eyebrow">Recommendation</p>
-              <h2 id="recommendationTitle">改善・調査の提案</h2>
+              <h2 id="recommendationTitle">改善案</h2>
             </div>
             <p>RegionExportに含まれる提案と具体的なactionを表示します。</p>
           </div>
@@ -146,7 +192,7 @@
           <div class="section-heading">
             <div>
               <p class="eyebrow">Evidence / Traceability</p>
-              <h2 id="evidenceSectionTitle">判断根拠</h2>
+              <h2 id="evidenceSectionTitle">根拠</h2>
             </div>
             <p>公開日が未確認の場合は推測せず、取得日時や注記と分けて表示します。</p>
           </div>
@@ -163,9 +209,9 @@
       <div class="dialog-header">
         <div>
           <p class="eyebrow">Traceability</p>
-          <h2 id="evidenceTitle">Evidence</h2>
+          <h2 id="evidenceTitle">根拠の詳細</h2>
         </div>
-        <button class="icon-button" id="closeEvidence" type="button" aria-label="Evidenceを閉じる">×</button>
+        <button class="icon-button" id="closeEvidence" type="button" aria-label="根拠の詳細を閉じる">×</button>
       </div>
       <div id="evidenceBody" class="dialog-body"></div>
     </dialog>

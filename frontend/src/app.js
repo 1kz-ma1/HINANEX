@@ -2,11 +2,13 @@ import { buildRegionExportViewModel } from "./region-export-view-model.js";
 import { createRegionExportController } from "./region-export-loader.js";
 import {
   assertRegionMatches,
+  buildGisRegionUrl,
   getPayloadRegionCode,
-  getRegionSource,
 } from "./region-export-source.js";
+import { buildAnalysisSummary, isSelectedRegion } from "./presentation-view-model.js";
 import { formatDateTime } from "./view-model-utils.js";
 
+const summaryRoot = document.querySelector("#summaryRoot");
 const overviewRoot = document.querySelector("#overviewRoot");
 const capabilityRoot = document.querySelector("#capabilityRoot");
 const assessmentRoot = document.querySelector("#assessmentRoot");
@@ -25,7 +27,9 @@ const reloadRegionExport = document.querySelector("#reloadRegionExport");
 const regionExportFile = document.querySelector("#regionExportFile");
 const loadDemoData = document.querySelector("#loadDemoData");
 const sourceStatus = document.querySelector("#sourceStatus");
+const regionButtons = [...document.querySelectorAll("[data-region-code]")];
 const contentRoots = [
+  summaryRoot,
   overviewRoot,
   capabilityRoot,
   assessmentRoot,
@@ -83,6 +87,8 @@ function definitionRow(term, value) {
 function evidenceDetails(evidence) {
   const details = element("dl", { className: "evidence-data" });
   details.append(
+    ...definitionRow("対象データ", evidence.requirementLabel),
+    ...definitionRow("出典", evidence.sourceName),
     ...definitionRow("提供元", evidence.publisher),
     ...definitionRow(
       "公開日時",
@@ -93,7 +99,6 @@ function evidenceDetails(evidence) {
       evidence.fetchedAt ? formatDateTime(evidence.fetchedAt) : null,
     ),
     ...definitionRow("形式", evidence.sourceFormat),
-    ...definitionRow("取得方法", evidence.retrievalMethod),
     ...definitionRow("ライセンス", evidence.license),
     ...definitionRow("注記", evidence.notes),
   );
@@ -114,13 +119,29 @@ function evidenceDetails(evidence) {
   return details;
 }
 
+function evidenceTechnicalDetails(evidence) {
+  return element("details", {
+    className: "technical-details",
+    children: [
+      element("summary", { text: "詳細情報" }),
+      element("dl", {
+        className: "evidence-data evidence-data--technical",
+        children: [
+          ...definitionRow("requirement_code", evidence.requirementCode),
+          ...definitionRow("取得方法", evidence.retrievalMethod),
+        ],
+      }),
+    ],
+  });
+}
+
 function evidenceDialogCard(evidence) {
   return element("article", {
     className: "evidence-item",
     children: [
-      element("h3", { text: evidence.sourceName }),
-      element("p", { text: `requirement_code: ${evidence.requirementCode}` }),
+      element("h3", { text: evidence.requirementLabel }),
       evidenceDetails(evidence),
+      evidenceTechnicalDetails(evidence),
     ],
   });
 }
@@ -263,15 +284,34 @@ function metricCard(metric) {
   });
 }
 
-function metricGroup(title, subtitle, metrics) {
-  return element("section", {
+function metricGroup(title, technicalLabel, subtitle, metrics) {
+  return element("details", {
     className: "metric-group",
     children: [
-      element("div", {
+      element("summary", {
         className: "metric-group-heading",
-        children: [element("h4", { text: title }), element("p", { text: subtitle })],
+        children: [
+          element("div", {
+            children: [
+              element("h4", { text: title }),
+              element("small", { text: technicalLabel }),
+              element("p", { text: subtitle }),
+            ],
+          }),
+          element("div", {
+            className: "metric-disclosure",
+            children: [
+              element("strong", { text: `${metrics.length}項目` }),
+              element("span", { className: "metric-disclosure-closed", text: "詳細を見る" }),
+              element("span", { className: "metric-disclosure-open", text: "閉じる" }),
+            ],
+          }),
+        ],
       }),
-      element("div", { className: "metric-grid", children: metrics.map(metricCard) }),
+      element("div", {
+        className: "metric-group-content",
+        children: [element("div", { className: "metric-grid", children: metrics.map(metricCard) })],
+      }),
     ],
   });
 }
@@ -285,8 +325,14 @@ function assessmentCard(assessment) {
         children: [
           element("div", {
             children: [
-              element("p", { className: "eyebrow", text: "Data requirement" }),
-              element("h3", { text: assessment.requirementCode }),
+              element("p", { className: "eyebrow", text: "対象データ" }),
+              element("div", {
+                className: "card-title-row",
+                children: [
+                  element("h3", { text: assessment.requirementLabel }),
+                  element("span", { className: "code-pill", text: assessment.requirementCode }),
+                ],
+              }),
             ],
           }),
           statusBadge(assessment.discoveryLabel, assessment.tone),
@@ -308,12 +354,22 @@ function assessmentCard(assessment) {
       element("section", {
         className: "findings",
         children: [
-          element("div", { className: "section-label", text: "Findings" }),
+          element("div", { className: "section-label", text: "所見 / Findings" }),
           reasonList(assessment.findings, "追加の所見はありません。"),
         ],
       }),
-      metricGroup("Data Quality", "データそのものの品質評価", assessment.dataQuality),
+      element("p", {
+        className: "score-explanation",
+        text: "HINANEXでは0点と未評価を区別しています。0 / 4は評価結果として0、未評価はscore=nullで、情報不足などにより評価できていない状態です。各項目ではRegionExportの評価理由を優先して表示します。",
+      }),
       metricGroup(
+        "データ品質",
+        "Data Quality",
+        "データそのものの品質評価",
+        assessment.dataQuality,
+      ),
+      metricGroup(
+        "アプリ利用適性",
         "Application Readiness",
         "アプリケーションで利用するための適性評価",
         assessment.applicationReadiness,
@@ -385,40 +441,103 @@ function recommendationCard(recommendation) {
 }
 
 function evidenceSummaryCard(evidence) {
-  const button = element("button", {
-    className: "text-button",
-    text: "詳細を見る",
-    attributes: { type: "button" },
-  });
-  button.addEventListener("click", () => openEvidence([evidence]));
-
   return element("article", {
     className: "evidence-summary-card",
     children: [
       element("div", {
         className: "evidence-summary-head",
         children: [
-          element("span", { className: "code-pill", text: evidence.requirementCode }),
+          element("span", { className: "evidence-target", text: evidence.requirementLabel }),
           element("span", {
             className: "published-state",
             text: evidence.publishedAt ? `公開 ${formatDateTime(evidence.publishedAt)}` : "公開日 未確認",
           }),
         ],
       }),
-      element("h3", { text: evidence.sourceName }),
-      element("p", { text: evidence.notes ?? "Evidenceの注記は提供されていません。" }),
-      button,
+      evidenceDetails(evidence),
+      evidenceTechnicalDetails(evidence),
     ],
   });
+}
+
+function summaryMetric(label, value, className = "") {
+  return element("article", {
+    className: `summary-metric ${className}`.trim(),
+    children: [element("span", { text: label }), element("strong", { text: value })],
+  });
+}
+
+function renderAnalysisSummary(viewModel) {
+  const summary = buildAnalysisSummary(viewModel);
+  const capabilityStatus = element("div", {
+    className: "summary-capability-status",
+    children: [
+      element("strong", { text: summary.capabilityName }),
+      statusBadge(summary.capabilityStatusLabel, summary.capabilityTone),
+    ],
+  });
+
+  const summaryActions = [];
+  if (!viewModel.isSynthetic) {
+    summaryActions.push(
+      element("a", {
+        className: "gis-cta",
+        text: "地図で避難所を確認",
+        attributes: { href: buildGisRegionUrl(viewModel.regionCode) },
+      }),
+    );
+  }
+
+  summaryRoot.replaceChildren(
+    element("article", {
+      className: `summary-card tone-${summary.capabilityTone}`,
+      attributes: {
+        "data-capability-status": summary.capabilityStatusCode ?? "none",
+      },
+      children: [
+        element("header", {
+          className: "summary-header",
+          children: [
+            element("div", {
+              children: [
+                element("span", { className: "summary-label", text: "対象地域" }),
+                element("h3", { text: summary.regionName }),
+              ],
+            }),
+            element("div", { className: "summary-actions", children: summaryActions }),
+          ],
+        }),
+        element("div", {
+          className: "summary-grid",
+          children: [
+            element("article", {
+              className: "summary-metric summary-metric--capability",
+              children: [element("span", { text: "できること" }), capabilityStatus],
+            }),
+            summaryMetric("現在取得しているデータ", summary.recordCountLabel),
+            summaryMetric("課題", `${summary.gapCount}件`),
+            summaryMetric("改善・調査提案", `${summary.recommendationCount}件`),
+          ],
+        }),
+        summary.scopeNote
+          ? element("p", { className: "summary-scope-note", text: summary.scopeNote })
+          : null,
+        element("footer", {
+          className: "summary-footer",
+          text: `データ生成日時：${summary.generatedAt}`,
+        }),
+      ].filter(Boolean),
+    }),
+  );
 }
 
 function renderOverview(viewModel) {
   const items = [
     ["地域コード", viewModel.regionCode],
-    ["Datasets", viewModel.counts.datasets],
-    ["Capabilities", viewModel.counts.capabilities],
-    ["Gaps", viewModel.counts.gaps],
-    ["Recommendations", viewModel.counts.recommendations],
+    ["対象データ", viewModel.counts.datasets],
+    ["できること", viewModel.counts.capabilities],
+    ["課題", viewModel.counts.gaps],
+    ["改善案", viewModel.counts.recommendations],
   ];
 
   overviewRoot.replaceChildren(
@@ -437,10 +556,12 @@ function renderCollection(root, items, renderer, emptyMessage) {
 
 function renderPage(viewModel) {
   regionName.textContent = viewModel.regionName;
-  generatedAt.textContent = `出力生成：${viewModel.generatedAt}`;
-  schemaVersion.textContent = `Contract ${viewModel.schemaVersion}`;
+  generatedAt.textContent = viewModel.generatedAt;
+  schemaVersion.textContent = viewModel.schemaVersion;
   demoNotice.hidden = !viewModel.isSynthetic;
+  setActiveRegion(viewModel.isSynthetic ? null : viewModel.regionCode);
 
+  renderAnalysisSummary(viewModel);
   renderOverview(viewModel);
   renderCollection(
     capabilityRoot,
@@ -474,14 +595,23 @@ function clearRegionContent() {
   if (evidenceDialog.open) evidenceDialog.close();
 }
 
+function setActiveRegion(regionCode) {
+  for (const button of regionButtons) {
+    const isActive = isSelectedRegion(regionCode, button.dataset.regionCode);
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  }
+}
+
 function renderLoading(source) {
   clearRegionContent();
+  setActiveRegion(source.code);
   regionName.textContent = `${source.label}を読み込み中`;
-  generatedAt.textContent = "RegionExportを取得しています";
-  schemaVersion.textContent = "Contract —";
+  generatedAt.textContent = "取得中";
+  schemaVersion.textContent = "—";
   demoNotice.hidden = true;
-  setSourceStatus(`${source.label} のD出力を読み込んでいます…`, "loading");
-  capabilityRoot.append(
+  setSourceStatus(`${source.label} のRegionExportを読み込んでいます…`, "loading");
+  summaryRoot.append(
     element("div", {
       className: "loading-card",
       children: [
@@ -498,10 +628,10 @@ function renderLoading(source) {
 function renderError(error, source = null) {
   clearRegionContent();
   regionName.textContent = source?.label ?? "RegionExport読込失敗";
-  generatedAt.textContent = "RegionExportを読み込めませんでした";
-  schemaVersion.textContent = "Contract —";
+  generatedAt.textContent = "読込失敗";
+  schemaVersion.textContent = "—";
   demoNotice.hidden = true;
-  capabilityRoot.append(
+  summaryRoot.append(
     element("div", {
       className: "error-card",
       children: [
@@ -556,6 +686,11 @@ function loadSelectedRegion() {
   return regionController.selectRegion(regionSelect.value);
 }
 
+function selectRegion(regionCode) {
+  regionSelect.value = regionCode;
+  return regionController.selectRegion(regionCode);
+}
+
 async function loadDemoRegionExport() {
   regionController.cancel();
   clearRegionContent();
@@ -575,6 +710,9 @@ evidenceDialog.addEventListener("click", (event) => {
 });
 
 regionSelect.addEventListener("change", loadSelectedRegion);
+for (const button of regionButtons) {
+  button.addEventListener("click", () => selectRegion(button.dataset.regionCode));
+}
 reloadRegionExport.addEventListener("click", loadSelectedRegion);
 loadDemoData.addEventListener("click", loadDemoRegionExport);
 regionExportFile.addEventListener("change", async (event) => {

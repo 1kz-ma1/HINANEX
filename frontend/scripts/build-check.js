@@ -7,6 +7,8 @@ const requiredFiles = [
   "src/region-export-view-model.js",
   "src/region-export-source.js",
   "src/region-export-loader.js",
+  "src/display-labels.js",
+  "src/presentation-view-model.js",
   "mock/region-export.json",
 ];
 
@@ -15,6 +17,7 @@ await Promise.all(requiredFiles.map((path) => access(new URL(`../${path}`, impor
 const index = await readFile(new URL("../index.html", import.meta.url), "utf8");
 const requiredMarkers = [
   'id="overviewRoot"',
+  'id="summaryRoot"',
   'id="capabilityRoot"',
   'id="assessmentRoot"',
   'id="gapRoot"',
@@ -25,6 +28,10 @@ const requiredMarkers = [
   'id="regionExportFile"',
   'id="loadDemoData"',
   'id="sourceStatus"',
+  'id="developerSettings"',
+  'data-region-code="13123"',
+  'data-region-code="15100"',
+  'data-region-code="23100"',
   'src="./src/app.js"',
   'href="./styles.css"',
 ];
