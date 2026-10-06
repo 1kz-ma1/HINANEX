@@ -1,0 +1,166 @@
+{
+  "region": {
+    "code": "DEMO-23100",
+    "name": "名古屋市（UI確認用合成データ）"
+  },
+  "datasets": [
+    {
+      "region_code": "DEMO-23100",
+      "region_name": "名古屋市（UI確認用合成データ）",
+      "requirement_code": "shelter_location",
+      "records": [],
+      "evidence": [
+        {
+          "source_name": "UIテスト用合成データ",
+          "source_url": null,
+          "publisher": null,
+          "published_at": null,
+          "fetched_at": "2026-10-06T01:00:00Z",
+          "license": null,
+          "source_format": "XLSX",
+          "retrieval_method": "ローカルfixture",
+          "notes": "画面表示の確認専用です。実在する施設・公開状況・評価結果を表しません。公開日は未確認として表示します。"
+        }
+      ],
+      "normalized_at": "2026-10-06T01:05:00Z"
+    }
+  ],
+  "assessments": [
+    {
+      "region_code": "DEMO-23100",
+      "region_name": "名古屋市（UI確認用合成データ）",
+      "requirement_code": "shelter_location",
+      "discovery_status": "NOT_MACHINE_READABLE",
+      "data_quality": {
+        "completeness": {
+          "score": 0,
+          "reason": "0点表示を確認するための合成評価です。"
+        },
+        "coverage": {
+          "score": null,
+          "reason": "対象範囲を評価できない場合の未評価表示を確認します。"
+        },
+        "timeliness": {
+          "score": null,
+          "reason": "公開日を確認できない場合の未評価表示を確認します。"
+        },
+        "validity": {
+          "score": null,
+          "reason": "正規化前で評価不能な場合を想定した合成評価です。"
+        },
+        "consistency": {
+          "score": 4,
+          "reason": "4点表示を確認するための合成評価です。"
+        },
+        "accuracy_confidence": {
+          "score": null,
+          "reason": "正確性を判断する情報がない場合の表示確認です。"
+        },
+        "traceability": {
+          "score": 4,
+          "reason": "Evidenceを追跡できる状態の表示確認です。"
+        }
+      },
+      "application_readiness": {
+        "discoverability": {
+          "score": 4,
+          "reason": "発見可能性の4点表示を確認する合成評価です。"
+        },
+        "accessibility": {
+          "score": 4,
+          "reason": "アクセス可能性の4点表示を確認する合成評価です。"
+        },
+        "machine_readability": {
+          "score": 0,
+          "reason": "機械可読性の0点表示を確認する合成評価です。"
+        },
+        "interoperability": {
+          "score": 0,
+          "reason": "相互運用性の0点表示を確認する合成評価です。"
+        },
+        "geospatial_usability": {
+          "score": 0,
+          "reason": "位置ベース探索に利用できない状態の表示確認です。"
+        },
+        "update_automation": {
+          "score": 0,
+          "reason": "更新自動化の0点表示を確認する合成評価です。"
+        },
+        "reusability": {
+          "score": 0,
+          "reason": "再利用性の0点表示を確認する合成評価です。"
+        },
+        "semantic_fitness": {
+          "score": null,
+          "reason": "意味的適合性を評価できない状態の表示確認です。"
+        }
+      },
+      "record_count": 0,
+      "findings": [
+        "BLOCKED状態のSC02表示を確認するための合成所見です。",
+        "実在地域についての不足や未公開を示す情報ではありません。"
+      ],
+      "assessed_at": "2026-10-06T01:10:00Z",
+      "assessment_version": "0.9"
+    }
+  ],
+  "capabilities": [
+    {
+      "region_code": "DEMO-23100",
+      "region_name": "名古屋市（UI確認用合成データ）",
+      "capability_code": "shelter_discovery",
+      "capability_name": "Shelter Discovery",
+      "status": "BLOCKED",
+      "dependency_results": [
+        {
+          "requirement_code": "shelter_location",
+          "criticality": 3,
+          "status": "BLOCKED",
+          "reasons": [
+            "UI表示確認用に固定した合成状態です。実際の判定結果ではありません。"
+          ]
+        }
+      ],
+      "reasons": [
+        "BLOCKEDカードと判定理由を確認するための合成データです。",
+        "実際の画面ではD担当が出力したRegionExportの値をそのまま表示します。"
+      ],
+      "assessed_at": "2026-10-06T01:10:00Z",
+      "engine_version": "0.9"
+    }
+  ],
+  "gaps": [
+    {
+      "capability_code": "shelter_discovery",
+      "requirement_code": "shelter_location",
+      "kind": "INVESTIGATION",
+      "severity": "HIGH",
+      "reason": "追加調査表示を確認するための合成Gapです。自治体側の不足を示しません。",
+      "capability_status": "BLOCKED"
+    }
+  ],
+  "recommendations": [
+    {
+      "capability_code": "shelter_discovery",
+      "requirement_code": "shelter_location",
+      "recommendation_type": "INVESTIGATE_DATA",
+      "priority": "HIGH",
+      "title": "取得・変換経路を追加調査する",
+      "actions": [
+        "取得元と現在のファイル形式を確認する",
+        "正規化処理で扱える列構造かを確認する"
+      ],
+      "rationale": "複数actionと追加調査の表示を確認するための合成Recommendationです。"
+    }
+  ],
+  "meta": {
+    "schema_version": "0.9",
+    "generated_at": "2026-10-06T01:15:00Z",
+    "dataset_count": 1,
+    "assessment_count": 1,
+    "capability_count": 1,
+    "gap_count": 1,
+    "recommendation_count": 1,
+    "evidence_count": 1
+  }
+}
