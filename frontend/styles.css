@@ -237,6 +237,103 @@ h1 span {
   font-size: 12px;
 }
 
+.source-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  margin-bottom: 28px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(13, 28, 41, 0.78);
+}
+
+.source-panel-copy h2 {
+  margin-bottom: 4px;
+  font-size: 18px;
+}
+
+.source-panel-copy > p:last-child {
+  max-width: 600px;
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.source-panel-controls {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.source-field {
+  display: grid;
+  gap: 5px;
+}
+
+.source-field > span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.source-field select,
+.source-button {
+  min-height: 40px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.035);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.source-field select {
+  min-width: 180px;
+  padding: 0 34px 0 11px;
+}
+
+.source-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 13px;
+  cursor: pointer;
+}
+
+.source-button--primary {
+  color: #dffcff;
+  border-color: rgba(78, 215, 220, 0.34);
+  background: var(--cyan-soft);
+}
+
+.source-button--quiet {
+  color: var(--muted);
+}
+
+.source-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.source-status {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.source-status[data-tone="success"] { color: var(--green); }
+.source-status[data-tone="error"] { color: var(--red); }
+.source-status[data-tone="demo"] { color: var(--amber); }
+
 .workspace {
   margin-bottom: 64px;
   scroll-margin-top: 20px;
@@ -996,6 +1093,22 @@ a:focus-visible {
     grid-template-columns: 1fr;
     gap: 28px;
     padding: 48px 0 32px;
+  }
+
+  .source-panel {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .source-panel-controls {
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .source-field,
+  .source-field select,
+  .source-button {
+    width: 100%;
   }
 
   .section-nav {
