@@ -145,7 +145,7 @@ function updateCoverage(summary) {
 }
 
 function setMapAvailability(available, message = "") {
-  const overlay = document.getElementById("mapUnavaile");
+  const overlay = document.getElementById("mapUnavailable");
   const messageEl = document.getElementById("mapUnavailableMessage");
   overlay.hidden = available;
   if (!available) messageEl.textContent = message;
