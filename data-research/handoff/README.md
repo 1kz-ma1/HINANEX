@@ -40,3 +40,10 @@
 - `download_url` is either an actual HTTP(S) URL or `null`. Explanatory text belongs in `notes`.
 - Confirmed `rainfall_duration_hours` and `rainfall_total_mm` values are JSON numbers.
 - Undefined future DataRequirement codes remain `null`; A does not invent D-side requirement codes.
+
+
+## Date metadata convention
+
+- `updated_at` records the official source/page update date when that date is explicitly confirmed.
+- A dataset reference date such as “YYYY-MM-DD時点” is not treated as the page update date; keep it in `notes`.
+- If the update date cannot be confirmed, keep `updated_at` as `null` rather than inferring it.
