@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HINANEX Staging</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, "Noto Sans JP", "Yu Gothic UI", system-ui, sans-serif;
+        background: #07131e;
+        color: #edf8fb;
+      }
+      * { box-sizing: border-box; }
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 28px;
+        background:
+          radial-gradient(circle at 80% 0%, rgba(78, 215, 220, .15), transparent 34rem),
+          #07131e;
+      }
+      main { width: min(760px, 100%); }
+      .badge {
+        display: inline-flex;
+        padding: 6px 10px;
+        border: 1px solid rgba(78, 215, 220, .28);
+        border-radius: 999px;
+        color: #4ed7dc;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .08em;
+      }
+      h1 { margin: 18px 0 10px; font-size: clamp(34px, 7vw, 64px); line-height: 1; }
+      .lead { max-width: 620px; color: #91a9b5; }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 32px;
+      }
+      a {
+        display: block;
+        padding: 22px;
+        border: 1px solid rgba(181, 216, 229, .16);
+        border-radius: 18px;
+        color: inherit;
+        background: rgba(13, 28, 41, .88);
+        text-decoration: none;
+      }
+      a:hover { border-color: rgba(78, 215, 220, .45); }
+      a strong { display: block; margin-bottom: 6px; font-size: 20px; }
+      a span { color: #91a9b5; font-size: 13px; }
+      .note {
+        margin-top: 24px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(181, 216, 229, .12);
+        color: #91a9b5;
+        font-size: 12px;
+      }
+      @media (max-width: 620px) {
+        .grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <span class="badge">TEAM STAGING</span>
+      <h1>HINANEX</h1>
+      <p class="lead">
+        mainブランチの統合状態をチームで確認するための共有環境です。
+        D PipelineのRegionExportを生成し、FrontendとGISから同じ成果物を参照します。
+      </p>
+      <div class="grid">
+        <a href="/frontend/">
+          <strong>Frontend</strong>
+          <span>Capability / Data Quality / Gap / Recommendation / Evidence</span>
+        </a>
+        <a href="/gis/gis/">
+          <strong>GIS</strong>
+          <span>避難所位置と公的ハザード参照レイヤー</span>
+        </a>
+      </div>
+      <p class="note">
+        Stagingは開発・統合確認用です。防災判断を行う本番サービスとして使用しないでください。
+      </p>
+    </main>
+  </body>
+</html>
