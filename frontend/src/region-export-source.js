@@ -24,6 +24,11 @@ function getRegionSource(regionCode) {
   return source;
 }
 
+function buildGisRegionUrl(regionCode) {
+  const source = getRegionSource(regionCode);
+  return `/gis/gis/?region=${encodeURIComponent(source.code)}`;
+}
+
 function getPayloadRegionCode(payload) {
   const regionCode = payload?.region?.code;
   if (typeof regionCode !== "string" || !regionCode) {
@@ -43,4 +48,10 @@ function assertRegionMatches(payload, expectedRegionCode) {
   return actualRegionCode;
 }
 
-export { REGION_SOURCES, assertRegionMatches, getPayloadRegionCode, getRegionSource };
+export {
+  REGION_SOURCES,
+  assertRegionMatches,
+  buildGisRegionUrl,
+  getPayloadRegionCode,
+  getRegionSource,
+};

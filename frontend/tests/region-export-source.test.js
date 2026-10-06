@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   REGION_SOURCES,
   assertRegionMatches,
+  buildGisRegionUrl,
   getPayloadRegionCode,
   getRegionSource,
 } from "../src/region-export-source.js";
@@ -12,6 +13,12 @@ test("3地域のD RegionExport出力先を固定する", () => {
   assert.equal(REGION_SOURCES["13123"].url, "../pipeline/data/output/edogawa.json");
   assert.equal(REGION_SOURCES["15100"].url, "../pipeline/data/output/niigata.json");
   assert.equal(REGION_SOURCES["23100"].url, "../pipeline/data/output/nagoya.json");
+});
+
+test("3地域のGIS導線を地域コードから生成する", () => {
+  assert.equal(buildGisRegionUrl("13123"), "/gis/gis/?region=13123");
+  assert.equal(buildGisRegionUrl("15100"), "/gis/gis/?region=15100");
+  assert.equal(buildGisRegionUrl("23100"), "/gis/gis/?region=23100");
 });
 
 test("未対応地域は暗黙に別地域へfallbackしない", () => {
