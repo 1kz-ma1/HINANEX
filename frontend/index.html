@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="HINANEXのRegionExportからCapabilityの状態と根拠を確認する画面"
+      content="HINANEXのRegionExportから地域のCapability、データ品質、課題と根拠を確認する画面"
     />
-    <title>HINANEX | Capability</title>
+    <title>HINANEX | 地域詳細</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -26,13 +26,13 @@
       <main>
         <section class="hero" aria-labelledby="pageTitle">
           <div>
-            <p class="eyebrow">Regional capability</p>
+            <p class="eyebrow">Regional detail / SC02</p>
             <h1 id="pageTitle">
-              <span>分析結果を、</span>
-              <span>理由までたどる。</span>
+              <span>地域の可能性を、</span>
+              <span>根拠までたどる。</span>
             </h1>
             <p class="hero-copy">
-              D担当が判定したCapabilityを再計算せずに表示し、依存データとEvidenceまで追跡します。
+              D担当のRegionExportを再計算せず、できること・品質・不足・次の行動を一画面で確認します。
             </p>
           </div>
           <div class="region-context" aria-live="polite">
@@ -42,18 +42,38 @@
           </div>
         </section>
 
-        <div class="demo-notice" role="note">
+        <div class="demo-notice" id="demoNotice" role="note" hidden>
           <span aria-hidden="true">i</span>
           <p>
             この画面はUI検証用の合成データを表示しています。実在地域の評価や防災判断には使用できません。
           </p>
         </div>
 
-        <section class="workspace" aria-label="Capability表示">
+        <nav class="section-nav" aria-label="地域詳細の表示項目">
+          <a href="#overview">基本情報</a>
+          <a href="#capabilities">Capability</a>
+          <a href="#assessments">品質・利用適性</a>
+          <a href="#gaps">Gap</a>
+          <a href="#recommendations">Recommendation</a>
+          <a href="#evidence">Evidence</a>
+        </nav>
+
+        <section class="workspace" id="overview" aria-labelledby="overviewTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Region overview</p>
+              <h2 id="overviewTitle">地域基本情報</h2>
+            </div>
+            <p>RegionExportに記録された対象地域と出力件数です。</p>
+          </div>
+          <div id="overviewRoot" class="overview-root" aria-live="polite"></div>
+        </section>
+
+        <section class="workspace" id="capabilities" aria-labelledby="capabilityTitle">
           <div class="section-heading">
             <div>
               <p class="eyebrow">Capability profile</p>
-              <h2>現在のデータで可能な支援</h2>
+              <h2 id="capabilityTitle">現在のデータで可能な支援</h2>
             </div>
             <p>状態、理由、依存関係を一続きで確認できます。</p>
           </div>
@@ -64,6 +84,50 @@
               RegionExportを読み込んでいます
             </div>
           </div>
+        </section>
+
+        <section class="workspace" id="assessments" aria-labelledby="assessmentTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Dataset assessment</p>
+              <h2 id="assessmentTitle">データ品質と利用適性</h2>
+            </div>
+            <p>0点と未評価を分け、D担当のscoreとreasonをそのまま表示します。</p>
+          </div>
+          <div id="assessmentRoot" class="assessment-root" aria-live="polite"></div>
+        </section>
+
+        <section class="workspace" id="gaps" aria-labelledby="gapTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Gap</p>
+              <h2 id="gapTitle">不足・未確認事項</h2>
+            </div>
+            <p>確認済みの改善候補と、追加調査が必要な項目を区別します。</p>
+          </div>
+          <div id="gapRoot" class="content-grid" aria-live="polite"></div>
+        </section>
+
+        <section class="workspace" id="recommendations" aria-labelledby="recommendationTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Recommendation</p>
+              <h2 id="recommendationTitle">改善・調査の提案</h2>
+            </div>
+            <p>RegionExportに含まれる提案と具体的なactionを表示します。</p>
+          </div>
+          <div id="recommendationRoot" class="content-grid" aria-live="polite"></div>
+        </section>
+
+        <section class="workspace" id="evidence" aria-labelledby="evidenceSectionTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Evidence / Traceability</p>
+              <h2 id="evidenceSectionTitle">判断根拠</h2>
+            </div>
+            <p>公開日が未確認の場合は推測せず、取得日時や注記と分けて表示します。</p>
+          </div>
+          <div id="evidenceRoot" class="content-grid" aria-live="polite"></div>
         </section>
       </main>
 

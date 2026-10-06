@@ -1,7 +1,10 @@
+import { collectEvidence } from "./evidence-view-model.js";
+import { formatDateTime, list, safeHttpUrl, textOrNull } from "./view-model-utils.js";
+
 const capabilityStatus = Object.freeze({
   FULL: {
     label: "利用可能",
-    description: "現在取得できるデータで、この支援能力を実行できます。",
+    description: "現在取得できるデータで、このCapabilityの条件を満たしています。",
     tone: "full",
   },
   DEGRADED: {
@@ -40,26 +43,6 @@ const criticalityLabel = Object.freeze({
   3: "必須",
 });
 
-function list(value) {
-  return Array.isArray(value) ? value : [];
-}
-
-function textOrNull(value) {
-  return typeof value === "string" && value.trim() ? value : null;
-}
-
-function safeHttpUrl(value) {
-  const text = textOrNull(value);
-  if (!text) return null;
-
-  try {
-    const url = new URL(text);
-    return url.protocol === "http:" || url.protocol === "https:" ? url.href : null;
-  } catch {
-    return null;
-  }
-}
-
 function getCapabilityStatusMeta(status) {
   return capabilityStatus[status] ?? {
     label: `未定義の状態（${status ?? "値なし"}）`,
@@ -75,46 +58,26 @@ function getDependencyStatusMeta(status) {
   };
 }
 
-function formatDateTime(value) {
-  if (!value) return "日時情報なし";
+function capabilityDescription(capability, status) {
+  if (capability.capability_code === "shelter_discovery" && capability.status === "FULL") {
+    return "施設名称と緯度経度を使った位置ベース探索が可能です。避難所の安全性やリアルタイム利用可否を保証する状態ではありません。";
+  }
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "日時形式を確認してください";
-
-  return new Intl.DateTimeFormat("ja-JP", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Tokyo",
-  }).format(date);
+  return status.description;
 }
 
-function collectEvidence(exportData, requirementCodes) {
-  const targetCodes = new Set(requirementCodes);
+function capabilityScopeNote(capabilityCode) {
+  if (capabilityCode !== "shelter_discovery") return null;
 
-  return list(exportData.datasets).flatMap((dataset) => {
-    if (!targetCodes.has(dataset.requirement_code)) return [];
-
-    return list(dataset.evidence).map((evidence) => ({
-      requirementCode: dataset.requirement_code,
-      sourceName: textOrNull(evidence.source_name) ?? "名称情報なし",
-      sourceUrl: safeHttpUrl(evidence.source_url),
-      publisher: textOrNull(evidence.publisher),
-      publishedAt: textOrNull(evidence.published_at),
-      fetchedAt: textOrNull(evidence.fetched_at),
-      license: textOrNull(evidence.license),
-      sourceFormat: textOrNull(evidence.source_format),
-      retrievalMethod: textOrNull(evidence.retrieval_method),
-      notes: textOrNull(evidence.notes),
-    }));
-  });
+  return "災害別安全性、収容人数、アクセシビリティ、避難経路安全性、リアルタイム利用可否は、このCapability判定の対象外です。";
 }
 
-function buildCapabilityViewModel(exportData) {
+function buildCapabilityViewModel(exportData, capabilityInput = null) {
   if (!exportData || typeof exportData !== "object") {
     throw new TypeError("RegionExportがオブジェクトではありません。");
   }
 
-  const capability = list(exportData.capabilities)[0];
+  const capability = capabilityInput ?? list(exportData.capabilities)[0];
   if (!capability) {
     throw new Error("表示できるCapabilityがありません。");
   }
@@ -145,7 +108,8 @@ function buildCapabilityViewModel(exportData) {
     capabilityName: textOrNull(capability.capability_name) ?? "名称情報なし",
     statusCode: capability.status,
     statusLabel: status.label,
-    statusDescription: status.description,
+    statusDescription: capabilityDescription(capability, status),
+    scopeNote: capabilityScopeNote(capability.capability_code),
     tone: status.tone,
     reasons: list(capability.reasons),
     dependencies,
@@ -155,8 +119,15 @@ function buildCapabilityViewModel(exportData) {
   };
 }
 
+function buildCapabilityViewModels(exportData) {
+  return list(exportData?.capabilities).map((capability) =>
+    buildCapabilityViewModel(exportData, capability),
+  );
+}
+
 export {
   buildCapabilityViewModel,
+  buildCapabilityViewModels,
   collectEvidence,
   formatDateTime,
   getCapabilityStatusMeta,
