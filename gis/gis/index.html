@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HINANEX | GIS / Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="header">
+  <div class="brand"><strong>HINANEX</strong><span>洪水データ分析 MVP</span></div>
+  <div class="role">E担当｜GIS / Map</div>
+</header>
+
+<div class="layout">
+  <aside class="left">
+    <section>
+      <h3>表示地域</h3>
+      <select id="region">
+        <option value="13123">東京都 江戸川区</option>
+        <option value="15100">新潟県 新潟市</option>
+        <option value="23100">愛知県 名古屋市</option>
+      </select>
+      <button id="resetView" class="secondary-button" type="button">東京都 江戸川区の表示範囲へ</button>
+    </section>
+
+    <section>
+      <div class="section-heading">
+        <h3>レイヤー</h3>
+        <span class="source-chip official">公的参照</span>
+      </div>
+      <label><input id="basemap" type="checkbox" checked> 背景地図（地理院）</label>
+      <label><input id="officialFlood" type="checkbox" checked> 洪水浸水想定（想定最大規模）</label>
+      <label><input id="boundary" type="checkbox" checked> <span id="boundaryNote">自治体境界（fixture）</span></label>
+      <label><input id="shelter" type="checkbox" checked> D避難所データ</label>
+
+      <div class="opacity-control">
+        <div><span>洪水レイヤー濃度</span><output id="floodOpacityValue">58%</output></div>
+        <input id="floodOpacity" type="range" min="20" max="85" step="5" value="58">
+      </div>
+    </section>
+
+    <section class="data-loader">
+      <div class="section-heading">
+        <h3>D出力</h3>
+        <span id="datasetChip" class="source-chip wait">未読込</span>
+      </div>
+      <p class="loader-copy">`RegionExport` の `datasets[].records` をそのまま利用します。</p>
+      <label class="file-label" for="regionExportFile">JSONを選択</label>
+      <input id="regionExportFile" class="file-input" type="file" accept="application/json,.json">
+      <button id="autoLoad" class="secondary-button" type="button">pipeline出力を再読込</button>
+      <div class="coverage" aria-live="polite">
+        <div><span>records</span><strong id="recordCount">—</strong></div>
+        <div><span>地図表示</span><strong id="mappedCount">—</strong></div>
+        <div><span>座標欠損</span><strong id="missingCoordinateCount">—</strong></div>
+      </div>
+      <small id="datasetStatus">ローカルHTTP起動時は選択地域に対応する `pipeline/data/output/{region}.json` を自動探索します。生成物はGit管理外のため、未生成時はJSONを選択してください。</small>
+    </section>
+
+    <section>
+      <h3>凡例｜洪水浸水深</h3>
+      <div class="legend-grid" aria-label="洪水浸水深の公式分類">
+        <span>0.3m未満</span><span>0.3〜0.5m未満</span>
+        <span>0.5〜1.0m未満</span><span>1.0〜3.0m未満</span>
+        <span>3.0〜5.0m未満</span><span>5.0〜10.0m未満</span>
+        <span>10.0〜20.0m未満</span><span>20.0m以上</span>
+      </div>
+      <div class="legend"><i class="line"></i>自治体境界</div>
+      <div class="legend"><i class="dot"></i>D避難所（座標ありのみ）</div>
+      <small class="legend-note">洪水分類はハザードマップポータルサイトの統一後凡例に合わせています。色自体は公的ラスタをそのまま表示し、HINANEX独自の危険度へ変換しません。</small>
+    </section>
+
+    <section class="notice">
+      <h3>状態</h3>
+      <p id="status">地図を初期化中</p>
+      <small>座標が `null` のDレコードは地図に描画しませんが、件数差を必ず表示します。住所からの暗黙geocodingは行いません。</small>
+    </section>
+  </aside>
+
+  <main class="map-wrap">
+    <div id="map"></div>
+    <div id="mapUnavailable" class="map-unavailable" hidden>
+      <strong>表示範囲を確定できません</strong>
+      <span id="mapUnavailableMessage">Dの座標付きデータを読み込むと地図を移動します。</span>
+    </div>
+    <div class="map-badge">GIS / RegionExport</div>
+  </main>
+
+  <aside class="right" id="details">
+    <div class="empty">
+      <div class="empty-icon">⌖</div>
+      <h2>GISデータを選択</h2>
+      <p>地域を選ぶとDのRegionExportを探索し、座標を持つ避難所を描画します。<br>地図上の任意地点をクリックすると公的洪水参照レイヤーの情報を確認できます。</p>
+    </div>
+  </aside>
+</div>
+
+<footer>
+  <span>HINANEX Graduation Project</span>
+  <span>背景地図：国土地理院｜洪水参照：ハザードマップポータルサイト｜施設：D RegionExport</span>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="js/reference_data.js"></script>
+<script src="js/d_region_adapter.js"></script>
+<script src="js/map.js"></script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+const fs = require("node:fs");
+const path = require("node:path");
+const vm = require("node:vm");
+const assert = require("node:assert/strict");
+const { URL } = require("node:url");
+
+const root = path.resolve(__dirname, "../gis/js");
+const adapterCode = fs.readFileSync(path.join(root, "d_region_adapter.js"), "utf8");
+const mapCode = fs.readFileSync(path.join(root, "map.js"), "utf8");
+const referenceCode = fs.readFileSync(path.join(root, "reference_data.js"), "utf8");
+
+function payload(code, name, records) {
+  return {
+    region: { code, name },
+    datasets: [{
+      region_code: code,
+      region_name: name,
+      requirement_code: "shelter_location",
+      records,
+      evidence: [{ source_name: "D integration fixture", publisher: "HINANEX test" }],
+      normalized_at: "2026-09-29T00:00:00Z"
+    }],
+    assessments: [],
+    capabilities: [],
+    gaps: [],
+    recommendations: [],
+    meta: {
+      schema_version: "0.9",
+      generated_at: "2026-09-29T00:00:00Z",
+      dataset_count: 1,
+      assessment_count: 0,
+      capability_count: 0,
+      gap_count: 0,
+      recommendation_count: 0,
+      evidence_count: 1
+    }
+  };
+}
+
+function record(id, name, latitude, longitude, detailUrl = null) {
+  return {
+    id,
+    name,
+    latitude,
+    longitude,
+    address: null,
+    administrative_area: null,
+    facility_type: "shelter",
+    supported_disasters: null,
+    accessibility: null,
+    capacity: null,
+    detail_url: detailUrl,
+    notes: "integration fixture"
+  };
+}
+
+function makeElement(id) {
+  return {
+    id,
+    value: id === "region" ? "13123" : id === "floodOpacity" ? "58" : "",
+    checked: true,
+    disabled: false,
+    hidden: true,
+    textContent: "",
+    innerHTML: "",
+    className: "",
+    dataset: {},
+    files: [],
+    listeners: {},
+    addEventListener(name, fn) { this.listeners[name] = fn; }
+  };
+}
+
+function makeLeafletStub() {
+  const mapLayers = new Set();
+  const panes = {};
+  const groups = [];
+
+  const map = {
+    handlers: {},
+    setView() { return this; },
+    createPane(name) { panes[name] = { style: {} }; },
+    getPane(name) { return panes[name]; },
+    addLayer(layer) { mapLayers.add(layer); layer._onMap = true; return this; },
+    removeLayer(layer) { mapLayers.delete(layer); layer._onMap = false; return this; },
+    hasLayer(layer) { return mapLayers.has(layer); },
+    fitBounds(bounds) { this.lastBounds = bounds; return this; },
+    on(name, fn) { this.handlers[name] = fn; return this; }
+  };
+
+  function group() {
+    const value = {
+      items: [],
+      addTo(target) { target.addLayer(this); return this; },
+      addLayer(layer) { this.items.push(layer); return this; },
+      clearLayers() { this.items = []; return this; }
+    };
+    groups.push(value);
+    return value;
+  }
+
+  function tileLayer() {
+    return {
+      handlers: {},
+      addTo(target) { target.addLayer(this); return this; },
+      setOpacity(value) { this.opacity = value; return this; },
+      on(name, fn) { this.handlers[name] = fn; return this; }
+    };
+  }
+
+  function bounds(points) {
+    return { points, isValid: () => Array.isArray(points) && points.length > 0 };
+  }
+
+  return {
+    map: () => map,
+    tileLayer,
+    layerGroup: group,
+    control: { scale: () => ({ addTo: () => ({}) }) },
+    divIcon: value => value,
+    marker: latlng => ({
+      latlng,
+      handlers: {},
+      on(name, fn) { this.handlers[name] = fn; return this; },
+      addTo(target) { target.addLayer(this); return this; }
+    }),
+    geoJSON: (data, options) => ({
+      data,
+      options,
+      addTo(target) { target.addLayer(this); return this; },
+      getBounds: () => ({ isValid: () => true })
+    }),
+    latLngBounds: bounds,
+    DomEvent: { stopPropagation: () => {} },
+    __map: map,
+    __groups: groups
+  };
+}
+
+function makeContext({ protocol, fetchImpl }) {
+  const ids = [
+    "map", "mapUnavailable", "mapUnavailableMessage", "details", "status", "region",
+    "basemap", "officialFlood", "boundary", "boundaryNote", "shelter", "floodOpacity",
+    "floodOpacityValue", "resetView", "regionExportFile", "autoLoad", "recordCount",
+    "mappedCount", "missingCoordinateCount", "datasetStatus", "datasetChip"
+  ];
+  const elements = Object.fromEntries(ids.map(id => [id, makeElement(id)]));
+  const L = makeLeafletStub();
+  const location = { protocol, href: `${protocol}//test/gis/gis/index.html` };
+  if (protocol === "file:") location.href = "file:///tmp/HINANEX/gis/gis/index.html";
+
+  const context = {
+    window: { location },
+    document: { getElementById: id => elements[id] },
+    L,
+    fetch: fetchImpl,
+    AbortController,
+    URL,
+    console,
+    setTimeout,
+    clearTimeout
+  };
+  context.window.window = context.window;
+  vm.createContext(context);
+  vm.runInContext(referenceCode, context, { filename: "reference_data.js" });
+  vm.runInContext(adapterCode, context, { filename: "d_region_adapter.js" });
+  vm.runInContext(mapCode, context, { filename: "map.js" });
+  return { context, elements, L };
+}
+
+const edogawa = payload("13123", "東京都江戸川区", [
+  record("e1", "Edogawa A", 35.70, 139.88, "https://example.invalid/a"),
+  record("e2", "Edogawa B", 35.72, 139.90, "javascript:alert(1)")
+]);
+const niigata = payload("15100", "新潟県新潟市", [
+  record("n1", "Niigata A", 37.90, 139.02)
+]);
+const nagoya = payload("23100", "愛知県名古屋市", [
+  record("g1", "Nagoya A", null, null),
+  record("g2", "Nagoya B", null, null)
+]);
+
+(async () => {
+  // file://: the old browser-origin warning is avoided by never attempting auto-fetch.
+  let fileFetchCalls = 0;
+  const fileCase = makeContext({
+    protocol: "file:",
+    fetchImpl: async () => { fileFetchCalls += 1; throw new Error("must not fetch"); }
+  });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(fileFetchCalls, 0);
+  assert.match(fileCase.elements.datasetStatus.textContent, /file:\/\//);
+  assert.match(fileCase.elements.status.textContent, /手動読込/);
+
+  // HTTP: D RegionExport is loaded and counts are reflected in UI state.
+  const byUrl = { edogawa, niigata, nagoya };
+  const httpCase = makeContext({
+    protocol: "http:",
+    fetchImpl: async url => {
+      const key = Object.keys(byUrl).find(candidate => String(url).includes(`${candidate}.json`));
+      if (!key) return { ok: false, status: 404, json: async () => ({}) };
+      return { ok: true, status: 200, json: async () => byUrl[key] };
+    }
+  });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(httpCase.elements.recordCount.textContent, 2);
+  assert.equal(httpCase.elements.mappedCount.textContent, 2);
+  assert.equal(httpCase.elements.missingCoordinateCount.textContent, 0);
+  assert.match(httpCase.elements.status.textContent, /2件表示中/);
+  assert.match(httpCase.elements.resetView.textContent, /東京都 江戸川区/);
+
+  // Non-http(s) detail URLs are not rendered as clickable links.
+  const shelterGroup = httpCase.L.__groups[1];
+  shelterGroup.items[1].handlers.click({});
+  assert.doesNotMatch(httpCase.elements.details.innerHTML, /javascript:/i);
+  assert.doesNotMatch(httpCase.elements.details.innerHTML, /detail-link/);
+
+  // Region switch: Niigata uses its D coordinates instead of retaining Edogawa state.
+  httpCase.elements.region.value = "15100";
+  httpCase.elements.region.listeners.change({ target: httpCase.elements.region });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(httpCase.elements.recordCount.textContent, 1);
+  assert.equal(httpCase.elements.mappedCount.textContent, 1);
+  assert.equal(httpCase.elements.missingCoordinateCount.textContent, 0);
+  assert.equal(httpCase.elements.mapUnavailable.hidden, true);
+  assert.match(httpCase.elements.resetView.textContent, /新潟県 新潟市/);
+
+  // Nagoya currently has no machine-readable coordinates: keep records, show 0 markers,
+  // and cover the map instead of inventing a center/geocoding the addresses.
+  httpCase.elements.region.value = "23100";
+  httpCase.elements.region.listeners.change({ target: httpCase.elements.region });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(httpCase.elements.recordCount.textContent, 2);
+  assert.equal(httpCase.elements.mappedCount.textContent, 0);
+  assert.equal(httpCase.elements.missingCoordinateCount.textContent, 2);
+  assert.equal(httpCase.elements.mapUnavailable.hidden, false);
+  assert.match(httpCase.elements.mapUnavailableMessage.textContent, /位置を推測しません/);
+
+  // A slow response from the previously selected region must not overwrite the new region.
+  const pending = {};
+  const raceCase = makeContext({
+    protocol: "http:",
+    fetchImpl: url => new Promise(resolve => { pending[String(url)] = resolve; })
+  });
+  raceCase.elements.region.value = "15100";
+  raceCase.elements.region.listeners.change({ target: raceCase.elements.region });
+  pending["../../pipeline/data/output/niigata.json"]({
+    ok: true, status: 200, json: async () => niigata
+  });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(raceCase.elements.recordCount.textContent, 1);
+  assert.match(raceCase.elements.status.textContent, /1件表示中/);
+
+  pending["../../pipeline/data/output/edogawa.json"]({
+    ok: true, status: 200, json: async () => edogawa
+  });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(raceCase.elements.recordCount.textContent, 1);
+  assert.match(raceCase.elements.resetView.textContent, /新潟県 新潟市/);
+
+  console.log("map_controller.test.js: OK");
+})().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});
