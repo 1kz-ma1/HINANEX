@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   buildAssessmentViewModel,
   buildMetricViewModel,
+  buildRecordCountPresentation,
   getDiscoveryStatusMeta,
 } from "../src/assessment-view-model.js";
 import { buildCapabilityViewModel } from "../src/capability-view-model.js";
@@ -65,6 +66,14 @@ test("Gapの改善候補と追加調査を区別する", () => {
   assert.match(gaps[1].kindDescription, /自治体側の不足を断定/);
 });
 
+test("GapのseverityとRecommendationのpriorityを別の表示名にする", () => {
+  const gap = buildGapViewModels(regionExport())[0];
+  const recommendation = buildRecommendationViewModels(regionExport())[0];
+
+  assert.equal(gap.severityDisplayLabel, "重要度");
+  assert.equal(recommendation.priorityDisplayLabel, "優先度");
+});
+
 test("Recommendationの複数actionsを失わない", () => {
   const recommendations = buildRecommendationViewModels(regionExport());
 
@@ -107,7 +116,35 @@ test("NOT_FOUNDを自治体の未公開と断定しない", () => {
 test("名古屋市のrecord_countを全避難関連施設数として扱わない", () => {
   const viewModel = buildAssessmentViewModel(regionExport().assessments[0]);
 
-  assert.match(viewModel.recordCountLabel, /現在取得しているデータ件数/);
+  assert.match(viewModel.recordCountLabel, /HINANEXの現在の取得結果/);
   assert.match(viewModel.scopeNote, /16区別の屋内施設/);
   assert.match(viewModel.scopeNote, /屋外施設は含まず/);
+});
+
+
+test("非取得状態のrecord_count=0を実施設0件として表示しない", () => {
+  const statuses = [
+    "NOT_MACHINE_READABLE",
+    "ACCESS_RESTRICTED",
+    "NOT_FOUND",
+    "UNKNOWN",
+  ];
+
+  for (const status of statuses) {
+    const presentation = buildRecordCountPresentation(status, 0);
+    assert.equal(presentation.label, "件数を確認できません", status);
+    assert.match(presentation.note, /実施設が0件という意味ではありません/, status);
+    assert.doesNotMatch(presentation.label, /0件/, status);
+  }
+});
+
+test("対象外と取得済みの件数表示を区別する", () => {
+  assert.equal(
+    buildRecordCountPresentation("NOT_APPLICABLE", 0).label,
+    "件数表示の対象外",
+  );
+  assert.equal(
+    buildRecordCountPresentation("AVAILABLE", 0).label,
+    "HINANEXの現在の取得結果：0件",
+  );
 });
