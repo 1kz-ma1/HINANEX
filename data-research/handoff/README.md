@@ -47,3 +47,12 @@
 - `updated_at` records the official source/page update date when that date is explicitly confirmed.
 - A dataset reference date such as “YYYY-MM-DD時点” is not treated as the page update date; keep it in `notes`.
 - If the update date cannot be confirmed, keep `updated_at` as `null` rather than inferring it.
+
+
+## Scenario handoffs
+
+- `HINANEX_A_flood_scenario_handoff.json`
+  - proposed Scenario: `flood_shelter_selection`
+  - proposed Requirement: `shelter_hazard_applicability`（未正式化）
+  - 3地域の公式Source、raw semantics、joinability、null/unknownルール、D向け未解決事項
+  - Aは施設をCANDIDATE / EXCLUDED / UNKNOWNへ分類しません。最終Scenario判定はDの責務です。

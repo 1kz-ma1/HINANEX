@@ -1,0 +1,210 @@
+{
+  "project": "HINANEX",
+  "role": "A / Data Research / Evidence",
+  "generated_at": "2026-10-06",
+  "scenario": {
+    "scenario_id": "flood_shelter_selection",
+    "scenario_name": "Flood Shelter Selection",
+    "scenario_name_ja": "洪水時の避難候補探索",
+    "status": "PROPOSED",
+    "purpose": "現在HINANEXが取得できる公式情報から、洪水という条件を考慮して避難候補を絞り込むための情報が揃っているかをDが評価できるよう、公式Evidenceとjoinabilityを提供する。",
+    "in_scope": [
+      "flood",
+      "existing shelter_location",
+      "official facility-level hazard designation / applicability facts",
+      "joinability between official hazard evidence and current shelter_location records"
+    ],
+    "out_of_scope": [
+      "A-side safety determination",
+      "real-time shelter opening status",
+      "road or route safety",
+      "capacity",
+      "accessibility",
+      "automatic geocoding",
+      "hazard raster based safety inference",
+      "Capability / Gap / Recommendation calculation"
+    ]
+  },
+  "proposed_requirement": {
+    "proposed_code": "shelter_hazard_applicability",
+    "formalized": false,
+    "meaning": "特定災害に対する施設の指定・利用可否・利用条件として公式Sourceが示す事実を、Source固有の意味とraw valueを失わず保持する。",
+    "proposed_required_fields": [
+      "facility_reference",
+      "hazard_code_raw",
+      "source_semantics",
+      "official_status_raw",
+      "source_url"
+    ],
+    "proposed_optional_fields": [
+      "official_facility_id",
+      "facility_name",
+      "address",
+      "usable_floor_raw",
+      "notes"
+    ],
+    "safety_rule": "Aはofficial_status_rawを安全/危険booleanへ変換しない。正式requirement_codeの採用はD/shared contract側で決定する。"
+  },
+  "regions": [
+    {
+      "region_name": "東京都江戸川区",
+      "region_code": "13123",
+      "source_url": "https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/hazardmap/ikinaihinan.html",
+      "source_name": "江戸川区水害ハザードマップ第2版 待避施設・自主避難施設",
+      "publisher": "江戸川区",
+      "source_format": "HTML table",
+      "published_at": null,
+      "updated_at": "2025-12-19",
+      "fetched_at": "2026-10-06",
+      "license": null,
+      "official_meaning": "水害時に、避難する時間がない・避難が困難などやむを得ない場合に緊急避難する待避施設。施設ごとに使用可能階数を掲載。",
+      "hazard_scope_raw": "水害",
+      "available_fields": [
+        "番号",
+        "名称",
+        "住所",
+        "電話番号",
+        "使用可能階数"
+      ],
+      "joinability": "PARTIAL",
+      "join_key_candidates": [
+        "normalized facility name",
+        "address for secondary verification"
+      ],
+      "same_source_as_current_shelter_location": false,
+      "machine_readable": true,
+      "evidence_status": "PARTIAL",
+      "limitations": [
+        "現行shelter_locationとの共通IDを確認できない。",
+        "Sourceの『水害』をA側で『洪水のみ』へ読み替えない。",
+        "名称差・旧校名・複合校名など曖昧な一致を自動確定しない。"
+      ]
+    },
+    {
+      "region_name": "新潟県新潟市",
+      "region_code": "15100",
+      "source_url": "https://www.city.niigata.lg.jp/shisei/seisaku/it/open-data/",
+      "source_name": "自治体標準オープンデータセット 指定緊急避難場所一覧",
+      "publisher": "新潟市",
+      "source_format": "CSV",
+      "published_at": null,
+      "updated_at": "2026-09-25",
+      "fetched_at": "2026-10-06",
+      "license": "CC BY 2.1 JP",
+      "official_meaning": "指定緊急避難場所一覧の施設行に、自治体標準ODSの災害種別_洪水等の災害種別列を持つ。",
+      "hazard_scope_raw": "災害種別_洪水",
+      "available_fields": [
+        "ID",
+        "名称",
+        "緯度",
+        "経度",
+        "災害種別_洪水",
+        "その他の災害種別列"
+      ],
+      "joinability": "DIRECT_SAME_SOURCE",
+      "join_key_candidates": [
+        "official ID",
+        "same raw row"
+      ],
+      "same_source_as_current_shelter_location": true,
+      "machine_readable": true,
+      "evidence_status": "AVAILABLE",
+      "limitations": [
+        "Aは現在CSVの全raw value分布を今回独立再集計していない。",
+        "災害種別列にない意味を名称等から推測しない。"
+      ]
+    },
+    {
+      "region_name": "愛知県名古屋市",
+      "region_code": "23100",
+      "source_url": "https://www.city.nagoya.jp/bousaiportal/hinan/1013390/1013492.html",
+      "source_name": "指定緊急避難場所・指定避難所の一覧表",
+      "publisher": "名古屋市",
+      "source_format": "Excel (.xls) / PDF",
+      "published_at": null,
+      "updated_at": "2026-07-27",
+      "source_reference_date": "2026-07-01",
+      "fetched_at": "2026-10-06",
+      "license": "CC BY 4.0",
+      "official_meaning": "指定緊急避難場所は災害種類ごとに異なり、屋内施設一覧に洪水・内水、高潮、土砂、津波等の列と指定避難所列を掲載。",
+      "hazard_scope_raw": "洪水・内水",
+      "available_fields": [
+        "学区",
+        "番号",
+        "施設名称",
+        "所在地",
+        "指定緊急避難場所 洪水・内水",
+        "高潮",
+        "土砂",
+        "津波",
+        "指定避難所"
+      ],
+      "official_status_examples": [
+        "○",
+        "×",
+        "－",
+        "階数表現"
+      ],
+      "joinability": "DIRECT_SAME_SOURCE",
+      "join_key_candidates": [
+        "ward + source number + facility name + address",
+        "same raw row"
+      ],
+      "same_source_as_current_shelter_location": true,
+      "machine_readable": true,
+      "evidence_status": "AVAILABLE",
+      "limitations": [
+        "洪水・内水は結合列であり、A側でfloodとinland_floodの独立2値へ分解しない。",
+        "現行D shelter_locationは16区別の屋内施設Excelのみを対象とし、屋外施設は現行Dataset scope外。",
+        "記号・階数をA側で安全/危険booleanへ変換しない。"
+      ]
+    }
+  ],
+  "d_handoff": {
+    "preservation_rules": [
+      "official_status_rawを保持する。",
+      "source_semanticsを保持し、自治体ごとの公式意味を失わない。",
+      "join不能・曖昧joinを推測で確定しない。",
+      "江戸川の使用可能階数と名古屋の洪水・内水指定を同義化しない。",
+      "名古屋の洪水・内水をfloodとinland_floodの独立判定へ分割しない。",
+      "新潟の明示的な災害種別列以外から洪水可否を補完しない。"
+    ],
+    "null_unknown_rules": [
+      "公式Sourceで確認できない値はnull。",
+      "joinが確定できない施設はUNKNOWN相当としてDへ渡す。",
+      "NOT_FOUNDは現在のHINANEX取得経路で確認できなかった意味を維持する。"
+    ]
+  },
+  "unresolved": [
+    {
+      "item": "formal requirement code",
+      "status": "HUMAN_OR_D_DECISION",
+      "detail": "shelter_hazard_applicabilityはA提案名。正式codeはD/shared contract側で決定する。"
+    },
+    {
+      "item": "Edogawa semantic mapping",
+      "status": "NEEDS_RULE_DECISION",
+      "detail": "水害時の待避施設/使用可能階数をFlood Shelter Selectionでどう評価するかはD/C側で定義する。"
+    },
+    {
+      "item": "Edogawa join",
+      "status": "PARTIAL",
+      "detail": "共通IDなし。名称・住所候補joinの曖昧一致を自動確定しない。"
+    },
+    {
+      "item": "Nagoya combined flood/inland column",
+      "status": "NEEDS_RULE_DECISION",
+      "detail": "洪水・内水結合列をFlood Scenarioでどう扱うかD側の明示ルールが必要。"
+    },
+    {
+      "item": "Nagoya outdoor facilities",
+      "status": "OUTSIDE_CURRENT_D_SCOPE",
+      "detail": "公式ページには屋外施設もあるが、現行D shelter_locationは屋内16区Excelのみ。"
+    },
+    {
+      "item": "real-time opening state",
+      "status": "OUT_OF_SCOPE",
+      "detail": "静的Evidenceから開設状況を推測しない。"
+    }
+  ]
+}
