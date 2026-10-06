@@ -54,7 +54,13 @@ const boundaryGroup = L.layerGroup().addTo(map);
 const shelterGroup = L.layerGroup().addTo(map);
 L.control.scale({ imperial: false, position: "bottomleft" }).addTo(map);
 
-let selectedRegionCode = document.getElementById("region").value;
+const regionSelect = document.getElementById("region");
+const requestedRegionCode = new URL(window.location.href).searchParams.get("region");
+if (requestedRegionCode && REGION_CONFIGS[requestedRegionCode]) {
+  regionSelect.value = requestedRegionCode;
+}
+
+let selectedRegionCode = regionSelect.value;
 let boundaryBounds = null;
 let shelterBounds = null;
 let currentShelterSummary = null;
@@ -437,7 +443,7 @@ document.getElementById("floodOpacity").addEventListener("input", event => {
 
 document.getElementById("resetView").addEventListener("click", fitCurrentRegion);
 document.getElementById("autoLoad").addEventListener("click", tryAutoLoad);
-document.getElementById("region").addEventListener("change", event => selectRegion(event.target.value));
+regionSelect.addEventListener("change", event => selectRegion(event.target.value));
 
 document.getElementById("regionExportFile").addEventListener("change", async event => {
   const [file] = event.target.files || [];
