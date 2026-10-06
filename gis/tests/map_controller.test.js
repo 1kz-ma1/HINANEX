@@ -137,7 +137,7 @@ function makeLeafletStub() {
   };
 }
 
-function makeContext({ protocol, fetchImpl }) {
+function makeContext({ protocol, fetchImpl, href = null }) {
   const ids = [
     "map", "mapUnavailable", "mapUnavailableMessage", "details", "status", "region",
     "basemap", "officialFlood", "boundary", "boundaryNote", "shelter", "floodOpacity",
@@ -146,8 +146,8 @@ function makeContext({ protocol, fetchImpl }) {
   ];
   const elements = Object.fromEntries(ids.map(id => [id, makeElement(id)]));
   const L = makeLeafletStub();
-  const location = { protocol, href: `${protocol}//test/gis/gis/index.html` };
-  if (protocol === "file:") location.href = "file:///tmp/HINANEX/gis/gis/index.html";
+  const location = { protocol, href: href ?? `${protocol}//test/gis/gis/index.html` };
+  if (protocol === "file:" && !href) location.href = "file:///tmp/HINANEX/gis/gis/index.html";
 
   const context = {
     window: { location },
@@ -208,6 +208,34 @@ const nagoya = payload("23100", "愛知県名古屋市", [
   assert.equal(httpCase.elements.missingCoordinateCount.textContent, 0);
   assert.match(httpCase.elements.status.textContent, /2件表示中/);
   assert.match(httpCase.elements.resetView.textContent, /東京都 江戸川区/);
+
+  // Frontend -> GIS deep link: a supported region query selects that region before auto-load.
+  const queryCase = makeContext({
+    protocol: "http:",
+    href: "http://test/gis/gis/?region=15100",
+    fetchImpl: async url => {
+      assert.match(String(url), /niigata\.json$/);
+      return { ok: true, status: 200, json: async () => niigata };
+    }
+  });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(queryCase.elements.region.value, "15100");
+  assert.equal(queryCase.elements.recordCount.textContent, 1);
+  assert.match(queryCase.elements.resetView.textContent, /新潟県 新潟市/);
+
+  // Unsupported query values are ignored safely and keep the HTML default region.
+  const invalidQueryCase = makeContext({
+    protocol: "http:",
+    href: "http://test/gis/gis/?region=99999",
+    fetchImpl: async url => {
+      assert.match(String(url), /edogawa\.json$/);
+      return { ok: true, status: 200, json: async () => edogawa };
+    }
+  });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(invalidQueryCase.elements.region.value, "13123");
+  assert.equal(invalidQueryCase.elements.recordCount.textContent, 2);
+  assert.match(invalidQueryCase.elements.resetView.textContent, /東京都 江戸川区/);
 
   // Non-http(s) detail URLs are not rendered as clickable links.
   const shelterGroup = httpCase.L.__groups[1];
