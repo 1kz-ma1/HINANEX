@@ -84,7 +84,7 @@ class NiigataShelterAdapter(SourceAdapter):
 
     def __init__(self) -> None:
         self._resolved_source_url: str | None = None
-        self._published_at: datetime | None = None
+        self._source_date: datetime | None = None
 
     def fetch(self) -> bytes:
         page = httpx.get(
@@ -96,7 +96,7 @@ class NiigataShelterAdapter(SourceAdapter):
         page.raise_for_status()
 
         self._resolved_source_url = self.discover_csv_url(page.text)
-        self._published_at = self.extract_update_date(page.text)
+        self._source_date = self.extract_update_date(page.text)
 
         response = httpx.get(
             self._resolved_source_url,
@@ -179,15 +179,12 @@ class NiigataShelterAdapter(SourceAdapter):
             source_name="新潟市 自治体標準オープンデータセット：指定緊急避難場所一覧",
             source_url=self._resolved_source_url or self.SOURCE_PAGE_URL,
             publisher="新潟県新潟市",
-            published_at=self._published_at,
+            published_at=None,
             fetched_at=datetime.now(timezone.utc),
             license="新潟市オープンデータ利用規約",
             source_format="CSV",
             retrieval_method="OFFICIAL_PAGE_LINK_DISCOVERY_HTTP_DOWNLOAD",
-            notes=(
-                "新潟市公式オープンデータページから現在のCSVリンクを発見して取得。"
-                "shelter_location評価では名称・緯度・経度のみを必須項目として扱う。"
-            ),
+            notes=self._build_evidence_notes(),
         )
 
         return NormalizedDataset(
@@ -198,6 +195,20 @@ class NiigataShelterAdapter(SourceAdapter):
             evidence=[evidence],
             normalized_at=datetime.now(timezone.utc),
         )
+
+    def _build_evidence_notes(self) -> str:
+        notes = (
+            "新潟市公式オープンデータページから現在のCSVリンクを発見して取得。"
+            "shelter_location評価では名称・緯度・経度のみを必須項目として扱う。"
+        )
+        if self._source_date is not None:
+            notes += (
+                "公式ページ上で指定緊急避難場所一覧に紐づく日付として"
+                f"{self._source_date.date().isoformat()}を確認。"
+                "公開日・初回公開日とは確認できないため"
+                "Evidence.published_atには使用しない。"
+            )
+        return notes
 
     @classmethod
     def discover_csv_url(cls, html: str) -> str:
@@ -227,8 +238,8 @@ class NiigataShelterAdapter(SourceAdapter):
 
     @staticmethod
     def extract_update_date(html: str) -> datetime | None:
-        # Only record a date when it can be associated with the target dataset
-        # in the page text. Failure to parse is UNKNOWN, not an invented date.
+        # Capture a date only when it can be associated with the target dataset
+        # in the page text. This is not treated as an initial publication date.
         visible = re.sub(r"<[^>]+>", " ", html)
         visible = html_lib.unescape(visible)
         visible = re.sub(r"\s+", " ", visible)

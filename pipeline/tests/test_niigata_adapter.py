@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime, timedelta, timezone
 
 from src.hinanex.adapters.niigata_shelter import NiigataShelterAdapter
 from src.hinanex.evaluation.shelter_location import assess_shelter_location
@@ -42,11 +43,23 @@ class NiigataShelterAdapterTests(unittest.TestCase):
 
         adapter = NiigataShelterAdapter()
         adapter._resolved_source_url = "https://example.invalid/evacuation.csv"
+        adapter._source_date = datetime(
+            2026,
+            9,
+            25,
+            tzinfo=timezone(timedelta(hours=9)),
+        )
         dataset = adapter.normalize(csv_text.encode("utf-8"))
 
         self.assertEqual(dataset.region_code, "15100")
         self.assertEqual(dataset.requirement_code, "shelter_location")
         self.assertEqual(len(dataset.records), 2)
+
+        evidence = dataset.evidence[0]
+        self.assertIsNone(evidence.published_at)
+        self.assertIsNotNone(evidence.notes)
+        self.assertIn("2026-09-25", evidence.notes)
+        self.assertIn("Evidence.published_atには使用しない", evidence.notes)
 
         first = dataset.records[0]
         self.assertEqual(first["name"], "新潟テスト避難場所A")
