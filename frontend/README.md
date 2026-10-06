@@ -31,7 +31,7 @@ pipeline/data/output/nagoya.json
 
 runtime artifactが未生成の場合は、先に`pipeline/run_all_workflows.py`を実行してください。画面の「JSONを選択」からRegionExportを手動読込することもできます。
 
-`mock/region-export.json`は「合成デモ」ボタンでのみ表示し、実データの自動読込失敗時に黙ってfallbackしません。
+`mock/region-export.json`は「合成デモ」ボタンでのみ表示し、実データの自動読込失敗時に黙ってfallbackしません。地域切替中は前の取得を中断し、遅れて完了した古いリクエスト結果で現在表示を上書きしません。
 
 ## 起動
 
