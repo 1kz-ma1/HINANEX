@@ -55,6 +55,10 @@ jobs:
       - name: Run unit and regression tests
         run: python -m unittest discover -s tests -v
 
+      - name: Test Render staging bundle builder
+        working-directory: .
+        run: python -m unittest discover -s deploy/tests -v
+
       - name: Verify committed JSON Schema is in sync
         shell: bash
         run: |
