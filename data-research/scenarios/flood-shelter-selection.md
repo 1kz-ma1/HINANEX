@@ -309,11 +309,11 @@ Current Scenario joinability is strong for the 16 indoor files already used by D
 
 **updated_at**
 
-2026-09-15
+2026-07-27
 
 **list reference date**
 
-2026-09-01時点
+2026-07-01時点
 
 **published_at**
 
