@@ -182,7 +182,7 @@ class NagoyaShelterAdapter(SourceAdapter):
                         ),
                         source_url=url,
                         publisher="愛知県名古屋市",
-                        published_at=self._page_updated_at,
+                        published_at=None,
                         fetched_at=datetime.now(timezone.utc),
                         license="CC BY 4.0",
                         source_format=Path(filename).suffix.lstrip(".").upper(),
@@ -190,12 +190,7 @@ class NagoyaShelterAdapter(SourceAdapter):
                             "OFFICIAL_PAGE_LINK_DISCOVERY_HTTP_DOWNLOAD_"
                             "MULTI_EXCEL_BUNDLE"
                         ),
-                        notes=(
-                            "公式ページで区別に公開されている屋内施設Excelを取得。"
-                            "所在地は保持するが、このExcelから緯度経度は得られないため"
-                            "座標は推測・自動ジオコーディングせずnullのまま保持する。"
-                            + self.DATASET_SCOPE_NOTE
-                        ),
+                        notes=self._build_evidence_notes(),
                     )
                 )
 
@@ -207,6 +202,22 @@ class NagoyaShelterAdapter(SourceAdapter):
             evidence=evidence,
             normalized_at=datetime.now(timezone.utc),
         )
+
+    def _build_evidence_notes(self) -> str:
+        notes = (
+            "公式ページで区別に公開されている屋内施設Excelを取得。"
+            "所在地は保持するが、このExcelから緯度経度は得られないため"
+            "座標は推測・自動ジオコーディングせずnullのまま保持する。"
+            + self.DATASET_SCOPE_NOTE
+        )
+        if self._page_updated_at is not None:
+            notes += (
+                "公式ページの更新日として"
+                f"{self._page_updated_at.date().isoformat()}を確認。"
+                "初回公開日とは確認できないため"
+                "Evidence.published_atには使用しない。"
+            )
+        return notes
 
     @classmethod
     def discover_indoor_excel_links(
