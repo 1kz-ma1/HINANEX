@@ -635,13 +635,13 @@
       "publisher": null,
       "source_format": "Excel (.xls)",
       "published_at": null,
-      "updated_at": "2026-09-15",
+      "updated_at": "2026-07-27",
       "fetched_at": "2026-09-29",
       "license": "CC BY 4.0",
       "retrieval_method": null,
       "machine_readable": null,
       "human_review_required": false,
-      "notes": "屋内施設は16区別。PDF版でも列構造を公式資料で確認。洪水・内水対応を直接保持できる。 | download_url補足: 16区別屋内施設Excel＋屋外2Excel（公式ページから個別取得） | 公式ページ上の一覧表は2026-09-01時点。ページ更新日は2026-09-15。"
+      "notes": "屋内施設は16区別。PDF版でも列構造を公式資料で確認。洪水・内水対応を直接保持できる。 | download_url補足: 16区別屋内施設Excel＋屋外2Excel（公式ページから個別取得） | 公式ページ上の一覧表は2026-07-01時点。ページ更新日は2026-07-27。"
     },
     {
       "region_name": "愛知県名古屋市",
@@ -655,13 +655,13 @@
       "publisher": null,
       "source_format": "Excel (.xls)",
       "published_at": null,
-      "updated_at": "2026-09-15",
+      "updated_at": "2026-07-27",
       "fetched_at": "2026-09-29",
       "license": "CC BY 4.0",
       "retrieval_method": null,
       "machine_readable": null,
       "human_review_required": false,
-      "notes": "指定避難所列が同一Excel内にあるため、指定緊急避難場所との関係を同一行で保持可能。 | download_url補足: 16区別屋内施設Excel（公式ページから個別取得） | 公式ページ上の一覧表は2026-09-01時点。ページ更新日は2026-09-15。"
+      "notes": "指定避難所列が同一Excel内にあるため、指定緊急避難場所との関係を同一行で保持可能。 | download_url補足: 16区別屋内施設Excel（公式ページから個別取得） | 公式ページ上の一覧表は2026-07-01時点。ページ更新日は2026-07-27。"
     },
     {
       "region_name": "愛知県名古屋市",
@@ -675,13 +675,13 @@
       "publisher": null,
       "source_format": "Excel (.xls)",
       "published_at": null,
-      "updated_at": "2026-09-15",
+      "updated_at": "2026-07-27",
       "fetched_at": "2026-09-29",
       "license": "CC BY 4.0",
       "retrieval_method": null,
       "machine_readable": null,
       "human_review_required": false,
-      "notes": "洪水MVPでは『洪水・内水』列を使用可能。数字は避難可能階数を表す。 | download_url補足: 16区別屋内施設Excel | 公式ページ上の一覧表は2026-09-01時点。ページ更新日は2026-09-15。"
+      "notes": "洪水MVPでは『洪水・内水』列を使用可能。数字は避難可能階数を表す。 | download_url補足: 16区別屋内施設Excel | 公式ページ上の一覧表は2026-07-01時点。ページ更新日は2026-07-27。"
     },
     {
       "region_name": "3地域共通",
