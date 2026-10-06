@@ -9,6 +9,71 @@
 - overall judgment: **valid with review items**
 - classifications: `valid` / `needs_review` / `misclassified`
 
+## 2026-10-06 C targeted follow-up（D PR #23確認後）
+
+C PR #17でDへ返却した `Evidence.published_at` の1点だけを再確認した。
+3地域の全Validationを最初からやり直すのではなく、返却事項に対するD修正と
+回帰テストを対象にした差分Validationである。
+
+- D修正: PR #23 `fix(d): keep update dates out of Evidence.published_at`
+- 確認対象: `role/d-pipeline` commit `8595f39f372e3b5b50857fd0f453130919d3ace2`
+- CI: PR #23 GitHub Actions `test` run #52 = **success**
+- Contract変更: none
+- Schema変更: none
+- Cは `pipeline/**` を変更していない
+
+### Return itemの解消確認
+
+| 対象 | PR #17時点の問題 | PR #23後の確認 | C判定 |
+| --- | --- | --- | --- |
+| 新潟市 | 一覧に紐づく日付を `Evidence.published_at` へ設定していた | `published_at=None`。確認した日付はnotesへ「一覧に紐づく日付」として保持し、公開日・初回公開日とは確認できないため `published_at` に使用しない旨を明記 | **resolved** |
+| 名古屋市 | 公式ページの「更新日」を `Evidence.published_at` へ設定していた | `published_at=None`。ページ更新日はnotesへ意味付きで保持し、初回公開日とは確認できないため `published_at` に使用しない旨を明記 | **resolved** |
+
+新潟・名古屋とも、既存Contract:
+
+```text
+Evidence.published_at
+= 公式Sourceで公開日として確認できる場合のみ設定
+```
+
+へ実装が揃ったことを確認した。更新日等は捨てずにnotesへ残るため、
+Traceabilityも維持されている。
+
+### Regression evidence
+
+PR #23では以下の回帰テストが追加・更新されている。
+
+- Niigata: 日付を取得できても `published_at is None` であること
+- Niigata: 取得した日付がnotesへ残ること
+- Nagoya: ページ更新日を取得できても `published_at is None` であること
+- Nagoya: 更新日がnotesへ残ること
+- Scope Guard / Python compile / unit & regression / JSON Schema sync /
+  PowerShell parse を含むCI run #52がsuccess
+
+### C conclusion
+
+**PR #17で追加した `published_at` のreturn itemは解消済み。**
+
+この修正はEvidence metadataの意味論のみで、
+record count、DatasetAssessment、Capability、Gap、Recommendationの
+判定ロジックを変更していない。したがって、この1点の確認のために
+江戸川152件・新潟566件・名古屋1602件の全raw再取得を再実施する必要はない。
+
+今回の差分Validationで新しい `misclassified` は確認していない。
+
+引き続き別論点として残るもの:
+
+- 新潟566件の独立raw hash / 全件再照合
+- 名古屋1602件の独立raw再カウント
+- 実地位置精度
+- 名古屋屋外施設をformal Datasetへ含めるかのProduct/Contract判断
+- 災害別安全性・capacity・accessibility等
+
+これらはPR #23の受入を止める理由ではなく、今回の
+`published_at` return itemとは分離して扱う。
+
+---
+
 ## 2026-10-06 C follow-up（最新main同期後）
 
 この節は、以下の2026-09-29時点の検証記録に対する**追補**である。旧節の
