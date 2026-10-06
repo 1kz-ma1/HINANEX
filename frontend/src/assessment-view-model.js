@@ -21,6 +21,13 @@ const applicationReadinessMetrics = Object.freeze([
   ["semantic_fitness", "意味的適合性"],
 ]);
 
+const unconfirmedCountStatuses = new Set([
+  "NOT_MACHINE_READABLE",
+  "ACCESS_RESTRICTED",
+  "NOT_FOUND",
+  "UNKNOWN",
+]);
+
 const discoveryStatus = Object.freeze({
   AVAILABLE: { label: "取得済み", tone: "full", description: "現在の取得経路で利用可能です。" },
   PARTIAL: { label: "一部取得", tone: "degraded", description: "現在の取得経路では一部のみ利用可能です。" },
@@ -58,6 +65,37 @@ function buildMetricGroup(source, definitions) {
   return definitions.map(([key, label]) => buildMetricViewModel(key, label, source?.[key]));
 }
 
+function buildRecordCountPresentation(discoveryCode, recordCount) {
+  if (discoveryCode === "NOT_APPLICABLE") {
+    return {
+      label: "件数表示の対象外",
+      note: "この評価ではDataset件数を表示する対象ではありません。",
+    };
+  }
+
+  if (unconfirmedCountStatuses.has(discoveryCode)) {
+    const contractValue = Number.isInteger(recordCount)
+      ? `RegionExportのrecord_countは${recordCount.toLocaleString("ja-JP")}ですが、`
+      : "";
+    return {
+      label: "件数を確認できません",
+      note: `${contractValue}実施設が0件という意味ではありません。`,
+    };
+  }
+
+  if (Number.isInteger(recordCount)) {
+    return {
+      label: `HINANEXの現在の取得結果：${recordCount.toLocaleString("ja-JP")}件`,
+      note: "表示件数は現在の取得経路とDataset scopeに基づく結果です。",
+    };
+  }
+
+  return {
+    label: "データ件数：情報なし",
+    note: "RegionExportに有効なrecord_countがありません。",
+  };
+}
+
 function datasetScopeNote(regionName, requirementCode) {
   if (regionName.includes("名古屋市") && requirementCode === "shelter_location") {
     return "現在のDatasetは16区別の屋内施設データが対象です。屋外施設は含まず、件数は名古屋市の全避難関連施設数を意味しません。";
@@ -70,6 +108,11 @@ function buildAssessmentViewModel(assessment) {
   const regionName = textOrNull(assessment.region_name) ?? "地域情報なし";
   const requirementCode = textOrNull(assessment.requirement_code) ?? "コード情報なし";
   const discovery = getDiscoveryStatusMeta(assessment.discovery_status);
+  const recordCount = Number.isInteger(assessment.record_count) ? assessment.record_count : null;
+  const recordCountPresentation = buildRecordCountPresentation(
+    assessment.discovery_status,
+    recordCount,
+  );
 
   return {
     requirementCode,
@@ -77,10 +120,9 @@ function buildAssessmentViewModel(assessment) {
     discoveryLabel: discovery.label,
     discoveryDescription: discovery.description,
     tone: discovery.tone,
-    recordCount: Number.isInteger(assessment.record_count) ? assessment.record_count : null,
-    recordCountLabel: Number.isInteger(assessment.record_count)
-      ? `現在取得しているデータ件数：${assessment.record_count.toLocaleString("ja-JP")}件`
-      : "データ件数：情報なし",
+    recordCount,
+    recordCountLabel: recordCountPresentation.label,
+    recordCountNote: recordCountPresentation.note,
     scopeNote: datasetScopeNote(regionName, requirementCode),
     findings: list(assessment.findings),
     assessedAt: formatDateTime(assessment.assessed_at),
@@ -101,6 +143,7 @@ export {
   buildAssessmentViewModel,
   buildAssessmentViewModels,
   buildMetricViewModel,
+  buildRecordCountPresentation,
   datasetScopeNote,
   getDiscoveryStatusMeta,
 };
