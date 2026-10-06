@@ -154,8 +154,10 @@ def _assess_shelter_location_dependency(
         criticality=dependency.criticality,
         status=DependencyStatus.READY,
         reasons=[
-            "shelter_location の名称・位置情報が、"
-            "Shelter Discovery に必要な条件を満たしています。"
+            "現在の shelter_location dependency（施設名称・緯度経度）が、"
+            "位置ベースの Shelter Discovery 条件を満たしています。"
+            "この FULL 判定は、災害別安全性・収容人数・アクセシビリティ・"
+            "避難ルート安全性・リアルタイム利用可否を保証するものではありません。"
         ],
     )
 
@@ -220,6 +222,10 @@ def assess_shelter_discovery(
     Machine Readability は自動取得・保守性には重要だが、
     現在保持している位置情報を用いた Shelter Discovery の可否そのものには
     直接使わない。
+
+    FULL は shelter_location dependency がこの位置ベース条件を満たす意味に限定する。
+    災害別安全性、収容人数、アクセシビリティ、避難ルート安全性、
+    リアルタイム利用可否まで保証する状態ではない。
     """
 
     dependency = SHELTER_DISCOVERY.dependencies[0]

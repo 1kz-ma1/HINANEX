@@ -52,6 +52,10 @@ class CapabilityTests(unittest.TestCase):
     def test_full_shelter_discovery(self) -> None:
         result = assess_shelter_discovery([full_assessment()])
         self.assertEqual(result.status, CapabilityStatus.FULL)
+        self.assertTrue(any("位置ベース" in reason for reason in result.reasons))
+        self.assertTrue(
+            any("保証するものではありません" in reason for reason in result.reasons)
+        )
 
     def test_partial_required_metric_degrades(self) -> None:
         assessment = full_assessment()
