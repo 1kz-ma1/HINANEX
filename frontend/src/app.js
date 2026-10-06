@@ -1,5 +1,10 @@
 import { buildRegionExportViewModel } from "./region-export-view-model.js";
 import { createRegionExportController } from "./region-export-loader.js";
+import {
+  assertRegionMatches,
+  getPayloadRegionCode,
+  getRegionSource,
+} from "./region-export-source.js";
 import { formatDateTime } from "./view-model-utils.js";
 
 const overviewRoot = document.querySelector("#overviewRoot");
@@ -15,10 +20,11 @@ const demoNotice = document.querySelector("#demoNotice");
 const evidenceDialog = document.querySelector("#evidenceDialog");
 const evidenceBody = document.querySelector("#evidenceBody");
 const closeEvidence = document.querySelector("#closeEvidence");
-const pageStatus = document.querySelector("#pageStatus");
-const sc02Content = document.querySelector("#sc02Content");
-const regionOptions = document.querySelector("#regionOptions");
-const regionButtons = [...regionOptions.querySelectorAll("[data-region-key]")];
+const regionSelect = document.querySelector("#regionSelect");
+const reloadRegionExport = document.querySelector("#reloadRegionExport");
+const regionExportFile = document.querySelector("#regionExportFile");
+const loadDemoData = document.querySelector("#loadDemoData");
+const sourceStatus = document.querySelector("#sourceStatus");
 const contentRoots = [
   overviewRoot,
   capabilityRoot,
@@ -498,28 +504,104 @@ function renderPage(viewModel) {
   );
 }
 
-function renderError(error, config) {
+function clearRegionContent() {
+  for (const root of contentRoots) root.replaceChildren();
+  if (evidenceDialog.open) evidenceDialog.close();
+}
+
+function renderLoading(source) {
   clearRegionContent();
-  updateSelectedRegion(config.key);
-  regionName.textContent = config.label;
-  generatedAt.textContent = "RegionExportの読み込みに失敗しました";
+  regionName.textContent = `${source.label}を読み込み中`;
+  generatedAt.textContent = "RegionExportを取得しています";
   schemaVersion.textContent = "Contract —";
   demoNotice.hidden = true;
-  sc02Content.hidden = true;
-  pageStatus.hidden = false;
-  pageStatus.setAttribute("aria-busy", "false");
-  pageStatus.replaceChildren(
+  setSourceStatus(`${source.label} のD出力を読み込んでいます…`, "loading");
+  capabilityRoot.append(
     element("div", {
-      className: "error-card page-error",
+      className: "loading-card",
       children: [
-        element("strong", { text: `${config.label}のRegionExportを読み込めませんでした` }),
         element("span", {
-          text: "D PipelineでRegionExportが生成されているか確認してください。",
+          className: "loading-dot",
+          attributes: { "aria-hidden": "true" },
         }),
-        element("small", { text: error.message }),
+        element("span", { text: `${source.label}のRegionExportを読み込んでいます` }),
       ],
     }),
   );
+}
+
+function renderError(error, source = null) {
+  clearRegionContent();
+  regionName.textContent = source?.label ?? "RegionExport読込失敗";
+  generatedAt.textContent = "RegionExportを読み込めませんでした";
+  schemaVersion.textContent = "Contract —";
+  demoNotice.hidden = true;
+  capabilityRoot.append(
+    element("div", {
+      className: "error-card page-error",
+      children: [
+        element("strong", {
+          text: source
+            ? `${source.label}のRegionExportを読み込めませんでした。`
+            : "RegionExportを表示できませんでした。",
+        }),
+        element("span", { text: error.message }),
+      ],
+    }),
+  );
+}
+
+function setSourceStatus(message, tone = "normal") {
+  sourceStatus.textContent = message;
+  sourceStatus.dataset.tone = tone;
+}
+
+async function fetchRegionExport(url) {
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`JSONの取得に失敗しました（HTTP ${response.status}）。`);
+  }
+  return response.json();
+}
+
+function renderLoadedPayload(payload, sourceLabel, expectedRegionCode = null) {
+  const regionCode = expectedRegionCode
+    ? assertRegionMatches(payload, expectedRegionCode)
+    : getPayloadRegionCode(payload);
+  regionSelect.value = regionCode;
+  renderPage(buildRegionExportViewModel(payload));
+  setSourceStatus(`${sourceLabel}｜RegionExportを表示中`, "success");
+}
+
+const regionController = createRegionExportController({
+  onLoading: renderLoading,
+  onSuccess(payload, source) {
+    renderLoadedPayload(payload, source.url, source.code);
+  },
+  onError(error, source) {
+    renderError(error, source);
+    setSourceStatus(
+      `${source.url} を自動読込できませんでした。pipeline出力を生成するか、JSONを手動選択してください。`,
+      "error",
+    );
+  },
+});
+
+function loadSelectedRegion() {
+  return regionController.selectRegion(regionSelect.value);
+}
+
+async function loadDemoRegionExport() {
+  regionController.cancel();
+  clearRegionContent();
+  setSourceStatus("UI検証用の合成データを読み込んでいます…", "loading");
+  try {
+    const payload = await fetchRegionExport("./mock/region-export.json");
+    renderPage(buildRegionExportViewModel(payload));
+    setSourceStatus("mock/region-export.json｜合成デモを表示中", "demo");
+  } catch (error) {
+    renderError(error instanceof Error ? error : new Error("不明なエラーです。"));
+  }
 }
 
 closeEvidence.addEventListener("click", () => evidenceDialog.close());
@@ -527,18 +609,26 @@ evidenceDialog.addEventListener("click", (event) => {
   if (event.target === evidenceDialog) evidenceDialog.close();
 });
 
-const regionController = createRegionExportController({
-  onLoading: renderLoading,
-  onSuccess(exportData) {
-    renderPage(buildRegionExportViewModel(exportData));
-  },
-  onError: renderError,
+regionSelect.addEventListener("change", loadSelectedRegion);
+reloadRegionExport.addEventListener("click", loadSelectedRegion);
+loadDemoData.addEventListener("click", loadDemoRegionExport);
+regionExportFile.addEventListener("change", async (event) => {
+  const [file] = event.target.files ?? [];
+  if (!file) return;
+
+  regionController.cancel();
+  clearRegionContent();
+  setSourceStatus(`${file.name} を読み込んでいます…`, "loading");
+  try {
+    const payload = JSON.parse(await file.text());
+    renderLoadedPayload(payload, file.name);
+  } catch (error) {
+    const normalized = error instanceof Error ? error : new Error("不明なエラーです。");
+    renderError(normalized);
+    setSourceStatus(`JSON読込失敗: ${normalized.message}`, "error");
+  } finally {
+    event.target.value = "";
+  }
 });
 
-for (const button of regionButtons) {
-  button.addEventListener("click", () => {
-    regionController.selectRegion(button.dataset.regionKey);
-  });
-}
-
-await regionController.selectRegion("edogawa");
+loadSelectedRegion();

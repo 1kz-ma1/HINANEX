@@ -1,34 +1,10 @@
-const regionExports = Object.freeze({
-  edogawa: Object.freeze({
-    key: "edogawa",
-    label: "東京都江戸川区",
-    url: "../pipeline/data/output/edogawa.json",
-  }),
-  niigata: Object.freeze({
-    key: "niigata",
-    label: "新潟県新潟市",
-    url: "../pipeline/data/output/niigata.json",
-  }),
-  nagoya: Object.freeze({
-    key: "nagoya",
-    label: "愛知県名古屋市",
-    url: "../pipeline/data/output/nagoya.json",
-  }),
-});
+import { assertRegionMatches, getRegionSource } from "./region-export-source.js";
 
 class RegionExportLoadError extends Error {
   constructor(message, options = {}) {
     super(message, options);
     this.name = "RegionExportLoadError";
   }
-}
-
-function getRegionExportConfig(regionKey) {
-  const config = regionExports[regionKey];
-  if (!config) {
-    throw new RangeError(`未定義の地域キーです: ${regionKey ?? "値なし"}`);
-  }
-  return config;
 }
 
 function createRegionExportController({
@@ -44,18 +20,18 @@ function createRegionExportController({
   let activeController = null;
   let activeRequestId = 0;
 
-  async function selectRegion(regionKey) {
-    const config = getRegionExportConfig(regionKey);
+  async function selectRegion(regionCode) {
+    const source = getRegionSource(regionCode);
     const requestId = activeRequestId + 1;
     activeRequestId = requestId;
 
     activeController?.abort();
     const controller = new AbortController();
     activeController = controller;
-    onLoading(config);
+    onLoading(source);
 
     try {
-      const response = await fetchImpl(config.url, {
+      const response = await fetchImpl(source.url, {
         cache: "no-store",
         signal: controller.signal,
       });
@@ -66,19 +42,21 @@ function createRegionExportController({
         );
       }
 
-      const exportData = await response.json();
-      if (requestId !== activeRequestId) return { status: "stale", config };
+      const payload = await response.json();
+      assertRegionMatches(payload, source.code);
 
-      onSuccess(exportData, config);
-      return { status: "success", config, exportData };
+      if (requestId !== activeRequestId) return { status: "stale", source };
+
+      onSuccess(payload, source);
+      return { status: "success", source, payload };
     } catch (error) {
-      if (requestId !== activeRequestId) return { status: "stale", config };
-      if (error?.name === "AbortError") return { status: "aborted", config };
+      if (requestId !== activeRequestId) return { status: "stale", source };
+      if (error?.name === "AbortError") return { status: "aborted", source };
 
-      const normalizedError =
+      const normalized =
         error instanceof Error ? error : new RegionExportLoadError("不明な取得エラーです。");
-      onError(normalizedError, config);
-      return { status: "error", config, error: normalizedError };
+      onError(normalized, source);
+      return { status: "error", source, error: normalized };
     } finally {
       if (requestId === activeRequestId) activeController = null;
     }
@@ -93,9 +71,4 @@ function createRegionExportController({
   return Object.freeze({ cancel, selectRegion });
 }
 
-export {
-  RegionExportLoadError,
-  createRegionExportController,
-  getRegionExportConfig,
-  regionExports,
-};
+export { RegionExportLoadError, createRegionExportController };

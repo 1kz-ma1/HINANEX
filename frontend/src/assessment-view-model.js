@@ -21,6 +21,13 @@ const applicationReadinessMetrics = Object.freeze([
   ["semantic_fitness", "意味的適合性"],
 ]);
 
+const unconfirmedCountStatuses = new Set([
+  "NOT_MACHINE_READABLE",
+  "ACCESS_RESTRICTED",
+  "NOT_FOUND",
+  "UNKNOWN",
+]);
+
 const discoveryStatus = Object.freeze({
   AVAILABLE: { label: "取得済み", tone: "full", description: "現在の取得経路で利用可能です。" },
   PARTIAL: { label: "一部取得", tone: "degraded", description: "現在の取得経路では一部のみ利用可能です。" },

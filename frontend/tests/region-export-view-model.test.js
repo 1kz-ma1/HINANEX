@@ -121,15 +121,16 @@ test("名古屋市のrecord_countを全避難関連施設数として扱わな�
   assert.match(viewModel.scopeNote, /屋外施設は含まず/);
 });
 
+
 test("非取得状態のrecord_count=0を実施設0件として表示しない", () => {
-  const nonAcquisitionStatuses = [
+  const statuses = [
     "NOT_MACHINE_READABLE",
     "ACCESS_RESTRICTED",
     "NOT_FOUND",
     "UNKNOWN",
   ];
 
-  for (const status of nonAcquisitionStatuses) {
+  for (const status of statuses) {
     const presentation = buildRecordCountPresentation(status, 0);
     assert.equal(presentation.label, "件数を確認できません", status);
     assert.match(presentation.note, /実施設が0件という意味ではありません/, status);
