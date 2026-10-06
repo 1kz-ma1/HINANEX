@@ -49,6 +49,29 @@
           </p>
         </div>
 
+        <section class="source-panel" aria-labelledby="sourcePanelTitle">
+          <div class="source-panel-copy">
+            <p class="eyebrow">Runtime data</p>
+            <h2 id="sourcePanelTitle">D RegionExportを表示</h2>
+            <p>pipelineが生成した3地域のRegionExportを直接読み込みます。取得できない場合はJSONを手動選択できます。</p>
+          </div>
+          <div class="source-panel-controls">
+            <label class="source-field">
+              <span>地域</span>
+              <select id="regionSelect">
+                <option value="13123">東京都 江戸川区</option>
+                <option value="15100">新潟県 新潟市</option>
+                <option value="23100">愛知県 名古屋市</option>
+              </select>
+            </label>
+            <button id="reloadRegionExport" class="source-button source-button--primary" type="button">D出力を再読込</button>
+            <label class="source-button" for="regionExportFile">JSONを選択</label>
+            <input id="regionExportFile" class="source-file-input" type="file" accept="application/json,.json" />
+            <button id="loadDemoData" class="source-button source-button--quiet" type="button">合成デモ</button>
+          </div>
+          <small id="sourceStatus" class="source-status" aria-live="polite">D出力を読み込んでいます。</small>
+        </section>
+
         <nav class="section-nav" aria-label="地域詳細の表示項目">
           <a href="#overview">基本情報</a>
           <a href="#capabilities">Capability</a>

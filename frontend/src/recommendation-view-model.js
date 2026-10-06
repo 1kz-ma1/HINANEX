@@ -25,6 +25,7 @@ function buildRecommendationViewModels(exportData) {
       typeLabel: type.label,
       tone: type.tone,
       priorityCode: recommendation.priority,
+      priorityDisplayLabel: "優先度",
       priorityLabel: priority.label,
       priorityTone: priority.tone,
       title: textOrNull(recommendation.title) ?? "提案名なし",
