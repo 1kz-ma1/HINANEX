@@ -1,4 +1,9 @@
 import { buildRegionExportViewModel } from "./region-export-view-model.js";
+import {
+  assertRegionMatches,
+  getPayloadRegionCode,
+  getRegionSource,
+} from "./region-export-source.js";
 import { formatDateTime } from "./view-model-utils.js";
 
 const overviewRoot = document.querySelector("#overviewRoot");
@@ -14,6 +19,11 @@ const demoNotice = document.querySelector("#demoNotice");
 const evidenceDialog = document.querySelector("#evidenceDialog");
 const evidenceBody = document.querySelector("#evidenceBody");
 const closeEvidence = document.querySelector("#closeEvidence");
+const regionSelect = document.querySelector("#regionSelect");
+const reloadRegionExport = document.querySelector("#reloadRegionExport");
+const regionExportFile = document.querySelector("#regionExportFile");
+const loadDemoData = document.querySelector("#loadDemoData");
+const sourceStatus = document.querySelector("#sourceStatus");
 
 function element(tagName, options = {}) {
   const node = document.createElement(tagName);
@@ -450,6 +460,11 @@ function renderPage(viewModel) {
 }
 
 function renderError(error) {
+  overviewRoot.replaceChildren();
+  assessmentRoot.replaceChildren();
+  gapRoot.replaceChildren();
+  recommendationRoot.replaceChildren();
+  evidenceRoot.replaceChildren();
   capabilityRoot.replaceChildren(
     element("div", {
       className: "error-card",
@@ -461,13 +476,55 @@ function renderError(error) {
   );
 }
 
-async function loadRegionExport() {
-  const response = await fetch("./mock/region-export.json", { cache: "no-store" });
+function setSourceStatus(message, tone = "normal") {
+  sourceStatus.textContent = message;
+  sourceStatus.dataset.tone = tone;
+}
+
+async function fetchRegionExport(url) {
+  const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`JSONの取得に失敗しました（HTTP ${response.status}）。`);
   }
-
   return response.json();
+}
+
+function renderLoadedPayload(payload, sourceLabel, expectedRegionCode = null) {
+  const regionCode = expectedRegionCode
+    ? assertRegionMatches(payload, expectedRegionCode)
+    : getPayloadRegionCode(payload);
+  regionSelect.value = regionCode;
+  renderPage(buildRegionExportViewModel(payload));
+  setSourceStatus(`${sourceLabel}｜RegionExportを表示中`, "success");
+}
+
+async function loadSelectedRegion() {
+  const source = getRegionSource(regionSelect.value);
+  setSourceStatus(`${source.label} のD出力を読み込んでいます…`, "loading");
+  try {
+    const payload = await fetchRegionExport(source.url);
+    renderLoadedPayload(payload, source.url, source.code);
+  } catch (error) {
+    const normalized = error instanceof Error ? error : new Error("不明なエラーです。");
+    renderError(normalized);
+    regionName.textContent = source.label;
+    generatedAt.textContent = "D出力を読み込めませんでした";
+    setSourceStatus(
+      `${source.url} を自動読込できませんでした。pipeline出力を生成するか、JSONを手動選択してください。`,
+      "error",
+    );
+  }
+}
+
+async function loadDemoRegionExport() {
+  setSourceStatus("UI検証用の合成データを読み込んでいます…", "loading");
+  try {
+    const payload = await fetchRegionExport("./mock/region-export.json");
+    renderPage(buildRegionExportViewModel(payload));
+    setSourceStatus("mock/region-export.json｜合成デモを表示中", "demo");
+  } catch (error) {
+    renderError(error instanceof Error ? error : new Error("不明なエラーです。"));
+  }
 }
 
 closeEvidence.addEventListener("click", () => evidenceDialog.close());
@@ -475,9 +532,24 @@ evidenceDialog.addEventListener("click", (event) => {
   if (event.target === evidenceDialog) evidenceDialog.close();
 });
 
-try {
-  const exportData = await loadRegionExport();
-  renderPage(buildRegionExportViewModel(exportData));
-} catch (error) {
-  renderError(error instanceof Error ? error : new Error("不明なエラーです。"));
-}
+regionSelect.addEventListener("change", loadSelectedRegion);
+reloadRegionExport.addEventListener("click", loadSelectedRegion);
+loadDemoData.addEventListener("click", loadDemoRegionExport);
+regionExportFile.addEventListener("change", async (event) => {
+  const [file] = event.target.files ?? [];
+  if (!file) return;
+
+  setSourceStatus(`${file.name} を読み込んでいます…`, "loading");
+  try {
+    const payload = JSON.parse(await file.text());
+    renderLoadedPayload(payload, file.name);
+  } catch (error) {
+    const normalized = error instanceof Error ? error : new Error("不明なエラーです。");
+    renderError(normalized);
+    setSourceStatus(`JSON読込失敗: ${normalized.message}`, "error");
+  } finally {
+    event.target.value = "";
+  }
+});
+
+loadSelectedRegion();
