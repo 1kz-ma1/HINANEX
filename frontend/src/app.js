@@ -1,4 +1,5 @@
 import { buildRegionExportViewModel } from "./region-export-view-model.js";
+import { createRegionExportController } from "./region-export-loader.js";
 import { formatDateTime } from "./view-model-utils.js";
 
 const overviewRoot = document.querySelector("#overviewRoot");
@@ -14,6 +15,18 @@ const demoNotice = document.querySelector("#demoNotice");
 const evidenceDialog = document.querySelector("#evidenceDialog");
 const evidenceBody = document.querySelector("#evidenceBody");
 const closeEvidence = document.querySelector("#closeEvidence");
+const pageStatus = document.querySelector("#pageStatus");
+const sc02Content = document.querySelector("#sc02Content");
+const regionOptions = document.querySelector("#regionOptions");
+const regionButtons = [...regionOptions.querySelectorAll("[data-region-key]")];
+const contentRoots = [
+  overviewRoot,
+  capabilityRoot,
+  assessmentRoot,
+  gapRoot,
+  recommendationRoot,
+  evidenceRoot,
+];
 
 function element(tagName, options = {}) {
   const node = document.createElement(tagName);
@@ -279,6 +292,7 @@ function assessmentCard(assessment) {
           element("div", {
             children: [
               element("strong", { text: assessment.recordCountLabel }),
+              element("p", { text: assessment.recordCountNote }),
               element("p", { text: assessment.discoveryDescription }),
             ],
           }),
@@ -317,7 +331,7 @@ function gapCard(gap) {
           statusBadge(gap.kindLabel, gap.tone),
           element("span", {
             className: `severity-pill tone-${gap.severityTone}`,
-            text: `優先度 ${gap.severityLabel}`,
+            text: `${gap.severityDisplayLabel} ${gap.severityLabel}`,
           }),
         ],
       }),
@@ -343,7 +357,7 @@ function recommendationCard(recommendation) {
           statusBadge(recommendation.typeLabel, recommendation.tone),
           element("span", {
             className: `severity-pill tone-${recommendation.priorityTone}`,
-            text: `優先度 ${recommendation.priorityLabel}`,
+            text: `${recommendation.priorityDisplayLabel} ${recommendation.priorityLabel}`,
           }),
         ],
       }),
@@ -415,11 +429,46 @@ function renderCollection(root, items, renderer, emptyMessage) {
   root.replaceChildren(...(items.length ? items.map(renderer) : [emptyState(emptyMessage)]));
 }
 
+function updateSelectedRegion(regionKey) {
+  for (const button of regionButtons) {
+    button.setAttribute("aria-pressed", String(button.dataset.regionKey === regionKey));
+  }
+}
+
+function clearRegionContent() {
+  for (const root of contentRoots) root.replaceChildren();
+  if (evidenceDialog.open) evidenceDialog.close();
+}
+
+function renderLoading(config) {
+  clearRegionContent();
+  updateSelectedRegion(config.key);
+  regionName.textContent = `${config.label}を読み込み中`;
+  generatedAt.textContent = "RegionExportを取得しています";
+  schemaVersion.textContent = "Contract —";
+  demoNotice.hidden = true;
+  sc02Content.hidden = true;
+  pageStatus.hidden = false;
+  pageStatus.setAttribute("aria-busy", "true");
+  pageStatus.replaceChildren(
+    element("div", {
+      className: "loading-card",
+      children: [
+        element("span", { className: "loading-dot", attributes: { "aria-hidden": "true" } }),
+        element("span", { text: `${config.label}のRegionExportを読み込んでいます` }),
+      ],
+    }),
+  );
+}
+
 function renderPage(viewModel) {
   regionName.textContent = viewModel.regionName;
   generatedAt.textContent = `出力生成：${viewModel.generatedAt}`;
   schemaVersion.textContent = `Contract ${viewModel.schemaVersion}`;
   demoNotice.hidden = !viewModel.isSynthetic;
+  pageStatus.hidden = true;
+  pageStatus.setAttribute("aria-busy", "false");
+  sc02Content.hidden = false;
 
   renderOverview(viewModel);
   renderCollection(
@@ -449,25 +498,28 @@ function renderPage(viewModel) {
   );
 }
 
-function renderError(error) {
-  capabilityRoot.replaceChildren(
+function renderError(error, config) {
+  clearRegionContent();
+  updateSelectedRegion(config.key);
+  regionName.textContent = config.label;
+  generatedAt.textContent = "RegionExportの読み込みに失敗しました";
+  schemaVersion.textContent = "Contract —";
+  demoNotice.hidden = true;
+  sc02Content.hidden = true;
+  pageStatus.hidden = false;
+  pageStatus.setAttribute("aria-busy", "false");
+  pageStatus.replaceChildren(
     element("div", {
-      className: "error-card",
+      className: "error-card page-error",
       children: [
-        element("strong", { text: "RegionExportを表示できませんでした。" }),
-        element("span", { text: error.message }),
+        element("strong", { text: `${config.label}のRegionExportを読み込めませんでした` }),
+        element("span", {
+          text: "D PipelineでRegionExportが生成されているか確認してください。",
+        }),
+        element("small", { text: error.message }),
       ],
     }),
   );
-}
-
-async function loadRegionExport() {
-  const response = await fetch("./mock/region-export.json", { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`JSONの取得に失敗しました（HTTP ${response.status}）。`);
-  }
-
-  return response.json();
 }
 
 closeEvidence.addEventListener("click", () => evidenceDialog.close());
@@ -475,9 +527,18 @@ evidenceDialog.addEventListener("click", (event) => {
   if (event.target === evidenceDialog) evidenceDialog.close();
 });
 
-try {
-  const exportData = await loadRegionExport();
-  renderPage(buildRegionExportViewModel(exportData));
-} catch (error) {
-  renderError(error instanceof Error ? error : new Error("不明なエラーです。"));
+const regionController = createRegionExportController({
+  onLoading: renderLoading,
+  onSuccess(exportData) {
+    renderPage(buildRegionExportViewModel(exportData));
+  },
+  onError: renderError,
+});
+
+for (const button of regionButtons) {
+  button.addEventListener("click", () => {
+    regionController.selectRegion(button.dataset.regionKey);
+  });
 }
+
+await regionController.selectRegion("edogawa");

@@ -246,6 +246,85 @@ h1 span {
   display: none;
 }
 
+.region-switcher {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  margin-bottom: 24px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: rgba(13, 28, 41, 0.78);
+}
+
+.region-switcher h2 {
+  margin-bottom: 3px;
+  font-size: 20px;
+}
+
+.region-switcher p:last-child {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.region-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.region-options button {
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  padding: 8px 13px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.025);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.region-options button:hover {
+  color: var(--text);
+  border-color: rgba(78, 215, 220, 0.34);
+}
+
+.region-options button[aria-pressed="true"] {
+  color: #dffcff;
+  border-color: rgba(78, 215, 220, 0.45);
+  background: var(--cyan-soft);
+}
+
+.region-options button:focus-visible {
+  outline: 3px solid rgba(78, 215, 220, 0.45);
+  outline-offset: 3px;
+}
+
+.page-status {
+  margin-bottom: 48px;
+}
+
+.page-error {
+  padding: 28px;
+}
+
+.page-error strong {
+  color: var(--text);
+}
+
+.page-error small {
+  color: var(--red);
+  overflow-wrap: anywhere;
+}
+
+.page-status[hidden],
+#sc02Content[hidden] {
+  display: none;
+}
+
 .section-nav {
   position: sticky;
   top: 12px;
@@ -1001,6 +1080,21 @@ a:focus-visible {
   .section-nav {
     top: 6px;
     margin-bottom: 36px;
+  }
+
+  .region-switcher {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .region-options {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .region-options button {
+    width: 100%;
   }
 
   .overview-root {

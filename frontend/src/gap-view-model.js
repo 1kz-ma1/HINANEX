@@ -43,6 +43,7 @@ function buildGapViewModels(exportData) {
       kindLabel: kind.label,
       kindDescription: kind.description,
       severityCode: gap.severity,
+      severityDisplayLabel: "重要度",
       severityLabel: priority.label,
       severityTone: priority.tone,
       tone: kind.tone,

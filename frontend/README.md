@@ -15,19 +15,29 @@ RegionExport `0.9`の以下を、契約上の意味を変えずに一画面へ�
 
 UI側では評価結果、スコア、Gap、Recommendationを再計算しません。`score=0`は`0 / 4`、`score=null`は`未評価`として区別します。
 
-`mock/region-export.json`は画面確認専用の合成データです。実在地域の防災状態を表しません。BLOCKED、Gap、Recommendation、`score=4 / 0 / null`、`published_at=null`を確認できる形にしています。
+画面上部の選択ボタンで、江戸川区・新潟市・名古屋市のRegionExportを切り替えられます。読み込み中は前の地域の内容を消し、取得失敗時は地域詳細全体をエラー表示へ切り替えるため、別地域の結果を残しません。
+
+実行時に読むファイルは次の3つだけです。
+
+- `../pipeline/data/output/edogawa.json`
+- `../pipeline/data/output/niigata.json`
+- `../pipeline/data/output/nagoya.json`
+
+`mock/region-export.json`は単体テストと開発用fixtureの合成データです。実行時のフォールバックには使わず、実在地域の防災状態も表しません。
 
 名古屋市の`shelter_location`については、正式なB向け引き渡し資料に従い、record件数を「16区別の屋内施設データ」の現在取得件数として表示します。名古屋市の全避難関連施設数とは表現しません。
 
 ## 起動
 
-ブラウザーの`fetch`を利用するため、`frontend/`で静的サーバーを起動します。
+最初にD Pipelineを実行し、上記3つのRegionExportを`pipeline/data/output/`へ生成してください。JSONを`frontend/`内へコピーする必要はありません。
+
+ブラウザーから`pipeline/`と`frontend/`の両方へアクセスできるよう、リポジトリのルートで静的サーバーを起動します。
 
 ```powershell
 python -m http.server 4173
 ```
 
-その後、`http://localhost:4173`を開きます。
+その後、`http://localhost:4173/frontend/`を開きます。RegionExportが未生成の場合は、その地域の詳細を表示せず、生成確認を促すエラー画面になります。
 
 ## テスト
 
@@ -45,7 +55,7 @@ npm run lint
 npm run build
 ```
 
-このFrontendは依存なしの静的サイトです。`build`は配布物の生成ではなく、必須ファイル・HTML参照・mock JSONを検証します。
+このFrontendは依存なしの静的サイトです。`build`は配布物の生成ではなく、必須ファイル・HTML参照・テスト用mock JSONを検証します。
 
 ## 契約境界
 

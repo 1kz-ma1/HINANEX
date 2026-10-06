@@ -49,6 +49,33 @@
           </p>
         </div>
 
+        <section class="region-switcher" aria-labelledby="regionSwitcherTitle">
+          <div>
+            <p class="eyebrow">Region selection</p>
+            <h2 id="regionSwitcherTitle">表示する地域を選択</h2>
+            <p>D Pipelineが生成したRegionExportだけを読み込みます。</p>
+          </div>
+          <div class="region-options" id="regionOptions" role="group" aria-label="表示地域">
+            <button type="button" data-region-key="edogawa" aria-pressed="true">
+              東京都江戸川区
+            </button>
+            <button type="button" data-region-key="niigata" aria-pressed="false">
+              新潟県新潟市
+            </button>
+            <button type="button" data-region-key="nagoya" aria-pressed="false">
+              愛知県名古屋市
+            </button>
+          </div>
+        </section>
+
+        <div id="pageStatus" class="page-status" aria-live="polite">
+          <div class="loading-card">
+            <span class="loading-dot" aria-hidden="true"></span>
+            東京都江戸川区のRegionExportを読み込んでいます
+          </div>
+        </div>
+
+        <div id="sc02Content" hidden>
         <nav class="section-nav" aria-label="地域詳細の表示項目">
           <a href="#overview">基本情報</a>
           <a href="#capabilities">Capability</a>
@@ -129,6 +156,7 @@
           </div>
           <div id="evidenceRoot" class="content-grid" aria-live="polite"></div>
         </section>
+        </div>
       </main>
 
       <footer class="site-footer">

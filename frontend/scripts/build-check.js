@@ -4,6 +4,7 @@ const requiredFiles = [
   "index.html",
   "styles.css",
   "src/app.js",
+  "src/region-export-loader.js",
   "src/region-export-view-model.js",
   "mock/region-export.json",
 ];
@@ -18,6 +19,9 @@ const requiredMarkers = [
   'id="gapRoot"',
   'id="recommendationRoot"',
   'id="evidenceRoot"',
+  'id="regionOptions"',
+  'id="pageStatus"',
+  'id="sc02Content"',
   'src="./src/app.js"',
   'href="./styles.css"',
 ];
