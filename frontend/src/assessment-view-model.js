@@ -38,13 +38,6 @@ const discoveryStatus = Object.freeze({
   NOT_APPLICABLE: { label: "対象外", tone: "not-applicable", description: "この評価では対象外です。" },
 });
 
-const unconfirmedCountStatuses = new Set([
-  "NOT_MACHINE_READABLE",
-  "ACCESS_RESTRICTED",
-  "NOT_FOUND",
-  "UNKNOWN",
-]);
-
 function getDiscoveryStatusMeta(status) {
   return discoveryStatus[status] ?? {
     label: `未定義（${status ?? "値なし"}）`,

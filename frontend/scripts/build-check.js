@@ -4,11 +4,8 @@ const requiredFiles = [
   "index.html",
   "styles.css",
   "src/app.js",
-  "src/region-export-loader.js",
   "src/region-export-view-model.js",
-  "src/region-export-source.js",
-  "src/region-export-loader.js",
-  "mock/region-export.json",
+  "mock/region-exports.js",
 ];
 
 await Promise.all(requiredFiles.map((path) => access(new URL(`../${path}`, import.meta.url))));
@@ -21,11 +18,10 @@ const requiredMarkers = [
   'id="gapRoot"',
   'id="recommendationRoot"',
   'id="evidenceRoot"',
-  'id="regionSelect"',
-  'id="reloadRegionExport"',
-  'id="regionExportFile"',
-  'id="loadDemoData"',
-  'id="sourceStatus"',
+  'id="regionOptions"',
+  'data-region-key="edogawa"',
+  'data-region-key="niigata"',
+  'data-region-key="nagoya"',
   'src="./src/app.js"',
   'href="./styles.css"',
 ];
@@ -36,5 +32,4 @@ for (const marker of requiredMarkers) {
   }
 }
 
-JSON.parse(await readFile(new URL("../mock/region-export.json", import.meta.url), "utf8"));
 console.log("Static build check passed.");
