@@ -19,6 +19,16 @@ http://localhost:8000/gis/gis/
 
 `file://` 直開きでも画面自体は開けますが、ブラウザのorigin制約を避けるためD出力の自動 `fetch()` は実行しません。その場合は画面の「JSONを選択」からRegionExportを読み込めます。
 
+Frontendなどから地域を指定して開く場合は、`region` query parameterを利用できます。
+
+```text
+http://localhost:8000/gis/gis/?region=13123
+http://localhost:8000/gis/gis/?region=15100
+http://localhost:8000/gis/gis/?region=23100
+```
+
+対応していない地域コードは推測せず、画面既定の地域へ安全にフォールバックします。
+
 ## D出力
 
 Dのruntime artifactはGit管理外です。先に `pipeline` で生成するか、画面からRegionExport JSONを選択してください。
