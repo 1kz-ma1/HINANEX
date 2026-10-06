@@ -1,4 +1,5 @@
 import { buildRegionExportViewModel } from "./region-export-view-model.js";
+import { createRegionExportController } from "./region-export-loader.js";
 import {
   assertRegionMatches,
   getPayloadRegionCode,
@@ -24,6 +25,14 @@ const reloadRegionExport = document.querySelector("#reloadRegionExport");
 const regionExportFile = document.querySelector("#regionExportFile");
 const loadDemoData = document.querySelector("#loadDemoData");
 const sourceStatus = document.querySelector("#sourceStatus");
+const contentRoots = [
+  overviewRoot,
+  capabilityRoot,
+  assessmentRoot,
+  gapRoot,
+  recommendationRoot,
+  evidenceRoot,
+];
 
 function element(tagName, options = {}) {
   const node = document.createElement(tagName);
@@ -289,6 +298,7 @@ function assessmentCard(assessment) {
           element("div", {
             children: [
               element("strong", { text: assessment.recordCountLabel }),
+              element("p", { text: assessment.recordCountNote }),
               element("p", { text: assessment.discoveryDescription }),
             ],
           }),
@@ -327,7 +337,7 @@ function gapCard(gap) {
           statusBadge(gap.kindLabel, gap.tone),
           element("span", {
             className: `severity-pill tone-${gap.severityTone}`,
-            text: `優先度 ${gap.severityLabel}`,
+            text: `${gap.severityDisplayLabel} ${gap.severityLabel}`,
           }),
         ],
       }),
@@ -353,7 +363,7 @@ function recommendationCard(recommendation) {
           statusBadge(recommendation.typeLabel, recommendation.tone),
           element("span", {
             className: `severity-pill tone-${recommendation.priorityTone}`,
-            text: `優先度 ${recommendation.priorityLabel}`,
+            text: `${recommendation.priorityDisplayLabel} ${recommendation.priorityLabel}`,
           }),
         ],
       }),
@@ -459,17 +469,47 @@ function renderPage(viewModel) {
   );
 }
 
-function renderError(error) {
-  overviewRoot.replaceChildren();
-  assessmentRoot.replaceChildren();
-  gapRoot.replaceChildren();
-  recommendationRoot.replaceChildren();
-  evidenceRoot.replaceChildren();
-  capabilityRoot.replaceChildren(
+function clearRegionContent() {
+  for (const root of contentRoots) root.replaceChildren();
+  if (evidenceDialog.open) evidenceDialog.close();
+}
+
+function renderLoading(source) {
+  clearRegionContent();
+  regionName.textContent = `${source.label}を読み込み中`;
+  generatedAt.textContent = "RegionExportを取得しています";
+  schemaVersion.textContent = "Contract —";
+  demoNotice.hidden = true;
+  setSourceStatus(`${source.label} のD出力を読み込んでいます…`, "loading");
+  capabilityRoot.append(
+    element("div", {
+      className: "loading-card",
+      children: [
+        element("span", {
+          className: "loading-dot",
+          attributes: { "aria-hidden": "true" },
+        }),
+        element("span", { text: `${source.label}のRegionExportを読み込んでいます` }),
+      ],
+    }),
+  );
+}
+
+function renderError(error, source = null) {
+  clearRegionContent();
+  regionName.textContent = source?.label ?? "RegionExport読込失敗";
+  generatedAt.textContent = "RegionExportを読み込めませんでした";
+  schemaVersion.textContent = "Contract —";
+  demoNotice.hidden = true;
+  capabilityRoot.append(
     element("div", {
       className: "error-card",
       children: [
-        element("strong", { text: "RegionExportを表示できませんでした。" }),
+        element("strong", {
+          text: source
+            ? `${source.label}のRegionExportを読み込めませんでした。`
+            : "RegionExportを表示できませんでした。",
+        }),
         element("span", { text: error.message }),
       ],
     }),
@@ -498,25 +538,27 @@ function renderLoadedPayload(payload, sourceLabel, expectedRegionCode = null) {
   setSourceStatus(`${sourceLabel}｜RegionExportを表示中`, "success");
 }
 
-async function loadSelectedRegion() {
-  const source = getRegionSource(regionSelect.value);
-  setSourceStatus(`${source.label} のD出力を読み込んでいます…`, "loading");
-  try {
-    const payload = await fetchRegionExport(source.url);
+const regionController = createRegionExportController({
+  onLoading: renderLoading,
+  onSuccess(payload, source) {
     renderLoadedPayload(payload, source.url, source.code);
-  } catch (error) {
-    const normalized = error instanceof Error ? error : new Error("不明なエラーです。");
-    renderError(normalized);
-    regionName.textContent = source.label;
-    generatedAt.textContent = "D出力を読み込めませんでした";
+  },
+  onError(error, source) {
+    renderError(error, source);
     setSourceStatus(
       `${source.url} を自動読込できませんでした。pipeline出力を生成するか、JSONを手動選択してください。`,
       "error",
     );
-  }
+  },
+});
+
+function loadSelectedRegion() {
+  return regionController.selectRegion(regionSelect.value);
 }
 
 async function loadDemoRegionExport() {
+  regionController.cancel();
+  clearRegionContent();
   setSourceStatus("UI検証用の合成データを読み込んでいます…", "loading");
   try {
     const payload = await fetchRegionExport("./mock/region-export.json");
@@ -539,6 +581,8 @@ regionExportFile.addEventListener("change", async (event) => {
   const [file] = event.target.files ?? [];
   if (!file) return;
 
+  regionController.cancel();
+  clearRegionContent();
   setSourceStatus(`${file.name} を読み込んでいます…`, "loading");
   try {
     const payload = JSON.parse(await file.text());
