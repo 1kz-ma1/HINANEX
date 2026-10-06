@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
@@ -95,13 +95,11 @@ class EdogawaShelterAdapter(SourceAdapter):
 
             records.append(shelter.model_dump())
 
-        jst = timezone(timedelta(hours=9))
-
         evidence = Evidence(
             source_name="江戸川区 地図データ：避難所・避難所補完施設",
             source_url=self.SOURCE_PAGE_URL,
             publisher="東京都江戸川区",
-            published_at=datetime(2025, 12, 11, tzinfo=jst),
+            published_at=None,
             fetched_at=datetime.now(timezone.utc),
             license="CC BY 2.1 JP",
             source_format="CSV",
@@ -109,6 +107,8 @@ class EdogawaShelterAdapter(SourceAdapter):
             notes=(
                 "災害種別記号列はアイコンURLとして取得されるため、"
                 "supported_disasters の判定には使用していない。"
+                "公式ページ上の2025-12-11は更新日として表示されるため、"
+                "初回公開日とは扱わず published_at は null とする。"
             ),
         )
 

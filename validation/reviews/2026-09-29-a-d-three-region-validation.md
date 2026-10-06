@@ -9,6 +9,73 @@
 - overall judgment: **valid with review items**
 - classifications: `valid` / `needs_review` / `misclassified`
 
+## 2026-10-06 C follow-up（最新main同期後）
+
+この節は、以下の2026-09-29時点の検証記録に対する**追補**である。旧節の
+`needs_review` と「現在」の記述は当時の状態を示し、現在の修正状況は本節を優先する。
+
+- 確認基準: `main` commit `79bae2713123a45ca54fc9018cbe2046600bc61d`
+  （A日付修正 PR #19、DのC指摘対応 PR #20、D main統合 PR #22を含む）。
+- PR #17のbase `role/c-validation` をこのmainへfast-forwardし、
+  feature branchも最新baseへ追従させた。
+- 対象は引き続き `shelter_location -> shelter_discovery`。CはA/Dの
+  production code、共有Contract、Schemaを変更しない。
+
+### 前回の返却事項の再確認
+
+| C指摘 | 2026-10-06の確認結果 | 判定 |
+| --- | --- | --- |
+| 江戸川の更新日を初回公開日に見せない | `EdogawaShelterAdapter.normalize()` は `Evidence.published_at=None` とし、公式ページの2025-12-11が更新日である旨をnotesに記録。 | 対応確認 |
+| 名古屋A handoffの更新日 | 現在の公式ページはページ更新日2026-09-15、一覧表は2026-09-01時点。Aの同一Sourceの関連Evidence 3件はすべて `updated_at=2026-09-15`、notesに一覧基準日とページ更新日を区別して記録。旧節の2026-07-27 / 2026-07-01は9月29日の初回C調査で見た旧表示であり、現在値として扱わない。 | 対応確認 |
+| 名古屋Dの1602件の範囲 | `NagoyaShelterAdapter.DATASET_SCOPE_NOTE` と各Evidence.notes、`pipeline/docs/HANDOFF_E.md` は16区別屋内施設Excelのみを対象とし、屋外施設を含まないことを明記。公式ページにも屋外Excelが別に掲載される。 | 表現上の対応確認 |
+| FULLとGap 0の意味 | `capability.py` のREADY理由とD handoffは、名称・緯度経度による位置ベース探索にFULLを限定。災害別安全性などを保証しない。Gap 0も現在のcapability条件内の意味。 | 対応確認 |
+| 名古屋Recommendation | `gap.py` は現在取得しているSourceで確認した不足と、別の公式Source/公式補完方法の調査に限定。自治体が座標を一切公開していないとは断定しない。 | 対応確認 |
+| 新潟の施設種別 | 現行Adapterの`designated_emergency_evacuation_site`は維持。566件すべてを「指定避難所」として扱わない。 | 対応確認 |
+
+公式ページ: https://www.city.nagoya.jp/bousaiportal/hinan/1013390/1013492.html
+（2026-10-06 C再確認）。Aの修正はPR #19、Dの修正はPR #20、
+main統合はPR #22で追跡可能。
+
+### 判定値と未解決項目
+
+D PR #20の実データ回帰記録では、修正後も次の結果を報告している。
+Cは今回、最新mainの変更箇所・回帰テストを照合したが、
+**2026-10-06に三地域のrawファイルを独立再取得して件数を再計算していない**。
+以下の件数はDの当該実行記録に基づく。
+
+| 地域 | Dの実データ回帰記録 | Cの評価 |
+| --- | --- | --- |
+| 江戸川区 | 152件、4/4/4/4、FULL、Gap 0、Recommendation 0 | 以前のCによる同一CSV全件照合と整合。Evidence日付の表現は修正済み。 |
+| 新潟市 | 566件、4/4/4/4、FULL、Gap 0、Recommendation 0 | 現行の位置ベース条件とは整合。566件の独立raw再カウントは未実施。 |
+| 名古屋市 | 屋内16ファイル1602件、Completeness 0 / Validity null / Machine Readability 4 / Geospatial Usability 0、BLOCKED、Gap 1、Recommendation 1 | 0とnullの区別およびBLOCKEDは現行Contractと整合。1602件の独立raw再カウントは未実施。 |
+
+**新規 needs_review（Dへの返却事項）:** 江戸川は`published_at=None`に修正されたが、
+新潟Adapterは一覧に紐づく日付を抽出して`Evidence.published_at`へ代入し、
+名古屋Adapterは公式ページの`更新日`を抽出して同フィールドへ代入している。
+少なくとも後者は初回公開日と確認できない。前者もその日付が初回公開日か
+確認できていない。Dは`published_at`の契約意味を確認し、更新日なら
+初回公開日として記録しない扱いを検討すること。Cは値を推測補完しない。
+本指摘は現行の4/4/4/4・BLOCKEDなどの判定変更を要求しない。
+
+引き続き未確認: 新潟CSVの独立hash/566行照合、名古屋16 Excelの独立
+hash/1602行照合、実地位置精度、屋外施設のformal datasetへの採否、
+災害別安全性。PR #8は江戸川の過去の独立照合として参照し、
+PR #17がC branchに受け入れられた後の扱いを人間が決める。
+
+### Test evidence
+
+- Passed: A handoff JSONを再取得・parseし、名古屋同一Sourceの3件の
+  `updated_at` / notesを照合。DのEdogawa/Nagoya Adapter、Capability、
+  Gap、E handoffと公式名古屋ページを再確認。
+- Failed: 上記read-onlyのC照合ではなし。
+- Not run: 2026-10-06のC環境からの三地域live workflow、
+  Niigata/Nagoyaの独立raw hash・行数照合。
+- Reason: GitHub上のソースとA/Dの回帰記録を確認する追補であり、現在の
+  C実行環境には最新mainの実データraw一式を配置していない。CI結果は
+  この追補をpushした後にPR本文へ別途記載する。
+
+---
+
 ## 1. Scope and validation principle
 
 This review validates the trace:
