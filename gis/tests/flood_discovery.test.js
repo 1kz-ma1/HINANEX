@@ -45,6 +45,21 @@ assert.equal(ranked.sites[0].distanceMetres, 0);
 assert.equal(ranked.sites[0].name, "TEST_0");
 assert.ok(ranked.sites[1].distanceMetres < ranked.sites[4].distanceMetres);
 assert.match(ranked.message, /行くべき順ではありません/);
+assert.match(ranked.message, /江戸川区内の施設とは限らず/);
+// The official source is ONE GSI tile, not the entire municipality. A GPS
+// fix beyond its coverage must not return misleading distant "nearest" sites.
+const outside = discoverReferenceSites(full, { latitude: 35.7, longitude: 140.1 });
+assert.equal(outside.status, "ORIGIN_OUTSIDE_SOURCE_TILE");
+assert.equal(outside.sites.length, 0);
+assert.match(outside.message, /範囲外/);
+assert.equal(discoverReferenceSites(full, { latitude: 36.1, longitude: 139.9 }).status, "ORIGIN_OUTSIDE_SOURCE_TILE");
+assert.equal(discoverReferenceSites(full, { latitude: 35.7, longitude: 139.9 }).status, "REFERENCE_ONLY");
+const otherTile = {
+  ...site("99", 35.7, 139.9),
+  source_url: "https://cyberjapandata.gsi.go.jp/xyz/skhb01/10/910/403.geojson",
+  source_feature_key: "https://cyberjapandata.gsi.go.jp/xyz/skhb01/10/910/403.geojson#feature_index=99"
+};
+assert.equal(discoverReferenceSites(catalog([site("0", 35.7, 139.9), otherTile]), point).status, "UNVERIFIED_SOURCE");
 
 for (const bad of [
   { latitude: null }, { latitude: NaN }, { longitude: 190 },
