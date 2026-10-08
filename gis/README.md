@@ -43,3 +43,28 @@ node gis/tests/region_exports.integration.test.js
 - 地域切替で前の地域の地図が透けて誤認されないよう、座標と参照境界のない地域は**不透明な未確定オーバーレイ**で地図本体を覆います。対応する公式座標を取得するまで地図位置は確定しません。
 - 既存`supported_disasters`は`元データ記載の災害（適合性未検証）`と表示し、Source上の文字列と洪水Scenarioの独立した`UNKNOWN`を混同しません。
 - Microsoft Edgeの`Tracking Prevention blocked access to storage for https://unpkg.com/leaflet@1.9.4/dist/leaflet.css`は、第三者CDNに対するブラウザストレージ制限の警告です。**地図ライブラリが正しく読み込めないことをこのログだけから断定しません**。もしLeafletのCSS/JSが実際にブロックされた場合は、別途ロード成否を確認して静的アセット配布の方針を決めてください。これは無座標や洪水Scenarioの判定とは独立です。
+
+## 無座標施設の検索・閲覧モード（E / GIS Consumer）
+
+Dの `shelter_location.records[]` が存在する一方で **座標付きレコードが0件** の場合、Eは推測地図を描く代わりに一覧モードへ自動切替します。例：名古屋市の2026-10-08時点の屋内施設データ1,602件（公式raw照合済み、座標表示0件）。
+
+- 名称・住所・行政区域・施設ID・Scenarioの公式raw値や利用階原文で検索（全角/半角や空白を検索時のみ正規化）
+- 1ページ20件のページ送り。ヒット0件も明示。**元recordsは全件保持**し、元の文字列は変更しない
+- `details/summary` で各施設の住所・行政区域・種別・Dに記載された災害種別・元のScenario status・公式raw値・利用階原文・照合方式・元Source行・判定理由を表示。SourceリンクはHTTPSに限り表示
+- 洪水Scenario自体が未搭載の旧RegionExport 0.9でも一覧は利用可能。公式raw情報が存在しないときに適合性を埋めたり推測しない
+- 名古屋市での洪水・内水は混合列で、HINANEX独自に洪水単独判定へ分割しない。UNKNOWNは危険・利用不可・開設なしを意味しない
+- モバイルでも詳細は一覧内展開可能（右サイドパネルを前提としない）
+- 座標が確認できる地域では従来の地図/マーカー機能を使い、切替時は古い検索語や前地域の一覧をクリアする
+
+**DのSchemaや施設のSource/座標は変更しません。** 明示的geocoding、AIの施設候補選定、避難経路の安全計算、現在の開設案内は実装しません。
+
+実装：`gis/gis/js/facility_list.js`（検索/ページングのみ）・`gis/gis/js/map.js`（UI接続）。回帰テストは `gis/tests/facility_list.test.js` と `gis/tests/map_controller.test.js`。
+
+```powershell
+node gis/tests/facility_list.test.js
+node gis/tests/d_region_adapter.test.js
+node gis/tests/map_controller.test.js
+node gis/tests/region_exports.integration.test.js
+```
+
+依存：E GISのプレビューPR #58、無座標表示修正 #60、D保守的判定 #49、C独立監査 #50。 `main` はMerge Captain専用であり、この変更はプレビュー向けfeature PRとして提出します。

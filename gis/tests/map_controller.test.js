@@ -6,6 +6,7 @@ const { URL } = require("node:url");
 
 const root = path.resolve(__dirname, "../gis/js");
 const adapterCode = fs.readFileSync(path.join(root, "d_region_adapter.js"), "utf8");
+const facilityListCode = fs.readFileSync(path.join(root, "facility_list.js"), "utf8");
 const mapCode = fs.readFileSync(path.join(root, "map.js"), "utf8");
 const referenceCode = fs.readFileSync(path.join(root, "reference_data.js"), "utf8");
 
@@ -142,7 +143,10 @@ function makeContext({ protocol, fetchImpl, href = null }) {
     "map", "mapUnavailable", "mapUnavailableMessage", "details", "status", "region",
     "basemap", "officialFlood", "boundary", "boundaryNote", "shelter", "floodOpacity",
     "floodOpacityValue", "resetView", "regionExportFile", "autoLoad", "recordCount",
-    "mappedCount", "missingCoordinateCount", "datasetStatus", "datasetChip"
+    "mappedCount", "missingCoordinateCount", "datasetStatus", "datasetChip",
+    "mapUnavailableTitle", "facilityListPanel", "facilityListSearch",
+    "facilityListCount", "facilityListResults", "facilityListPrev", "facilityListNext",
+    "facilityListPage"
   ];
   const elements = Object.fromEntries(ids.map(id => [id, makeElement(id)]));
   const L = makeLeafletStub();
@@ -164,6 +168,7 @@ function makeContext({ protocol, fetchImpl, href = null }) {
   vm.createContext(context);
   vm.runInContext(referenceCode, context, { filename: "reference_data.js" });
   vm.runInContext(adapterCode, context, { filename: "d_region_adapter.js" });
+  vm.runInContext(facilityListCode, context, { filename: "facility_list.js" });
   vm.runInContext(mapCode, context, { filename: "map.js" });
   return { context, elements, L };
 }
@@ -197,8 +202,39 @@ niigata.scenarios = [{
 }];
 const nagoya = payload("23100", "愛知県名古屋市", [
   record("g1", "Nagoya A", null, null),
-  record("g2", "Nagoya B", null, null)
+  record("g2", '<img src=x onerror="alert(1)">', null, null)
 ]);
+nagoya.datasets[0].records[0].address = "名古屋市中区丸の内";
+nagoya.datasets[0].records[0].administrative_area = "中区";
+nagoya.scenarios = [{
+  scenario_id: "flood_shelter_selection",
+  region_code: "23100",
+  status: "UNKNOWN",
+  requirement_assessment: { discovery_status: "AVAILABLE" },
+  facility_results: [
+    {
+      facility_id: "g1", status: "UNKNOWN",
+      reason: "名古屋市の洪水・内水統合列は洪水のみの確定意味ではない",
+      fact: {
+        facility_id: "g1", official_status_raw: "洪水・内水",
+        usable_floor_raw: null, hazard_scope_raw: "洪水・内水",
+        join_status: "DIRECT_SAME_SOURCE",
+        source_record_trace: "file=test.xls;sheet=0;excel_row=5",
+        source_url: "https://example.test/nagoya.xls"
+      }
+    },
+    {
+      facility_id: "g2", status: "UNKNOWN", reason: "",
+      fact: {
+        facility_id: "g2", official_status_raw: null,
+        usable_floor_raw: null, hazard_scope_raw: "洪水・内水",
+        join_status: "DIRECT_SAME_SOURCE",
+        source_record_trace: "file=test.xls;sheet=0;excel_row=6",
+        source_url: "javascript:alert(1)"
+      }
+    }
+  ]
+}];
 
 (async () => {
   // file://: the old browser-origin warning is avoided by never attempting auto-fetch.
@@ -292,6 +328,42 @@ const nagoya = payload("23100", "愛知県名古屋市", [
   assert.equal(httpCase.elements.missingCoordinateCount.textContent, 2);
   assert.equal(httpCase.elements.mapUnavailable.hidden, false);
   assert.match(httpCase.elements.mapUnavailableMessage.textContent, /位置を推測しません/);
+  assert.equal(httpCase.elements.facilityListPanel.hidden, false);
+  assert.equal(httpCase.elements.mapUnavailable.className, "map-unavailable has-facility-list");
+  assert.match(httpCase.elements.mapUnavailableTitle.textContent, /施設一覧を検索できます/);
+  assert.match(httpCase.elements.facilityListCount.textContent, /取得施設 2件 \/ 検索一致 2件/);
+  assert.match(httpCase.elements.facilityListResults.innerHTML, /Nagoya A/);
+  assert.match(httpCase.elements.facilityListResults.innerHTML, /名古屋市中区丸の内/);
+  assert.match(httpCase.elements.facilityListResults.innerHTML, /洪水・内水/);
+  assert.match(httpCase.elements.facilityListResults.innerHTML, /UNKNOWN/);
+  assert.match(httpCase.elements.facilityListResults.innerHTML, /file=test.xls/);
+  assert.match(httpCase.elements.facilityListResults.innerHTML, /<details class="facility-list-card">/);
+  // Arbitrary source text is rendered escaped and unsafe links are not opened.
+  assert.match(httpCase.elements.facilityListResults.innerHTML, /&lt;img src=x onerror=/);
+  assert.doesNotMatch(httpCase.elements.facilityListResults.innerHTML, /<img src=x onerror=/);
+  assert.doesNotMatch(httpCase.elements.facilityListResults.innerHTML, /href="javascript:/);
+
+  httpCase.elements.facilityListSearch.value = "中区 丸の内";
+  httpCase.elements.facilityListSearch.listeners.input({
+    target: httpCase.elements.facilityListSearch
+  });
+  assert.match(httpCase.elements.facilityListCount.textContent, /検索一致 1件/);
+  assert.match(httpCase.elements.facilityListResults.innerHTML, /Nagoya A/);
+  assert.doesNotMatch(httpCase.elements.facilityListResults.innerHTML, /&lt;img/);
+  httpCase.elements.facilityListSearch.value = "見つからない";
+  httpCase.elements.facilityListSearch.listeners.input({
+    target: httpCase.elements.facilityListSearch
+  });
+  assert.match(httpCase.elements.facilityListResults.innerHTML, /一致する施設はありません/);
+
+  // Switching to a mapped region clears stale query and hides the list.
+  httpCase.elements.region.value = "15100";
+  httpCase.elements.region.listeners.change({ target: httpCase.elements.region });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(httpCase.elements.facilityListPanel.hidden, true);
+  assert.equal(httpCase.elements.facilityListSearch.value, "");
+  assert.equal(httpCase.elements.mapUnavailableTitle.textContent, "表示範囲を確定できません");
+  assert.equal(httpCase.elements.mappedCount.textContent, 1);
   // A region with no verified coordinates must not visually expose the
   // previously selected municipality's basemap through a translucent mask.
   const css = fs.readFileSync(path.resolve(__dirname, "../gis/css/style.css"), "utf8");

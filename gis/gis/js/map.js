@@ -66,6 +66,8 @@ let shelterBounds = null;
 let currentShelterSummary = null;
 let autoLoadSequence = 0;
 let autoLoadAbortController = null;
+let facilityListQuery = "";
+let facilityListPage = 0;
 const externalTileWarnings = new Set();
 
 function currentRegion() {
@@ -157,6 +159,68 @@ function setMapAvailability(available, message = "") {
   if (!available) messageEl.textContent = message;
 }
 
+function renderFacilityList() {
+  const model = window.HINANEX_FACILITY_LIST;
+  if (!model) throw new Error("Facility list UI module is missing");
+  const summary = currentShelterSummary;
+  const panel = document.getElementById("facilityListPanel");
+  if (!summary || panel.hidden) return;
+
+  const result = model.filterFacilityRecords(summary, facilityListQuery, facilityListPage);
+  facilityListPage = result.page;
+  document.getElementById("facilityListCount").textContent =
+    `取得施設 ${result.total}件 / 検索一致 ${result.matched}件（${result.first}〜${result.last}件を表示）`;
+  document.getElementById("facilityListPage").textContent =
+    `${result.page + 1} / ${result.pages}ページ`;
+  document.getElementById("facilityListPrev").disabled = result.page === 0;
+  document.getElementById("facilityListNext").disabled = result.page >= result.pages - 1;
+
+  const cards = result.records.map(record => {
+    const fact = summary.floodScenario?.byId.get(record.id);
+    const fields = [
+      ["施設ID", record.id],
+      ["施設名（D原値）", record.name],
+      ["住所（D原値）", record.address],
+      ["行政区域（D原値）", record.administrative_area],
+      ["施設区分（D原値）", record.facility_type],
+      ["元データ記載の災害（適合性未検証）", record.supported_disasters],
+      ["座標", record.hasCoordinates ? "Dに元座標あり" : "元データで未確認（推測表示なし）"],
+      ["洪水Scenario（D原値）", fact?.status ?? "Scenario情報なし"],
+      ["公式災害列（原文）", fact?.hazardScopeRaw],
+      ["公式rawの記号", fact?.officialStatusRaw],
+      ["利用階の原文", fact?.usableFloorRaw],
+      ["照合方式", fact?.joinStatus],
+      ["公式Source行", fact?.sourceRecordTrace],
+      ["Dの判定理由", fact?.reason]
+    ];
+    const detailRows = fields.map(([label, value]) =>
+      `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(displayValue(value))}</dd>`
+    ).join("");
+    const url = safeExternalUrl(fact?.sourceUrl || record.detail_url);
+    const officialLink = url && url.startsWith("https:")
+      ? `<a class="list-source" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">出典を開く</a>`
+      : "";
+    return `<details class="facility-list-card"><summary><strong>${escapeHtml(record.name)}</strong>` +
+      `<small>${escapeHtml(displayValue(record.address))} / ${escapeHtml(displayValue(record.administrative_area))}</small>` +
+      `</summary><dl>${detailRows}</dl>${officialLink}` +
+      `<p class="list-note">地図上の位置・洪水時の安全性・開設は未検証です。raw記号やUNKNOWNから利用可否を判定しません。</p></details>`;
+  });
+  document.getElementById("facilityListResults").innerHTML =
+    cards.length ? cards.join("") : '<div class="facility-list-empty">一致する施設はありません。検索語を変更してください。</div>';
+}
+
+function setFacilityListMode(summary) {
+  const panel = document.getElementById("facilityListPanel");
+  const overlay = document.getElementById("mapUnavailable");
+  const active = Boolean(summary && summary.records.length && !summary.mappableRecords.length);
+  panel.hidden = !active;
+  overlay.className = active ? "map-unavailable has-facility-list" : "map-unavailable";
+  document.getElementById("mapUnavailableTitle").textContent = active
+    ? "位置は未確認ですが、施設一覧を検索できます"
+    : "表示範囲を確定できません";
+  if (active) renderFacilityList();
+}
+
 function showRegionWaitingDetail() {
   detail(
     currentRegion().label,
@@ -174,6 +238,10 @@ function clearShelters() {
   shelterGroup.clearLayers();
   shelterBounds = null;
   currentShelterSummary = null;
+  facilityListQuery = "";
+  facilityListPage = 0;
+  document.getElementById("facilityListSearch").value = "";
+  setFacilityListMode(null);
   updateCoverage(null);
 }
 
@@ -311,10 +379,12 @@ function renderShelterSummary(summary, sourceLabel) {
   });
 
   shelterBounds = latLngs.length ? L.latLngBounds(latLngs) : null;
+  const listOnly = summary.records.length > 0 && summary.mappableRecords.length === 0;
   setMapAvailability(
-    Boolean(boundaryBounds?.isValid() || shelterBounds?.isValid()),
+    !listOnly && Boolean(boundaryBounds?.isValid() || shelterBounds?.isValid()),
     `${summary.region.name} は座標付きrecordがないため、表示範囲を確定できません。E側で位置を推測しません。`
   );
+  setFacilityListMode(listOnly ? summary : null);
 
   const missing = summary.missingCoordinateRecords.length;
   updateDatasetChip("D出力読込済", "ok");
@@ -323,9 +393,11 @@ function renderShelterSummary(summary, sourceLabel) {
     missing > 0 ? "warning" : "success"
   );
   setStatus(
-    missing > 0
-      ? `D避難所を表示中｜${missing}件は座標欠損のため地図非表示（件数は保持）`
-      : `D避難所を${summary.mappableRecords.length}件表示中`,
+    listOnly
+      ? `座標未確認のため施設一覧を表示中（${summary.records.length}件）。安全・開設状況は判定していません。`
+      : missing > 0
+        ? `D避難所を表示中｜${missing}件は座標欠損のため地図非表示（件数は保持）`
+        : `D避難所を${summary.mappableRecords.length}件表示中`,
     missing > 0 ? "warning" : "success"
   );
 
@@ -459,6 +531,20 @@ document.getElementById("floodOpacity").addEventListener("input", event => {
   const percent = Number(event.target.value);
   officialFloodLayer.setOpacity(percent / 100);
   document.getElementById("floodOpacityValue").textContent = `${percent}%`;
+});
+
+document.getElementById("facilityListSearch").addEventListener("input", event => {
+  facilityListQuery = event.target.value;
+  facilityListPage = 0;
+  renderFacilityList();
+});
+document.getElementById("facilityListPrev").addEventListener("click", () => {
+  if (facilityListPage > 0) facilityListPage -= 1;
+  renderFacilityList();
+});
+document.getElementById("facilityListNext").addEventListener("click", () => {
+  facilityListPage += 1;
+  renderFacilityList();
 });
 
 document.getElementById("resetView").addEventListener("click", fitCurrentRegion);

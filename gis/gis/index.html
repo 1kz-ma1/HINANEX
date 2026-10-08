@@ -82,8 +82,24 @@
   <main class="map-wrap">
     <div id="map"></div>
     <div id="mapUnavailable" class="map-unavailable" hidden>
-      <strong>表示範囲を確定できません</strong>
+      <strong id="mapUnavailableTitle">表示範囲を確定できません</strong>
       <span id="mapUnavailableMessage">Dの座標付きデータを読み込むと地図を移動します。</span>
+      <section id="facilityListPanel" class="facility-list-panel" aria-label="取得施設一覧" hidden>
+        <div class="facility-list-heading">
+          <h2>取得施設一覧</h2>
+          <p>地図上の位置は未確認ですが、施設名・住所・公式データの原文を調べられます。</p>
+        </div>
+        <label for="facilityListSearch">施設名・住所・行政区域・公式raw値で検索</label>
+        <input id="facilityListSearch" type="search" placeholder="例：中区、施設名、2階以上" autocomplete="off">
+        <p id="facilityListCount" class="facility-list-count" role="status" aria-live="polite"></p>
+        <div id="facilityListResults" class="facility-list-results"></div>
+        <div class="facility-list-pagination" aria-label="施設一覧のページ送り">
+          <button id="facilityListPrev" type="button">前へ</button>
+          <span id="facilityListPage"></span>
+          <button id="facilityListNext" type="button">次へ</button>
+        </div>
+        <p class="facility-list-caveat">この一覧は取得済みSourceの閲覧機能です。施設の位置・洪水時の安全性・開設状況・避難経路を保証しません。UNKNOWNは危険や利用不可を意味しません。</p>
+      </section>
     </div>
     <div class="map-badge">GIS / RegionExport</div>
   </main>
@@ -105,6 +121,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="js/reference_data.js"></script>
 <script src="js/d_region_adapter.js"></script>
+<script src="js/facility_list.js"></script>
 <script src="js/map.js"></script>
 </body>
 </html>
