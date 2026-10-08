@@ -32,9 +32,9 @@ function catalog(sites) {
 assert.equal(distanceMetres(35, 139, 35, 139), 0);
 assert.ok(distanceMetres(35, 139, 35.01, 139) > 1000);
 assert.equal(discoverReferenceSites(null, point).status, "UNVERIFIED_SOURCE");
-assert.equal(discoverReferenceSites(catalog([site("A", 35.7, 139.9)]), null).status, "NO_ORIGIN");
-assert.equal(discoverReferenceSites({ ...catalog([site("A", 35.7, 139.9)]), source_status: "PENDING" }, point).sites.length, 0);
-assert.equal(discoverReferenceSites({ ...catalog([site("A", 35.7, 139.9)]), region_code: "15100" }, point).sites.length, 0);
+assert.equal(discoverReferenceSites(catalog([site("0", 35.7, 139.9)]), null).status, "NO_ORIGIN");
+assert.equal(discoverReferenceSites({ ...catalog([site("0", 35.7, 139.9)]), source_status: "PENDING" }, point).sites.length, 0);
+assert.equal(discoverReferenceSites({ ...catalog([site("0", 35.7, 139.9)]), region_code: "15100" }, point).sites.length, 0);
 
 const full = catalog(Array.from({ length: 10 }, (_, i) => site(String(i), 35.7 + i / 100, 139.9)));
 const ranked = discoverReferenceSites(full, point);
@@ -53,9 +53,9 @@ for (const bad of [
   { source_raw_sha256: "b".repeat(64) }, { hazard_dataset: "NIIGATA_ODS" },
   { designation_kind: "designated_shelter" }, { disaster1_raw: 0 }
 ]) {
-  const result = discoverReferenceSites(catalog([{ ...site("A", 35.7, 139.9), ...bad }]), point);
+  const result = discoverReferenceSites(catalog([{ ...site("0", 35.7, 139.9), ...bad }]), point);
   assert.equal(result.status, "UNVERIFIED_SOURCE");
   assert.equal(result.sites.length, 0);
 }
-assert.equal(discoverReferenceSites(catalog([site("A", 35.7, 139.9), site("A", 35.8, 139.9)]), point).sites.length, 0);
+assert.equal(discoverReferenceSites(catalog([site("0", 35.7, 139.9), site("0", 35.8, 139.9)]), point).sites.length, 0);
 console.log("flood_discovery.test.js: OK");
