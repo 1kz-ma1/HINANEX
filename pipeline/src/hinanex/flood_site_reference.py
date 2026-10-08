@@ -204,6 +204,17 @@ def build_flood_site_catalog(
         raise ValueError("C accepted official IDs must be unique and nonempty")
 
     verified = [_record(item, region_code, source_hash) for item in records]
+    # The C manifest establishes independent raw acceptance, but its ID set
+    # alone would not bind mutable names/coordinates to archived bytes.
+    # Check the entire normalized row set against the source again at export.
+    # This also ensures all records came from this one exact official tile.
+    if not verified:
+        raise ValueError("cannot publish an empty reference catalog")
+    expected_rows = extract_gsi_flood_tile(
+        raw_archive, verified[0]["source_url"], region_code,
+    )
+    if verified != expected_rows:
+        raise ValueError("normalized records differ from archived official source")
     ids = [item["source_feature_key"] for item in verified]
     if len(ids) != len(set(ids)) or set(ids) != set(accepted_ids):
         raise ValueError("D records and C accepted official IDs must match exactly")
