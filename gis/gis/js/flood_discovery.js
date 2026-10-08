@@ -170,7 +170,7 @@
   function discoverReferenceTiles(catalogs, origin, regionCode = "13123") {
     const blocked = {
       status: "UNVERIFIED_SOURCE", sites: [],
-      message: "位置周辺の公式洪水指定情報は未検証です。避難場所が存在しないことを意味しません。"
+      message: "公式の洪水指定情報は独立照合待ちです。避難場所が存在しないことを意味しません。"
     };
     const originKey = sourceTileKey(origin);
     if (!originKey) return {
@@ -215,7 +215,7 @@
       partialCoverage: partial,
       message: "公式指定場所を検証済み" + seenTiles.size + "タイル内で直線距離順に参考表示。" +
         (partial ? "周辺の未検証タイルがあるため、地域全体の最寄り順や網羅性は保証しません。" : "") +
-        " 自治体所属・安全性・経路・開設状況・行くべき順は未認定です。"
+        " 自治体所属・安全性・経路・開設状況は未認定で、行くべき順ではありません。"
     };
   }
 
