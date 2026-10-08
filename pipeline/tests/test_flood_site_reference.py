@@ -1,10 +1,21 @@
 """Reference catalog fail-closed rules. Synthetic coordinates are not real shelters."""
 import hashlib
+import json
 import unittest
 
 from src.hinanex.flood_site_reference import build_flood_site_catalog
 
-RAW = b'{"type":"FeatureCollection","features":[]}'  # deterministic TEST fixture
+RAW = json.dumps({
+    "type": "FeatureCollection",
+    "features": [{
+        "type": "Feature",
+        "geometry": {"type": "Point", "coordinates": [139.9, 35.7]},
+        "properties": {
+            "name": "TEST official name (not a real evacuation place)",
+            "address": "TEST address", "remarks": None, "disaster1": 1,
+        },
+    }],
+}).encode("utf-8")  # synthetic TEST-only source bytes
 HASH = hashlib.sha256(RAW).hexdigest()
 
 
@@ -148,6 +159,19 @@ class FloodSiteReferenceTests(unittest.TestCase):
                 **item(), "hazard_dataset": "NIIGATA_ODS_FLOOD",
                 "name_raw": "TEST: ○ / 2階以上 / UNKNOWN",
             }], raw_archive=RAW, c_acceptance=audit())
+
+    def test_c_acceptance_cannot_be_reused_after_output_mutation(self):
+        # Even a genuine C acceptance for the same archived bytes and keys
+        # must not approve a different name/coordinate/address/remarks/order.
+        for tamper in [
+            {"name_raw": "tampered after C PASS"},
+            {"address_raw": "wrong address"},
+            {"remarks_raw": "invented"},
+            {"latitude": 35.700001},
+            {"longitude": 139.900001},
+        ]:
+            with self.subTest(tamper=tamper), self.assertRaises(ValueError):
+                build_flood_site_catalog("13123", [item(**tamper)], raw_archive=RAW, c_acceptance=audit())
 
     def test_only_declared_regions_are_accepted(self):
         with self.assertRaises(ValueError):
