@@ -39,21 +39,25 @@
     const ids = new Set();
     const sites = [];
     for (const site of catalog.sites) {
-      if (!site || typeof site.official_record_id !== "string" || !site.official_record_id ||
-          ids.has(site.official_record_id) ||
+      if (!site || typeof site.source_feature_key !== "string" || !site.source_feature_key ||
+          ids.has(site.source_feature_key) ||
           typeof site.name_raw !== "string" || !site.name_raw ||
           !validNumber(site.latitude, -90, 90) ||
           !validNumber(site.longitude, -180, 180) ||
           site.source_raw_sha256 !== catalog.source_raw_sha256 ||
           site.designation_kind !== "designated_emergency_evacuation_site" ||
+          site.disaster1_raw !== 1 ||
+          site.search_context_region_code !== catalog.region_code ||
           site.hazard_dataset !== "GSI_SKHB01_FLOOD" ||
           !OFFICIAL_GSI.test(site.source_url || "")) {
         return blocked; // reject the entire catalog, never silently skip bad rows
       }
-      ids.add(site.official_record_id);
+      ids.add(site.source_feature_key);
       sites.push({
-        id: site.official_record_id,
+        id: site.source_feature_key,
         name: site.name_raw,
+        address: site.address_raw,
+        remarks: site.remarks_raw,
         distanceMetres: distanceMetres(origin.latitude, origin.longitude, site.latitude, site.longitude),
         sourceUrl: site.source_url,
         trace: site.source_record_trace,
