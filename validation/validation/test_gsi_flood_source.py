@@ -72,6 +72,29 @@ class GsiFloodAuditTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 verify_gsi_flood_source(raw, [row(raw)], URL, REGION)
 
+    def test_source_feature_order_and_exact_trace_cannot_be_swapped(self):
+        raw_data = json.loads(sample_source())
+        second = json.loads(sample_source())["features"][0]
+        second["properties"]["name"] = "SECOND TEST"
+        second["geometry"]["coordinates"] = [139.89, 35.71]
+        raw_data["features"].append(second)
+        archive = json.dumps(raw_data, ensure_ascii=False).encode("utf-8")
+        first_row = row(archive)
+        second_row = {
+            **first_row,
+            "source_feature_key": f"{URL}#feature_index=1",
+            "source_record_trace": "feature_index=1",
+            "name_raw": "SECOND TEST",
+            "latitude": 35.71, "longitude": 139.89,
+        }
+        self.assertEqual(
+            len(verify_gsi_flood_source(archive, [first_row, second_row], URL, REGION)["accepted_source_feature_keys"]),
+            2,
+        )
+        for swapped in ([second_row, first_row], [first_row, first_row]):
+            with self.assertRaises(ValueError):
+                verify_gsi_flood_source(archive, swapped, URL, REGION)
+
     def test_wrong_url_region_geometry_and_empty_archive(self):
         raw = sample_source()
         for bad_url in [
