@@ -24,6 +24,9 @@ function catalog(sites) {
     catalog_kind: "flood_designated_emergency_site_reference",
     region_code: "13123", hazard: "flood",
     status: "REFERENCE_ONLY", source_status: "C_ACCEPTED",
+    https_provenance_status: "MATCH",
+    https_provenance_checked_at_utc: "2026-10-09T03:00:00+00:00",
+    total_source_records: sites.length,
     source_raw_sha256: "a".repeat(64),
     c_audit_reference: "C-TEST",
     sites
@@ -35,6 +38,19 @@ assert.equal(discoverReferenceSites(null, point).status, "UNVERIFIED_SOURCE");
 assert.equal(discoverReferenceSites(catalog([site("0", 35.7, 139.9)]), null).status, "NO_ORIGIN");
 assert.equal(discoverReferenceSites({ ...catalog([site("0", 35.7, 139.9)]), source_status: "PENDING" }, point).sites.length, 0);
 assert.equal(discoverReferenceSites({ ...catalog([site("0", 35.7, 139.9)]), region_code: "15100" }, point).sites.length, 0);
+
+// Old, C-only catalog JSON must fail closed even if all site rows look valid.
+const acceptedWithoutReplay = catalog([site("0", 35.7, 139.9)]);
+for (const unproven of [
+  { ...acceptedWithoutReplay, https_provenance_status: undefined },
+  { ...acceptedWithoutReplay, https_provenance_status: "PENDING" },
+  { ...acceptedWithoutReplay, https_provenance_checked_at_utc: null },
+  { ...acceptedWithoutReplay, https_provenance_checked_at_utc: "2026-10-09T03:00:00" },
+  { ...acceptedWithoutReplay, total_source_records: 2 }
+]) {
+  assert.equal(discoverReferenceSites(unproven, point).status, "UNVERIFIED_SOURCE");
+  assert.equal(discoverReferenceSites(unproven, point).sites.length, 0);
+}
 
 const full = catalog(Array.from({ length: 10 }, (_, i) => site(String(i), 35.7 + i / 1000, 139.9)));
 const ranked = discoverReferenceSites(full, point);
