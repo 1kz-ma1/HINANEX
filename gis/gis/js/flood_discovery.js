@@ -103,7 +103,13 @@
     const tileKeys = new Set(catalog.sites.map(site => site.source_url));
     if (tileKeys.size !== 1 || sites.length === 0) return blocked;
     const sourceTile = officialTileKey(sites[0].sourceUrl);
-    const originTile = sourceTile ? containingTile(origin, sourceTile.z) : null;
+    // A mislabeled or corrupted source row must not escape the audited tile.
+    // Check every coordinate, not just the user's search origin.
+    if (!sourceTile || sites.some(site => {
+      const tile = containingTile(site, sourceTile.z);
+      return !tile || tile.x !== sourceTile.x || tile.y !== sourceTile.y;
+    })) return blocked;
+    const originTile = containingTile(origin, sourceTile.z);
     if (!originTile || originTile.x !== sourceTile.x || originTile.y !== sourceTile.y) {
       return {
         status: "ORIGIN_OUTSIDE_SOURCE_TILE",
