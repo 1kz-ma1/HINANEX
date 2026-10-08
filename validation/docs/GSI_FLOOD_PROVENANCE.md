@@ -24,3 +24,39 @@ $report = '.\pipeline\data\verified\gsi_https_provenance_20261009.json'
 - HTTPS再取得の一致は、**その時点の公式配信バイト**との一致であり、以前のダウンロード日時の証明ではありません。また、GSIの1タイル内の施設が江戸川区内だけとは限らず、掲載網羅性・安全・開設・経路推奨も認定しません。自治体の最新案内を優先してください。
 
 次の工程ではDの`run_verified_flood_site_reference.py`で`REFERENCE_ONLY`カタログを出力し、ブラウザから実データを読み込んで確認します。このレポートだけで`main`へリリースしてはいけません。
+
+
+## C→D→E 実データ・ローカル一括受入チェック
+
+最新の統合プレビューには読み取り専用CLI：validation/validation/verify_gsi_catalog_acceptance.py があります。以下の順で実行してください。
+
+1. 保存済みGSI rawからD整理レコードとC独立raw監査PASSのJSONを作成（元データは消さない）。
+2. ネットワークが使える環境で前半記載の verify_gsi_flood_provenance.py を実行し、公式HTTPS再取得と原本バイトの MATCH レポートを生成。ネットワーク失敗や公式更新時は停止。
+3. D run_verified_flood_site_reference.py へ --provenance を渡し、REFERENCE_ONLY カタログを生成。
+4. 以下の読み取り専用チェックを実行。
+
+PowerShell（最新previewの別worktreeに置いた正常な出力を検査）:
+
+~~~powershell
+cd C:\HINANEX-Accept
+$py = 'C:\HINANEX\pipeline\.venv\Scripts\python.exe'
+$source = 'https://cyberjapandata.gsi.go.jp/xyz/skhb01/10/909/403.geojson'
+$raw = 'C:\HINANEX-Preview\pipeline\data\raw\gsi_flood_tile.geojson'
+$records = '.\pipeline\data\verified\edogawa_gsi_flood_records.json'
+$c = '.\pipeline\data\verified\edogawa_gsi_flood_c_acceptance.json'
+$proof = '.\pipeline\data\verified\gsi_https_provenance_20261009.json'
+$catalog = '.\pipeline\data\output\edogawa_flood_site_catalog.json'
+& $py .\validation\validation\verify_gsi_catalog_acceptance.py --region 13123 --raw $raw --records $records --c-acceptance $c --provenance $proof --catalog $catalog --source-url $source
+~~~
+
+既存 C:\HINANEX-Preview の未コミット変更と原本を保持し、別worktreeを初めて作る場合:
+
+~~~powershell
+cd C:\HINANEX
+git fetch origin
+git worktree add --detach ..\HINANEX-Accept origin/integration/flood-scenario-preview
+~~~
+
+別worktree側で Dの prepare_gsi_flood_tile.py と Cの verify_gsi_flood_source.py を使い、元の保存済みrawから新規 $records と $c を作成してください。実際に公式HTTPSと一致したレポートだけを $proof とし、Dの公開CLIを --provenance $proof で実行して $catalog を生成します。既存証跡を消したり上書きしてはいけません。
+
+正常終了時は LOCAL_CATALOG_CONTRACT_PASS とタイル全体の件数・SHA256を表示します。これは現場データの安全・開設・所属自治体やブラウザの操作確認ではありません。別途HTTP配信で3地域、施設原文、手動地点、GPS拒否、地域切替、ブラウザコンソールを確認します。最新の自治体避難案内を優先してください。
