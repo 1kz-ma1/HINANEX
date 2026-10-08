@@ -12,6 +12,7 @@ class RegionArtifacts:
     assessment: str
     capability: str
     gap: str
+    scenario: str
 
 
 REGIONS = [
@@ -21,6 +22,7 @@ REGIONS = [
         assessment="data/normalized/edogawa_shelter_location_assessment.json",
         capability="data/normalized/edogawa_shelter_discovery_capability.json",
         gap="data/normalized/edogawa_shelter_discovery_gap.json",
+        scenario="data/normalized/edogawa_flood_scenario.json",
     ),
     RegionArtifacts(
         key="niigata",
@@ -28,6 +30,7 @@ REGIONS = [
         assessment="data/normalized/niigata_shelter_location_assessment.json",
         capability="data/normalized/niigata_shelter_discovery_capability.json",
         gap="data/normalized/niigata_shelter_discovery_gap.json",
+        scenario="data/normalized/niigata_flood_scenario.json",
     ),
     RegionArtifacts(
         key="nagoya",
@@ -35,6 +38,7 @@ REGIONS = [
         assessment="data/normalized/nagoya_shelter_location_assessment.json",
         capability="data/normalized/nagoya_shelter_discovery_capability.json",
         gap="data/normalized/nagoya_shelter_discovery_gap.json",
+        scenario="data/normalized/nagoya_flood_scenario.json",
     ),
 ]
 
@@ -45,6 +49,7 @@ def _assert_inputs_exist(region: RegionArtifacts) -> None:
         region.assessment,
         region.capability,
         region.gap,
+        region.scenario,
     ]
     missing = [path for path in required if not Path(path).exists()]
 
@@ -70,6 +75,7 @@ def build_contracts() -> dict[str, Path]:
             assessment_paths=[region.assessment],
             capability_paths=[region.capability],
             gap_paths=[region.gap],
+            scenario_paths=[region.scenario],
         )
 
         export = read_region_export(output_path)
