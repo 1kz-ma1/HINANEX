@@ -215,6 +215,9 @@ function setFacilityListMode(summary) {
   const active = Boolean(summary && summary.records.length && !summary.mappableRecords.length);
   panel.hidden = !active;
   overlay.className = active ? "map-unavailable has-facility-list" : "map-unavailable";
+  document.getElementById("mapUnavailableTitle").textContent = active
+    ? "位置は未確認ですが、施設一覧を検索できます"
+    : "表示範囲を確定できません";
   if (active) renderFacilityList();
 }
 
