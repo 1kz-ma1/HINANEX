@@ -48,6 +48,11 @@
           site.designation_kind !== "designated_emergency_evacuation_site" ||
           site.disaster1_raw !== 1 ||
           site.search_context_region_code !== catalog.region_code ||
+          typeof site.source_record_trace !== "string" ||
+          site.source_feature_key !== `${site.source_url}#${site.source_record_trace}` ||
+          !/^feature_index=[0-9]+$/.test(site.source_record_trace) ||
+          (site.address_raw != null && typeof site.address_raw !== "string") ||
+          (site.remarks_raw != null && typeof site.remarks_raw !== "string") ||
           site.hazard_dataset !== "GSI_SKHB01_FLOOD" ||
           !OFFICIAL_GSI.test(site.source_url || "")) {
         return blocked; // reject the entire catalog, never silently skip bad rows
