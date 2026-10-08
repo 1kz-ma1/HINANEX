@@ -711,6 +711,10 @@ function renderPage(viewModel) {
 
 function clearRegionContent() {
   for (const root of contentRoots) root.replaceChildren();
+  // Prevent showing an empty/stale Scenario panel during a failed or
+  // cancelled region switch; each successful payload opts in again.
+  floodScenarioSection.hidden = true;
+  floodScenarioNav.hidden = true;
   if (evidenceDialog.open) evidenceDialog.close();
 }
 
