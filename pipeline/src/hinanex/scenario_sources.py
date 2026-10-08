@@ -21,6 +21,11 @@ EDOGAWA_HAZARD_SOURCE = (
     "e007/bosaianzen/bosai/kanrenmap/hazardmap/ikinaihinan.html"
 )
 
+# These exact raw values appeared in the 2026-10-08 independent C audit.
+# Capture the condition verbatim; this is NOT a certification that the
+# separate city hazard-map legend defines the ODS CSV's evaluation semantics.
+NIIGATA_FLOOR_RAW_MARKERS = {"2階以上", "3階以上", "全階可"}
+
 
 def edogawa_facts(location: NormalizedDataset) -> list[HazardFact]:
     """Fail closed: A found no verified cross-source join or common ID.
@@ -71,14 +76,21 @@ def niigata_facts(
             source_id=source_id, row_index=int(idx), name=name,
             latitude=latitude, longitude=longitude,
         )
+        raw_flood_value = (
+            adapter._optional_string(row[hazard_col])
+            if hazard_col is not None else None
+        )
         result.append(HazardFact(
             facility_id=facility_id,
             facility_name=name,
             hazard_scope_raw="災害種別_洪水",
             source_semantics="指定緊急避難場所一覧・洪水に対応する公式災害種別列",
-            official_status_raw=(
-                adapter._optional_string(row[hazard_col])
-                if hazard_col is not None else None
+            official_status_raw=raw_flood_value,
+            # Explicit, lossless floor wording from the SAME archived CSV row.
+            # Do not turn this into unconditional flood applicability/safety.
+            usable_floor_raw=(
+                raw_flood_value
+                if raw_flood_value in NIIGATA_FLOOR_RAW_MARKERS else None
             ),
             source_url=source_url,
             source_record_trace=f"csv_row={int(idx) + 2}",
