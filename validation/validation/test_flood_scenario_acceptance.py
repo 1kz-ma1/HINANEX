@@ -81,11 +81,7 @@ class NiigataFloorAuditTests(unittest.TestCase):
             name = f"施設{index}"
             writer.writerow([name, marker])
             rows.append({
-                "status": (
-                    "CANDIDATE" if marker == "○" else
-                    "EXCLUDED" if marker == "×" else
-                    "UNKNOWN"
-                ),
+                "status": "UNKNOWN",
                 "fact": {
                     "facility_name": name,
                     "official_status_raw": marker,
@@ -129,6 +125,20 @@ class NiigataFloorAuditTests(unittest.TestCase):
             with patch.object(audit, "NIIGATA_RAW", path):
                 with self.assertRaisesRegex(audit.AcceptanceFailure, "floor-limited raw was classified"):
                     audit.check_niigata(scenario, locations)
+
+    def test_niigata_symbol_cannot_be_promoted_to_candidate_or_excluded(self):
+        # "○" / "×" are raw municipality facts; without a Niigata ODS
+        # field dictionary their eligibility meaning is not certified.
+        for index, invalid_status in ((0, "CANDIDATE"), (1, "EXCLUDED")):
+            with self.subTest(index=index, status=invalid_status):
+                with tempfile.TemporaryDirectory() as temp:
+                    path, scenario, locations = self._make_fixture(Path(temp))
+                    scenario["facility_results"][index]["status"] = invalid_status
+                    with patch.object(audit, "NIIGATA_RAW", path):
+                        with self.assertRaisesRegex(
+                            audit.AcceptanceFailure, "unverified ODS marker classified"
+                        ):
+                            audit.check_niigata(scenario, locations)
 
     def test_other_markers_cannot_inherit_floor_raw(self):
         with tempfile.TemporaryDirectory() as temp:
