@@ -20,7 +20,7 @@
 
 - User ran `run_all_workflows.py`, `verify_d_mvp.py`, `verify_a_handoff_integration.py`, `verify_flood_scenario.py`; pasted logs end in READY/COMPLETE.
 - D PR #41 GitHub Actions run #101 passed. D reported 56 pipeline tests and 3 deploy tests, Scope Guard, generated Schema check.
-- **Neither the user-run acceptance script nor D's tests constitute an independent municipality raw-row audit.**
+- The first C-owned independent raw audit was executed in the user's environment on 2026-10-08. **Edogawa's UNKNOWN boundary and all 566 Niigata raw CSV marker/row comparisons passed.** Nagoya stopped at `千種区.xls:7 facility name/raw-row mismatch`, before full Nagoya completion. This is a PARTIAL C acceptance, not a green result.
 - Source page checks performed by C: 新潟市 official open-data page lists 指定緊急避難場所一覧 CSV updated **2026-09-25**; 名古屋市 current designation page updated **2026-10-07**, with official indoor/outdoor listing reference date **2026-09-01**.
   - https://www.city.niigata.lg.jp/shisei/seisaku/it/open-data/
   - https://www.city.nagoya.jp/bousaiportal/hinan/1013390/1013492.html
@@ -39,13 +39,13 @@
 
 ### C return items / residual risk
 
-**C-FLOOD-01 — HIGH — independent raw marker acceptance incomplete (blocks main acceptance)**
+**C-FLOOD-01 — HIGH — raw markers matched, official marker meaning still needs source confirmation (blocks unconditional acceptance)**
 
 - Source: A scenario handoff acknowledges that Niigata's current CSV raw-value distribution was **not independently re-counted** by A.
-- Actual D output: Niigata 16 CANDIDATE, **239 EXCLUDED**, 311 UNKNOWN. D defines positive (`1/○/true/...`) and negative (`0/×/false`) accepted marker sets.
-- Expected: Confirm the current official CSV's exact `災害種別_洪水` raw value histogram, the intended meaning of each marker in the source's standard definition, and the D facility-by-facility mapping; do not infer meaning only from what the D implementation accepts.
-- C action: Run `validation/validation/verify_flood_scenario_acceptance.py` after full D workflow, inspect its histogram, and separately verify the meaning of all markers present in the official source. If the value-to-status mapping is unsupported, return a D correction request with source-row evidence.
-- Status: **PENDING**, not a proven functional error.
+- Actual D output: Niigata 16 CANDIDATE, **239 EXCLUDED**, 311 UNKNOWN. C independently compared all 566 result entries against the archived official CSV, including marker values, facility names, row references, source URLs and status categories; this part **PASSED**. Raw histogram: `○=16`, `×=239`, `2階以上=173`, `3階以上=9`, `全階可=74`, `－=55`.
+- Expected: Separately confirm the **official semantic meaning** of `○`, `×`, `2階以上`, `3階以上`, `全階可`, `－` and whether D's `CANDIDATE/EXCLUDED/UNKNOWN` statuses correctly respect conditional floor constraints. Do not infer official semantics solely from the mapping implemented by D.
+- C action: raw histogram and D row mapping are confirmed. The remaining action is **independent official semantic verification**. If the value-to-status mapping is unsupported, return a D correction request with source-row evidence.
+- Status: raw-value/row matching **PASS**; official symbol/floor-constraint semantics **PENDING**, not a proven functional error.
 
 **C-FLOOD-02 — MEDIUM — Edogawa raw facility Evidence not yet materialized**
 
@@ -72,6 +72,14 @@
 - Expected: after provider integration and consumer work, verify `UNKNOWN` is visible; map hides no missing-coordinate records without explanation; no own hazard evaluation in B/E; no claim of safe shelter or route.
 - Status: **PENDING**, integration-stage item.
 
+**C-FLOOD-06 — MEDIUM — C Nagoya audit normalizer inconsistency (fix committed; re-run required)**
+
+- First C run failed at `千種区.xls:7 facility name/raw-row mismatch`.
+- The C comparator originally used `str(value).strip()` whereas the D Nagoya Adapter's documented `_optional_string` uses `re.sub(r"\\s+", "", str(value)).strip()` — it removes internal ASCII/full-width whitespace too.
+- A comparison of displayed original Excel text with a whitespace-normalized D field can therefore fail even when both refer to the same official value. The code review identifies a **plausible C false positive**; the original failing cell has not been inspected here, so an actual D mismatch is **not ruled out** until the next run.
+- The C script now compares raw cells after **whitespace removal only** (no name substitutions or fuzzy match), and prints the exact raw/normalized/output values if a substantive mismatch persists.
+- Added deterministic C regression covering whitespace-only equivalence and intentionally wrong facility names. **Regression execution pending on user's local environment.**
+
 ## 3. Additional independent acceptance check
 
 C-owned script:
@@ -91,7 +99,7 @@ The script is separate from D's own tests and implements the following:
 - Fails closed with actionable descriptions on mismatches.
 - No per-facility CSV, XLS, address or personal data committed to Git.
 
-**Execution status**: C independent script created, **NOT RUN against user-local official raw files**. D's own live verification was reported successful but must not be relabeled as C independent source audit.
+**Execution status (first run): PARTIAL / FAILED**. Edogawa and all 566 Niigata raw CSV row/marker comparisons passed. Nagoya stopped at `千種区.xls:7 facility name/raw-row mismatch`; the C comparison-normalization fix is committed, but **fresh C regression/official workbook rerun has not yet been reported**.
 
 ## 4. C acceptance decision
 
@@ -102,16 +110,16 @@ The script is separate from D's own tests and implements the following:
 | Legacy 0/null, status and 3-region score continuity | PASS on submitted D output; code reviewed |
 | Safe treatment of Edogawa uncertain join | PASS for UNKNOWN boundary; facility Evidence trace incomplete |
 | Nagoya combined-scope meaning and indoor limit | PASS for output boundary; official date refresh open |
-| Niigata raw marker-to-status independent audit | **NOT RUN / BLOCKS MAIN** |
-| C-owned automated raw-row audit | **NOT RUN / BLOCKS MAIN** |
+| Niigata raw marker-to-status independent audit | **PASS for all 566 raw rows; official meaning pending** |
+| C-owned automated raw-row audit | **PARTIAL: Edogawa/Niigata pass; Nagoya failure under re-investigation** |
 | Scenario UI and GIS E2E | NOT IMPLEMENTED / NOT RUN |
 | Independent human review | NOT RUN |
 
-**Verdict:** Retain #41 inside `role/d-pipeline`. Do not represent C acceptance as unconditional green or integrate into `main` until C-FLOOD-01 and its independent execution are resolved, followed by Merge Captain contract and dependency decision. Other items can be triaged into bounded follow-up PRs.
+**Verdict:** Retain #41 inside `role/d-pipeline`. No unconditional C acceptance and no `main` merge until the C Nagoya rerun, official Niigata marker semantics, and Merge Captain contract/dependency decision are complete. Other items can be triaged into bounded follow-up PRs.
 
 ## 5. Suggested next actions
 
-1. Execute the C-owned independent check on the current official raw files. Record the marker histogram and any failures in this review; resolve C-FLOOD-01.
+1. Rerun the corrected C independent raw-row check and its new whitespace-only regression; verify Nagoya all 16 official workbooks. Capture any substantive raw mismatch from the improved diagnostic.
 2. Return C-FLOOD-03 to A for fresh metadata/source reference verification.
 3. Review C-FLOOD-04 with the owner of shared RegionExport contracts before B/E consumer rollout.
 4. Merge D into main only after acceptance requirements are satisfied, and then implement B/E consumers and run cross-layer E2E in Staging. C-FLOOD-02 remains explicitly documented if partial Edogawa trace is accepted for MVP.
