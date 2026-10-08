@@ -15,7 +15,16 @@ param(
 
 $ErrorActionPreference = 'Stop'
 # Validate exact z10 official source URL before touching data or publishing.
-$pattern = '^https://cyberjapandata\.gsi\.go\.jp/xyz/skhb01/10/(\d+)/(\d+)\.geojson$repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+$pattern = '^https://cyberjapandata\.gsi\.go\.jp/xyz/skhb01/10/(\d+)/(\d+)\.geojson'
+if (-not ($SourceUrl -cmatch $pattern)) {
+    throw 'SourceUrl must be exact official GSI skhb01 z10 HTTPS tile.'
+}
+$tileX = [int]$Matches[1]
+$tileY = [int]$Matches[2]
+if ($tileX -ge 1024 -or $tileY -ge 1024) {
+    throw 'GSI z10 tile x/y out of range.'
+}
+$repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $python = (Resolve-Path -LiteralPath $PythonExe).Path
 $raw = (Resolve-Path -LiteralPath $ArchivePath).Path
 $found = (Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash
