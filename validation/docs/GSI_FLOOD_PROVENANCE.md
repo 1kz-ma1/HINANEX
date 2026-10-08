@@ -60,3 +60,21 @@ git worktree add --detach ..\HINANEX-Accept origin/integration/flood-scenario-pr
 別worktree側で Dの prepare_gsi_flood_tile.py と Cの verify_gsi_flood_source.py を使い、元の保存済みrawから新規 $records と $c を作成してください。実際に公式HTTPSと一致したレポートだけを $proof とし、Dの公開CLIを --provenance $proof で実行して $catalog を生成します。既存証跡を消したり上書きしてはいけません。
 
 正常終了時は LOCAL_CATALOG_CONTRACT_PASS とタイル全体の件数・SHA256を表示します。これは現場データの安全・開設・所属自治体やブラウザの操作確認ではありません。別途HTTP配信で3地域、施設原文、手動地点、GPS拒否、地域切替、ブラウザコンソールを確認します。最新の自治体避難案内を優先してください。
+
+
+## まとめて実行する安全なPowerShellランナー
+
+今後の実データ検証は、最新の統合プレビューを取得した**別worktree**から以下の1コマンドでも実行できます。元の C:\HINANEX-Preview に保存されたGSI原本や未コミットのschema修正は変更しません。
+
+~~~powershell
+cd C:\HINANEX
+git fetch origin
+git worktree add --detach ..\HINANEX-Accept origin/integration/flood-scenario-preview
+& 'C:\HINANEX-Accept\validation\scripts\Run-GsiFloodLocalAcceptance.ps1' -ArchivePath 'C:\HINANEX-Preview\pipeline\data\raw\gsi_flood_tile.geojson'
+~~~
+
+スクリプトは新規の一意な検証フォルダにだけ、D正規化行、C raw照合、C実HTTPS照合、D参照カタログ、C→D→E整合性確認を出力し、EのNode回帰テスト5本を実行します。既定の原本SHA256は、ユーザーが2026-10-09に報告した2748FEA7E1145FD2A3BDFAD05B3FEA4B86127FAFD017F253FE327472F89A3A41です。別の原本を再監査する場合は -ExpectedSha256 で明示指定してください。値が違う場合やネットワークで再取得した公式バイトが変化している場合は停止します。
+
+全工程が通ったあと、**新しいプレビューworktreeのみ**へ表示用JSONを配置する場合は最後のコマンドに -PublishPreview を追加します。公開先に既存ファイルがあれば上書きせずエラーにします。mainへのGitマージや実運用配信は行いません。
+
+この一括PASSでも、B frontendテストと実ブラウザのGPS許可/拒否・地域切替・施設元情報・コンソールの受入作業は残ります。施設の自治体所属、避難適合性、安全経路、開設状況を認定しません。
