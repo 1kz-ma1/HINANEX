@@ -13,7 +13,7 @@
     const sourceFacts = summary?.floodScenario?.byId;
     const words = searchable(query).trim().split(/\s+/u).filter(Boolean);
     const matched = records.filter(record => {
-      const fact = sourceFacts instanceof Map ? sourceFacts.get(record.id) : null;
+      const fact = typeof sourceFacts?.get === "function" ? sourceFacts.get(record.id) : null;
       const haystack = searchable([
         record.id, record.name, record.address, record.administrative_area,
         fact?.officialStatusRaw, fact?.usableFloorRaw, fact?.sourceRecordTrace
