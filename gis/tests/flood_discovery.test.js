@@ -54,6 +54,11 @@ assert.equal(outside.sites.length, 0);
 assert.match(outside.message, /範囲外/);
 assert.equal(discoverReferenceSites(full, { latitude: 36.1, longitude: 139.9 }).status, "ORIGIN_OUTSIDE_SOURCE_TILE");
 assert.equal(discoverReferenceSites(full, { latitude: 35.7, longitude: 139.9 }).status, "REFERENCE_ONLY");
+// A single source URL is insufficient if a row's coordinates fall outside it.
+// Fail closed instead of returning a cross-tile record as a nearby facility.
+assert.equal(discoverReferenceSites(catalog([site("0", 35.7, 139.9), site("1", 35.7, 140.1)]), point).status, "UNVERIFIED_SOURCE");
+assert.equal(discoverReferenceSites(catalog([site("0", 35.7, 139.9), site("1", 35.7, 140.1)]), point).sites.length, 0);
+
 const otherTile = {
   ...site("99", 35.7, 139.9),
   source_url: "https://cyberjapandata.gsi.go.jp/xyz/skhb01/10/910/403.geojson",
