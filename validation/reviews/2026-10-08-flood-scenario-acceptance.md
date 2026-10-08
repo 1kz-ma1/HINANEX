@@ -2,7 +2,7 @@
 
 - Review date: **2026-10-08**
 - Reviewer: C validation undertaken in ChatGPT after the assigned C workflow was inactive. **The same assistant previously implemented D; this is a separate validation pass, not an independent human/auditor sign-off.**
-- Reviewed provider: [D PR #41](https://github.com/1kz-ma1/HINANEX/pull/41), merged into `role/d-pipeline`; reviewed head `91ef16938821784ef69ffe58105378547e591dbf`.
+- Reviewed provider: [D PR #41](https://github.com/1kz-ma1/HINANEX/pull/41) (original Scenario), and [D PR #44](https://github.com/1kz-ma1/HINANEX/pull/44) (Niigata floor-raw preservation), both merged to `role/d-pipeline`. Latest C report is based on the user's post-#44 independent audit log.
 - A source: [PR #37](https://github.com/1kz-ma1/HINANEX/pull/37), `data-research/scenarios/flood-shelter-selection.md`, `data-research/handoff/HINANEX_A_flood_scenario_handoff.json`.
 - Target: `flood_shelter_selection`, Scenario-local `shelter_hazard_applicability`, optional `RegionExport.scenarios[]`.
 - **Disposition: CONDITIONAL / NEEDS_REVIEW — NOT YET ACCEPTED FOR MAIN.**
@@ -44,8 +44,8 @@
 - Source: A scenario handoff acknowledges that Niigata's current CSV raw-value distribution was **not independently re-counted** by A.
 - Actual D output: Niigata 16 CANDIDATE, **239 EXCLUDED**, 311 UNKNOWN. C independently compared all 566 result entries against the archived official CSV, including marker values, facility names, row references, source URLs and status categories; this part **PASSED**. Raw histogram: `○=16`, `×=239`, `2階以上=173`, `3階以上=9`, `全階可=74`, `－=55`.
 - New official-source finding: Niigata City directly states in its 2022 Konan Ward official article that flood evacuation facilities marked **`2階以上`** or **`全階可`** can be used for flood evacuation, with restrictions on usable floors. This supports treating these markers as **meaningful floor-dependent usability facts**, rather than as uninformative unknown strings. Current 2026 CSV marker definitions, the `3階以上` marker, `○`, `×`, and `－` still require source-specific semantic confirmation before changing D status mapping. Official city source: https://www.city.niigata.lg.jp/konan/kohoshi/kuyakusho/r04/konan_365/konan_365_1.html (section Check2).
-- C action: raw histogram and D row mapping are confirmed. **The 173 `2階以上`, 9 `3階以上`, and 74 `全階可` cases (256 in total) currently all appear as UNKNOWN**. Ask A to verify these markers against the *current* ODS source/legend, then ask D to formally design conditional usability representation (preserve required floor / all-floor fact and display conditions), without silently converting these to unrestricted CANDIDATE or a safety guarantee. Clarify the scope of `×` and `－` from the authoritative legend before committing exclusion semantics.
-- Status: raw-value/row matching **PASS**; **potential functional under-classification now evidenced for floor-limited facilities**, pending authoritative 2026 semantics and explicit D Contract decision. **Unconditional `main` acceptance remains blocked.**
+- C action: raw histogram and D row mapping are confirmed. A #43 documented the 2026 official river-specific flood legend and emphasized it is **not a confirmed complete mapping for the ODS CSV field**. D #44 now preserves **all 256 official raw floor-constraint strings** (173 `2階以上`, 9 `3階以上`, 74 `全階可`) in optional `usable_floor_raw`, while retaining `UNKNOWN`. The user's latest C audit verified **256/256** against archived CSV raw rows. This resolves the **raw preservation** subtask, not the official ODS-specific semantics for `○/×/－` or conditional eligibility. B/E must never silently upgrade statuses.
+- Status: raw-value/row matching **PASS after D #44**; floor condition preservation **PASS (256 entries)**; ODS-specific eligibility/exclusion semantics **PENDING**, hence **unconditional `main` acceptance remains blocked**. Do not present current UNKNOWN as lack of any original source floor condition.
 
 **C-FLOOD-02 — MEDIUM — Edogawa raw facility Evidence not yet materialized**
 
@@ -56,9 +56,9 @@
 
 **C-FLOOD-03 — MEDIUM — A metadata on Nagoya is stale**
 
-- Source: A handoff currently records updated_at 2026-07-27 and reference date 2026-07-01, whereas the official webpage currently shows updated 2026-10-07 and as-of 2026-09-01.
-- Expected: A updates metadata and verifies whether associated workbook contents/scope actually changed. Do not fabricate a dataset difference merely from page date changes.
-- Status: **A return item**, not D-owned.
+- Source: The *original* A #37 handoff recorded updated_at 2026-07-27 and reference date 2026-07-01; the official site later showed updated 2026-10-07 and list as of 2026-09-01.
+- Resolution: A [PR #43](https://github.com/1kz-ma1/HINANEX/pull/43) refreshed both dates in the A report and structured handoff and merged into `role/a-data`.
+- Status: **RESOLVED (metadata)**. Historical workbook content/difference verification remains **NOT RUN**; current 16 indoor workbook raw trace was independently checked by C.
 
 **C-FLOOD-04 — MEDIUM — formal Requirement/Capability trace terminology**
 
@@ -78,7 +78,7 @@
 - The C comparator originally used `str(value).strip()` whereas the D Nagoya Adapter's documented `_optional_string` uses `re.sub(r"\\s+", "", str(value)).strip()` — it removes internal ASCII/full-width whitespace too.
 - C's first raw-vs-normalized text comparison could fail on legitimate internal whitespace. After normalizing **whitespace only**, the user re-ran the official-archive audit and all 16 Nagoya workbooks / 1,602 records passed. This provides execution evidence that the first mismatch was a C comparator mismatch, not a confirmed D source-row error.
 - The C script now compares raw cells after **whitespace removal only** (no name substitutions or fuzzy match), and prints the exact raw/normalized/output values if a substantive mismatch persists.
-- Added deterministic C regression covering whitespace-only equivalence and intentionally wrong facility names. **Its separate unittest execution has not been reported** (the successful user log covers only the independent raw-row audit).
+- Added deterministic C regression covering whitespace-only equivalence and intentionally wrong facility names. **Its separate unittest execution has not been reported** (the successful user logs cover the independent official raw-row audit only).
 
 ## 3. Additional independent acceptance check
 
@@ -99,7 +99,7 @@ The script is separate from D's own tests and implements the following:
 - Fails closed with actionable descriptions on mismatches.
 - No per-facility CSV, XLS, address or personal data committed to Git.
 
-**Execution status (re-run): PASS** — user provided the final transcript: `edogawa records: 152`, `niigata records: 566`, `Nagoya indoor workbooks independently traced: 16`, `nagoya records: 1602`, ending in `C raw trace acceptance: checks PASSED (official semantics remain separate review gate)`. The C regression unittest remains **not reported**, and source semantics remain a **separate acceptance gate**.
+**Execution status (after D #44): PASS** — user supplied the new independent audit transcript: Edogawa 152 UNKNOWN, Niigata 566 with `raw floor conditions independently verified: 256` and status 16 CANDIDATE / 239 EXCLUDED / 311 UNKNOWN, Nagoya 16 indoor XLS files / 1,602 UNKNOWN. Final line: `C raw trace acceptance: checks PASSED (official semantics remain separate review gate)`. Results are based on *user-run test output*, not a separate GitHub Actions live municipal ingestion. The newly added C synthetic unit tests were **not shown in the submitted log**.
 
 ## 4. C acceptance decision
 
@@ -111,7 +111,7 @@ The script is separate from D's own tests and implements the following:
 | Safe treatment of Edogawa uncertain join | PASS for UNKNOWN boundary; facility Evidence trace incomplete |
 | Nagoya combined-scope meaning and indoor limit | PASS for output boundary; official date refresh open |
 | Niigata raw marker-to-status independent audit | **PASS: 566/566 raw rows and values; conditional flood usability meaning still pending** |
-| C-owned automated raw-row audit | **PASS for 3 regions; 16 Nagoya indoor workbooks, 1,602 rows** |
+| C-owned automated raw-row audit | **PASS after D #44** — 3 regions, Niigata 256 raw floor fields verified, 16 Nagoya XLS workbooks |
 | Scenario UI and GIS E2E | NOT IMPLEMENTED / NOT RUN |
 | Independent human review | NOT RUN |
 
@@ -119,8 +119,8 @@ The script is separate from D's own tests and implements the following:
 
 ## 5. Suggested next actions
 
-1. Confirm `2階以上`/`3階以上`/`全階可`/`×`/`－` semantics for the **current** Niigata CSV against city-issued legends; resolve C-FLOOD-01 with A/D. Run the separate C synthetic workbook regression unittest before marking #42 complete.
-2. Return C-FLOOD-03 to A for fresh metadata/source reference verification.
+1. D #44 raw-floor preservation is **verified by C**; next confirm `○` / `×` / `－` and conditional-floor meaning for the **current** Niigata ODS CSV against an authoritative source-specific legend or publisher clarification, then review D status mapping. Run the separate C synthetic regression unittest before marking #42 complete.
+2. C-FLOOD-03 Nagoya page/list metadata refreshed in A #43; **resolved**, with historical workbook differences still unverified.
 3. Review C-FLOOD-04 with the owner of shared RegionExport contracts before B/E consumer rollout.
 4. Merge D into main only after acceptance requirements are satisfied, and then implement B/E consumers and run cross-layer E2E in Staging. C-FLOOD-02 remains explicitly documented if partial Edogawa trace is accepted for MVP.
 
@@ -130,5 +130,16 @@ The script is separate from D's own tests and implements the following:
 - [D PR #44](https://github.com/1kz-ma1/HINANEX/pull/44) merged into `role/d-pipeline`, CI #110 SUCCESS. For Niigata `災害種別_洪水`, D now preserves `2階以上` / `3階以上` / `全階可` in the previously existing optional `fact.usable_floor_raw` while keeping their Scenario status `UNKNOWN`.
 - The C independent validator now checks each Niigata CSV row's `usable_floor_raw` directly against the corresponding raw marker, and refuses premature eligibility classification. An unexpected new `N階以上` value fails closed pending D/A source review.
 - Additional deterministic C synthetic CSV tests catch missing/altered floor values and status promotion. These are outside the current GitHub workflow and **not yet user-executed**.
-- **Revalidation still required**: regenerate official 3-region output on the latest `role/d-pipeline`, run D verifiers, then run the updated C validator on the same persisted raw files and RegionExport. Until this is reported, the previous 3-region PASS is for the **pre-#44 output only**.
+- **Revalidation completed (user-run)**: the latest submitted log confirms all three regions PASS, and **256 Niigata floor-raw conditions** matched source CSV. This replaces the earlier pre-#44 validation as the current execution evidence. The new C synthetic workbook/CSV unittest output has not been provided and is tracked separately.
 - **C semantics gate remains conditional**: `○/×/－` and floor meaning within the current ODS CSV still await authoritative A/D agreement; no `main` merge authorization here.
+
+## 7. Post-#44 acceptance evidence and remaining gates (2026-10-08)
+
+- **PASS / executed by user:** C independent official-archive/RegionExport verifier on post-#44 outputs, covering Edogawa 152 UNKNOWN, Niigata 566 official raw rows, and Nagoya 1,602 rows from 16 indoor Excel files.
+- **PASS / executed by user:** all Niigata `usable_floor_raw` fields for 256 floor-marked official CSV rows agree with the original raw cells. All 256 remain `UNKNOWN`. No facility's eligibility or real-time availability was inferred from a floor condition.
+- **PASS / GitHub:** D CI #110 after #44 and C PR CI #114; **GitHub CI does not execute C's standalone municipal raw verifier or new C synthetic tests**.
+- **NOT RUN (no user output):** C new synthetic unittest suite `python -m unittest discover -s validation/validation -p "test_*.py" -v`; run and record result separately.
+- **UNRESOLVED SEMANTICS:** official Niigata ODS-specific meaning for `○` / `×` / `－` and the exact relationship between the city's river-specific hazard legend and ODS CSV `災害種別_洪水`. A #43 documents relevant official flood legend while explicitly preserving this distinction. The C raw audit has *not* approved D's existing 16 CANDIDATE / 239 EXCLUDED labels as disaster-safety facts.
+- **INTEGRATION:** the additive RegionExport `scenarios[]` field must be reviewed with B/E consumers; old schema 0.9 required fields are unchanged. B/E Staging E2E and Merge Captain's latest-main merge decision remain separate gates.
+
+**Decision: C RAW-TRACE ACCEPTANCE = PASS after D #44. Full flood Scenario SEMANTIC/RELEASE ACCEPTANCE = CONDITIONAL / NEEDS_REVIEW. This record does not approve `main` merge.**
