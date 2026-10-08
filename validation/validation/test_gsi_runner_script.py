@@ -17,6 +17,10 @@ class GsiRunnerSyntaxTests(unittest.TestCase):
         self.assertIn("[switch]$PublishPreview", text)
         self.assertIn("[Parameter(Mandatory = $true)]", text)
         self.assertIn("ExpectedSha256", text)
+        self.assertIn("gsi_verified_tiles", text)
+        self.assertIn("RegionCode", text)
+        self.assertIn("10-", text)
+        self.assertIn("will not replace it", text)
         self.assertIn("verify_gsi_catalog_acceptance.py", text)
 
     @unittest.skipUnless(shutil.which("pwsh"), "PowerShell Core not installed in this test environment")
