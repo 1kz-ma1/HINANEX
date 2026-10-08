@@ -30,6 +30,8 @@ NAGOYA_RAW = PIPE / "data/raw/nagoya/nagoya_indoor_shelters_bundle.zip"
 ALLOWED_STATUS = {"CANDIDATE", "EXCLUDED", "UNKNOWN"}
 KNOWN_POSITIVE = {"1", "○", "〇", "true", "yes", "可", "有"}
 KNOWN_NEGATIVE = {"0", "×", "false"}
+# Raw text only; these are not unconditional flood eligibility classifications.
+NIIGATA_FLOOR_MARKERS = {"2階以上", "3階以上", "全階可"}
 
 
 class AcceptanceFailure(Exception):
@@ -78,6 +80,22 @@ def check_niigata(scenario: dict, locations: dict):
         require((recorded or "").strip() == raw,
                 f"Niigata CSV raw marker mismatch near physical line {physical_line}: "
                 f"{recorded!r} vs {raw!r}")
+        # D #44 must expose the original floor text in the pre-existing
+        # optional field without upgrading flood eligibility. Independently
+        # compare against this archived CSV row; never infer safety from it.
+        expected_floor = raw if raw in NIIGATA_FLOOR_MARKERS else None
+        require(fact.get("usable_floor_raw") == expected_floor,
+                f"Niigata floor raw mismatch near physical line {physical_line}: "
+                f"expected={expected_floor!r}, actual={fact.get('usable_floor_raw')!r}")
+        if expected_floor is not None:
+            require(result["status"] == "UNKNOWN",
+                    f"Niigata floor-limited raw was classified without official "
+                    f"ODS semantics acceptance near physical line {physical_line}")
+        elif re.fullmatch(r"[0-9]+階以上", raw):
+            raise AcceptanceFailure(
+                f"Niigata unhandled new floor raw marker near physical line "
+                f"{physical_line}: {raw!r}; review D extraction with A Evidence"
+            )
         require(fact["facility_name"] == (row.get("名称") or "").strip(),
                 f"Niigata facility name mismatch near line {physical_line}")
         raw_histogram[raw if raw else "<BLANK>"] += 1
@@ -102,6 +120,8 @@ def check_niigata(scenario: dict, locations: dict):
             require(marker not in KNOWN_NEGATIVE or fact["join_status"] != "DIRECT_SAME_SOURCE",
                     "Known negative marker was unexpectedly UNKNOWN")
     print("Niigata original raw-value histogram:", dict(sorted(raw_histogram.items())))
+    print("Niigata raw floor conditions independently verified:",
+          sum(raw_histogram[x] for x in NIIGATA_FLOOR_MARKERS))
     print("Niigata status breakdown:", dict(Counter(x["status"] for x in results)))
     print("NOTE: raw markers are audited; official marker meaning still requires A/C source verification.")
 
