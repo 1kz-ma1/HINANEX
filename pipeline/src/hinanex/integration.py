@@ -4,6 +4,7 @@ from pathlib import Path
 
 from src.hinanex.models.export import RegionExport
 from src.hinanex.models.scenario import FacilityScenarioStatus, ScenarioJoinStatus
+from src.hinanex.flood_scenario import POSITIVE_NIIGATA, NEGATIVE_NIIGATA
 from src.hinanex.models.integration import (
     CapabilityManifestItem,
     RegionManifestItem,
@@ -189,6 +190,21 @@ def validate_region_export(
                 fact.latitude is None or fact.longitude is None
             ):
                 errors.append("scenario candidate lacks usable coordinates")
+            source_location = location_records.get(item.facility_id)
+            if source_location is not None:
+                if (
+                    fact.latitude != source_location.get("latitude")
+                    or fact.longitude != source_location.get("longitude")
+                ):
+                    errors.append("scenario facts disagree with official location coordinates")
+            normalized_raw = (
+                fact.official_status_raw.strip().lower()
+                if fact.official_status_raw is not None else ""
+            )
+            if item.status == FacilityScenarioStatus.CANDIDATE and normalized_raw not in POSITIVE_NIIGATA:
+                errors.append("scenario candidate has no explicitly positive flood raw marker")
+            if item.status == FacilityScenarioStatus.EXCLUDED and normalized_raw not in NEGATIVE_NIIGATA:
+                errors.append("scenario excluded has no explicitly negative flood raw marker")
         summary = scenario.requirement_assessment
         if summary.directly_joined_count != direct:
             errors.append("scenario directly_joined_count mismatch")
