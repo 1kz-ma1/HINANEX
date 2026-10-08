@@ -205,7 +205,7 @@
     // A verified neighboring tile never substitutes for the origin tile.
     if (!seenTiles.has(originKey)) return {
       ...blocked, status: "ORIGIN_OUTSIDE_SOURCE_TILE",
-      message: "指定地点のGSIタイルはまだ独立検証・配信されていません。周辺の参考地点も表示しません。"
+      message: "指定地点のGSIタイルは独立照合待ちで未配信です。周辺の参考地点も表示しません。"
     };
     sites.sort((a, b) => a.distanceMetres - b.distanceMetres || a.id.localeCompare(b.id));
     const partial = seenTiles.size !== permittedKeys.size;
