@@ -245,7 +245,13 @@ function showDatasetOverview(summary, sourceLabel) {
       ["地図表示", `${summary.mappableRecords.length}件`],
       ["座標欠損", `${missing}件`],
       ["Evidence", `${summary.evidence.length}件`],
-      ["先頭Evidence", evidenceLabel(summary)]
+      ["先頭Evidence", evidenceLabel(summary)],
+      ...(summary.floodScenario ? [
+        ["洪水Scenario（D原値）", summary.floodScenario.status],
+        ["公式raw取得の状態", displayValue(summary.floodScenario.discoveryStatus)],
+        ["Scenario元施設行", `${summary.floodScenario.recordCount}件`],
+        ["洪水対応判定UNKNOWN", `${summary.floodScenario.unknownCount}件`]
+      ] : [])
     ],
     "D RegionExport",
     {
@@ -278,12 +284,26 @@ function renderShelterSummary(summary, sourceLabel) {
             ["経度", record.longitude.toFixed(7)],
             ["対応災害", displayValue(record.supported_disasters)],
             ["収容人数", displayValue(record.capacity)],
-            ["アクセシビリティ", displayValue(record.accessibility)]
+            ["アクセシビリティ", displayValue(record.accessibility)],
+            ...(summary.floodScenario?.byId.has(record.id) ? (() => {
+              const fact = summary.floodScenario.byId.get(record.id);
+              return [
+                ["洪水Scenario（D原値）", fact.status],
+                ["公式災害列", displayValue(fact.hazardScopeRaw)],
+                ["公式rawの記号", displayValue(fact.officialStatusRaw)],
+                ["利用階の原文", displayValue(fact.usableFloorRaw)],
+                ["照合方式", displayValue(fact.joinStatus)],
+                ["公式Source行", displayValue(fact.sourceRecordTrace)],
+                ["Dの判定理由", displayValue(fact.reason)]
+              ];
+            })() : [])
           ],
-          "D: shelter_location",
+          "D: shelter_location / raw facts",
           {
-            href: record.detail_url,
-            note: "null は未確認 / 判定不能を意味します。E側で値を補完・推測していません。"
+            href: summary.floodScenario?.byId.get(record.id)?.sourceUrl || record.detail_url,
+            note: summary.floodScenario?.byId.has(record.id)
+              ? "洪水Scenarioの状態は公式原文を追跡するためのD判定値です。UNKNOWNは危険・候補外ではありません。公式記号の意味、実際の開設、建物・経路の安全性は未確認です。"
+              : "null は未確認 / 判定不能を意味します。E側で値を補完・推測していません。"
           }
         );
       })
