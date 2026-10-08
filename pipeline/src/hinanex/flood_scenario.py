@@ -23,9 +23,9 @@ SHELTER_HAZARD_APPLICABILITY = DataRequirement(
     ],
 )
 
-POSITIVE_NIIGATA = {"1", "○", "〇", "true", "yes", "可", "有"}
-NEGATIVE_NIIGATA = {"0", "×", "false"}
-
+# A #43 and Issue #48 have not established an authoritative, ODS-field-
+# specific marker dictionary. Do not assign flood eligibility by analogy to
+# another hazard legend or from customary "○"/"×" interpretations.
 
 def _evaluate_fact(fact: HazardFact) -> FacilityScenarioResult:
     if fact.join_status != ScenarioJoinStatus.DIRECT_SAME_SOURCE:
@@ -44,33 +44,22 @@ def _evaluate_fact(fact: HazardFact) -> FacilityScenarioResult:
         status = FacilityScenarioStatus.UNKNOWN
         reason = "洪水の公式列の値が欠損・未確認である。"
     else:
-        raw = fact.official_status_raw.strip().lower()
+        # Raw value and the original official row are present, but the current
+        # Niigata ODS flood column's per-marker meanings are not yet certified.
+        # Even "○"/"×" cannot become eligible/ineligible on convention alone.
+        status = FacilityScenarioStatus.UNKNOWN
         if fact.usable_floor_raw is not None:
-            status = FacilityScenarioStatus.UNKNOWN
             reason = (
                 "公式CSVには利用階に関するraw表記があるが、"
                 "ODS列での正式な災害適合性・条件付き利用意味の照合が未確定。"
                 "階数条件を除去して無条件候補へ変換しない。"
             )
-        elif raw in NEGATIVE_NIIGATA:
-            status = FacilityScenarioStatus.EXCLUDED
-            reason = (
-                "同一公式CSV行の災害種別_洪水に明示的な非該当値がある。"
-                "これは洪水時の安全性やリアルタイム開設状態の判定ではない。"
-            )
-        elif raw in POSITIVE_NIIGATA:
-            if fact.latitude is not None and fact.longitude is not None:
-                status = FacilityScenarioStatus.CANDIDATE
-                reason = (
-                    "同一公式CSV行に洪水の該当値と位置情報を確認。"
-                    "候補であり安全・開設状況を保証しない。"
-                )
-            else:
-                status = FacilityScenarioStatus.UNKNOWN
-                reason = "洪水の該当値があるが、位置情報が不足している。"
         else:
-            status = FacilityScenarioStatus.UNKNOWN
-            reason = "公式列のraw値に確定した解釈ルールがなく、推測しない。"
+            reason = (
+                "同一公式CSV行の災害種別_洪水のraw値を保持。"
+                "このODS列の記号に関する自治体公式の対応表が未確認のため、"
+                "該当・非該当・実際の開設状態を推測で判定しない。"
+            )
     return FacilityScenarioResult(
         facility_id=fact.facility_id,
         status=status,
