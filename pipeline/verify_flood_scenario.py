@@ -32,9 +32,25 @@ def main() -> None:
             counts["CANDIDATE"] or counts["EXCLUDED"]
         ):
             raise ValueError(f"{name}: non-flood-only scope was classified")
+        if name == "niigata":
+            # Count by values present now, not fixed 2026-10-08 record totals:
+            # official CSV may change and this must not hide unverified rows.
+            floor_markers = {"2階以上", "3階以上", "全階可"}
+            floor_items = [
+                item for item in scenario.facility_results
+                if item.fact.official_status_raw in floor_markers
+            ]
+            if any(
+                item.fact.usable_floor_raw != item.fact.official_status_raw
+                or item.status != FacilityScenarioStatus.UNKNOWN
+                for item in floor_items
+            ):
+                raise ValueError("niigata: floor raw was lost or classified before semantic acceptance")
+            print(f"niigata: raw floor constraints preserved={len(floor_items)} "
+                  "(eligibility remains unverified)")
         print(f"{name}: records={len(location.records)}, "
               f"scenario={scenario.status.value}, {counts}")
-    print("Flood Scenario: 3-region RegionExport READY (safety semantics validated)")
+    print("Flood Scenario: 3-region raw trace/contract boundary checks PASSED (official marker semantics require A/C acceptance)")
 
 
 if __name__ == "__main__":
