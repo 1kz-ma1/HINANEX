@@ -10,6 +10,7 @@ from src.hinanex.models.capability import CapabilityAssessment
 from src.hinanex.models.common import NormalizedDataset
 from src.hinanex.models.export import ExportMeta, RegionExport, RegionInfo
 from src.hinanex.models.gap import GapAnalysis
+from src.hinanex.models.scenario import ScenarioResult
 from src.hinanex.output import write_model_json
 
 
@@ -53,6 +54,7 @@ def build_region_export(
     assessments: list[DatasetAssessment],
     capabilities: list[CapabilityAssessment],
     gap_analyses: list[GapAnalysis],
+    scenarios: list[ScenarioResult] | None = None,
 ) -> RegionExport:
     """各工程の成果物をB/C向けの1地域1JSONへ統合する。"""
 
@@ -61,6 +63,7 @@ def build_region_export(
         *assessments,
         *capabilities,
         *gap_analyses,
+        *(scenarios or []),
     ]
     region = _validate_single_region(all_models)
 
@@ -85,6 +88,7 @@ def build_region_export(
         capabilities=capabilities,
         gaps=gaps,
         recommendations=recommendations,
+        scenarios=scenarios or [],
         meta=ExportMeta(
             generated_at=datetime.now(timezone.utc),
             dataset_count=len(datasets),
@@ -109,6 +113,7 @@ def build_region_export_from_paths(
     assessment_paths: list[str | Path],
     capability_paths: list[str | Path],
     gap_paths: list[str | Path],
+    scenario_paths: list[str | Path] | None = None,
 ) -> RegionExport:
     """既存JSON成果物から統合契約を構築する。"""
 
@@ -129,7 +134,13 @@ def build_region_export_from_paths(
         for path in gap_paths
     ]
 
+    scenarios = [
+        _read_model(path, ScenarioResult)
+        for path in (scenario_paths or [])
+    ]
+
     return build_region_export(
+        scenarios=scenarios,
         datasets=datasets,
         assessments=assessments,
         capabilities=capabilities,
@@ -144,11 +155,13 @@ def write_region_export_from_paths(
     assessment_paths: list[str | Path],
     capability_paths: list[str | Path],
     gap_paths: list[str | Path],
+    scenario_paths: list[str | Path] | None = None,
 ) -> Path:
     export = build_region_export_from_paths(
         dataset_paths=dataset_paths,
         assessment_paths=assessment_paths,
         capability_paths=capability_paths,
         gap_paths=gap_paths,
+        scenario_paths=scenario_paths,
     )
     return write_model_json(export, output_path)
