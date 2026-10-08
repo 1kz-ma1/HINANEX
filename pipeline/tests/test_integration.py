@@ -204,6 +204,44 @@ class IntegrationContractTests(unittest.TestCase):
         errors = validate_region_export(export)
         self.assertTrue(any("does not trace exactly" in x for x in errors))
 
+    def test_scenario_floor_raw_cannot_be_altered_or_classified_prematurely(self) -> None:
+        export = make_export()
+        scenario = ScenarioResult(
+            region_code="13123", region_name="東京都江戸川区",
+            requirement_assessment=ScenarioRequirementAssessment(
+                discovery_status=DiscoveryStatus.AVAILABLE,
+                record_count=1, directly_joined_count=1, raw_value_count=1,
+                reason="raw verified",
+            ),
+            status=CapabilityStatus.UNKNOWN,
+            facility_results=[FacilityScenarioResult(
+                facility_id="s1", status=FacilityScenarioStatus.UNKNOWN,
+                reason="ODS semantic mapping pending",
+                fact=HazardFact(
+                    facility_id="s1", facility_name="Shelter A",
+                    hazard_scope_raw="災害種別_洪水",
+                    source_semantics="original CSV flood column",
+                    official_status_raw="2階以上",
+                    usable_floor_raw="2階以上",
+                    source_url="https://example.test/data.csv",
+                    source_record_trace="csv_row=2",
+                    join_status=ScenarioJoinStatus.DIRECT_SAME_SOURCE,
+                    latitude=35.7, longitude=139.8,
+                ),
+            )],
+            evaluated_at=NOW,
+        )
+        export.scenarios = [scenario]
+        self.assertEqual(validate_region_export(export), [])
+        fact = scenario.facility_results[0].fact
+        fact.usable_floor_raw = "3階以上"
+        self.assertTrue(any("floor raw differs" in x for x in validate_region_export(export)))
+        fact.usable_floor_raw = "2階以上"
+        scenario.facility_results[0].status = FacilityScenarioStatus.CANDIDATE
+        scenario.status = CapabilityStatus.FULL
+        self.assertTrue(any("floor restriction was classified" in x
+                            for x in validate_region_export(export)))
+
     def test_manifest_summarizes_traceability(self) -> None:
         export = make_export()
         manifest = build_validation_manifest(

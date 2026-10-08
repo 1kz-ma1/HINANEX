@@ -50,12 +50,26 @@ scenarios[0]
 
 `UNKNOWN` is mandatory when raw value is absent/unrecognized, a facility join is unverified, the source's hazard scope is not flood-only, or required position information is missing. In particular `UNKNOWN` **must never** be silently converted to `EXCLUDED`.
 
+### Niigata floor-condition evidence — A #43 / D follow-up
+
+A's 2026-10-08 re-verification distinguishes the **official 2026-03 river-specific flood hazard-map legend** from the current ODS CSV's `災害種別_洪水` column. The map explains `全階可`, `○階以上`, and the river-conditional `－` notation, but **there is no verified one-to-one official mapping for every ODS CSV marker**. The city's PDF uses `○/×` for other hazard columns as well; their meanings must not be transferred to this flood CSV automatically.
+
+D now populates the **existing, optional** `facility_results[].fact.usable_floor_raw` from the same official CSV row, only when its `official_status_raw` is exactly `2階以上`, `3階以上`, or `全階可`. These are raw textual floor constraints, **not** a decoded number, verified designation, guaranteed opening, or unrestricted safe candidate. The `official_status_raw` remains unchanged; `source_record_trace` and `source_url` identify the archived CSV row and Source. The `usable_floor_raw` field also remains available for Nagoya's combined-hazard scope as before.
+
+- This is a **data-preservation change only**. The three markers remain `UNKNOWN`, with a reason explaining that the ODS semantics and conditional eligibility are not yet formally approved.
+- The existing D `○` → `CANDIDATE` and `×` → `EXCLUDED` classification logic is **unchanged in this PR**, but A has not verified its complete official ODS-specific marker semantics. B/E must not treat it as official safety or municipal opening data.
+- The independent C raw audit dated 2026-10-08 reported six marker classes, `○=16 / ×=239 / 2階以上=173 / 3階以上=9 / 全階可=74 / －=55` in 566 official CSV rows. These counts are a **historical audit snapshot**, not permanent constants in code.
+- Confirm the official meanings of the current ODS `○`, `×`, `－`, and floor-valued cells with A/C before expanding the `CANDIDATE/EXCLUDED` mapping. Future conditional-candidate UI/contract changes need a separate explicit review.
+- The `RegionExport.scenarios[]` shape, optional `HazardFact.usable_floor_raw` field, version `0.9`, old `shelter_discovery` results and legacy counts are unchanged.
+
+A Evidence: `data-research/scenarios/2026-10-08-flood-source-reverification.md` in `role/a-data`; C Audit: `validation/reviews/2026-10-08-flood-scenario-acceptance.md` in `feature/c-flood-scenario-acceptance`.
+
 ## Municipality rules
 
 | Area | Source and join | Facility-level evaluation |
 |---|---|---|
 | Edogawa | A identified official water-disaster waiting facilities; no common ID with existing shelter_location. `UNVERIFIED`; the A page is a separate Source. | All existing location records stay `UNKNOWN` until an independently verified row-level join is established. Never match fuzzy names automatically or equate `水害` with flood-only designation. This iteration does not claim to have parsed the page's HTML table into per-facility facts. |
-| Niigata | Same official ODS CSV raw row. `DIRECT_SAME_SOURCE` with precisely reconstructed facility ID; `csv_row` trace. | Explicit positive markers → `CANDIDATE` if positioned; explicit negative markers → `EXCLUDED`; absent or unfamiliar raw values → `UNKNOWN`. Source value is preserved verbatim. |
+| Niigata | Same official ODS CSV raw row. `DIRECT_SAME_SOURCE` with precisely reconstructed facility ID; `csv_row` trace. | Existing positive/negative mapping remains pending official ODS-semantic review. `2階以上` / `3階以上` / `全階可` are separately preserved in `usable_floor_raw` and remain `UNKNOWN`; missing/unrecognized values stay `UNKNOWN`. The original Source value is preserved verbatim. |
 | Nagoya | Same official 16-ward indoor Excel raw row and same composite ID. `DIRECT_SAME_SOURCE` with workbook/row trace. | The official `洪水・内水` column is inseparable at source level. Preserve `○ / × / － / 階数` verbatim and never manufacture two independent flood/inland outcomes; current flood-only Scenario result is `UNKNOWN`. No inferred coordinates. Outdoor facilities are outside the current dataset. |
 
 If an exact same-source record ID mismatch occurs, the build **fails closed**. Repeated automatic similarity matching and inferred geocoding are prohibited.
@@ -65,7 +79,7 @@ If an exact same-source record ID mismatch occurs, the build **fails closed**. R
 - B/E consume D's Scenario status and source facts; **do not** reclassify raw markers or combine GIS raster colors with facility points to invent hazard decisions.
 - E can display `fact.latitude/longitude` only if present; explain missing geometry and `UNKNOWN` plainly.
 - C verifies `Official Source → archived raw row → HazardFact → requirement_assessment → ScenarioResult` and compares facility IDs to the existing location records. Unit tests verify positive/negative/unknown boundaries, unsafe joins, and combined hazard scopes.
-- The latest A handoff's Nagoya page-update/reference-date metadata requires A-side refresh if the official page has changed since PR #37. D does not silently rewrite A Evidence.
+- A PR #43 refreshed Nagoya page update (2026-10-07) and list reference date (2026-09-01); underlying historical workbook diff is not verified. D does not silently rewrite A Evidence.
 - Live re-fetch/recount and Render E2E are separate acceptance gates after CI.
 
 ## Contract impact

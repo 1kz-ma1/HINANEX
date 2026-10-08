@@ -44,6 +44,40 @@ class FloodScenarioTests(unittest.TestCase):
         self.assertEqual(scenario.requirement_assessment.discovery_status, DiscoveryStatus.AVAILABLE)
         self.assertEqual(scenario.requirement_assessment.raw_value_count, 3)
 
+    def test_niigata_raw_floor_conditions_preserved_without_premature_classification(self):
+        """C raw histogram contains floor wording; preserve it, not eligibility."""
+        raw_values = ["○", "×", "2階以上", "3階以上", "全階可", "－"]
+        df = pd.DataFrame([
+            {
+                "ID": f"floor-{index}", "名称": f"施設{index}",
+                "緯度": 37.9, "経度": 139.0 + index / 100,
+                "災害種別_洪水": marker,
+            }
+            for index, marker in enumerate(raw_values)
+        ])
+        raw = df.to_csv(index=False).encode("utf-8-sig")
+        dataset = NiigataShelterAdapter().normalize(raw)
+        facts = niigata_facts(dataset, raw)
+        self.assertEqual([fact.usable_floor_raw for fact in facts],
+                         [None, None, "2階以上", "3階以上", "全階可", None])
+        scenario = evaluate_flood_scenario(dataset, facts)
+        self.assertEqual([item.status for item in scenario.facility_results], [
+            FacilityScenarioStatus.CANDIDATE,
+            FacilityScenarioStatus.EXCLUDED,
+            FacilityScenarioStatus.UNKNOWN,
+            FacilityScenarioStatus.UNKNOWN,
+            FacilityScenarioStatus.UNKNOWN,
+            FacilityScenarioStatus.UNKNOWN,
+        ])
+        for item in scenario.facility_results[2:5]:
+            self.assertEqual(item.fact.usable_floor_raw, item.fact.official_status_raw)
+            self.assertIn("階", item.reason)
+            self.assertIn("条件", item.reason)
+        self.assertEqual(scenario.status, CapabilityStatus.DEGRADED)
+        reloaded = type(scenario).model_validate_json(scenario.model_dump_json())
+        self.assertEqual([item.fact.usable_floor_raw for item in reloaded.facility_results],
+                         [None, None, "2階以上", "3階以上", "全階可", None])
+
     def test_niigata_source_mismatch_fails_closed(self):
         dataset, raw = self.niigata_fixture()
         dataset.records[0]["id"] = "spoofed"

@@ -178,6 +178,14 @@ def validate_region_export(
                     errors.append("same-source scenario fact missing raw-row trace")
             if fact.official_status_raw is not None:
                 raw_values += 1
+            if fact.usable_floor_raw is not None:
+                # This is a trace field, not permission to upgrade a flood
+                # outcome. Keep the original municipality marker unchanged.
+                if fact.usable_floor_raw != fact.official_status_raw:
+                    errors.append("scenario floor raw differs from official source raw")
+                if (fact.hazard_scope_raw == "災害種別_洪水"
+                        and item.status != FacilityScenarioStatus.UNKNOWN):
+                    errors.append("Niigata floor restriction was classified without semantic acceptance")
             if item.status != FacilityScenarioStatus.UNKNOWN:
                 decided += 1
                 if fact.join_status != ScenarioJoinStatus.DIRECT_SAME_SOURCE:

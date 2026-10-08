@@ -45,7 +45,14 @@ def _evaluate_fact(fact: HazardFact) -> FacilityScenarioResult:
         reason = "洪水の公式列の値が欠損・未確認である。"
     else:
         raw = fact.official_status_raw.strip().lower()
-        if raw in NEGATIVE_NIIGATA:
+        if fact.usable_floor_raw is not None:
+            status = FacilityScenarioStatus.UNKNOWN
+            reason = (
+                "公式CSVには利用階に関するraw表記があるが、"
+                "ODS列での正式な災害適合性・条件付き利用意味の照合が未確定。"
+                "階数条件を除去して無条件候補へ変換しない。"
+            )
+        elif raw in NEGATIVE_NIIGATA:
             status = FacilityScenarioStatus.EXCLUDED
             reason = (
                 "同一公式CSV行の災害種別_洪水に明示的な非該当値がある。"
