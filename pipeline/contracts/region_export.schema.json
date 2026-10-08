@@ -436,6 +436,42 @@
       "title": "ExportMeta",
       "type": "object"
     },
+    "FacilityScenarioResult": {
+      "additionalProperties": false,
+      "properties": {
+        "facility_id": {
+          "title": "Facility Id",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/FacilityScenarioStatus"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "fact": {
+          "$ref": "#/$defs/HazardFact"
+        }
+      },
+      "required": [
+        "facility_id",
+        "status",
+        "reason",
+        "fact"
+      ],
+      "title": "FacilityScenarioResult",
+      "type": "object"
+    },
+    "FacilityScenarioStatus": {
+      "type": "string",
+      "title": "FacilityScenarioStatus",
+      "enum": [
+        "CANDIDATE",
+        "EXCLUDED",
+        "UNKNOWN"
+      ]
+    },
     "GapItem": {
       "additionalProperties": false,
       "properties": {
@@ -489,6 +525,105 @@
       ],
       "title": "GapSeverity",
       "type": "string"
+    },
+    "HazardFact": {
+      "additionalProperties": false,
+      "description": "Raw source value; never implicitly interpreted as disaster safety.",
+      "properties": {
+        "facility_id": {
+          "title": "Facility Id",
+          "type": "string"
+        },
+        "facility_name": {
+          "title": "Facility Name",
+          "type": "string"
+        },
+        "hazard_scope_raw": {
+          "title": "Hazard Scope Raw",
+          "type": "string"
+        },
+        "source_semantics": {
+          "title": "Source Semantics",
+          "type": "string"
+        },
+        "official_status_raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Official Status Raw"
+        },
+        "usable_floor_raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Usable Floor Raw"
+        },
+        "source_url": {
+          "title": "Source Url",
+          "type": "string"
+        },
+        "source_record_trace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Record Trace"
+        },
+        "join_status": {
+          "$ref": "#/$defs/ScenarioJoinStatus"
+        },
+        "latitude": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Latitude"
+        },
+        "longitude": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Longitude"
+        }
+      },
+      "required": [
+        "facility_id",
+        "facility_name",
+        "hazard_scope_raw",
+        "source_semantics",
+        "source_url",
+        "join_status"
+      ],
+      "title": "HazardFact",
+      "type": "object"
     },
     "MetricScore": {
       "additionalProperties": false,
@@ -636,6 +771,132 @@
       ],
       "title": "RegionInfo",
       "type": "object"
+    },
+    "ScenarioJoinStatus": {
+      "type": "string",
+      "title": "ScenarioJoinStatus",
+      "enum": [
+        "DIRECT_SAME_SOURCE",
+        "UNVERIFIED"
+      ]
+    },
+    "ScenarioRequirementAssessment": {
+      "additionalProperties": false,
+      "description": "Scenario-local requirement assessment; NOT a legacy 0-4 quality score.",
+      "properties": {
+        "requirement_code": {
+          "default": "shelter_hazard_applicability",
+          "title": "Requirement Code",
+          "type": "string"
+        },
+        "discovery_status": {
+          "$ref": "#/$defs/DiscoveryStatus"
+        },
+        "record_count": {
+          "minimum": 0,
+          "title": "Record Count",
+          "type": "integer"
+        },
+        "directly_joined_count": {
+          "minimum": 0,
+          "title": "Directly Joined Count",
+          "type": "integer"
+        },
+        "raw_value_count": {
+          "minimum": 0,
+          "title": "Raw Value Count",
+          "type": "integer"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "discovery_status",
+        "record_count",
+        "directly_joined_count",
+        "raw_value_count",
+        "reason"
+      ],
+      "title": "ScenarioRequirementAssessment",
+      "type": "object"
+    },
+    "ScenarioResult": {
+      "additionalProperties": false,
+      "properties": {
+        "region_code": {
+          "title": "Region Code",
+          "type": "string"
+        },
+        "region_name": {
+          "title": "Region Name",
+          "type": "string"
+        },
+        "scenario_id": {
+          "default": "flood_shelter_selection",
+          "title": "Scenario Id",
+          "type": "string"
+        },
+        "scenario_name": {
+          "default": "洪水時の避難候補探索",
+          "title": "Scenario Name",
+          "type": "string"
+        },
+        "hazard": {
+          "default": "flood",
+          "title": "Hazard",
+          "type": "string"
+        },
+        "requirement_assessment": {
+          "$ref": "#/$defs/ScenarioRequirementAssessment"
+        },
+        "status": {
+          "$ref": "#/$defs/CapabilityStatus"
+        },
+        "facility_results": {
+          "items": {
+            "$ref": "#/$defs/FacilityScenarioResult"
+          },
+          "title": "Facility Results",
+          "type": "array"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "gaps": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Gaps",
+          "type": "array"
+        },
+        "recommendations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Recommendations",
+          "type": "array"
+        },
+        "evaluated_at": {
+          "format": "date-time",
+          "title": "Evaluated At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "region_code",
+        "region_name",
+        "requirement_assessment",
+        "status",
+        "evaluated_at"
+      ],
+      "title": "ScenarioResult",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -677,6 +938,13 @@
         "$ref": "#/$defs/Recommendation"
       },
       "title": "Recommendations",
+      "type": "array"
+    },
+    "scenarios": {
+      "items": {
+        "$ref": "#/$defs/ScenarioResult"
+      },
+      "title": "Scenarios",
       "type": "array"
     },
     "meta": {
