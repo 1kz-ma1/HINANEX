@@ -26,7 +26,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $repo 'validation\validation\verify_
 # Unique run folder; do not overwrite past audit JSON or edited source files.
 $runId = (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssZ') + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8)
 $runDir = Join-Path $repo ("pipeline\data\verified\gsi-acceptance-runs\" + $runId)
-New-Item -ItemType Directory -Path $runDir -ErrorAction Stop | Out-Null
+New-Item -ItemType Directory -Force -Path $runDir -ErrorAction Stop | Out-Null
 $rows = Join-Path $runDir 'gsi_records.json'
 $cAudit = Join-Path $runDir 'c_raw_acceptance.json'
 $provenance = Join-Path $runDir 'c_https_provenance.json'
@@ -72,7 +72,8 @@ try {
     }
 
     if ($PublishPreview) {
-        $currentBranch = (& git branch --show-current).Trim()
+        $currentBranch = [string](& git branch --show-current)
+        $currentBranch = $currentBranch.Trim()
         Assert-Success 'Read git branch'
         if ($currentBranch -eq 'main') {
             throw 'Publishing is prohibited from a main checkout. Use an isolated preview worktree.'
