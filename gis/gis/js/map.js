@@ -251,6 +251,8 @@ function renderReferenceDiscovery() {
       ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">国土地理院の公式rawタイルを確認</a>`
       : "";
     return `<div class="reference-result"><strong>${escapeHtml(site.name)}</strong>` +
+      `<span class="trace">公式住所：${escapeHtml(displayValue(site.address))}</span>` +
+      `<span class="trace">公式備考：${escapeHtml(displayValue(site.remarks))}</span>` +
       `<span class="distance">直線距離：${escapeHtml(site.distanceMetres.toLocaleString("ja-JP"))}m（経路距離ではありません）</span>` +
       `<span class="trace">Source行：${escapeHtml(displayValue(site.trace))}</span>${urlEl}</div>`;
   }).join("");
