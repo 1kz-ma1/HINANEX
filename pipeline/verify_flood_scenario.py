@@ -33,6 +33,11 @@ def main() -> None:
         ):
             raise ValueError(f"{name}: non-flood-only scope was classified")
         if name == "niigata":
+            if counts["CANDIDATE"] or counts["EXCLUDED"]:
+                raise ValueError(
+                    "niigata: official ODS raw symbol dictionary is not yet "
+                    "verified; Scenario status must remain UNKNOWN"
+                )
             # Count by values present now, not fixed 2026-10-08 record totals:
             # official CSV may change and this must not hide unverified rows.
             floor_markers = {"2階以上", "3階以上", "全階可"}
