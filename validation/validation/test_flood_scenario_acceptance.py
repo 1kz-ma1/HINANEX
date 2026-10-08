@@ -99,10 +99,19 @@ class NiigataFloorAuditTests(unittest.TestCase):
                 },
             })
         csv_path = root / "niigata_evacuation_space.csv"
-        csv_path.write_text(data.getvalue(), encoding="utf-8-sig")
+        # csv.writer already emitted CRLF. Path.write_text() on Windows
+        # translates LF a second time (CRLF -> CRCRLF), making DictReader
+        # count an extra physical line. Write exactly the CSV bytes.
+        csv_path.write_bytes(data.getvalue().encode("utf-8-sig"))
         return csv_path, {"facility_results": rows}, {
             "evidence": [{"source_url": "https://example.test/niigata.csv"}]
         }
+
+    def test_fixture_raw_csv_preserves_physical_line_numbers(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path, _, _ = self._make_fixture(Path(temp))
+            pairs = audit.read_official_niigata_rows(path.read_bytes())
+            self.assertEqual([physical for physical, _ in pairs], list(range(2, 8)))
 
     def test_exact_floor_raw_and_unknown_are_required(self):
         with tempfile.TemporaryDirectory() as temp:
