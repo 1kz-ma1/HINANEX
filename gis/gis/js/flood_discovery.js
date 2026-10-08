@@ -100,7 +100,7 @@
     }
     // This v1 catalog producer accepts exactly one tile. A browser location
     // outside the tile must not receive arbitrary faraway reference sites.
-    const tileKeys = new Set(catalog.sites.map(site => site.sourceUrl));
+    const tileKeys = new Set(catalog.sites.map(site => site.source_url));
     if (tileKeys.size !== 1 || sites.length === 0) return blocked;
     const sourceTile = officialTileKey(sites[0].sourceUrl);
     const originTile = sourceTile ? containingTile(origin, sourceTile.z) : null;
