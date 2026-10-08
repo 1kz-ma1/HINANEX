@@ -12,3 +12,32 @@ label{display:flex;gap:9px;align-items:center;margin:13px 0;font-size:13px;curso
 .empty{text-align:center;margin-top:140px;color:#718399}.empty-icon{font-size:46px;color:#1779cf}.empty h2{font-size:18px;color:#17365d}.empty p{font-size:13px;line-height:1.7}.badge{display:inline-block;background:#e4f6ee;color:#08764e;border-radius:99px;padding:5px 9px;font-size:11px;margin-bottom:13px}.badge.reference{background:#eaf3ff;color:#155a98}.detail-title{font-size:19px;margin:0 0 15px}.row{display:grid;grid-template-columns:98px 1fr;gap:9px;padding:11px 0;border-bottom:1px solid #e8eef4;font-size:12px}.label{color:#718096}.value{font-weight:bold;word-break:break-word}.note{margin-top:18px;background:#f1f7fc;padding:12px;border-radius:8px;font-size:11px;line-height:1.7}.detail-link{display:inline-flex;margin-top:15px;color:#0d67b5;font-size:12px;font-weight:700;text-decoration:none}.detail-link:hover{text-decoration:underline}.shelter-icon{width:30px;height:30px;background:#07915c;border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px #777}.shelter-icon span{display:block;color:#fff;font-weight:bold;font-size:16px;text-align:center;transform:rotate(45deg);margin-top:2px}
 footer{height:36px;display:flex;justify-content:space-between;align-items:center;padding:0 28px;background:#edf4fa;color:#718399;font-size:10px}.leaflet-control-attribution{font-size:9px}.leaflet-control-scale-line{border-color:#61778d;background:rgba(255,255,255,.86);color:#17365d}
 @media(max-width:1100px){.layout{grid-template-columns:240px 1fr 285px}.brand span{display:none}}@media(max-width:900px){.layout{grid-template-columns:220px 1fr}.right{display:none}.role{display:none}}@media(max-width:680px){.header{height:58px;padding:0 16px}.brand strong{font-size:24px}.layout{height:auto;min-height:0;display:block}.left{border-right:0;display:grid;grid-template-columns:1fr 1fr}.left section{padding:14px}.left .data-loader,.left .notice{grid-column:1/-1}.map-wrap{height:68vh;min-height:500px}.map-badge{font-size:9px}#map{min-height:500px}footer{height:auto;min-height:36px;padding:10px 16px;gap:12px;flex-wrap:wrap}}
+
+/* Unlocated facility list: a usable alternate view, not a map approximation. */
+.map-unavailable.has-facility-list{justify-content:flex-start;overflow-y:auto;align-items:stretch;padding:20px 22px;gap:8px}
+.map-unavailable.has-facility-list>strong,.map-unavailable.has-facility-list>span{text-align:left;max-width:760px;margin:0 auto;width:100%}
+.facility-list-panel{width:100%;max-width:760px;margin:8px auto 0;text-align:left}
+.facility-list-panel[hidden]{display:none}
+.facility-list-heading h2{font-size:19px;margin:4px 0 7px}
+.facility-list-heading p{color:#526b84;font-size:13px;line-height:1.6;margin:0 0 12px}
+.facility-list-panel label{font-size:12px;font-weight:bold;margin:8px 0 5px}
+#facilityListSearch{width:100%;padding:12px;border:1px solid #9ab5cb;border-radius:9px;font:inherit;background:#fff;color:#17365d}
+#facilityListSearch:focus-visible,.facility-list-pagination button:focus-visible,.facility-list-card summary:focus-visible{outline:3px solid #1476d4;outline-offset:2px}
+.facility-list-count{font-size:12px;color:#526b84;margin:10px 0}
+.facility-list-results{display:grid;gap:10px}
+.facility-list-card{border:1px solid #d4e0eb;border-radius:9px;background:#fff;overflow:hidden}
+.facility-list-card summary{list-style-position:inside;cursor:pointer;padding:13px 14px;line-height:1.5}
+.facility-list-card summary strong{font-size:14px}
+.facility-list-card summary small{display:block;margin:5px 0 0 19px;font-size:11px;color:#526b84;overflow-wrap:anywhere}
+.facility-list-card[open] summary{border-bottom:1px solid #e2eaf3}
+.facility-list-card dl{display:grid;grid-template-columns:minmax(95px,160px) minmax(0,1fr);gap:10px;padding:14px;margin:0;font-size:12px;line-height:1.6}
+.facility-list-card dt{color:#62778e}.facility-list-card dd{margin:0;overflow-wrap:anywhere}
+.facility-list-card .list-source{display:inline-block;margin:0 14px 14px;font-size:12px;font-weight:700}
+.facility-list-card .list-note{padding:10px 14px;margin:0;color:#526b84;background:#f5f9fd;font-size:11px;line-height:1.7}
+.facility-list-pagination{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0}
+.facility-list-pagination button{border:1px solid #adc5db;background:#fff;color:#155a98;border-radius:7px;padding:8px 16px;cursor:pointer}
+.facility-list-pagination button:disabled{opacity:.4;cursor:not-allowed}
+.facility-list-pagination span{font-size:12px;color:#526b84}
+.facility-list-caveat{border-left:3px solid #1476d4;background:#eaf3ff;padding:12px;color:#17365d;font-size:12px;line-height:1.7}
+.facility-list-empty{padding:26px 16px;text-align:center;background:#fff;border:1px dashed #9ab5cb;border-radius:8px;color:#526b84;font-size:13px}
+@media(max-width:680px){.map-unavailable.has-facility-list{padding:14px;}.facility-list-card dl{grid-template-columns:92px minmax(0,1fr)}}
