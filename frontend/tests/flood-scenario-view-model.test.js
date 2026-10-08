@@ -88,7 +88,7 @@ test("C/D UNKNOWN status and municipality markers remain original text, not safe
   assert.deepEqual(view.rows.map((item) => item.rawValue), ["○", "2階以上", "×"]);
   assert.equal(view.rows[1].floorRaw, "2階以上");
   assert.equal(view.rows[1].hasCoordinates, false);
-  assert.match(view.caveat, /安全・開設を保証/);
+  assert.match(view.caveat, /安全性はこの画面では確定できません/);
 });
 
 test("link targets are HTTPS only and untrusted display values stay text", () => {
