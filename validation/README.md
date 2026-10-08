@@ -19,8 +19,8 @@ cd C:\HINANEX
 今回の名古屋Excel正規化の回帰テスト（サンプルWorkbookを使用・ネットワーク接続なし）は次を実行します。
 
 ```powershell
-cd C:\\HINANEX
-.\\pipeline\\.venv\\Scripts\\python.exe -m unittest discover -s validation/validation -p "test_*.py" -v
+cd C:\HINANEX
+.\pipeline\.venv\Scripts\python.exe -m unittest discover -s validation/validation -p "test_*.py" -v
 ```
 
 GitHubの既存CIは `validation/validation` のこの新規テストを自動実行しません。実行結果を別途記録し、ユーザー環境の公式raw監査と区別します。
