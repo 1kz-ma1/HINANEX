@@ -25,6 +25,17 @@
       <button id="resetView" class="secondary-button" type="button">東京都 江戸川区の表示範囲へ</button>
     </section>
 
+    <section class="flood-explorer" id="floodExplorer">
+      <h3>現在地 × 災害シナリオ</h3>
+      <p class="explorer-intro">中間発表デモ：まず地図上で位置を指定して、検証済みの公式指定緊急避難場所だけを参考表示します。</p>
+      <label for="scenarioHazard">災害シナリオ</label>
+      <select id="scenarioHazard" disabled><option value="flood">洪水（MVP対象）</option></select>
+      <button type="button" id="selectOrigin" class="secondary-button">地図から出発地点を指定</button>
+      <button type="button" id="useGps" class="secondary-button">位置情報の利用を許可して現在地を使う</button>
+      <p id="originStatus" class="explorer-origin" role="status">位置は未選択です</p>
+      <div id="floodDiscoveryResults" class="discovery-results" aria-live="polite"></div>
+      <p class="explorer-caveat">これは平時の公式情報探索です。<strong>避難先の推奨・経路の安全・現在の開設を保証しません。</strong> 江戸川区の大規模水害では<a href="https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/hazardmap/5-1gaiyouban/index.html" target="_blank" rel="noopener noreferrer">区の広域避難方針</a>を優先して確認してください。</p>
+    </section>
     <section>
       <div class="section-heading">
         <h3>レイヤー</h3>
@@ -122,6 +133,7 @@
 <script src="js/reference_data.js"></script>
 <script src="js/d_region_adapter.js"></script>
 <script src="js/facility_list.js"></script>
+<script src="js/flood_discovery.js"></script>
 <script src="js/map.js"></script>
 </body>
 </html>
