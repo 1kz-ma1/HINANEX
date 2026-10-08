@@ -395,12 +395,12 @@ nagoya.scenarios = [{
     status: "REFERENCE_ONLY", source_status: "C_ACCEPTED",
     source_raw_sha256: "a".repeat(64), c_audit_reference: "C-TEST",
     sites: [{
-      source_feature_key: "TEST_GSI_1",
+      source_feature_key: "https://cyberjapandata.gsi.go.jp/xyz/skhb01/10/909/403.geojson#feature_index=0",
       name_raw: "<unsafe> TEST official place", address_raw: "TEST address",
       remarks_raw: null, disaster1_raw: 1, search_context_region_code: "13123",
       latitude: 35.705, longitude: 139.89,
       source_url: "https://cyberjapandata.gsi.go.jp/xyz/skhb01/10/909/403.geojson",
-      source_record_trace: "TEST:feature_index=0",
+      source_record_trace: "feature_index=0",
       source_raw_sha256: "a".repeat(64),
       designation_kind: "designated_emergency_evacuation_site",
       hazard_dataset: "GSI_SKHB01_FLOOD"
