@@ -170,6 +170,7 @@ class RegionExportTests(unittest.TestCase):
                 "capabilities",
                 "gaps",
                 "recommendations",
+                "scenarios",
                 "meta",
             },
         )
