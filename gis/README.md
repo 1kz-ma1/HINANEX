@@ -68,3 +68,28 @@ node gis/tests/region_exports.integration.test.js
 ```
 
 依存：E GISのプレビューPR #58、無座標表示修正 #60、D保守的判定 #49、C独立監査 #50。 `main` はMerge Captain専用であり、この変更はプレビュー向けfeature PRとして提出します。
+
+## 10/22 MVP: 現在地 × 洪水公式指定緊急避難場所（参考探索）
+
+江戸川区のGISで、ユーザーは **地図上の地点を手動クリック**するか、**位置情報を明示的に許可した場合のみ**現在地を選択できる。位置の座標はブラウザ内で保持し、位置座標をHTTPリクエストに付加しない。
+
+別データとしてDが発行した C-accepted GSI洪水指定緊急避難場所カタログ `pipeline/data/output/edogawa_flood_site_catalog.json` を、地点を選択して初めて読み込む。カタログの `REFERENCE_ONLY + C_ACCEPTED`、公式タイルSource、施設の元名・住所・備考・座標・Source hash/feature traceを確認できた時だけ**直線距離の近い5地点を参考掲載**する。距離が近い=安全、行くべき避難先、経路時間、実際の開設中ではない。江戸川区公式の広域避難方針へのリンクを常設。
+
+カタログ不存在、C未承認、内容異常、GPS拒否・未対応時は明示的な説明を表示して安全に終了。既存 `shelter_location` 152件、3地域の `UNKNOWN` Scenario、国土地理院の浸水想定参照ラスタなどから適合性を推測しない。名古屋の無座標施設一覧モードも既存どおり保持する。
+
+**手順**：
+1. A公式ソース調査 → D archived GSI skhb01 Source normalize → C独立raw監査 → D参考カタログ生成。未認証データでは掲載は0件。
+2. HTTP配信で `/gis/gis/?region=13123` を開く。
+3. 「地図から出発地点を指定」を押して地図をクリック。端末のGPSは別ボタンで明示許可を要求。
+4. 一致した公式掲載地点がある場合のみ、公式住所/Source/直線距離を確認。江戸川の広域避難指針を優先。
+
+**テスト（Node）**：
+```powershell
+node gis/tests/flood_discovery.test.js
+node gis/tests/map_controller.test.js
+node gis/tests/facility_list.test.js
+node gis/tests/d_region_adapter.test.js
+node gis/tests/region_exports.integration.test.js
+```
+
+公式の配布GeoJSONに対するA/C実検証が完了するまで、GSI Sourceの`REFERENCE_ONLY`掲載を正式な自治体データ検証PASSとは扱わない。

@@ -8,6 +8,7 @@ const root = path.resolve(__dirname, "../gis/js");
 const adapterCode = fs.readFileSync(path.join(root, "d_region_adapter.js"), "utf8");
 const facilityListCode = fs.readFileSync(path.join(root, "facility_list.js"), "utf8");
 const mapCode = fs.readFileSync(path.join(root, "map.js"), "utf8");
+const discoveryCode = fs.readFileSync(path.join(root, "flood_discovery.js"), "utf8");
 const referenceCode = fs.readFileSync(path.join(root, "reference_data.js"), "utf8");
 
 function payload(code, name, records) {
@@ -146,7 +147,8 @@ function makeContext({ protocol, fetchImpl, href = null }) {
     "mappedCount", "missingCoordinateCount", "datasetStatus", "datasetChip",
     "mapUnavailableTitle", "facilityListPanel", "facilityListSearch",
     "facilityListCount", "facilityListResults", "facilityListPrev", "facilityListNext",
-    "facilityListPage"
+    "facilityListPage", "scenarioHazard", "selectOrigin", "useGps",
+    "originStatus", "floodDiscoveryResults"
   ];
   const elements = Object.fromEntries(ids.map(id => [id, makeElement(id)]));
   const L = makeLeafletStub();
@@ -169,6 +171,7 @@ function makeContext({ protocol, fetchImpl, href = null }) {
   vm.runInContext(referenceCode, context, { filename: "reference_data.js" });
   vm.runInContext(adapterCode, context, { filename: "d_region_adapter.js" });
   vm.runInContext(facilityListCode, context, { filename: "facility_list.js" });
+  vm.runInContext(discoveryCode, context, { filename: "flood_discovery.js" });
   vm.runInContext(mapCode, context, { filename: "map.js" });
   return { context, elements, L };
 }
@@ -264,6 +267,20 @@ nagoya.scenarios = [{
   assert.equal(httpCase.elements.missingCoordinateCount.textContent, 0);
   assert.match(httpCase.elements.status.textContent, /2件表示中/);
   assert.match(httpCase.elements.resetView.textContent, /東京都 江戸川区/);
+  assert.equal(httpCase.elements.selectOrigin.disabled, false);
+  assert.match(httpCase.elements.floodDiscoveryResults.innerHTML, /地図から出発地点/);
+  // User action selects a point; missing C-accepted catalog never promotes
+  // existing Edogawa shelter_location records into safe/approved candidates.
+  httpCase.elements.selectOrigin.listeners.click();
+  assert.match(httpCase.elements.originStatus.textContent, /地図上/);
+  httpCase.L.__map.handlers.click({ latlng: { lat: 35.700, lng: 139.880 } });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.match(httpCase.elements.originStatus.textContent, /端末内だけ/);
+  assert.match(httpCase.elements.floodDiscoveryResults.innerHTML, /独立照合待ち/);
+  assert.doesNotMatch(httpCase.elements.floodDiscoveryResults.innerHTML, /Edogawa A/);
+  // Geolocation permission or API absence must not cause a crash.
+  httpCase.elements.useGps.listeners.click();
+  assert.match(httpCase.elements.originStatus.textContent, /地図をクリック/);
 
   // Frontend -> GIS deep link: a supported region query selects that region before auto-load.
   const queryCase = makeContext({
@@ -369,6 +386,47 @@ nagoya.scenarios = [{
   const css = fs.readFileSync(path.resolve(__dirname, "../gis/css/style.css"), "utf8");
   assert.match(css, /\.map-unavailable\{[^}]*background:#f4f8fc;/);
   assert.doesNotMatch(css, /\.map-unavailable\{[^}]*background:rgba\(/);
+
+  // An explicitly C-accepted catalog can be inspected as *reference only*;
+  // neither it nor distance sorting imply current opening or safe routing.
+  const officialCatalog = {
+    catalog_kind: "flood_designated_emergency_site_reference",
+    region_code: "13123", hazard: "flood",
+    status: "REFERENCE_ONLY", source_status: "C_ACCEPTED",
+    source_raw_sha256: "a".repeat(64), c_audit_reference: "C-TEST",
+    sites: [{
+      source_feature_key: "https://cyberjapandata.gsi.go.jp/xyz/skhb01/10/909/403.geojson#feature_index=0",
+      name_raw: "<unsafe> TEST official place", address_raw: "TEST address",
+      remarks_raw: null, disaster1_raw: 1, search_context_region_code: "13123",
+      latitude: 35.705, longitude: 139.89,
+      source_url: "https://cyberjapandata.gsi.go.jp/xyz/skhb01/10/909/403.geojson",
+      source_record_trace: "feature_index=0",
+      source_raw_sha256: "a".repeat(64),
+      designation_kind: "designated_emergency_evacuation_site",
+      hazard_dataset: "GSI_SKHB01_FLOOD"
+    }]
+  };
+  const acceptedCase = makeContext({
+    protocol: "http:",
+    fetchImpl: async url => String(url).includes("edogawa_flood_site_catalog.json")
+      ? { ok: true, status: 200, json: async () => officialCatalog }
+      : { ok: true, status: 200, json: async () => edogawa }
+  });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  acceptedCase.elements.selectOrigin.listeners.click();
+  acceptedCase.L.__map.handlers.click({ latlng: { lat: 35.7, lng: 139.88 } });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.match(acceptedCase.elements.floodDiscoveryResults.innerHTML, /直線距離/);
+  assert.match(acceptedCase.elements.floodDiscoveryResults.innerHTML, /行くべき順ではありません/);
+  assert.match(acceptedCase.elements.floodDiscoveryResults.innerHTML, /&lt;unsafe&gt;/);
+  assert.doesNotMatch(acceptedCase.elements.floodDiscoveryResults.innerHTML, /<unsafe>/);
+  assert.doesNotMatch(acceptedCase.elements.floodDiscoveryResults.innerHTML, /Edogawa A/);
+  assert.match(acceptedCase.elements.floodDiscoveryResults.innerHTML, /国土地理院の公式raw/);
+  acceptedCase.elements.region.value = "15100";
+  acceptedCase.elements.region.listeners.change({ target: acceptedCase.elements.region });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(acceptedCase.elements.selectOrigin.disabled, true);
+  assert.doesNotMatch(acceptedCase.elements.floodDiscoveryResults.innerHTML, /&lt;unsafe&gt;/);
 
   // A slow response from the previously selected region must not overwrite the new region.
   const pending = {};
