@@ -4,7 +4,6 @@ from pathlib import Path
 
 from src.hinanex.models.export import RegionExport
 from src.hinanex.models.scenario import FacilityScenarioStatus, ScenarioJoinStatus
-from src.hinanex.flood_scenario import POSITIVE_NIIGATA, NEGATIVE_NIIGATA
 from src.hinanex.models.integration import (
     CapabilityManifestItem,
     RegionManifestItem,
@@ -205,14 +204,11 @@ def validate_region_export(
                     or fact.longitude != source_location.get("longitude")
                 ):
                     errors.append("scenario facts disagree with official location coordinates")
-            normalized_raw = (
-                fact.official_status_raw.strip().lower()
-                if fact.official_status_raw is not None else ""
-            )
-            if item.status == FacilityScenarioStatus.CANDIDATE and normalized_raw not in POSITIVE_NIIGATA:
-                errors.append("scenario candidate has no explicitly positive flood raw marker")
-            if item.status == FacilityScenarioStatus.EXCLUDED and normalized_raw not in NEGATIVE_NIIGATA:
-                errors.append("scenario excluded has no explicitly negative flood raw marker")
+            # Until A obtains an official mapping for the city's ODS flood
+            # column (Issue #48), a non-UNKNOWN result would invent meaning.
+            if (fact.hazard_scope_raw == "災害種別_洪水"
+                    and item.status != FacilityScenarioStatus.UNKNOWN):
+                errors.append("Niigata ODS flood status requires official semantic acceptance")
         summary = scenario.requirement_assessment
         if summary.directly_joined_count != direct:
             errors.append("scenario directly_joined_count mismatch")
