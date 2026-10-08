@@ -58,3 +58,5 @@ footer{height:36px;display:flex;justify-content:space-between;align-items:center
 .reference-result .trace{font-size:10px;color:#718399;word-break:break-word}
 .reference-result a{display:inline-block;margin-top:6px;font-size:11px;color:#0d67b5}
 .discovery-results .reference-warning{padding:10px;border-radius:6px;background:#fff7e8;color:#865b15}
+
+.reference-origin-marker{width:28px;height:28px;border:3px solid #fff;border-radius:50%;background:#155a98;color:#fff;font-size:20px;line-height:22px;text-align:center;box-shadow:0 0 0 2px #155a98,0 3px 9px rgba(0,0,0,.22)}
