@@ -277,6 +277,7 @@ const nagoya = payload("23100", "愛知県名古屋市", [
   const niigataMarker = httpCase.L.__groups[1].items[0];
   niigataMarker.handlers.click({});
   assert.match(httpCase.elements.details.innerHTML, /2階以上/);
+  assert.match(httpCase.elements.details.innerHTML, /元データ記載の災害（適合性未検証）/);
   assert.match(httpCase.elements.details.innerHTML, /UNKNOWN/);
   assert.match(httpCase.elements.details.innerHTML, /安全性|安全/);
   assert.doesNotMatch(httpCase.elements.details.innerHTML, /javascript:/i);
@@ -291,6 +292,11 @@ const nagoya = payload("23100", "愛知県名古屋市", [
   assert.equal(httpCase.elements.missingCoordinateCount.textContent, 2);
   assert.equal(httpCase.elements.mapUnavailable.hidden, false);
   assert.match(httpCase.elements.mapUnavailableMessage.textContent, /位置を推測しません/);
+  // A region with no verified coordinates must not visually expose the
+  // previously selected municipality's basemap through a translucent mask.
+  const css = fs.readFileSync(path.resolve(__dirname, "../gis/css/style.css"), "utf8");
+  assert.match(css, /\.map-unavailable\{[^}]*background:#f4f8fc;/);
+  assert.doesNotMatch(css, /\.map-unavailable\{[^}]*background:rgba\(/);
 
   // A slow response from the previously selected region must not overwrite the new region.
   const pending = {};
