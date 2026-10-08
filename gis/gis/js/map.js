@@ -282,7 +282,7 @@ function renderShelterSummary(summary, sourceLabel) {
             ["行政区域", displayValue(record.administrative_area)],
             ["緯度", record.latitude.toFixed(7)],
             ["経度", record.longitude.toFixed(7)],
-            ["対応災害", displayValue(record.supported_disasters)],
+            ["元データ記載の災害（適合性未検証）", displayValue(record.supported_disasters)],
             ["収容人数", displayValue(record.capacity)],
             ["アクセシビリティ", displayValue(record.accessibility)],
             ...(summary.floodScenario?.byId.has(record.id) ? (() => {
