@@ -3,7 +3,7 @@ import hashlib
 import json
 import unittest
 
-from validation.verify_gsi_flood_source import verify_gsi_flood_source
+from verify_gsi_flood_source import verify_gsi_flood_source
 
 URL = "https://cyberjapandata.gsi.go.jp/xyz/skhb01/10/909/403.geojson"
 REGION = "13123"
