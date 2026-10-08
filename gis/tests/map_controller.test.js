@@ -411,7 +411,9 @@ nagoya.scenarios = [{
   };
   const acceptedCase = makeContext({
     protocol: "http:",
-    fetchImpl: async url => String(url).includes("edogawa_flood_site_catalog.json")
+    fetchImpl: async url => String(url).includes("gsi_verified_tiles/")
+      ? { ok: false, status: 404, json: async () => ({}) }
+      : String(url).includes("edogawa_flood_site_catalog.json")
       ? { ok: true, status: 200, json: async () => officialCatalog }
       : { ok: true, status: 200, json: async () => edogawa }
   });
@@ -428,7 +430,7 @@ nagoya.scenarios = [{
   acceptedCase.elements.region.value = "15100";
   acceptedCase.elements.region.listeners.change({ target: acceptedCase.elements.region });
   await new Promise(resolve => setTimeout(resolve, 0));
-  assert.equal(acceptedCase.elements.selectOrigin.disabled, true);
+  assert.equal(acceptedCase.elements.selectOrigin.disabled, false);
   assert.doesNotMatch(acceptedCase.elements.floodDiscoveryResults.innerHTML, /&lt;unsafe&gt;/);
 
   // A slow response from the previously selected region must not overwrite the new region.

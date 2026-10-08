@@ -228,19 +228,16 @@ function setFacilityListMode(summary) {
 }
 
 const FLOOD_CATALOG_URL = "../../pipeline/data/output/edogawa_flood_site_catalog.json";
+const VERIFIED_TILE_DIR = "../../pipeline/data/output/gsi_verified_tiles/";
 
 function renderReferenceDiscovery() {
   const result = document.getElementById("floodDiscoveryResults");
-  if (selectedRegionCode !== "13123") {
-    result.innerHTML = "<p>この参考探索の中間発表デモは江戸川区のみを対象としています。他地域に洪水指定がないことを意味しません。</p>";
-    return;
-  }
   const engine = window.HINANEX_FLOOD_DISCOVERY;
   if (!engine) {
     result.textContent = "洪水指定場所の参照モジュールを読み込めません。";
     return;
   }
-  const discovery = engine.discoverReferenceSites(verifiedFloodCatalog, selectedOrigin);
+  const discovery = engine.discoverReferenceTiles(verifiedFloodCatalog, selectedOrigin, selectedRegionCode);
   if (discovery.status !== "REFERENCE_ONLY") {
     result.innerHTML = `<p class="reference-warning">${escapeHtml(discovery.message)}</p>`;
     return;
@@ -256,7 +253,7 @@ function renderReferenceDiscovery() {
       `<span class="distance">直線距離：${escapeHtml(site.distanceMetres.toLocaleString("ja-JP"))}m（経路距離ではありません）</span>` +
       `<span class="trace">Source行：${escapeHtml(displayValue(site.trace))}</span>${urlEl}</div>`;
   }).join("");
-  result.innerHTML = `<p>取得した地理院タイル内の洪水指定掲載地点：${discovery.total}件（自治体内の件数とは限りません）。最大5件を距離順で参考表示。</p>` +
+  result.innerHTML = `<p>検証済み${discovery.verifiedTileCount}/${discovery.requestedTileCount}タイルの掲載地点：${discovery.total}件（自治体内の件数ではありません）。最大5件を参考表示。</p>` +
     `<p class="reference-warning">${escapeHtml(discovery.message)}</p>` +
     (cards || '<p>この照合済みデータ内に対象施設はありません。自治体の指定不存在は断定できません。</p>');
 }
@@ -269,9 +266,8 @@ function clearReferenceDiscovery() {
   if (originMarker) map.removeLayer(originMarker);
   originMarker = null;
   document.getElementById("originStatus").textContent = "位置は未選択です";
-  const available = selectedRegionCode === "13123";
-  document.getElementById("selectOrigin").disabled = !available;
-  document.getElementById("useGps").disabled = !available;
+  document.getElementById("selectOrigin").disabled = false;
+  document.getElementById("useGps").disabled = false;
   renderReferenceDiscovery();
 }
 
@@ -279,23 +275,54 @@ async function loadFloodReferenceCatalog() {
   const sequence = ++catalogLoadSequence;
   verifiedFloodCatalog = null;
   renderReferenceDiscovery();
-  try {
-    // Deliberately no latitude/longitude in request URL/body/headers.
-    const response = await fetch(FLOOD_CATALOG_URL, { cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const catalog = await response.json();
-    if (sequence !== catalogLoadSequence || selectedRegionCode !== "13123") return;
-    verifiedFloodCatalog = catalog;
-  } catch (_) {
-    if (sequence !== catalogLoadSequence) return;
-    verifiedFloodCatalog = null; // no fallback to unverified shelter_location
+  const engine = window.HINANEX_FLOOD_DISCOVERY;
+  const requestedOrigin = selectedOrigin;
+  const requestedRegion = selectedRegionCode;
+  if (!engine || !requestedOrigin || window.location.protocol === "file:") return;
+  const keys = engine.nearbySourceTiles(requestedOrigin);
+  if (!keys.length) return;
+
+  // Each HTTP URL is derived from a coarse z10 cell, never exact GPS coords.
+  // Missing tiles are NOT empty official data: they are unverified coverage.
+  // Never fetch official raw GSI JSON directly from the browser.
+  const responses = await Promise.all(keys.map(async key => {
+    const [z, x, y] = key.split("/");
+    const url = VERIFIED_TILE_DIR + requestedRegion + "/" + z + "-" + x + "-" + y + ".json";
+    try {
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) return null;
+      const catalog = await response.json();
+      const expectedSource = "https://cyberjapandata.gsi.go.jp/xyz/skhb01/" + key + ".geojson";
+      // A substituted file at an expected tile path must fail the entire query.
+      if (catalog?.sites?.[0]?.source_url !== expectedSource) return { invalid: true };
+      return catalog;
+    } catch (_) {
+      return null;
+    }
+  }));
+
+  if (sequence !== catalogLoadSequence ||
+      requestedRegion !== selectedRegionCode || requestedOrigin !== selectedOrigin) return;
+  const catalogs = responses.filter(Boolean);
+  // Preserve the already user-accepted single-tile preview until a fresh
+  // version is published at the new tile-scoped output path.
+  if (!responses[0] && keys[0] === "10/909/403" && requestedRegion === "13123") {
+    try {
+      const legacy = await fetch(FLOOD_CATALOG_URL, { cache: "no-store" });
+      if (legacy.ok) {
+        const catalog = await legacy.json();
+        catalogs.push(catalog);
+      }
+    } catch (_) { /* absence means unverifiable, not no shelters */ }
   }
-  if (sequence === catalogLoadSequence) renderReferenceDiscovery();
+  if (sequence !== catalogLoadSequence ||
+      requestedRegion !== selectedRegionCode || requestedOrigin !== selectedOrigin) return;
+  verifiedFloodCatalog = catalogs;
+  renderReferenceDiscovery();
 }
 
 function setReferenceOrigin(latitude, longitude) {
-  if (selectedRegionCode !== "13123" ||
-      !Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) ||
       Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
     return;
   }
@@ -310,7 +337,7 @@ function setReferenceOrigin(latitude, longitude) {
     })
   }).addTo(map);
   document.getElementById("originStatus").textContent =
-    `選択した地点：${latitude.toFixed(5)}, ${longitude.toFixed(5)}（端末内だけで使用）`;
+    `選択した地点：${latitude.toFixed(5)}, ${longitude.toFixed(5)}（正確な座標は端末内だけで使用。タイルIDは配信サーバへ送信）`;
   loadFloodReferenceCatalog();
 }
 
@@ -642,12 +669,10 @@ document.getElementById("facilityListNext").addEventListener("click", () => {
 });
 
 document.getElementById("selectOrigin").addEventListener("click", () => {
-  if (selectedRegionCode !== "13123") return;
   choosingOrigin = true;
   document.getElementById("originStatus").textContent = "地図上の出発地点をクリックしてください。";
 });
 document.getElementById("useGps").addEventListener("click", () => {
-  if (selectedRegionCode !== "13123") return;
   if (typeof navigator === "undefined" || !navigator.geolocation) {
     document.getElementById("originStatus").textContent =
       "この環境では位置情報を使えません。地図をクリックして地点を指定してください。";
@@ -687,7 +712,7 @@ document.getElementById("regionExportFile").addEventListener("change", async eve
 });
 
 map.on("click", event => {
-  if (choosingOrigin && selectedRegionCode === "13123") {
+  if (choosingOrigin) {
     setReferenceOrigin(event.latlng.lat, event.latlng.lng);
     return;
   }
