@@ -36,3 +36,10 @@ node gis/tests/region_exports.integration.test.js
 ```
 
 これらの合成テストの成功は、公式記号の意味の認定や実洪水に対する安全性検証を意味しません。新潟ODS記号の正式な意味は[Issue #48](https://github.com/1kz-ma1/HINANEX/issues/48)で追跡します。
+
+## 2026-10-08 地図の無座標表示・ブラウザ警告
+
+- Nagoya公式raw資料の1,602施設には機械可読な緯度経度がないため、`records=1602 / 地図表示=0 / 座標欠損=1602` は正常なデータ状態です。位置を推測して表示しません。
+- 地域切替で前の地域の地図が透けて誤認されないよう、座標と参照境界のない地域は**不透明な未確定オーバーレイ**で地図本体を覆います。対応する公式座標を取得するまで地図位置は確定しません。
+- 既存`supported_disasters`は`元データ記載の災害（適合性未検証）`と表示し、Source上の文字列と洪水Scenarioの独立した`UNKNOWN`を混同しません。
+- Microsoft Edgeの`Tracking Prevention blocked access to storage for https://unpkg.com/leaflet@1.9.4/dist/leaflet.css`は、第三者CDNに対するブラウザストレージ制限の警告です。**地図ライブラリが正しく読み込めないことをこのログだけから断定しません**。もしLeafletのCSS/JSが実際にブロックされた場合は、別途ロード成否を確認して静的アセット配布の方針を決めてください。これは無座標や洪水Scenarioの判定とは独立です。
