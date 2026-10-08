@@ -6,7 +6,7 @@ const assert = require("node:assert/strict");
 const context = { window: {} };
 vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.resolve(__dirname, "../gis/js/flood_discovery.js"), "utf8"), context);
-const { distanceMetres, discoverReferenceSites } = context.window.HINANEX_FLOOD_DISCOVERY;
+const { distanceMetres, discoverReferenceSites, discoverReferenceTiles, sourceTileKey, nearbySourceTiles } = context.window.HINANEX_FLOOD_DISCOVERY;
 
 const point = { latitude: 35.7, longitude: 139.9 };
 function site(id, lat, lon) {
@@ -94,4 +94,54 @@ for (const bad of [
   assert.equal(result.sites.length, 0);
 }
 assert.equal(discoverReferenceSites(catalog([site("0", 35.7, 139.9), site("0", 35.8, 139.9)]), point).sites.length, 0);
+
+assert.equal(sourceTileKey(point), "10/909/403");
+assert.equal(sourceTileKey({ latitude: 35.7, longitude: 140.1 }), "10/910/403");
+assert.equal(sourceTileKey({ latitude: 90, longitude: 140.1 }), null);
+assert.equal(nearbySourceTiles(point).length, 9);
+assert.equal(nearbySourceTiles(point)[0], "10/909/403");
+assert.ok(nearbySourceTiles(point).includes("10/910/403"));
+
+const multiOriginOnly = discoverReferenceTiles([full], point);
+assert.equal(multiOriginOnly.status, "REFERENCE_ONLY");
+assert.equal(multiOriginOnly.total, 10);
+assert.equal(multiOriginOnly.verifiedTileCount, 1);
+assert.equal(multiOriginOnly.partialCoverage, true);
+assert.match(multiOriginOnly.message, /未検証タイル/);
+
+const eastSite = {
+  ...site("0", 35.7, 140.1),
+  source_url: "https://cyberjapandata.gsi.go.jp/xyz/skhb01/10/910/403.geojson",
+  source_feature_key: "https://cyberjapandata.gsi.go.jp/xyz/skhb01/10/910/403.geojson#feature_index=0",
+  source_raw_sha256: "b".repeat(64)
+};
+const eastCatalog = {
+  ...catalog([eastSite]), source_raw_sha256: "b".repeat(64),
+  c_audit_reference: "C-EAST"
+};
+const nextTile = { latitude: 35.7, longitude: 140.1 };
+const multiEast = discoverReferenceTiles([eastCatalog, full], nextTile);
+assert.equal(multiEast.status, "REFERENCE_ONLY");
+assert.equal(multiEast.total, 11);
+assert.equal(multiEast.sites[0].id, eastSite.source_feature_key);
+assert.equal(multiEast.verifiedTileCount, 2);
+assert.equal(discoverReferenceTiles([full], nextTile).status, "ORIGIN_OUTSIDE_SOURCE_TILE");
+assert.equal(discoverReferenceTiles([eastCatalog], point).status, "ORIGIN_OUTSIDE_SOURCE_TILE");
+
+// A tampered secondary tile blocks ALL returned results, not only that tile.
+// Validating from the source-tile center avoids rejecting adjacent entries
+// just because the user currently stands in another tile.
+for (const badEast of [
+  { ...eastCatalog, https_provenance_status: "PENDING" },
+  { ...eastCatalog, source_raw_sha256: "c".repeat(64) },
+  { ...eastCatalog, sites: [ { ...eastSite, latitude: 35.7, longitude: 139.9 } ] }
+]) {
+  assert.equal(discoverReferenceTiles([full, badEast], point).status, "UNVERIFIED_SOURCE");
+  assert.equal(discoverReferenceTiles([full, badEast], point).sites.length, 0);
+}
+assert.equal(discoverReferenceTiles([full, full], point).status, "UNVERIFIED_SOURCE");
+assert.equal(discoverReferenceTiles([full, eastCatalog], point, "15100").status, "UNVERIFIED_SOURCE");
+assert.equal(discoverReferenceTiles(null, point).status, "UNVERIFIED_SOURCE");
+assert.equal(discoverReferenceTiles([full], null).status, "NO_ORIGIN");
+
 console.log("flood_discovery.test.js: OK");
