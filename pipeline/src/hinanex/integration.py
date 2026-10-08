@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from src.hinanex.models.export import RegionExport
+from src.hinanex.models.scenario import FacilityScenarioStatus, ScenarioJoinStatus
 from src.hinanex.models.integration import (
     CapabilityManifestItem,
     RegionManifestItem,
@@ -57,6 +58,7 @@ def validate_region_export(
         *export.datasets,
         *export.assessments,
         *export.capabilities,
+        *export.scenarios,
     ]
     for model in nested:
         if (
@@ -133,6 +135,71 @@ def validate_region_export(
                 "recommendation references unknown requirement: "
                 f"{recommendation.requirement_code}"
             )
+
+
+    # Scenario is an OPTIONAL additive extension. Existing location-only exports
+    # remain valid. Every present result must trace to the formal location data.
+    location_records = {
+        record["id"]: record
+        for dataset in export.datasets
+        if dataset.requirement_code == "shelter_location"
+        for record in dataset.records
+        if isinstance(record, dict) and "id" in record
+    }
+    seen_scenarios: set[str] = set()
+    for scenario in export.scenarios:
+        if scenario.scenario_id in seen_scenarios:
+            errors.append(f"duplicate scenario: {scenario.scenario_id}")
+        seen_scenarios.add(scenario.scenario_id)
+        if scenario.scenario_id != "flood_shelter_selection":
+            errors.append(f"unsupported scenario: {scenario.scenario_id}")
+        if scenario.requirement_assessment.requirement_code != "shelter_hazard_applicability":
+            errors.append("scenario requirement_code mismatch")
+        if scenario.requirement_assessment.record_count != len(scenario.facility_results):
+            errors.append("scenario requirement record_count mismatch")
+        facility_ids = [item.facility_id for item in scenario.facility_results]
+        if len(set(facility_ids)) != len(facility_ids):
+            errors.append("scenario contains duplicate facility IDs")
+        if set(facility_ids) != set(location_records):
+            errors.append("scenario does not trace exactly to shelter_location records")
+        direct = 0
+        raw_values = 0
+        decided = 0
+        for item in scenario.facility_results:
+            fact = item.fact
+            if fact.facility_id != item.facility_id:
+                errors.append("scenario fact/result facility ID mismatch")
+            if not fact.source_url.startswith(("https://", "http://")):
+                errors.append("scenario official source URL missing")
+            if fact.join_status == ScenarioJoinStatus.DIRECT_SAME_SOURCE:
+                direct += 1
+                if not fact.source_record_trace:
+                    errors.append("same-source scenario fact missing raw-row trace")
+            if fact.official_status_raw is not None:
+                raw_values += 1
+            if item.status != FacilityScenarioStatus.UNKNOWN:
+                decided += 1
+                if fact.join_status != ScenarioJoinStatus.DIRECT_SAME_SOURCE:
+                    errors.append("unverified join classified as scenario decision")
+                if fact.hazard_scope_raw != "災害種別_洪水":
+                    errors.append("combined/non-flood scope classified as flood-only decision")
+                if fact.official_status_raw is None:
+                    errors.append("missing raw value classified as scenario decision")
+            if item.status == FacilityScenarioStatus.CANDIDATE and (
+                fact.latitude is None or fact.longitude is None
+            ):
+                errors.append("scenario candidate lacks usable coordinates")
+        summary = scenario.requirement_assessment
+        if summary.directly_joined_count != direct:
+            errors.append("scenario directly_joined_count mismatch")
+        if summary.raw_value_count != raw_values:
+            errors.append("scenario raw_value_count mismatch")
+        if decided == 0 and scenario.status.value != "UNKNOWN":
+            errors.append("undecidable scenario must be UNKNOWN")
+        if decided == len(scenario.facility_results) and decided > 0 and scenario.status.value != "FULL":
+            errors.append("fully decided scenario must be FULL")
+        if 0 < decided < len(scenario.facility_results) and scenario.status.value != "DEGRADED":
+            errors.append("partly decided scenario must be DEGRADED")
 
     return errors
 
