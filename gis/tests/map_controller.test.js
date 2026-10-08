@@ -175,6 +175,26 @@ const edogawa = payload("13123", "東京都江戸川区", [
 const niigata = payload("15100", "新潟県新潟市", [
   record("n1", "Niigata A", 37.90, 139.02)
 ]);
+niigata.scenarios = [{
+  scenario_id: "flood_shelter_selection",
+  region_code: "15100",
+  status: "UNKNOWN",
+  requirement_assessment: { discovery_status: "AVAILABLE" },
+  facility_results: [{
+    facility_id: "n1",
+    status: "UNKNOWN",
+    reason: "ODSの公式記号の意味は確認中",
+    fact: {
+      facility_id: "n1",
+      hazard_scope_raw: "災害種別_洪水",
+      official_status_raw: "2階以上",
+      usable_floor_raw: "2階以上",
+      source_record_trace: "csv_row=2",
+      join_status: "DIRECT_SAME_SOURCE",
+      source_url: "https://example.test/niigata.csv"
+    }
+  }]
+}];
 const nagoya = payload("23100", "愛知県名古屋市", [
   record("g1", "Nagoya A", null, null),
   record("g2", "Nagoya B", null, null)
@@ -252,6 +272,14 @@ const nagoya = payload("23100", "愛知県名古屋市", [
   assert.equal(httpCase.elements.missingCoordinateCount.textContent, 0);
   assert.equal(httpCase.elements.mapUnavailable.hidden, true);
   assert.match(httpCase.elements.resetView.textContent, /新潟県 新潟市/);
+  // Existing shelter markers remain ordinary location points. Clicking shows
+  // only the Source's raw floor wording and D UNKNOWN, never flood safety.
+  const niigataMarker = httpCase.L.__groups[1].items[0];
+  niigataMarker.handlers.click({});
+  assert.match(httpCase.elements.details.innerHTML, /2階以上/);
+  assert.match(httpCase.elements.details.innerHTML, /UNKNOWN/);
+  assert.match(httpCase.elements.details.innerHTML, /安全性|安全/);
+  assert.doesNotMatch(httpCase.elements.details.innerHTML, /javascript:/i);
 
   // Nagoya currently has no machine-readable coordinates: keep records, show 0 markers,
   // and cover the map instead of inventing a center/geocoding the addresses.
