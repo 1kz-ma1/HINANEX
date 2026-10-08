@@ -143,3 +143,15 @@ The script is separate from D's own tests and implements the following:
 - **INTEGRATION:** the additive RegionExport `scenarios[]` field must be reviewed with B/E consumers; old schema 0.9 required fields are unchanged. B/E Staging E2E and Merge Captain's latest-main merge decision remain separate gates.
 
 **Decision: C RAW-TRACE ACCEPTANCE = PASS after D #44. Full flood Scenario SEMANTIC/RELEASE ACCEPTANCE = CONDITIONAL / NEEDS_REVIEW. This record does not approve `main` merge.**
+
+## 8. C synthetic unittest Windows CSV fixture correction (2026-10-08)
+
+User executed `python -m unittest discover -s validation/validation -p "test_*.py" -v` after D #44:
+
+- Total: **5 tests**. Nagoya whitespace normalization and mismatch rejection: **2 PASS**. Niigata synthetic regression: **1 ERROR, 2 FAIL**.
+- All three Niigata reports trace back to the same first-row **`csv_row=2` versus physical line `3`** mismatch. The intended negative assertions were not reached.
+- Root cause in C test-only fixture: `csv.writer(io.StringIO(newline=""))` emits CRLF, but `Path.write_text(..., encoding="utf-8-sig")` on Windows translates LF again, writing CRCRLF and shifting CSV reader physical line numbers. This is not evidence of a D raw adapter failure; the previously successful C real-archive audit remains valid.
+- Fix in `validation/validation/test_flood_scenario_acceptance.py`: write the CSV via `write_bytes(data.getvalue().encode("utf-8-sig"))` to preserve `csv.writer`'s exact bytes. Added a fixture-specific cross-platform regression confirming physical row positions 2–7.
+- **Verification status:** fixture fix committed, **local re-run required**. Until that run succeeds, do not record the C synthetic suite as green.
+
+This does not change D or A code, RegionExport, the C production-independent raw audit checker, or any official data assumption. Semantic release acceptance remains conditional.
