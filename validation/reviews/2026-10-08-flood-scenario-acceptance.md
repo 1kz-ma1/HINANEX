@@ -78,7 +78,7 @@
 - The C comparator originally used `str(value).strip()` whereas the D Nagoya Adapter's documented `_optional_string` uses `re.sub(r"\\s+", "", str(value)).strip()` — it removes internal ASCII/full-width whitespace too.
 - C's first raw-vs-normalized text comparison could fail on legitimate internal whitespace. After normalizing **whitespace only**, the user re-ran the official-archive audit and all 16 Nagoya workbooks / 1,602 records passed. This provides execution evidence that the first mismatch was a C comparator mismatch, not a confirmed D source-row error.
 - The C script now compares raw cells after **whitespace removal only** (no name substitutions or fuzzy match), and prints the exact raw/normalized/output values if a substantive mismatch persists.
-- Added deterministic C regression covering whitespace-only equivalence and intentionally wrong facility names. **Its separate unittest execution has not been reported** (the successful user logs cover the independent official raw-row audit only).
+- Added deterministic C regression covering whitespace-only equivalence and intentionally wrong facility names. **User confirmed the corrected six-test standalone C suite passed** after the Windows CSV fixture fix (2026-10-08).
 
 ## 3. Additional independent acceptance check
 
@@ -119,7 +119,7 @@ The script is separate from D's own tests and implements the following:
 
 ## 5. Suggested next actions
 
-1. D #44 raw-floor preservation is **verified by C**; next confirm `○` / `×` / `－` and conditional-floor meaning for the **current** Niigata ODS CSV against an authoritative source-specific legend or publisher clarification, then review D status mapping. Run the separate C synthetic regression unittest before marking #42 complete.
+1. D #44 raw-floor preservation is **verified by C**, and the standalone synthetic regression suite passed **6/6** on user rerun. Next confirm `○` / `×` / `－` and conditional-floor meaning for the **current** Niigata ODS CSV against an authoritative source-specific legend or publisher clarification, then review D status mapping.
 2. C-FLOOD-03 Nagoya page/list metadata refreshed in A #43; **resolved**, with historical workbook differences still unverified.
 3. Review C-FLOOD-04 with the owner of shared RegionExport contracts before B/E consumer rollout.
 4. Merge D into main only after acceptance requirements are satisfied, and then implement B/E consumers and run cross-layer E2E in Staging. C-FLOOD-02 remains explicitly documented if partial Edogawa trace is accepted for MVP.
@@ -129,8 +129,8 @@ The script is separate from D's own tests and implements the following:
 - [A PR #43](https://github.com/1kz-ma1/HINANEX/pull/43) merged into `role/a-data`, with official 2026-03 city flood-legend distinctions and updated Nagoya evidence dates. **ODS CSV-specific marker mapping still not established**.
 - [D PR #44](https://github.com/1kz-ma1/HINANEX/pull/44) merged into `role/d-pipeline`, CI #110 SUCCESS. For Niigata `災害種別_洪水`, D now preserves `2階以上` / `3階以上` / `全階可` in the previously existing optional `fact.usable_floor_raw` while keeping their Scenario status `UNKNOWN`.
 - The C independent validator now checks each Niigata CSV row's `usable_floor_raw` directly against the corresponding raw marker, and refuses premature eligibility classification. An unexpected new `N階以上` value fails closed pending D/A source review.
-- Additional deterministic C synthetic CSV tests catch missing/altered floor values and status promotion. These are outside the current GitHub workflow and **not yet user-executed**.
-- **Revalidation completed (user-run)**: the latest submitted log confirms all three regions PASS, and **256 Niigata floor-raw conditions** matched source CSV. This replaces the earlier pre-#44 validation as the current execution evidence. The new C synthetic workbook/CSV unittest output has not been provided and is tracked separately.
+- Additional deterministic C synthetic CSV tests catch missing/altered floor values and status promotion. The user confirmed the corrected standalone suite **PASS (6/6)**; it remains outside the current GitHub workflow.
+- **Revalidation completed (user-run)**: the latest submitted log confirms all three regions PASS, and **256 Niigata floor-raw conditions** matched source CSV. This replaces the earlier pre-#44 validation as the current execution evidence. The new C synthetic workbook/CSV unittest suite was later confirmed **PASS (6/6)** by the user after a test-fixture newline fix; the full latest terminal transcript was not pasted.
 - **C semantics gate remains conditional**: `○/×/－` and floor meaning within the current ODS CSV still await authoritative A/D agreement; no `main` merge authorization here.
 
 ## 7. Post-#44 acceptance evidence and remaining gates (2026-10-08)
@@ -138,7 +138,7 @@ The script is separate from D's own tests and implements the following:
 - **PASS / executed by user:** C independent official-archive/RegionExport verifier on post-#44 outputs, covering Edogawa 152 UNKNOWN, Niigata 566 official raw rows, and Nagoya 1,602 rows from 16 indoor Excel files.
 - **PASS / executed by user:** all Niigata `usable_floor_raw` fields for 256 floor-marked official CSV rows agree with the original raw cells. All 256 remain `UNKNOWN`. No facility's eligibility or real-time availability was inferred from a floor condition.
 - **PASS / GitHub:** D CI #110 after #44 and C PR CI #114; **GitHub CI does not execute C's standalone municipal raw verifier or new C synthetic tests**.
-- **NOT RUN (no user output):** C new synthetic unittest suite `python -m unittest discover -s validation/validation -p "test_*.py" -v`; run and record result separately.
+- **PASS (user-reported):** C standalone synthetic unittest suite `python -m unittest discover -s validation/validation -p "test_*.py" -v`, **6/6** after the Windows CSV fixture correction. The full passing terminal output was not pasted; prior failed output was recorded separately.
 - **UNRESOLVED SEMANTICS:** official Niigata ODS-specific meaning for `○` / `×` / `－` and the exact relationship between the city's river-specific hazard legend and ODS CSV `災害種別_洪水`. A #43 documents relevant official flood legend while explicitly preserving this distinction. The C raw audit has *not* approved D's existing 16 CANDIDATE / 239 EXCLUDED labels as disaster-safety facts.
 - **INTEGRATION:** the additive RegionExport `scenarios[]` field must be reviewed with B/E consumers; old schema 0.9 required fields are unchanged. B/E Staging E2E and Merge Captain's latest-main merge decision remain separate gates.
 
@@ -152,6 +152,16 @@ User executed `python -m unittest discover -s validation/validation -p "test_*.p
 - All three Niigata reports trace back to the same first-row **`csv_row=2` versus physical line `3`** mismatch. The intended negative assertions were not reached.
 - Root cause in C test-only fixture: `csv.writer(io.StringIO(newline=""))` emits CRLF, but `Path.write_text(..., encoding="utf-8-sig")` on Windows translates LF again, writing CRCRLF and shifting CSV reader physical line numbers. This is not evidence of a D raw adapter failure; the previously successful C real-archive audit remains valid.
 - Fix in `validation/validation/test_flood_scenario_acceptance.py`: write the CSV via `write_bytes(data.getvalue().encode("utf-8-sig"))` to preserve `csv.writer`'s exact bytes. Added a fixture-specific cross-platform regression confirming physical row positions 2–7.
-- **Verification status:** fixture fix committed, **local re-run required**. Until that run succeeds, do not record the C synthetic suite as green.
+- **Verification status:** fixture fix committed, local re-run subsequently reported **PASS (6/6)** by the user. No substantive changes were made to the C official raw checker or D pipeline.
 
 This does not change D or A code, RegionExport, the C production-independent raw audit checker, or any official data assumption. Semantic release acceptance remains conditional.
+
+## 9. C standalone regression acceptance completed (2026-10-08)
+
+After correcting the Windows test fixture's CRLF double-translation, the user reran:
+```powershell
+.\pipeline\.venv\Scripts\python.exe -m unittest discover -s validation/validation -p "test_*.py" -v
+```
+**User-confirmed result: all six tests OK.** The suite covers two Nagoya raw normalization/mismatch tests, three Niigata floor-raw fail-closed cases and one physical CSV-line-number regression. This is user-reported passing execution; a copy of the entire successful terminal output was not provided.
+
+**C branch acceptance for the implemented D #44 raw-fact preservation and traceability: PASS.** The C PR may be merged **to `role/c-validation` only**. The broader flood Scenario release remains **CONDITIONAL / NEEDS_REVIEW**, specifically ODS-specific official marker semantics and B/E/Shared Contract integration; this does not authorize merging to `main` or declaring shelters safe.
