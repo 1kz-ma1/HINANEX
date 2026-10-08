@@ -1,6 +1,7 @@
 """Deterministic C-only regression for the Nagoya raw-row comparator."""
 from __future__ import annotations
 
+import csv
 import io
 import json
 import tempfile
@@ -67,6 +68,66 @@ class NagoyaAuditComparisonTests(unittest.TestCase):
                 scenario["facility_results"][0]["fact"]["facility_name"] = "今池中学校"
                 with self.assertRaisesRegex(audit.AcceptanceFailure, "facility name mismatch"):
                     audit.check_nagoya(scenario, locations)
+
+
+class NiigataFloorAuditTests(unittest.TestCase):
+    def _make_fixture(self, root: Path):
+        raw_markers = ["○", "×", "2階以上", "3階以上", "全階可", "－"]
+        data = io.StringIO(newline="")
+        writer = csv.writer(data)
+        writer.writerow(["名称", "災害種別_洪水"])
+        rows = []
+        for index, marker in enumerate(raw_markers):
+            name = f"施設{index}"
+            writer.writerow([name, marker])
+            rows.append({
+                "status": (
+                    "CANDIDATE" if marker == "○" else
+                    "EXCLUDED" if marker == "×" else
+                    "UNKNOWN"
+                ),
+                "fact": {
+                    "facility_name": name,
+                    "official_status_raw": marker,
+                    "usable_floor_raw": marker if marker in {"2階以上", "3階以上", "全階可"} else None,
+                    "join_status": "DIRECT_SAME_SOURCE",
+                    "hazard_scope_raw": "災害種別_洪水",
+                    "source_record_trace": f"csv_row={index + 2}",
+                    "source_url": "https://example.test/niigata.csv",
+                    "latitude": 37.9,
+                    "longitude": 139.0,
+                },
+            })
+        csv_path = root / "niigata_evacuation_space.csv"
+        csv_path.write_text(data.getvalue(), encoding="utf-8-sig")
+        return csv_path, {"facility_results": rows}, {
+            "evidence": [{"source_url": "https://example.test/niigata.csv"}]
+        }
+
+    def test_exact_floor_raw_and_unknown_are_required(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path, scenario, locations = self._make_fixture(Path(temp))
+            with patch.object(audit, "NIIGATA_RAW", path):
+                audit.check_niigata(scenario, locations)
+                scenario["facility_results"][2]["fact"]["usable_floor_raw"] = None
+                with self.assertRaisesRegex(audit.AcceptanceFailure, "floor raw mismatch"):
+                    audit.check_niigata(scenario, locations)
+
+    def test_floor_markers_cannot_be_prematurely_classified(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path, scenario, locations = self._make_fixture(Path(temp))
+            scenario["facility_results"][3]["status"] = "CANDIDATE"
+            with patch.object(audit, "NIIGATA_RAW", path):
+                with self.assertRaisesRegex(audit.AcceptanceFailure, "floor-limited raw was classified"):
+                    audit.check_niigata(scenario, locations)
+
+    def test_other_markers_cannot_inherit_floor_raw(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path, scenario, locations = self._make_fixture(Path(temp))
+            scenario["facility_results"][5]["fact"]["usable_floor_raw"] = "－"
+            with patch.object(audit, "NIIGATA_RAW", path):
+                with self.assertRaisesRegex(audit.AcceptanceFailure, "floor raw mismatch"):
+                    audit.check_niigata(scenario, locations)
 
 
 if __name__ == "__main__":
