@@ -46,7 +46,7 @@
     return Math.round(6371000 * 2 * Math.asin(Math.min(1, Math.sqrt(a))));
   }
 
-  function discoverReferenceSites(catalog, origin) {
+  function discoverReferenceSites(catalog, origin, expectedRegionCode = "13123") {
     const blocked = {
       status: "UNVERIFIED_SOURCE",
       sites: [],
@@ -67,7 +67,7 @@
         !Number.isInteger(catalog.total_source_records) ||
         catalog.total_source_records !== catalog.sites?.length ||
         catalog.catalog_kind !== "flood_designated_emergency_site_reference" ||
-        catalog.hazard !== "flood" || catalog.region_code !== "13123" ||
+        catalog.hazard !== "flood" || catalog.region_code !== expectedRegionCode ||
         !Array.isArray(catalog.sites) ||
         !catalog.source_raw_sha256 || !catalog.c_audit_reference) {
       return blocked;
@@ -135,5 +135,89 @@
     };
   }
 
-  window.HINANEX_FLOOD_DISCOVERY = { distanceMetres, discoverReferenceSites };
+
+  // GSI skhb01 data tiles use z=10. Only C-vetted local JSON is fetched.
+  const REFERENCE_ZOOM = 10;
+  function sourceTileKey(origin) {
+    if (!validNumber(origin?.latitude, -85.05112878, 85.05112878) ||
+        !validNumber(origin?.longitude, -180, 180)) return null;
+    const tile = containingTile(origin, REFERENCE_ZOOM);
+    return tile ? REFERENCE_ZOOM + "/" + tile.x + "/" + tile.y : null;
+  }
+  function nearbySourceTiles(origin) {
+    const key = sourceTileKey(origin);
+    if (!key) return [];
+    const parts = key.split("/");
+    const x = Number(parts[1]), y = Number(parts[2]), n = 2 ** REFERENCE_ZOOM;
+    const items = [key];
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (!dx && !dy) continue;
+        const nextY = y + dy;
+        if (nextY < 0 || nextY >= n) continue;
+        items.push(REFERENCE_ZOOM + "/" + ((x + dx + n) % n) + "/" + nextY);
+      }
+    }
+    return items;
+  }
+  function tileCenter(tile) {
+    const n = 2 ** tile.z;
+    return {
+      longitude: (tile.x + 0.5) / n * 360 - 180,
+      latitude: Math.atan(Math.sinh(Math.PI * (1 - 2 * (tile.y + 0.5) / n))) * 180 / Math.PI
+    };
+  }
+  function discoverReferenceTiles(catalogs, origin, regionCode = "13123") {
+    const blocked = {
+      status: "UNVERIFIED_SOURCE", sites: [],
+      message: "位置周辺の公式洪水指定情報は未検証です。避難場所が存在しないことを意味しません。"
+    };
+    const originKey = sourceTileKey(origin);
+    if (!originKey) return {
+      ...blocked, status: "NO_ORIGIN", message: "有効な出発地点を地図から選択してください。"
+    };
+    if (!["13123", "15100", "23100"].includes(regionCode) ||
+        !Array.isArray(catalogs) || catalogs.length > 9) return blocked;
+    const permittedKeys = new Set(nearbySourceTiles(origin));
+    const seenTiles = new Set(), seenSites = new Set(), sites = [];
+    for (const catalog of catalogs) {
+      const firstUrl = catalog?.sites?.[0]?.source_url;
+      const tile = officialTileKey(firstUrl);
+      const key = tile && tile.z + "/" + tile.x + "/" + tile.y;
+      if (!key || !permittedKeys.has(key) || seenTiles.has(key) ||
+          tile.z !== REFERENCE_ZOOM || catalog.region_code !== regionCode) return blocked;
+      // validate every record with its own tile center, not user position
+      const accepted = discoverReferenceSites(catalog, tileCenter(tile), regionCode);
+      if (accepted.status !== "REFERENCE_ONLY") return blocked;
+      seenTiles.add(key);
+      for (const raw of catalog.sites) {
+        if (seenSites.has(raw.source_feature_key)) return blocked;
+        seenSites.add(raw.source_feature_key);
+        sites.push({
+          id: raw.source_feature_key,
+          name: raw.name_raw, address: raw.address_raw, remarks: raw.remarks_raw,
+          sourceUrl: raw.source_url, trace: raw.source_record_trace,
+          latitude: raw.latitude, longitude: raw.longitude,
+          distanceMetres: distanceMetres(origin.latitude, origin.longitude, raw.latitude, raw.longitude)
+        });
+      }
+    }
+    // A verified neighboring tile never substitutes for the origin tile.
+    if (!seenTiles.has(originKey)) return {
+      ...blocked, status: "ORIGIN_OUTSIDE_SOURCE_TILE",
+      message: "指定地点のGSIタイルはまだ独立検証・配信されていません。周辺の参考地点も表示しません。"
+    };
+    sites.sort((a, b) => a.distanceMetres - b.distanceMetres || a.id.localeCompare(b.id));
+    const partial = seenTiles.size !== permittedKeys.size;
+    return {
+      status: "REFERENCE_ONLY", sites: sites.slice(0, LIMIT), total: sites.length,
+      verifiedTileCount: seenTiles.size, requestedTileCount: permittedKeys.size,
+      partialCoverage: partial,
+      message: "公式指定場所を検証済み" + seenTiles.size + "タイル内で直線距離順に参考表示。" +
+        (partial ? "周辺の未検証タイルがあるため、地域全体の最寄り順や網羅性は保証しません。" : "") +
+        " 自治体所属・安全性・経路・開設状況・行くべき順は未認定です。"
+    };
+  }
+
+  window.HINANEX_FLOOD_DISCOVERY = { distanceMetres, discoverReferenceSites, sourceTileKey, nearbySourceTiles, discoverReferenceTiles };
 })();
