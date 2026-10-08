@@ -107,10 +107,21 @@ def check_niigata(scenario: dict, locations: dict):
 
 
 def _cell(value):
+    """Read the official Excel cell without silently changing internal spaces."""
     import pandas as pd
     if pd.isna(value):
         return ""
     return str(value).strip()
+
+
+def _normalized_excel_cell(value):
+    """Compare D's documented whitespace-only normalization, not raw rendering.
+
+    D's Nagoya adapter uses re.sub(r"\\s+", "", str(value)) and does not
+    otherwise rewrite facility names, addresses, or hazard markers. The source
+    archive remains the evidence of the original (unmodified) cell.
+    """
+    return re.sub(r"\s+", "", _cell(value))
 
 
 def check_nagoya(scenario: dict, locations: dict):
@@ -167,17 +178,27 @@ def check_nagoya(scenario: dict, locations: dict):
             require(filename in tables, f"Nagoya archive missing {filename}")
             table, col, name_col, addr_col = tables[filename]
             require(1 <= rownumber <= len(table), f"{filename}: row {rownumber} out of range")
-            original = _cell(table.iat[rownumber - 1, col])
             original_name = _cell(table.iat[rownumber - 1, name_col])
-            require(original_name == fact["facility_name"],
-                    f"{filename}:{rownumber} facility name/raw-row mismatch")
+            expected_name = _normalized_excel_cell(table.iat[rownumber - 1, name_col])
+            require(expected_name == fact["facility_name"],
+                    f"{filename}:{rownumber} facility name mismatch: "
+                    f"raw={original_name!r}, expected_normalized={expected_name!r}, "
+                    f"actual={fact['facility_name']!r}")
             location = next((record for record in locations["records"]
                              if record["id"] == item["facility_id"]), None)
             require(location is not None, "Nagoya facility lacks location record")
-            require(_cell(table.iat[rownumber - 1, addr_col]) == (location.get("address") or ""),
-                    f"{filename}:{rownumber} address/raw-row mismatch")
-            require((fact.get("official_status_raw") or "").strip() == original,
-                    f"{filename}:{rownumber} flood/inland raw marker mismatch")
+            original_address = _cell(table.iat[rownumber - 1, addr_col])
+            expected_address = _normalized_excel_cell(table.iat[rownumber - 1, addr_col])
+            require(expected_address == (location.get("address") or ""),
+                    f"{filename}:{rownumber} address mismatch: "
+                    f"raw={original_address!r}, expected_normalized={expected_address!r}, "
+                    f"actual={location.get('address')!r}")
+            original_marker = _cell(table.iat[rownumber - 1, col])
+            expected_marker = _normalized_excel_cell(table.iat[rownumber - 1, col])
+            require((fact.get("official_status_raw") or "") == expected_marker,
+                    f"{filename}:{rownumber} flood/inland marker mismatch: "
+                    f"raw={original_marker!r}, expected_normalized={expected_marker!r}, "
+                    f"actual={fact.get('official_status_raw')!r}")
             require(fact["source_url"] == entries[filename]["url"],
                     "Nagoya Scenario source URL differs from file manifest")
     print("Nagoya indoor workbooks independently traced:", len(entries))
