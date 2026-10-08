@@ -393,6 +393,9 @@ nagoya.scenarios = [{
     catalog_kind: "flood_designated_emergency_site_reference",
     region_code: "13123", hazard: "flood",
     status: "REFERENCE_ONLY", source_status: "C_ACCEPTED",
+    https_provenance_status: "MATCH",
+    https_provenance_checked_at_utc: "2026-10-09T03:00:00+00:00",
+    total_source_records: 1,
     source_raw_sha256: "a".repeat(64), c_audit_reference: "C-TEST",
     sites: [{
       source_feature_key: "https://cyberjapandata.gsi.go.jp/xyz/skhb01/10/909/403.geojson#feature_index=0",
