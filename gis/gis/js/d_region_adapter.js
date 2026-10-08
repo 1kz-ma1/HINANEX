@@ -104,6 +104,51 @@
     };
   }
 
+  function extractFloodScenarioFacts(payload, records) {
+    // Scenario is optional, and is a separate D-owned assessment. E only
+    // attaches exact facility IDs; it NEVER decides flood eligibility or
+    // uses the GSI raster to classify facility locations.
+    const source = Array.isArray(payload.scenarios)
+      ? payload.scenarios.find(item => item?.scenario_id === "flood_shelter_selection")
+      : null;
+    if (!source) return null;
+    if (source.region_code !== payload.region.code ||
+        !Array.isArray(source.facility_results)) {
+      throw new Error("Flood Scenario region/records contract mismatch");
+    }
+
+    const knownIds = new Set(records.map(record => record.id));
+    const byId = new Map();
+    for (const item of source.facility_results) {
+      const facilityId = item?.facility_id;
+      if (!knownIds.has(facilityId) || byId.has(facilityId) ||
+          item.fact?.facility_id !== facilityId) {
+        throw new Error("Flood Scenario facility ID exact join mismatch");
+      }
+      const fact = item.fact;
+      byId.set(facilityId, {
+        status: typeof item.status === "string" ? item.status : "UNKNOWN",
+        reason: typeof item.reason === "string" ? item.reason : "",
+        officialStatusRaw: fact.official_status_raw ?? null,
+        usableFloorRaw: fact.usable_floor_raw ?? null,
+        hazardScopeRaw: fact.hazard_scope_raw ?? null,
+        joinStatus: fact.join_status ?? null,
+        sourceRecordTrace: fact.source_record_trace ?? null,
+        sourceUrl: fact.source_url ?? null
+      });
+    }
+    if (byId.size !== records.length) {
+      throw new Error("Flood Scenario does not exactly cover shelter_location IDs");
+    }
+    return {
+      status: typeof source.status === "string" ? source.status : "UNKNOWN",
+      discoveryStatus: source.requirement_assessment?.discovery_status ?? null,
+      recordCount: byId.size,
+      unknownCount: [...byId.values()].filter(item => item.status === "UNKNOWN").length,
+      byId
+    };
+  }
+
   function extractShelterLocation(payload, expectedRegionCode) {
     assertRegionExport(payload);
 
@@ -120,7 +165,8 @@
         records: [],
         mappableRecords: [],
         missingCoordinateRecords: [],
-        evidence: []
+        evidence: [],
+        floodScenario: null
       };
     }
 
@@ -144,7 +190,8 @@
       records,
       mappableRecords: records.filter(record => record.hasCoordinates),
       missingCoordinateRecords: records.filter(record => !record.hasCoordinates),
-      evidence: Array.isArray(dataset.evidence) ? dataset.evidence : []
+      evidence: Array.isArray(dataset.evidence) ? dataset.evidence : [],
+      floodScenario: extractFloodScenarioFacts(payload, records)
     };
   }
 
