@@ -6,7 +6,7 @@
 - Dは候補の公式指定・出典を保持するだけ。「推奨」「安全」「開設中」「安全な経路」は判定しない。
 - 江戸川区の水害時の広域避難方針を候補表示で打ち消さない。
 - 既存`RegionExport` / `flood_shelter_selection`はそのまま。未確認`UNKNOWN`や`supported_disasters`から新しい候補を生成しない。
-- この段階ではGSI公式タイルの**実施設row/field schemaは未取得**。A→C原本確認の後で有効データを出力可能となる。
+- 2026-10-09時点でGSI公式タイル1枚の原本とCの1,195行照合がユーザー環境でPASS済み。ただしこの数字はタイル全体の件数であり、江戸川区内の施設数ではない。HTTPS再取得・カタログ出力・ブラウザ受入は別途必要。
 
 ## Data gate
 
@@ -37,14 +37,15 @@
 
 Cで受け入れた場合のみ`status=REFERENCE_ONLY`, `source_status=C_ACCEPTED`, `sites[]`にraw名称・緯度経度・source URL・source feature trace・元sha256等が入る。既存source施設との曖昧名称joinは禁止。
 
-例（**C監査後に限り実行**、すべてユーザーのローカル成果物・Git管理外）:
+例（**Cのraw監査と独立HTTPS再取得MATCH後のみ実行**。すべてローカル成果物・Git管理外）:
 
 ```powershell
 cd pipeline
 python run_verified_flood_site_reference.py --region 13123 `
   --raw data/raw/gsi_flood_tile.geojson `
-  --records data/verified/edogawa_flood_site_records.json `
-  --c-acceptance data/verified/edogawa_flood_site_c_acceptance.json `
+  --records data/verified/edogawa_gsi_flood_records.json `
+  --c-acceptance data/verified/edogawa_gsi_flood_c_acceptance.json `
+  --provenance data/verified/gsi_https_provenance_20261009.json `
   --out data/output/edogawa_flood_site_catalog.json
 ```
 
@@ -83,10 +84,20 @@ Invoke-WebRequest -Uri $gsiUrl -OutFile $raw
 & 'C:\HINANEX\pipeline\.venv\Scripts\python.exe' .\pipeline\prepare_gsi_flood_tile.py --region 13123 --raw $raw --source-url $gsiUrl --out .\pipeline\data\verified\edogawa_gsi_flood_records.json
 & 'C:\HINANEX\pipeline\.venv\Scripts\python.exe' .\validation\validation\verify_gsi_flood_source.py --region 13123 --raw $raw --source-url $gsiUrl --records .\pipeline\data\verified\edogawa_gsi_flood_records.json --acceptance-out .\pipeline\data\verified\edogawa_gsi_flood_c_acceptance.json
 
+& 'C:\HINANEX\pipeline\.venv\Scripts\python.exe' .\validation\validation\verify_gsi_flood_provenance.py --raw $raw --source-url $gsiUrl --c-acceptance .\pipeline\data\verified\edogawa_gsi_flood_c_acceptance.json --report-out .\pipeline\data\verified\gsi_https_provenance_20261009.json
+
 cd .\pipeline
-& 'C:\HINANEX\pipeline\.venv\Scripts\python.exe' .\run_verified_flood_site_reference.py --region 13123 --raw .\data\raw\gsi_flood_tile.geojson --records .\data\verified\edogawa_gsi_flood_records.json --c-acceptance .\data\verified\edogawa_gsi_flood_c_acceptance.json --out .\data\output\edogawa_flood_site_catalog.json
+& 'C:\HINANEX\pipeline\.venv\Scripts\python.exe' .\run_verified_flood_site_reference.py --region 13123 --raw .\data\raw\gsi_flood_tile.geojson --records .\data\verified\edogawa_gsi_flood_records.json --c-acceptance .\data\verified\edogawa_gsi_flood_c_acceptance.json --provenance .\data\verified\gsi_https_provenance_20261009.json --out .\data\output\edogawa_flood_site_catalog.json
 ```
 
 If the raw tile is missing/empty/unrecognized, do not create fake records. The strict C validator rejects empty or malformed source data. Keep the real download URL/time/HTTP success and SHA256 for independent A/C review. Official municipality update date and data completeness remain external release gates. To cover multiple tiles, use a separately verified multi-tile provider; do not pretend this single-tile exporter covers the whole region.
 
 The C checker above lives in PR #64 and must be integrated in the local worktree (along with D #63) before running this example. Its PASS means **raw row equality**, not authentication of the HTTPS acquisition nor suitability/current opening.
+
+## HTTPS provenance publication gate (2026-10-09)
+
+D CLIの`--provenance`は必須です。C raw監査の後、`validation/validation/verify_gsi_flood_provenance.py`を統合プレビュールートから実行して公式HTTPS再取得・バイト一致の`MATCH`レポートを新規作成してください（手順:`validation/docs/GSI_FLOOD_PROVENANCE.md`）。
+
+Dは原本/C監査/HTTPSレポートのURL、原本SHA256、HTTP 200、サイズ、件数、監査参照、UTC取得時刻を照合し、不一致では**カタログを出力しません**。既存の出力が存在する場合、失敗時に残る古いJSONをブラウザへ配信しないよう、運用側で隔離・確認してください。
+
+なおこのゲートは取得時点の公式配信バイト一致のみを保証し、施設の自治体所属・網羅性・開設・安全・経路選定を認定しません。メインリリースにはブラウザ実機試験とMerge Captain承認が別途必要です。
