@@ -1,7 +1,7 @@
 {
   "project": "HINANEX",
   "role": "A / Data Research / Evidence",
-  "generated_at": "2026-10-06",
+  "generated_at": "2026-10-08",
   "scenario": {
     "scenario_id": "flood_shelter_selection",
     "scenario_name": "Flood Shelter Selection",
@@ -91,7 +91,7 @@
       "updated_at": "2026-09-25",
       "fetched_at": "2026-10-06",
       "license": "CC BY 2.1 JP",
-      "official_meaning": "指定緊急避難場所一覧の施設行に、自治体標準ODSの災害種別_洪水等の災害種別列を持つ。",
+      "official_meaning": "指定緊急避難場所一覧の施設行に、自治体標準ODSの災害種別_洪水等の災害種別列を持つ。 同市の2026年3月修正版洪水ハザードマップでは全階可・○階以上・当該河川洪水時非開設という区別が明示されるが、ODS列への同一対応は未確認。",
       "hazard_scope_raw": "災害種別_洪水",
       "available_fields": [
         "ID",
@@ -110,9 +110,72 @@
       "machine_readable": true,
       "evidence_status": "AVAILABLE",
       "limitations": [
-        "Aは現在CSVの全raw value分布を今回独立再集計していない。",
-        "災害種別列にない意味を名称等から推測しない。"
-      ]
+        "災害種別列にない意味を名称等から推測しない。",
+        "C独立raw監査で6種類の値と566行のSource一致を確認。ただしこの結果はA独立再ダウンロードではない。",
+        "洪水ハザードマップの利用階数・河川別凡例と、ODS 災害種別_洪水 の○/×/－/階数表記の完全な対応は未検証。"
+      ],
+      "catalog_verified_at": "2026-10-08",
+      "raw_distribution_evidence": {
+        "provenance": "User-reported C independent raw-row audit of locally archived official Niigata ODS CSV (2026-10-08); not an A-side re-download",
+        "source_column": "災害種別_洪水",
+        "raw_record_count": 566,
+        "markers": [
+          {
+            "raw": "○",
+            "count": 16
+          },
+          {
+            "raw": "×",
+            "count": 239
+          },
+          {
+            "raw": "2階以上",
+            "count": 173
+          },
+          {
+            "raw": "3階以上",
+            "count": 9
+          },
+          {
+            "raw": "全階可",
+            "count": 74
+          },
+          {
+            "raw": "－",
+            "count": 55
+          }
+        ],
+        "raw_row_trace_verified": true,
+        "official_marker_semantics_verified_for_this_ods_column": false,
+        "caveat": "Raw row equivalence does not confirm that map PDF symbol meanings apply directly to the ODS CSV."
+      },
+      "official_flood_legend": {
+        "source_url": "https://www.city.niigata.lg.jp/kurashi/bosai/hinanjo/kouzui_hinanchizu/sougou_map/bosai_01souogu.files/07hayadoriR8.pdf",
+        "source_name": "新潟市総合ハザードマップ（北区・令和8年3月修正版）",
+        "revision_label": "令和8年3月修正版",
+        "verified_at": "2026-10-08",
+        "flood_semantics": [
+          {
+            "marker": "全階可",
+            "meaning": "浸水範囲外。1階から全ての階へ避難可能。"
+          },
+          {
+            "marker": "○階以上",
+            "meaning": "○階の下まで浸水し、○階以上が避難可能。"
+          },
+          {
+            "marker": "－",
+            "meaning": "当該河川洪水時は開設しない（河川別条件）。"
+          },
+          {
+            "marker": "利用不可",
+            "meaning": "全階浸水、又は家屋倒壊等氾濫想定区域内などで利用不可。"
+          }
+        ],
+        "separate_landslide_marker_notice": "このPDFの土砂災害欄の○/×/－定義を、ODS災害種別_洪水へ転用しない。",
+        "warning": "河川別洪水ハザードマップの凡例とODS CSVの災害種別_洪水列は同一スキーマと確認されていない。現行CSV全行へ自動適用不可。",
+        "opening_rule": "避難情報発令時の必ず開設を意味しない。"
+      }
     },
     {
       "region_name": "愛知県名古屋市",
@@ -122,8 +185,8 @@
       "publisher": "名古屋市",
       "source_format": "Excel (.xls) / PDF",
       "published_at": null,
-      "updated_at": "2026-07-27",
-      "source_reference_date": "2026-07-01",
+      "updated_at": "2026-10-07",
+      "source_reference_date": "2026-09-01",
       "fetched_at": "2026-10-06",
       "license": "CC BY 4.0",
       "official_meaning": "指定緊急避難場所は災害種類ごとに異なり、屋内施設一覧に洪水・内水、高潮、土砂、津波等の列と指定避難所列を掲載。",
@@ -156,8 +219,12 @@
       "limitations": [
         "洪水・内水は結合列であり、A側でfloodとinland_floodの独立2値へ分解しない。",
         "現行D shelter_locationは16区別の屋内施設Excelのみを対象とし、屋外施設は現行Dataset scope外。",
-        "記号・階数をA側で安全/危険booleanへ変換しない。"
-      ]
+        "記号・階数をA側で安全/危険booleanへ変換しない。",
+        "公式HTMLの更新日・一覧基準日は更新したが、2026-07-01時点と2026-09-01時点の全ファイル内容差分は検証していない。"
+      ],
+      "page_verified_at": "2026-10-08",
+      "source_verification_note": "市公式HTMLに『更新日 2026年10月7日』『一覧表（令和8年9月1日時点）』と明記。16区屋内Excelが公開され、屋外施設は別掲載。",
+      "original_content_changed_since_previous_handoff": null
     }
   ],
   "d_handoff": {
@@ -167,7 +234,9 @@
       "join不能・曖昧joinを推測で確定しない。",
       "江戸川の使用可能階数と名古屋の洪水・内水指定を同義化しない。",
       "名古屋の洪水・内水をfloodとinland_floodの独立判定へ分割しない。",
-      "新潟の明示的な災害種別列以外から洪水可否を補完しない。"
+      "新潟の明示的な災害種別列以外から洪水可否を補完しない。",
+      "新潟の2階以上/3階以上/全階可を未情報として消去せず、公式rawの利用階条件として保持する。",
+      "新潟の×/○/－は他の災害欄の記号定義を流用せず、現行ODS CSV固有の意味の確認を要する。"
     ],
     "null_unknown_rules": [
       "公式Sourceで確認できない値はnull。",
@@ -178,8 +247,8 @@
   "unresolved": [
     {
       "item": "formal requirement code",
-      "status": "HUMAN_OR_D_DECISION",
-      "detail": "shelter_hazard_applicabilityはA提案名。正式codeはD/shared contract側で決定する。"
+      "status": "FORMALIZED_IN_D_ROLE_BRANCH_NOT_MAIN",
+      "detail": "A提案名 shelter_hazard_applicability はD PR #41でScenario-local Requirementとして採用（role/d-pipelineのみ）。共通/legacy Contractへの正式統合判断は別。"
     },
     {
       "item": "Edogawa semantic mapping",
@@ -205,6 +274,24 @@
       "item": "real-time opening state",
       "status": "OUT_OF_SCOPE",
       "detail": "静的Evidenceから開設状況を推測しない。"
+    },
+    {
+      "item": "Niigata ODS 災害種別_洪水 marker semantics",
+      "status": "SOURCE_TO_CSV_MAPPING_UNVERIFIED",
+      "detail": "C raw CSVには○16/×239/2階以上173/3階以上9/全階可74/－55。2026年3月修正版公式洪水ハザードマップは階数表記・河川別非開設を説明するが、ODS CSV列へ適用する正式対応表は未確認。D/Cで条件付き利用情報・×と－の扱いを決める必要がある。"
+    },
+    {
+      "item": "Nagoya workbook temporal comparison",
+      "status": "NOT_VERIFIED",
+      "detail": "現行ページ更新日2026-10-07/一覧基準日2026-09-01を公式HTMLで確認。旧2026-07-01時点版との行差分は比較していない。"
     }
-  ]
+  ],
+  "verification_revision": {
+    "revision_date": "2026-10-08",
+    "scope": "Niigata ODS official marker evidence, C raw CSV audit, Nagoya page update/source reference date",
+    "report_path": "data-research/scenarios/2026-10-08-flood-source-reverification.md",
+    "source_policy": "Do not treat the 2026 city hazard-map legend as a verified mapping for every value in the ODS 災害種別_洪水 CSV column.",
+    "local_raw_audit": "C user-executed 2026-10-08, all 3 regions PASSED; not A independent download",
+    "provider_implementation": "D PR #41 merged into role/d-pipeline; scenario-local shelter_hazard_applicability adopted there, main integration pending"
+  }
 }

@@ -1,10 +1,11 @@
 # Flood Shelter Selection — A Evidence / Scenario Requirement
 
 - Role: A / Data Research / Evidence
-- Review date: 2026-10-06
+- Original review date: 2026-10-06
+- Latest A evidence re-verification: **2026-10-08** — details: [2026-10-08-flood-source-reverification.md](2026-10-08-flood-source-reverification.md)
 - Scenario ID: `flood_shelter_selection`
 - Scenario Name: Flood Shelter Selection / 洪水時の避難候補探索
-- Status: A proposal for D implementation; not a formal shared Contract yet
+- Status: A's original proposal is retained; D adopted `shelter_hazard_applicability` as a **Scenario-local** requirement in PR #41 (merged to `role/d-pipeline`, not yet `main`). Shared/legacy Contract adoption is a separate decision.
 - Existing formal requirement: `shelter_location`
 - Current RegionExport schema: 0.9
 
@@ -219,8 +220,8 @@ CSV / machine-readable.
 
 `AVAILABLE`
 
-ただしAは現在の個別CSVの全raw値を再ダウンロードして列値分布まで独立再集計していない。
-Dはraw markerを保持し、標準定義以上の意味を推測しないこと。
+2026-10-08にC側の独立監査をユーザーが実行し、公式raw CSVの566行の値とD RegionExportの一致を確認した（A独立ダウンロードではない）。生値は `○`16、`×`239、`2階以上`173、`3階以上`9、`全階可`74、`－`55。**これはraw行の一致であり、災害別の公式記号意味の認定とは異なる。**
+2026年3月修正版・新潟市の洪水ハザードマップは全階可／○階以上／当該河川洪水時の `－` 非開設の意味を明示するが、**河川別ハザードマップの凡例とODS CSV `災害種別_洪水` の対応は未確認**。詳細は2026-10-08 Evidence追補を参照。
 
 **Publisher**
 
@@ -309,11 +310,11 @@ Current Scenario joinability is strong for the 16 indoor files already used by D
 
 **updated_at**
 
-2026-07-27
+2026-10-07（2026-10-08に公式ページ再確認）
 
 **list reference date**
 
-2026-07-01時点
+2026-09-01時点（名古屋市公式の『令和8年9月1日時点』）
 
 **published_at**
 
@@ -362,9 +363,9 @@ A does not require D to adopt this exact shared Schema. The following is an impl
 
 ## 9. Unknown / unresolved before D finalizes evaluation rules
 
-1. **Requirement code is not formal yet**
-   - `shelter_hazard_applicability` is an A proposal.
-   - D / shared Contract owner must formalize the final code.
+1. **Requirement code has been adopted for the D Scenario-local model**
+   - `shelter_hazard_applicability` originated as A proposal; D PR #41 adopted it in `role/d-pipeline`.
+   - This is not proof that the legacy `DatasetAssessment → Capability → Gap` or `main` has adopted the same formal code; shared consumer integration must be decided separately.
 
 2. **Edogawa semantic mapping**
    - 「水害時の待避施設 / 使用可能階数」を、Flood Shelter Selectionの必須Requirementとしてどのように評価するかはD/C側のルール決定が必要。
@@ -401,3 +402,12 @@ Scenario
 `shelter_hazard_applicability` を採用する場合も、hazard-specific raw factsを保持することで flood / landslide / tsunami / storm_surge 等へ拡張しやすい。
 
 ただしAは今回、新しいshared Schema・RegionExport構造・Capabilityを実装しない。
+
+## 11. 2026-10-08 A Evidence follow-up
+
+今回の公式情報再確認の詳細は [2026-10-08-flood-source-reverification.md](2026-10-08-flood-source-reverification.md) を参照。
+
+- 新潟：現行ODSカタログ更新日は2026-09-25。C監査により raw値6種類・計566行の対応を確認（Cユーザーローカル実行結果）。公式洪水ハザードマップの「利用階・開設」の凡例とODS列の正式対応が未確認であることを明記。
+- 名古屋：公式HTML更新日2026-10-07、一覧基準日2026-09-01。16区屋内が現行D scope、屋外は別データ。旧版と最新Excelの差分は推測しない。
+- 江戸川：既存 PARTIAL join、施設単位Source行未照合という制約は変更せず。
+- Aが算定するのはEvidenceであり、CANDIDATE/EXCLUDED/UNKNOWN、Capability、Gapの判定規則はD/C側の責務。
