@@ -68,6 +68,12 @@ let autoLoadSequence = 0;
 let autoLoadAbortController = null;
 let facilityListQuery = "";
 let facilityListPage = 0;
+let selectedOrigin = null;
+let choosingOrigin = false;
+let originMarker = null;
+let verifiedFloodCatalog = null;
+let catalogLoadSequence = 0;
+
 const externalTileWarnings = new Set();
 
 function currentRegion() {
@@ -219,6 +225,90 @@ function setFacilityListMode(summary) {
     ? "位置は未確認ですが、施設一覧を検索できます"
     : "表示範囲を確定できません";
   if (active) renderFacilityList();
+}
+
+const FLOOD_CATALOG_URL = "../../pipeline/data/output/edogawa_flood_site_catalog.json";
+
+function renderReferenceDiscovery() {
+  const result = document.getElementById("floodDiscoveryResults");
+  if (selectedRegionCode !== "13123") {
+    result.innerHTML = "<p>この参考探索の中間発表デモは江戸川区のみを対象としています。他地域に洪水指定がないことを意味しません。</p>";
+    return;
+  }
+  const engine = window.HINANEX_FLOOD_DISCOVERY;
+  if (!engine) {
+    result.textContent = "洪水指定場所の参照モジュールを読み込めません。";
+    return;
+  }
+  const discovery = engine.discoverReferenceSites(verifiedFloodCatalog, selectedOrigin);
+  if (discovery.status !== "REFERENCE_ONLY") {
+    result.innerHTML = `<p class="reference-warning">${escapeHtml(discovery.message)}</p>`;
+    return;
+  }
+  const cards = discovery.sites.map((site) => {
+    const url = safeExternalUrl(site.sourceUrl);
+    const urlEl = url
+      ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">国土地理院の公式rawタイルを確認</a>`
+      : "";
+    return `<div class="reference-result"><strong>${escapeHtml(site.name)}</strong>` +
+      `<span class="distance">直線距離：${escapeHtml(site.distanceMetres.toLocaleString("ja-JP"))}m（経路距離ではありません）</span>` +
+      `<span class="trace">Source行：${escapeHtml(displayValue(site.trace))}</span>${urlEl}</div>`;
+  }).join("");
+  result.innerHTML = `<p>公式の洪水指定掲載地点：${discovery.total}件（直線距離の近い順に最大5件を表示）。<strong>行くべき順ではありません。</strong></p>` +
+    (cards || '<p>この照合済みデータ内に対象施設はありません。自治体の指定不存在は断定できません。</p>');
+}
+
+function clearReferenceDiscovery() {
+  catalogLoadSequence += 1; // stale async JSON may not update a different region
+  choosingOrigin = false;
+  selectedOrigin = null;
+  verifiedFloodCatalog = null;
+  if (originMarker) map.removeLayer(originMarker);
+  originMarker = null;
+  document.getElementById("originStatus").textContent = "位置は未選択です";
+  const available = selectedRegionCode === "13123";
+  document.getElementById("selectOrigin").disabled = !available;
+  document.getElementById("useGps").disabled = !available;
+  renderReferenceDiscovery();
+}
+
+async function loadFloodReferenceCatalog() {
+  const sequence = ++catalogLoadSequence;
+  verifiedFloodCatalog = null;
+  renderReferenceDiscovery();
+  try {
+    // Deliberately no latitude/longitude in request URL/body/headers.
+    const response = await fetch(FLOOD_CATALOG_URL, { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const catalog = await response.json();
+    if (sequence !== catalogLoadSequence || selectedRegionCode !== "13123") return;
+    verifiedFloodCatalog = catalog;
+  } catch (_) {
+    if (sequence !== catalogLoadSequence) return;
+    verifiedFloodCatalog = null; // no fallback to unverified shelter_location
+  }
+  if (sequence === catalogLoadSequence) renderReferenceDiscovery();
+}
+
+function setReferenceOrigin(latitude, longitude) {
+  if (selectedRegionCode !== "13123" ||
+      !Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+      Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+    return;
+  }
+  choosingOrigin = false;
+  selectedOrigin = { latitude, longitude };
+  if (originMarker) map.removeLayer(originMarker);
+  originMarker = L.marker([latitude, longitude], {
+    icon: L.divIcon({
+      className: "",
+      html: '<div class="reference-origin-marker" aria-label="選択された出発地点">◎</div>',
+      iconSize: [28, 28]
+    })
+  }).addTo(map);
+  document.getElementById("originStatus").textContent =
+    `選択した地点：${latitude.toFixed(5)}, ${longitude.toFixed(5)}（端末内だけで使用）`;
+  loadFloodReferenceCatalog();
 }
 
 function showRegionWaitingDetail() {
@@ -495,6 +585,7 @@ function fitCurrentRegion() {
 function selectRegion(regionCode) {
   if (!REGION_CONFIGS[regionCode]) throw new Error(`Unsupported region: ${regionCode}`);
   selectedRegionCode = regionCode;
+  clearReferenceDiscovery();
   document.getElementById("resetView").textContent = `${currentRegion().label}の表示範囲へ`;
   clearShelters();
   const hasBoundary = renderReferenceBoundary();
@@ -547,6 +638,29 @@ document.getElementById("facilityListNext").addEventListener("click", () => {
   renderFacilityList();
 });
 
+document.getElementById("selectOrigin").addEventListener("click", () => {
+  if (selectedRegionCode !== "13123") return;
+  choosingOrigin = true;
+  document.getElementById("originStatus").textContent = "地図上の出発地点をクリックしてください。";
+});
+document.getElementById("useGps").addEventListener("click", () => {
+  if (selectedRegionCode !== "13123") return;
+  if (typeof navigator === "undefined" || !navigator.geolocation) {
+    document.getElementById("originStatus").textContent =
+      "この環境では位置情報を使えません。地図をクリックして地点を指定してください。";
+    return;
+  }
+  document.getElementById("originStatus").textContent = "位置情報の許可を確認しています…";
+  navigator.geolocation.getCurrentPosition(
+    position => setReferenceOrigin(position.coords.latitude, position.coords.longitude),
+    () => {
+      document.getElementById("originStatus").textContent =
+        "位置情報を利用できませんでした。地図をクリックして地点を指定してください。";
+    },
+    { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }
+  );
+});
+
 document.getElementById("resetView").addEventListener("click", fitCurrentRegion);
 document.getElementById("autoLoad").addEventListener("click", tryAutoLoad);
 regionSelect.addEventListener("change", event => selectRegion(event.target.value));
@@ -570,6 +684,10 @@ document.getElementById("regionExportFile").addEventListener("change", async eve
 });
 
 map.on("click", event => {
+  if (choosingOrigin && selectedRegionCode === "13123") {
+    setReferenceOrigin(event.latlng.lat, event.latlng.lng);
+    return;
+  }
   if (!map.hasLayer(officialFloodLayer)) return;
   const { lat, lng } = event.latlng;
   detail(
