@@ -78,3 +78,5 @@ git worktree add --detach ..\HINANEX-Accept origin/integration/flood-scenario-pr
 全工程が通ったあと、**新しいプレビューworktreeのみ**へ表示用JSONを配置する場合は最後のコマンドに -PublishPreview を追加します。公開先に既存ファイルがあれば上書きせずエラーにします。mainへのGitマージや実運用配信は行いません。
 
 この一括PASSでも、B frontendテストと実ブラウザのGPS許可/拒否・地域切替・施設元情報・コンソールの受入作業は残ります。施設の自治体所属、避難適合性、安全経路、開設状況を認定しません。
+
+CI checks the PowerShell script grammar using PowerShell Core when available; this does **not** execute the real HTTPS request or Windows browser tests. Local run logs and acceptance JSON must be inspected separately before release.
