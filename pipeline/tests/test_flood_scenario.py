@@ -33,14 +33,14 @@ class FloodScenarioTests(unittest.TestCase):
         facts = niigata_facts(dataset, raw)
         scenario = evaluate_flood_scenario(dataset, facts)
         self.assertEqual([item.status for item in scenario.facility_results], [
-            FacilityScenarioStatus.CANDIDATE,
-            FacilityScenarioStatus.EXCLUDED,
+            FacilityScenarioStatus.UNKNOWN,
+            FacilityScenarioStatus.UNKNOWN,
             FacilityScenarioStatus.UNKNOWN,
         ])
         self.assertEqual([item.fact.official_status_raw for item in scenario.facility_results], ["○", "×", "－"])
         self.assertEqual(facts[0].join_status, ScenarioJoinStatus.DIRECT_SAME_SOURCE)
         self.assertEqual(facts[0].source_record_trace, "csv_row=2")
-        self.assertEqual(scenario.status, CapabilityStatus.DEGRADED)
+        self.assertEqual(scenario.status, CapabilityStatus.UNKNOWN)
         self.assertEqual(scenario.requirement_assessment.discovery_status, DiscoveryStatus.AVAILABLE)
         self.assertEqual(scenario.requirement_assessment.raw_value_count, 3)
 
@@ -62,8 +62,8 @@ class FloodScenarioTests(unittest.TestCase):
                          [None, None, "2階以上", "3階以上", "全階可", None])
         scenario = evaluate_flood_scenario(dataset, facts)
         self.assertEqual([item.status for item in scenario.facility_results], [
-            FacilityScenarioStatus.CANDIDATE,
-            FacilityScenarioStatus.EXCLUDED,
+            FacilityScenarioStatus.UNKNOWN,
+            FacilityScenarioStatus.UNKNOWN,
             FacilityScenarioStatus.UNKNOWN,
             FacilityScenarioStatus.UNKNOWN,
             FacilityScenarioStatus.UNKNOWN,
@@ -73,10 +73,23 @@ class FloodScenarioTests(unittest.TestCase):
             self.assertEqual(item.fact.usable_floor_raw, item.fact.official_status_raw)
             self.assertIn("階", item.reason)
             self.assertIn("条件", item.reason)
-        self.assertEqual(scenario.status, CapabilityStatus.DEGRADED)
+        self.assertEqual(scenario.status, CapabilityStatus.UNKNOWN)
         reloaded = type(scenario).model_validate_json(scenario.model_dump_json())
         self.assertEqual([item.fact.usable_floor_raw for item in reloaded.facility_results],
                          [None, None, "2階以上", "3階以上", "全階可", None])
+
+    def test_niigata_explicit_symbols_are_not_interpreted_without_city_dictionary(self):
+        dataset, raw = self.niigata_fixture()
+        facts = niigata_facts(dataset, raw)
+        scenario = evaluate_flood_scenario(dataset, facts)
+        for item in scenario.facility_results:
+            self.assertEqual(item.status, FacilityScenarioStatus.UNKNOWN)
+            self.assertIn("未確認", item.reason)
+        self.assertEqual(scenario.requirement_assessment.discovery_status, DiscoveryStatus.AVAILABLE)
+        self.assertEqual(scenario.requirement_assessment.raw_value_count, 3)
+        self.assertEqual(scenario.status, CapabilityStatus.UNKNOWN)
+        self.assertEqual(scenario.facility_results[0].fact.official_status_raw, "○")
+        self.assertEqual(scenario.facility_results[1].fact.official_status_raw, "×")
 
     def test_niigata_source_mismatch_fails_closed(self):
         dataset, raw = self.niigata_fixture()

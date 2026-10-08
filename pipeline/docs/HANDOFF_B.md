@@ -52,3 +52,8 @@ JSON Schemaは `contracts/region_export.schema.json` を参照してください
 `RegionExport.scenarios[]` は位置探索とは別の任意データです。存在する場合のみ `scenario_id=flood_shelter_selection` の `facility_results` と `fact.official_status_raw` / `reason` / `source_url` を説明表示できます。`CANDIDATE` は安全保証、`EXCLUDED` は危険認定ではありません。`UNKNOWN` は候補外へ変換禁止です。最終仕様は `docs/FLOOD_SCENARIO_CONTRACT.md`。
 
 **新潟市の利用階raw情報（A #43/D追加）**: `fact.usable_floor_raw` が `2階以上` / `3階以上` / `全階可` の場合、**Scenario status は UNKNOWN のまま**です。これは公式CSVに記載された生の階数表現であり、無条件に利用可能、安全、現在開設中を意味しません。UIでは `UNKNOWN` を隠して「利用不可」と表示せず、元の値・公式出典・意味論未検証の注意をセットで表示してください。`○/×/－`の現行ODS固有意味はA/C確認待ちです。
+
+
+### 新潟市ODSの判定保留（Issue #48）
+
+Dの新しい保守的な出力では、公式CSVの `○`、`×`、`－` も `UNKNOWN` です。前版の `16 CANDIDATE / 239 EXCLUDED` は**現在の判定ではありません**。CSVの記号をB側で再分類せず、`公式記号の意味を確認中` と明示して公式raw値・`usable_floor_raw`・出典URL・説明を表示してください。施設の現時点の安全性や開設状況についての断定表示は禁止です。
