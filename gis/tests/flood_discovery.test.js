@@ -36,7 +36,7 @@ assert.equal(discoverReferenceSites(catalog([site("0", 35.7, 139.9)]), null).sta
 assert.equal(discoverReferenceSites({ ...catalog([site("0", 35.7, 139.9)]), source_status: "PENDING" }, point).sites.length, 0);
 assert.equal(discoverReferenceSites({ ...catalog([site("0", 35.7, 139.9)]), region_code: "15100" }, point).sites.length, 0);
 
-const full = catalog(Array.from({ length: 10 }, (_, i) => site(String(i), 35.7 + i / 100, 139.9)));
+const full = catalog(Array.from({ length: 10 }, (_, i) => site(String(i), 35.7 + i / 1000, 139.9)));
 const ranked = discoverReferenceSites(full, point);
 assert.equal(ranked.status, "REFERENCE_ONLY");
 assert.equal(ranked.total, 10);
