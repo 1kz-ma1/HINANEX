@@ -64,3 +64,29 @@ python -m unittest tests.test_flood_site_reference -v
 python -m unittest discover -s tests -v
 ```
 公式rawでの結合試験・C検証・実端末動作は上記単体テストに含まない。
+
+## 2026-10-09 GSI source normalization and C gate workflow
+
+The official GSI tile specification declares `properties.name`, `address`, `remarks`, and **integer `disaster1=1`** for a flood-designated emergency evacuation place. This D parser reads those explicit source fields, the original GeoJSON Point coordinate order **[longitude, latitude]**, the physical `feature_index=N`, and SHA256 without interpreting local municipal markers.
+
+A generated `source_feature_key` is `{source_url}#feature_index=N`, a deterministic **source trace key, not an official municipality-assigned facility ID**. The `search_context_region_code` identifies the HINANEX demo search region, **not** the municipality where an original feature belongs (the GSI tile may cross borders).
+
+Run after obtaining the archived source bytes from the official server. Example single tile URL below is **illustrative, not a claim of full Edogawa coverage or verified facilities**.
+
+```powershell
+cd C:\HINANEX-Preview
+$gsiUrl = 'https://cyberjapandata.gsi.go.jp/xyz/skhb01/10/909/403.geojson'
+$raw = '.\pipeline\data\raw\gsi_flood_tile.geojson'
+New-Item -ItemType Directory -Force '.\pipeline\data\raw' | Out-Null
+Invoke-WebRequest -Uri $gsiUrl -OutFile $raw
+
+& 'C:\HINANEX\pipeline\.venv\Scripts\python.exe' .\pipeline\prepare_gsi_flood_tile.py --region 13123 --raw $raw --source-url $gsiUrl --out .\pipeline\data\verified\edogawa_gsi_flood_records.json
+& 'C:\HINANEX\pipeline\.venv\Scripts\python.exe' .\validation\validation\verify_gsi_flood_source.py --region 13123 --raw $raw --source-url $gsiUrl --records .\pipeline\data\verified\edogawa_gsi_flood_records.json --acceptance-out .\pipeline\data\verified\edogawa_gsi_flood_c_acceptance.json
+
+cd .\pipeline
+& 'C:\HINANEX\pipeline\.venv\Scripts\python.exe' .\run_verified_flood_site_reference.py --region 13123 --raw .\data\raw\gsi_flood_tile.geojson --records .\data\verified\edogawa_gsi_flood_records.json --c-acceptance .\data\verified\edogawa_gsi_flood_c_acceptance.json --out .\data\output\edogawa_flood_site_catalog.json
+```
+
+If the raw tile is missing/empty/unrecognized, do not create fake records. The strict C validator rejects empty or malformed source data. Keep the real download URL/time/HTTP success and SHA256 for independent A/C review. Official municipality update date and data completeness remain external release gates. To cover multiple tiles, use a separately verified multi-tile provider; do not pretend this single-tile exporter covers the whole region.
+
+The C checker above lives in PR #64 and must be integrated in the local worktree (along with D #63) before running this example. Its PASS means **raw row equality**, not authentication of the HTTPS acquisition nor suitability/current opening.
