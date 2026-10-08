@@ -10,7 +10,7 @@ Scenario: `flood_shelter_selection` / 洪水時の避難候補探索.
 
 ## Workflow
 
-Run `python run_all_workflows.py` from `pipeline/`. The three old municipal workflows archive the exact official CSV/Excel inputs first. The new `run_flood_scenario.py` reads **those same archived bytes** and existing `data/normalized/*_shelters.json` files, then produces:
+Run `python run_all_workflows.py` from `pipeline/`, then `python verify_flood_scenario.py` to check all three exported scenario contracts and their safety boundaries. The three old municipal workflows archive the exact official CSV/Excel inputs first. The new `run_flood_scenario.py` reads **those same archived bytes** and existing `data/normalized/*_shelters.json` files, then produces:
 
 - `data/normalized/edogawa_flood_scenario.json`
 - `data/normalized/niigata_flood_scenario.json`
