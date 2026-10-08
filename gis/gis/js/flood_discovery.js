@@ -58,6 +58,14 @@
     }
     if (!catalog || catalog.status !== "REFERENCE_ONLY" ||
         catalog.source_status !== "C_ACCEPTED" ||
+        // The D exporter introduced a separate official-HTTPS replay gate in #72.
+        // A previously generated C-only JSON must no longer be displayable.
+        catalog.https_provenance_status !== "MATCH" ||
+        typeof catalog.https_provenance_checked_at_utc !== "string" ||
+        !/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$/.test(catalog.https_provenance_checked_at_utc) ||
+        !Number.isFinite(Date.parse(catalog.https_provenance_checked_at_utc)) ||
+        !Number.isInteger(catalog.total_source_records) ||
+        catalog.total_source_records !== catalog.sites?.length ||
         catalog.catalog_kind !== "flood_designated_emergency_site_reference" ||
         catalog.hazard !== "flood" || catalog.region_code !== "13123" ||
         !Array.isArray(catalog.sites) ||
