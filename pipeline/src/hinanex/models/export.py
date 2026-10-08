@@ -6,6 +6,7 @@ from src.hinanex.models.assessment import DatasetAssessment
 from src.hinanex.models.capability import CapabilityAssessment
 from src.hinanex.models.common import NormalizedDataset
 from src.hinanex.models.gap import GapItem, Recommendation
+from src.hinanex.models.scenario import ScenarioResult
 from src.hinanex.version import CONTRACT_SCHEMA_VERSION
 
 
@@ -51,4 +52,5 @@ class RegionExport(BaseModel):
     capabilities: list[CapabilityAssessment] = Field(default_factory=list)
     gaps: list[GapItem] = Field(default_factory=list)
     recommendations: list[Recommendation] = Field(default_factory=list)
+    scenarios: list[ScenarioResult] = Field(default_factory=list)
     meta: ExportMeta

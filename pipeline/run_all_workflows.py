@@ -9,6 +9,7 @@ from generate_contract_schema import generate_schema
 from run_edogawa import main as run_edogawa
 from run_nagoya_workflow import main as run_nagoya
 from run_niigata_workflow import main as run_niigata
+from run_flood_scenario import main as run_flood_scenario
 from validate_region_contracts import validate_contracts
 from src.hinanex.version import PROJECT_RELEASE
 
@@ -32,6 +33,8 @@ def main() -> None:
 
     _run_stage("Niigata / full workflow", run_niigata)
     _run_stage("Nagoya / full workflow", run_nagoya)
+
+    _run_stage("Flood Shelter Selection / 3-region scenario", run_flood_scenario)
 
     _run_stage("Build B/C region contracts", build_contracts)
     _run_stage("Validate B/C region contracts", validate_contracts)

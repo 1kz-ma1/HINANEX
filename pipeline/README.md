@@ -12,7 +12,7 @@ HINANEX は、自治体ごとに形式の異なる防災データを取得・正
 | 新潟県新潟市 | `15100` | 自治体標準ODS系CSV |
 | 愛知県名古屋市 | `23100` | 16区別の屋内施設Excelのみを統合 / 機械可読座標なし |
 
-現在の縦スライスは `shelter_location -> Shelter Discovery` です。
+既存の縦スライスは `shelter_location -> Shelter Discovery` です。加えて、A PR #37を受けてScenario-local `shelter_hazard_applicability -> flood_shelter_selection` を **任意の `RegionExport.scenarios[]`** として追加しています。従来の位置データ品質・Capability判定は変更しません。Scenarioの仕様と未解決事項は [`docs/FLOOD_SCENARIO_CONTRACT.md`](docs/FLOOD_SCENARIO_CONTRACT.md) を参照してください。
 
 ```text
 公式データ

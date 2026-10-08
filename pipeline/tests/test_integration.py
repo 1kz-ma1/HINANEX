@@ -21,6 +21,10 @@ from src.hinanex.models.capability import (
 )
 from src.hinanex.models.common import Criticality, Evidence, NormalizedDataset
 from src.hinanex.models.export import ExportMeta, RegionExport, RegionInfo
+from src.hinanex.models.scenario import (
+    FacilityScenarioResult, FacilityScenarioStatus, HazardFact,
+    ScenarioJoinStatus, ScenarioRequirementAssessment, ScenarioResult,
+)
 
 
 NOW = datetime(2026, 9, 27, tzinfo=timezone.utc)
@@ -147,6 +151,96 @@ class IntegrationContractTests(unittest.TestCase):
         export.meta.assessment_count = 0
         errors = validate_region_export(export, region_key="edogawa")
         self.assertTrue(any("dataset without assessment" in item for item in errors))
+
+    def test_scenario_unverified_facility_cannot_be_candidate(self) -> None:
+        export = make_export()
+        export.scenarios = [ScenarioResult(
+            region_code="13123", region_name="東京都江戸川区",
+            requirement_assessment=ScenarioRequirementAssessment(
+                discovery_status=DiscoveryStatus.PARTIAL,
+                record_count=1, directly_joined_count=0, raw_value_count=0,
+                reason="test",
+            ),
+            status=CapabilityStatus.FULL,
+            facility_results=[FacilityScenarioResult(
+                facility_id="s1", status=FacilityScenarioStatus.CANDIDATE,
+                reason="unsafe",
+                fact=HazardFact(
+                    facility_id="s1", facility_name="Shelter A",
+                    hazard_scope_raw="水害", source_semantics="test",
+                    official_status_raw=None, source_url="https://example.test",
+                    join_status=ScenarioJoinStatus.UNVERIFIED,
+                    latitude=35.7, longitude=139.8,
+                ),
+            )],
+            evaluated_at=NOW,
+        )]
+        errors = validate_region_export(export)
+        self.assertTrue(any("unverified join classified" in x for x in errors))
+        self.assertTrue(any("non-flood scope classified" in x for x in errors))
+
+    def test_scenario_must_reference_location_ids(self) -> None:
+        export = make_export()
+        export.scenarios = [ScenarioResult(
+            region_code="13123", region_name="東京都江戸川区",
+            requirement_assessment=ScenarioRequirementAssessment(
+                discovery_status=DiscoveryStatus.PARTIAL,
+                record_count=1, directly_joined_count=0, raw_value_count=0,
+                reason="test",
+            ),
+            status=CapabilityStatus.UNKNOWN,
+            facility_results=[FacilityScenarioResult(
+                facility_id="unknown-id", status=FacilityScenarioStatus.UNKNOWN,
+                reason="not joined",
+                fact=HazardFact(
+                    facility_id="unknown-id", facility_name="Unknown",
+                    hazard_scope_raw="水害", source_semantics="test",
+                    source_url="https://example.test",
+                    join_status=ScenarioJoinStatus.UNVERIFIED,
+                ),
+            )],
+            evaluated_at=NOW,
+        )]
+        errors = validate_region_export(export)
+        self.assertTrue(any("does not trace exactly" in x for x in errors))
+
+    def test_scenario_floor_raw_cannot_be_altered_or_classified_prematurely(self) -> None:
+        export = make_export()
+        scenario = ScenarioResult(
+            region_code="13123", region_name="東京都江戸川区",
+            requirement_assessment=ScenarioRequirementAssessment(
+                discovery_status=DiscoveryStatus.AVAILABLE,
+                record_count=1, directly_joined_count=1, raw_value_count=1,
+                reason="raw verified",
+            ),
+            status=CapabilityStatus.UNKNOWN,
+            facility_results=[FacilityScenarioResult(
+                facility_id="s1", status=FacilityScenarioStatus.UNKNOWN,
+                reason="ODS semantic mapping pending",
+                fact=HazardFact(
+                    facility_id="s1", facility_name="Shelter A",
+                    hazard_scope_raw="災害種別_洪水",
+                    source_semantics="original CSV flood column",
+                    official_status_raw="2階以上",
+                    usable_floor_raw="2階以上",
+                    source_url="https://example.test/data.csv",
+                    source_record_trace="csv_row=2",
+                    join_status=ScenarioJoinStatus.DIRECT_SAME_SOURCE,
+                    latitude=35.7, longitude=139.8,
+                ),
+            )],
+            evaluated_at=NOW,
+        )
+        export.scenarios = [scenario]
+        self.assertEqual(validate_region_export(export), [])
+        fact = scenario.facility_results[0].fact
+        fact.usable_floor_raw = "3階以上"
+        self.assertTrue(any("floor raw differs" in x for x in validate_region_export(export)))
+        fact.usable_floor_raw = "2階以上"
+        scenario.facility_results[0].status = FacilityScenarioStatus.CANDIDATE
+        scenario.status = CapabilityStatus.FULL
+        self.assertTrue(any("floor restriction was classified" in x
+                            for x in validate_region_export(export)))
 
     def test_manifest_summarizes_traceability(self) -> None:
         export = make_export()
