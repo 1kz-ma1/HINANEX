@@ -28,8 +28,8 @@ EXPECTED_REGIONS = {
 NIIGATA_RAW = PIPE / "data/raw/niigata/niigata_evacuation_space.csv"
 NAGOYA_RAW = PIPE / "data/raw/nagoya/nagoya_indoor_shelters_bundle.zip"
 ALLOWED_STATUS = {"CANDIDATE", "EXCLUDED", "UNKNOWN"}
-KNOWN_POSITIVE = {"1", "○", "〇", "true", "yes", "可", "有"}
-KNOWN_NEGATIVE = {"0", "×", "false"}
+# C does not deduce flood applicability from symbols without official A
+# column-specific semantics. See HINANEX Issue #48.
 # Raw text only; these are not unconditional flood eligibility classifications.
 NIIGATA_FLOOR_MARKERS = {"2階以上", "3階以上", "全階可"}
 
@@ -109,16 +109,12 @@ def check_niigata(scenario: dict, locations: dict):
                 "Niigata Scenario source URL differs from location Evidence")
         status = result["status"]
         require(status in ALLOWED_STATUS, "Niigata Scenario status invalid")
-        marker = raw.lower()
-        if status == "CANDIDATE":
-            require(marker in KNOWN_POSITIVE, "Candidate lacks documented positive marker")
-            require(fact["latitude"] is not None and fact["longitude"] is not None,
-                    "Candidate lacks official location coordinates")
-        if status == "EXCLUDED":
-            require(marker in KNOWN_NEGATIVE, "Excluded lacks documented negative marker")
-        if status == "UNKNOWN":
-            require(marker not in KNOWN_NEGATIVE or fact["join_status"] != "DIRECT_SAME_SOURCE",
-                    "Known negative marker was unexpectedly UNKNOWN")
+        # Preserve every official raw symbol, but do not endorse a D status
+        # inferred from unverified ODS markers. This independent C gate must
+        # fail if "○"/"×" start being classified again without source approval.
+        require(status == "UNKNOWN",
+                f"Niigata unverified ODS marker classified near physical line "
+                f"{physical_line}: raw={raw!r}, status={status!r}")
     print("Niigata original raw-value histogram:", dict(sorted(raw_histogram.items())))
     print("Niigata raw floor conditions independently verified:",
           sum(raw_histogram[x] for x in NIIGATA_FLOOR_MARKERS))

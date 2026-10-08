@@ -165,3 +165,15 @@ After correcting the Windows test fixture's CRLF double-translation, the user re
 **User-confirmed result: all six tests OK.** The suite covers two Nagoya raw normalization/mismatch tests, three Niigata floor-raw fail-closed cases and one physical CSV-line-number regression. This is user-reported passing execution; a copy of the entire successful terminal output was not provided.
 
 **C branch acceptance for the implemented D #44 raw-fact preservation and traceability: PASS.** The C PR may be merged **to `role/c-validation` only**. The broader flood Scenario release remains **CONDITIONAL / NEEDS_REVIEW**, specifically ODS-specific official marker semantics and B/E/Shared Contract integration; this does not authorize merging to `main` or declaring shelters safe.
+
+## 10. Issue #48 interim fail-closed policy — D #49 / C follow-up
+
+D [PR #49](https://github.com/1kz-ma1/HINANEX/pull/49) merged into `role/d-pipeline` with GitHub CI #122 SUCCESS. A's city-specific ODS `災害種別_洪水` marker definition is still not verified. The earlier D output's **16 CANDIDATE / 239 EXCLUDED** statuses are now **historical pre-#49 classifications, not approved current labels**.
+
+- **New D rule**: all current Niigata flood `facility_results[].status=UNKNOWN`, even where the raw column contains `○`, `×`, or `－`. Keep Source, original marker, coordinates, same-source ID/row and the original floor wording. The Region `Scenario.status` will be UNKNOWN; `requirement_assessment.discovery_status` may still be AVAILABLE (all original rows were read).
+- **C independent gate**: still compares all official row values, coordinates, names and floor-wording exactly, but now fails closed if a Niigata marker results in `CANDIDATE` or `EXCLUDED`. It never derives eligibility from raw symbols itself.
+- **Synthetic C regression**: all 6 raw symbols have UNKNOWN status in baseline synthetic rows; explicit `○`→CANDIDATE and `×`→EXCLUDED mutations are rejected.
+- **D GitHub CI #122** covers D changes. **New C synthetic test execution and local official raw regeneration are not yet reported.** The prior post-#44 municipal source audit PASS is a *historical raw-trace pass* under the old classification; don't claim it has verified the new all-UNKNOWN build.
+- **Release semantics remain unresolved**: [Issue #48](https://github.com/1kz-ma1/HINANEX/issues/48). No direct `main` merge is approved; A/D/C/B/E integration order, consumer Contract and Staging E2E require review.
+
+**C disposition for this limited step**: implementation of fail-closed independent checker is complete; official post-#49 output acceptance pending local user-run regeneration and audit.
