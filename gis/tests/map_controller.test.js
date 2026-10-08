@@ -433,6 +433,69 @@ nagoya.scenarios = [{
   assert.equal(acceptedCase.elements.selectOrigin.disabled, false);
   assert.doesNotMatch(acceptedCase.elements.floodDiscoveryResults.innerHTML, /&lt;unsafe&gt;/);
 
+
+  // HTTP integration: origin tile plus an independently verified adjacent
+  // official tile are combined only when the exact cell files are served.
+  const neighborSource = "https://cyberjapandata.gsi.go.jp/xyz/skhb01/10/910/403.geojson";
+  const neighborCatalog = {
+    ...officialCatalog,
+    source_raw_sha256: "b".repeat(64),
+    c_audit_reference: "C-SECOND-TILE",
+    sites: [{
+      ...officialCatalog.sites[0],
+      source_feature_key: neighborSource + "#feature_index=0",
+      source_url: neighborSource,
+      name_raw: "EAST_NEIGHBOR_ONLY",
+      latitude: 35.7, longitude: 140.1,
+      source_raw_sha256: "b".repeat(64)
+    }]
+  };
+  const multiCase = makeContext({
+    protocol: "http:",
+    fetchImpl: async url => {
+      const path = String(url);
+      if (path.includes("gsi_verified_tiles/13123/10-909-403.json")) {
+        return { ok: true, status: 200, json: async () => officialCatalog };
+      }
+      if (path.includes("gsi_verified_tiles/13123/10-910-403.json")) {
+        return { ok: true, status: 200, json: async () => neighborCatalog };
+      }
+      if (path.includes("gsi_verified_tiles/")) {
+        return { ok: false, status: 404, json: async () => ({}) };
+      }
+      return { ok: true, status: 200, json: async () => edogawa };
+    }
+  });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  multiCase.elements.selectOrigin.listeners.click();
+  multiCase.L.__map.handlers.click({ latlng: { lat: 35.7, lng: 139.9 } });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.match(multiCase.elements.floodDiscoveryResults.innerHTML, /検証済み2\/9タイル/);
+  assert.match(multiCase.elements.floodDiscoveryResults.innerHTML, /EAST_NEIGHBOR_ONLY/);
+  assert.match(multiCase.elements.floodDiscoveryResults.innerHTML, /未検証タイル/);
+  assert.match(multiCase.elements.floodDiscoveryResults.innerHTML, /直線距離/);
+
+  // A wrong tile file on the correct static path is NOT a permitted fallback.
+  const substituted = makeContext({
+    protocol: "http:",
+    fetchImpl: async url => {
+      const path = String(url);
+      if (path.includes("gsi_verified_tiles/13123/10-909-403.json")) {
+        return { ok: true, status: 200, json: async () => neighborCatalog };
+      }
+      if (path.includes("gsi_verified_tiles/")) {
+        return { ok: false, status: 404, json: async () => ({}) };
+      }
+      return { ok: true, status: 200, json: async () => edogawa };
+    }
+  });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  substituted.elements.selectOrigin.listeners.click();
+  substituted.L.__map.handlers.click({ latlng: { lat: 35.7, lng: 139.9 } });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.doesNotMatch(substituted.elements.floodDiscoveryResults.innerHTML, /EAST_NEIGHBOR_ONLY/);
+  assert.match(substituted.elements.floodDiscoveryResults.innerHTML, /独立照合待ち|未検証/);
+
   // A slow response from the previously selected region must not overwrite the new region.
   const pending = {};
   const raceCase = makeContext({
