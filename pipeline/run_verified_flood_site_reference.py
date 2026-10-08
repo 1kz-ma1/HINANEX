@@ -6,6 +6,7 @@ C HTTPS byte-replay evidence report in addition to C raw-row acceptance.
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -37,8 +38,17 @@ def require_provenance(raw: bytes, records: list[dict], acceptance: dict,
         "c_search_context_region_code": region_code,
         "feature_count": len(records),
     }
+    try:
+        checked_at = datetime.fromisoformat(evidence.get("retrieved_at_utc", ""))
+    except (ValueError, TypeError):
+        raise ValueError("HTTPS provenance retrieval timestamp invalid")
+    if checked_at.tzinfo is None or checked_at.utcoffset() != timezone.utc.utcoffset(None):
+        raise ValueError("HTTPS provenance timestamp must be UTC")
     if (
-        not isinstance(source, str)
+        type(evidence.get("http_status")) is not int
+        or type(evidence.get("bytes")) is not int
+        or type(evidence.get("feature_count")) is not int
+        or not isinstance(source, str)
         or not source.startswith("https://cyberjapandata.gsi.go.jp/xyz/skhb01/")
         or not isinstance(evidence.get("retrieved_at_utc"), str)
         or not evidence["retrieved_at_utc"]
