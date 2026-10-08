@@ -464,13 +464,13 @@
       "type": "object"
     },
     "FacilityScenarioStatus": {
-      "type": "string",
-      "title": "FacilityScenarioStatus",
       "enum": [
         "CANDIDATE",
         "EXCLUDED",
         "UNKNOWN"
-      ]
+      ],
+      "title": "FacilityScenarioStatus",
+      "type": "string"
     },
     "GapItem": {
       "additionalProperties": false,
@@ -773,12 +773,12 @@
       "type": "object"
     },
     "ScenarioJoinStatus": {
-      "type": "string",
-      "title": "ScenarioJoinStatus",
       "enum": [
         "DIRECT_SAME_SOURCE",
         "UNVERIFIED"
-      ]
+      ],
+      "title": "ScenarioJoinStatus",
+      "type": "string"
     },
     "ScenarioRequirementAssessment": {
       "additionalProperties": false,
