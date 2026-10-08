@@ -111,3 +111,63 @@ assert.throws(
 }
 
 console.log("d_region_adapter.test.js: OK");
+
+{
+  const extended = payload();
+  extended.scenarios = [{
+    scenario_id: "flood_shelter_selection",
+    region_code: "13123",
+    status: "UNKNOWN",
+    requirement_assessment: { discovery_status: "AVAILABLE" },
+    facility_results: [
+      {
+        facility_id: "test-1",
+        status: "UNKNOWN",
+        reason: "公式ODSの記号の定義を確認中",
+        fact: {
+          facility_id: "test-1",
+          official_status_raw: "○",
+          usable_floor_raw: null,
+          hazard_scope_raw: "災害種別_洪水",
+          join_status: "DIRECT_SAME_SOURCE",
+          source_record_trace: "csv_row=2",
+          source_url: "https://example.test/official.csv"
+        }
+      },
+      {
+        facility_id: "test-2",
+        status: "UNKNOWN",
+        reason: "利用階数のrawを保持",
+        fact: {
+          facility_id: "test-2",
+          official_status_raw: "2階以上",
+          usable_floor_raw: "2階以上",
+          hazard_scope_raw: "災害種別_洪水",
+          join_status: "DIRECT_SAME_SOURCE",
+          source_record_trace: "csv_row=3",
+          source_url: "https://example.test/official.csv"
+        }
+      }
+    ]
+  }];
+  const result = adapter.extractShelterLocation(extended, "13123");
+  assert.equal(result.floodScenario.status, "UNKNOWN");
+  assert.equal(result.floodScenario.discoveryStatus, "AVAILABLE");
+  assert.equal(result.floodScenario.recordCount, 2);
+  assert.equal(result.floodScenario.unknownCount, 2);
+  assert.equal(result.floodScenario.byId.get("test-2").usableFloorRaw, "2階以上");
+  assert.equal(result.mappableRecords.length, 1);
+  assert.equal(result.missingCoordinateRecords.length, 1);
+
+  extended.scenarios[0].facility_results[1].facility_id = "wrong-id";
+  assert.throws(
+    () => adapter.extractShelterLocation(extended, "13123"),
+    /facility ID exact join mismatch/
+  );
+}
+
+{
+  // A valid old RegionExport does not acquire an invented scenario.
+  const result = adapter.extractShelterLocation(payload(), "13123");
+  assert.equal(result.floodScenario, null);
+}
