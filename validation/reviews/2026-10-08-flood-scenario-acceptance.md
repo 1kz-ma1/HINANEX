@@ -123,3 +123,12 @@ The script is separate from D's own tests and implements the following:
 2. Return C-FLOOD-03 to A for fresh metadata/source reference verification.
 3. Review C-FLOOD-04 with the owner of shared RegionExport contracts before B/E consumer rollout.
 4. Merge D into main only after acceptance requirements are satisfied, and then implement B/E consumers and run cross-layer E2E in Staging. C-FLOOD-02 remains explicitly documented if partial Edogawa trace is accepted for MVP.
+
+## 6. D #44 follow-up / revalidation (2026-10-08)
+
+- [A PR #43](https://github.com/1kz-ma1/HINANEX/pull/43) merged into `role/a-data`, with official 2026-03 city flood-legend distinctions and updated Nagoya evidence dates. **ODS CSV-specific marker mapping still not established**.
+- [D PR #44](https://github.com/1kz-ma1/HINANEX/pull/44) merged into `role/d-pipeline`, CI #110 SUCCESS. For Niigata `災害種別_洪水`, D now preserves `2階以上` / `3階以上` / `全階可` in the previously existing optional `fact.usable_floor_raw` while keeping their Scenario status `UNKNOWN`.
+- The C independent validator now checks each Niigata CSV row's `usable_floor_raw` directly against the corresponding raw marker, and refuses premature eligibility classification. An unexpected new `N階以上` value fails closed pending D/A source review.
+- Additional deterministic C synthetic CSV tests catch missing/altered floor values and status promotion. These are outside the current GitHub workflow and **not yet user-executed**.
+- **Revalidation still required**: regenerate official 3-region output on the latest `role/d-pipeline`, run D verifiers, then run the updated C validator on the same persisted raw files and RegionExport. Until this is reported, the previous 3-region PASS is for the **pre-#44 output only**.
+- **C semantics gate remains conditional**: `○/×/－` and floor meaning within the current ODS CSV still await authoritative A/D agreement; no `main` merge authorization here.
