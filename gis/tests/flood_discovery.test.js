@@ -11,7 +11,8 @@ const { distanceMetres, discoverReferenceSites } = context.window.HINANEX_FLOOD_
 const point = { latitude: 35.7, longitude: 139.9 };
 function site(id, lat, lon) {
   return {
-    official_record_id: id, name_raw: `TEST_${id}`, latitude: lat, longitude: lon,
+    source_feature_key: id, name_raw: `TEST_${id}`, address_raw: "TEST address", remarks_raw: null,
+    disaster1_raw: 1, search_context_region_code: "13123", latitude: lat, longitude: lon,
     source_url: "https://cyberjapandata.gsi.go.jp/xyz/skhb01/10/909/403.geojson",
     source_record_trace: `TEST:index=${id}`, source_raw_sha256: "a".repeat(64),
     designation_kind: "designated_emergency_evacuation_site",
@@ -50,7 +51,7 @@ for (const bad of [
   { source_url: "https://untrusted.example/x" },
   { source_url: "https://cyberjapandata.gsi.go.jp/xyz/skhb04/10/909/403.geojson" },
   { source_raw_sha256: "b".repeat(64) }, { hazard_dataset: "NIIGATA_ODS" },
-  { designation_kind: "designated_shelter" }
+  { designation_kind: "designated_shelter" }, { disaster1_raw: 0 }
 ]) {
   const result = discoverReferenceSites(catalog([{ ...site("A", 35.7, 139.9), ...bad }]), point);
   assert.equal(result.status, "UNVERIFIED_SOURCE");
