@@ -22,6 +22,15 @@
 - License: 既存A handoffの新潟市一般条件 `CC BY 2.1 JP` を変更しない。個別Source優先条項の再確認は必要時実施
 - URLの更新・配布CSVのファイル内容はDワークフローが取得したraw archiveで管理し、Aは新しい施設属性を創作しない
 
+### A-1a-2 デジタル庁の現行ODS正式定義と、自治体個別CSVの違い
+
+- Official reference: https://www.digital.go.jp/resources/open_data/municipal-standard-data-set-test
+- Publisher: デジタル庁
+- Page updated: **2026-08-10**
+- 「指定緊急避難場所一覧」は自治体標準ODSの定義書Aに属する（2026-08-01時点の定義書Aを掲示）
+- この公式案内は、全国標準項目の位置付けを示す。ただし、本Aレビューでは標準定義書Excelの該当セル全内容を読み解いておらず、**新潟市がCSVの全ての記号に採用する自治体固有の値対応表があるとは確認していない**。
+- 全国標準データ項目と、市の河川別ハザードマップの凡例を一対一として扱う根拠はない。
+
 ### A-1b C独立raw照合で確認した現行CSVの値分布
 
 2026-10-08にユーザーがC検証スクリプト `validation/validation/verify_flood_scenario_acceptance.py` を実行し、Dが保存した公式CSVの566行とRegionExportの行・施設名・raw値・Source URLの照合が **PASS**。以下は**ユーザー実行ログに由来するraw集計**であり、Aが独立に配布CSVを再ダウンロードして得たものではない。
@@ -109,6 +118,7 @@ C確認結果: `C raw trace acceptance: checks PASSED (official semantics remain
 | ID | Authority | Title | Format | Date evidence | Reference |
 | --- | --- | --- | --- | --- | --- |
 | A-NIIGATA-ODS | 新潟市 | 新潟市オープンデータ「指定緊急避難場所一覧」 | CSV catalog | updated 2026-09-25 | https://www.city.niigata.lg.jp/shisei/seisaku/it/open-data/ |
+| A-ODS-STANDARD-2026 | デジタル庁 | 自治体標準オープンデータセット（正式版）・定義書A | HTML / Excel reference | page updated 2026-08-10, definition as of 2026-08-01 | https://www.digital.go.jp/resources/open_data/municipal-standard-data-set-test |
 | A-NIIGATA-FLOOD-LEGEND-R8 | 新潟市 | 新潟市総合ハザードマップ 洪水・土砂災害（北区・令和8年3月修正版） | PDF | revision 2026-03; exact day unknown | https://www.city.niigata.lg.jp/kurashi/bosai/hinanjo/kouzui_hinanchizu/sougou_map/bosai_01souogu.files/07hayadoriR8.pdf |
 | A-NAGOYA-DESIGNATIONS | 名古屋市 | 指定緊急避難場所・指定避難所の指定 | HTML / 16 indoor XLS/PDF | page updated 2026-10-07; list as of 2026-09-01 | https://www.city.nagoya.jp/bousaiportal/hinan/1013390/1013492.html |
 | A-EDOGAWA-WATER | 江戸川区 | 水害ハザードマップ第2版 待避施設・自主避難施設 | HTML | existing A handoff (2026-10-06) | https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/hazardmap/ikinaihinan.html |
