@@ -55,6 +55,25 @@ jobs:
       - name: Run unit and regression tests
         run: python -m unittest discover -s tests -v
 
+      - name: C independent raw-source regression tests
+        working-directory: .
+        run: python -m unittest discover -s validation/validation -p "test_*.py" -v
+
+      - name: Set up Node.js 22 for GIS consumer tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: E GIS independent browser-controller regressions
+        working-directory: .
+        shell: bash
+        run: |
+          node gis/tests/d_region_adapter.test.js
+          node gis/tests/map_controller.test.js
+          node gis/tests/region_exports.integration.test.js
+          if [ -f gis/tests/facility_list.test.js ]; then node gis/tests/facility_list.test.js; fi
+          if [ -f gis/tests/flood_discovery.test.js ]; then node gis/tests/flood_discovery.test.js; fi
+
       - name: Test Render staging bundle builder
         working-directory: .
         run: python -m unittest discover -s deploy/tests -v
