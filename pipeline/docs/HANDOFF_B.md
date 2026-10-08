@@ -46,3 +46,7 @@ data/output/nagoya.json
 名古屋市の `shelter_location` は、D Adapterが取得する16区別の屋内施設Excelのみを対象にしています。同じ公式ページ上の屋外施設データは含まれないため、record件数を「名古屋市の全避難関連施設数」と表示しないでください。
 
 JSON Schemaは `contracts/region_export.schema.json` を参照してください。
+
+## 洪水Scenarioの任意Consumer対応
+
+`RegionExport.scenarios[]` は位置探索とは別の任意データです。存在する場合のみ `scenario_id=flood_shelter_selection` の `facility_results` と `fact.official_status_raw` / `reason` / `source_url` を説明表示できます。`CANDIDATE` は安全保証、`EXCLUDED` は危険認定ではありません。`UNKNOWN` は候補外へ変換禁止です。最終仕様は `docs/FLOOD_SCENARIO_CONTRACT.md`。
