@@ -44,8 +44,8 @@ def verify_local_catalog(raw: bytes, rows: list[dict], acceptance: dict,
                          provenance: dict, catalog: dict, source_url: str,
                          region_code: str = "13123") -> dict:
     """Independently assert original archive, C manifest, D output and E tiles."""
-    if region_code != "13123":
-        raise ValueError("current E real-catalog browser preview is Edogawa-only")
+    if region_code not in ("13123", "15100", "23100"):
+        raise ValueError("unsupported verified tile search context")
     if not isinstance(catalog, dict):
         raise ValueError("catalog JSON object required")
     independent_c = verify_gsi_flood_source(raw, rows, source_url, region_code)
@@ -66,7 +66,7 @@ def verify_local_catalog(raw: bytes, rows: list[dict], acceptance: dict,
     if not tile_match:
         raise ValueError("not a single official skhb01 tile URL")
     z, x, y = map(int, tile_match.groups())
-    if not 0 <= z <= 20 or not 0 <= x < 2 ** z or not 0 <= y < 2 ** z:
+    if z != 10 or not 0 <= x < 2 ** z or not 0 <= y < 2 ** z:
         raise ValueError("invalid official GSI tile coordinates")
     for index, site in enumerate(catalog["sites"]):
         if site["source_url"] != source_url:

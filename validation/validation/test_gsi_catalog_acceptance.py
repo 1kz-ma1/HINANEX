@@ -20,9 +20,9 @@ RAW = json.dumps({
 }).encode("utf-8")
 
 
-def prepared(raw=RAW):
-    rows = extract_gsi_flood_tile(raw, SOURCE, "13123")
-    c = verify_gsi_flood_source(raw, rows, SOURCE, "13123")
+def prepared(raw=RAW, region="13123"):
+    rows = extract_gsi_flood_tile(raw, SOURCE, region)
+    c = verify_gsi_flood_source(raw, rows, SOURCE, region)
     provenance = {
         "verification_kind": "GSI_SKHB01_FLOOD_HTTPS_BYTE_REPLAY",
         "status": "MATCH",
@@ -32,10 +32,10 @@ def prepared(raw=RAW):
         "download_sha256": hashlib.sha256(raw).hexdigest(),
         "bytes": len(raw), "feature_count": len(rows),
         "c_audit_reference": c["audit_reference"],
-        "c_search_context_region_code": "13123",
+        "c_search_context_region_code": region,
         "retrieved_at_utc": "2026-10-09T03:00:00+00:00",
     }
-    catalog = build_flood_site_catalog("13123", rows, raw_archive=raw, c_acceptance=c)
+    catalog = build_flood_site_catalog(region, rows, raw_archive=raw, c_acceptance=c)
     catalog.update({
         "https_provenance_status": "MATCH",
         "https_provenance_checked_at_utc": provenance["retrieved_at_utc"],
@@ -94,9 +94,16 @@ class GsiCatalogLocalAcceptanceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "outside the archived tile"):
             verify_local_catalog(raw, rows, c, provenance, catalog, SOURCE)
 
-    def test_non_edogawa_context_cannot_claim_gis_browser_ready(self):
-        with self.assertRaisesRegex(ValueError, "Edogawa-only"):
-            verify_local_catalog(*prepared(), SOURCE, "15100")
+    def test_niigata_nagoya_independent_tile_acceptance(self):
+        for region in ("15100", "23100"):
+            with self.subTest(region=region):
+                report = verify_local_catalog(*prepared(region=region), SOURCE, region)
+                self.assertEqual(report["status"], "LOCAL_CATALOG_CONTRACT_PASS")
+                self.assertEqual(report["search_context_region_code"], region)
+
+    def test_unsupported_context_rejected(self):
+        with self.assertRaises(ValueError):
+            verify_local_catalog(*prepared(), SOURCE, "99999")
 
 
 if __name__ == "__main__":

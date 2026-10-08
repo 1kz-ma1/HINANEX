@@ -5,6 +5,8 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$ArchivePath,
+    [ValidateSet('13123', '15100', '23100')]
+    [string]$RegionCode = '13123',
     [string]$PythonExe = 'C:\HINANEX\pipeline\.venv\Scripts\python.exe',
     [string]$SourceUrl = 'https://cyberjapandata.gsi.go.jp/xyz/skhb01/10/909/403.geojson',
     [string]$ExpectedSha256 = '2748FEA7E1145FD2A3BDFAD05B3FEA4B86127FAFD017F253FE327472F89A3A41',
@@ -12,6 +14,16 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# Require EXACT official GSI skhb01 z10 URL before reading or writing.
+$pattern = '^https://cyberjapandata\.gsi\.go\.jp/xyz/skhb01/10/(\d+)/(\d+)\.geojson$'
+if (-not ($SourceUrl -cmatch $pattern)) {
+    throw 'SourceUrl must be exact official GSI skhb01 z10 HTTPS tile.'
+}
+$tileX = [int]$Matches[1]
+$tileY = [int]$Matches[2]
+if ($tileX -ge 1024 -or $tileY -ge 1024) {
+    throw 'GSI z10 tile x/y out of range.'
+}
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $python = (Resolve-Path -LiteralPath $PythonExe).Path
 $raw = (Resolve-Path -LiteralPath $ArchivePath).Path
@@ -30,7 +42,7 @@ New-Item -ItemType Directory -Force -Path $runDir -ErrorAction Stop | Out-Null
 $rows = Join-Path $runDir 'gsi_records.json'
 $cAudit = Join-Path $runDir 'c_raw_acceptance.json'
 $provenance = Join-Path $runDir 'c_https_provenance.json'
-$catalog = Join-Path $runDir 'edogawa_flood_site_catalog.json'
+$catalog = Join-Path $runDir 'gsi_flood_site_catalog.json'
 Write-Host "HINANEX validation run: $runDir"
 Write-Host "Archived raw: $raw / SHA256: $found"
 
@@ -42,20 +54,20 @@ function Assert-Success([string]$stage) {
 
 Push-Location $repo
 try {
-    & $python '.\pipeline\prepare_gsi_flood_tile.py' --region 13123 --raw $raw --source-url $SourceUrl --out $rows
+    & $python '.\pipeline\prepare_gsi_flood_tile.py' --region $RegionCode --raw $raw --source-url $SourceUrl --out $rows
     Assert-Success 'D source normalization'
 
-    & $python '.\validation\validation\verify_gsi_flood_source.py' --region 13123 --raw $raw --source-url $SourceUrl --records $rows --acceptance-out $cAudit
+    & $python '.\validation\validation\verify_gsi_flood_source.py' --region $RegionCode --raw $raw --source-url $SourceUrl --records $rows --acceptance-out $cAudit
     Assert-Success 'C independent raw-row audit'
 
     # This step contacts GSI. It must not be bypassed after network errors or changed bytes.
     & $python '.\validation\validation\verify_gsi_flood_provenance.py' --raw $raw --source-url $SourceUrl --c-acceptance $cAudit --report-out $provenance
     Assert-Success 'C official HTTPS byte replay'
 
-    & $python '.\pipeline\run_verified_flood_site_reference.py' --region 13123 --raw $raw --records $rows --c-acceptance $cAudit --provenance $provenance --out $catalog
+    & $python '.\pipeline\run_verified_flood_site_reference.py' --region $RegionCode --raw $raw --records $rows --c-acceptance $cAudit --provenance $provenance --out $catalog
     Assert-Success 'D provenance-gated reference catalog'
 
-    & $python '.\validation\validation\verify_gsi_catalog_acceptance.py' --region 13123 --raw $raw --records $rows --c-acceptance $cAudit --provenance $provenance --catalog $catalog --source-url $SourceUrl
+    & $python '.\validation\validation\verify_gsi_catalog_acceptance.py' --region $RegionCode --raw $raw --records $rows --c-acceptance $cAudit --provenance $provenance --catalog $catalog --source-url $SourceUrl
     Assert-Success 'C cross-role local catalog acceptance'
 
     $node = Get-Command node -ErrorAction SilentlyContinue
@@ -78,9 +90,9 @@ try {
         if ($currentBranch -eq 'main') {
             throw 'Publishing is prohibited from a main checkout. Use an isolated preview worktree.'
         }
-        $outputDir = Join-Path $repo 'pipeline\data\output'
+        $outputDir = Join-Path $repo ('pipeline\data\output\gsi_verified_tiles\' + $RegionCode)
         New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
-        $previewCatalog = Join-Path $outputDir 'edogawa_flood_site_catalog.json'
+        $previewCatalog = Join-Path $outputDir ('10-' + $tileX + '-' + $tileY + '.json')
         if (Test-Path -LiteralPath $previewCatalog) {
             throw "Preview output already exists; will not replace it: $previewCatalog"
         }
