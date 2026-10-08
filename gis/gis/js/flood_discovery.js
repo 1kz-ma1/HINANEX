@@ -174,7 +174,7 @@
     };
     const originKey = sourceTileKey(origin);
     if (!originKey) return {
-      ...blocked, status: "NO_ORIGIN", message: "有効な出発地点を地図から選択してください。"
+      ...blocked, status: "NO_ORIGIN", message: "地図から出発地点を指定してください（有効な緯度・経度）。"
     };
     if (!["13123", "15100", "23100"].includes(regionCode) ||
         !Array.isArray(catalogs) || catalogs.length > 9) return blocked;
