@@ -6,6 +6,34 @@
   const OFFICIAL_GSI = /^https:\/\/cyberjapandata\.gsi\.go\.jp\/xyz\/skhb01\/[0-9]+\/[0-9]+\/[0-9]+\.geojson$/;
   const LIMIT = 5;
 
+  // GSI slippy tiles describe a geographic rectangle, not a municipality.
+  // A single archived z/x/y tile cannot answer queries from arbitrary GPS
+  // positions or prove the named municipality contains the facility.
+  function containingTile(origin, zoom) {
+    if (!Number.isInteger(zoom) || zoom < 0 || zoom > 20 ||
+        Math.abs(origin.latitude) > 85.05112878) return null;
+    const n = 2 ** zoom;
+    const x = Math.floor((origin.longitude + 180) / 360 * n);
+    const radians = origin.latitude * Math.PI / 180;
+    const mercatorY = (1 - Math.asinh(Math.tan(radians)) / Math.PI) / 2;
+    const y = Math.floor(mercatorY * n);
+    return {
+      x: Math.max(0, Math.min(n - 1, x)),
+      y: Math.max(0, Math.min(n - 1, y))
+    };
+  }
+
+  function officialTileKey(value) {
+    const match = OFFICIAL_GSI.exec(value || "");
+    if (!match) return null;
+    const path = value.match(/\/skhb01\/(\d+)\/(\d+)\/(\d+)\.geojson$/);
+    if (!path) return null;
+    const [, z, x, y] = path.map(Number);
+    const n = 2 ** z;
+    if (z > 20 || x >= n || y >= n) return null;
+    return { z, x, y };
+  }
+
   function validNumber(value, low, high) {
     return typeof value === "number" && Number.isFinite(value) && value >= low && value <= high;
   }
@@ -70,12 +98,26 @@
         longitude: site.longitude
       });
     }
+    // This v1 catalog producer accepts exactly one tile. A browser location
+    // outside the tile must not receive arbitrary faraway reference sites.
+    const tileKeys = new Set(catalog.sites.map(site => site.sourceUrl));
+    if (tileKeys.size !== 1 || sites.length === 0) return blocked;
+    const sourceTile = officialTileKey(sites[0].sourceUrl);
+    const originTile = sourceTile ? containingTile(origin, sourceTile.z) : null;
+    if (!originTile || originTile.x !== sourceTile.x || originTile.y !== sourceTile.y) {
+      return {
+        status: "ORIGIN_OUTSIDE_SOURCE_TILE",
+        sites: [],
+        message: "指定地点は今回取得した公式データ1タイルの範囲外です。別地域の施設を近隣候補として表示しません。対象範囲の公式データ追加が必要です。"
+      };
+    }
+
     sites.sort((a, b) => a.distanceMetres - b.distanceMetres || a.id.localeCompare(b.id));
     return {
       status: "REFERENCE_ONLY",
       sites: sites.slice(0, LIMIT),
       total: sites.length,
-      message: "直線距離の近い順に公式掲載地点を表示。安全性・経路・開設状況・行くべき順ではありません。"
+      message: "取得した国土地理院の1タイル内の掲載地点を直線距離順に表示。江戸川区内の施設とは限らず、安全性・経路・開設状況・行くべき順ではありません。"
     };
   }
 
