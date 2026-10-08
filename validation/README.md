@@ -16,4 +16,13 @@ cd C:\HINANEX
 .\pipeline\.venv\Scripts\python.exe validation\validation\verify_flood_scenario_acceptance.py
 ```
 
+今回の名古屋Excel正規化の回帰テスト（サンプルWorkbookを使用・ネットワーク接続なし）は次を実行します。
+
+```powershell
+cd C:\\HINANEX
+.\\pipeline\\.venv\\Scripts\\python.exe -m unittest discover -s validation/validation -p "test_*.py" -v
+```
+
+GitHubの既存CIは `validation/validation` のこの新規テストを自動実行しません。実行結果を別途記録し、ユーザー環境の公式raw監査と区別します。
+
 このチェックはDの評価関数やModelをimportせず、生成済みRegionExport、Niigata公式raw CSV、Nagoya公式raw Excel bundleを突き合わせます。**単体テストのgreenやCスクリプト成功だけで公式記号の意味まで検証済みとはしません。** 元データの配布状況が変化した場合、固定件数を無理に通すのではなく、SourceとCレビューを更新します。
