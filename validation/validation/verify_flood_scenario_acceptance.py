@@ -137,15 +137,22 @@ def check_nagoya(scenario: dict, locations: dict):
                     break
             require(header_index is not None, f"{filename}: facility header missing")
             flood_column = None
+            name_column = None
+            address_column = None
             for col in range(table.shape[1]):
                 label = "".join(_cell(table.iat[r, col]) for r in range(
                     header_index, min(header_index + 3, len(table))))
                 label = re.sub(r"\s+", "", label)
+                if "施設名称" in label and name_column is None:
+                    name_column = col
+                if "所在地" in label and address_column is None:
+                    address_column = col
                 if any(x in label for x in ("洪水内水", "洪水・内水")):
                     flood_column = col
-                    break
             require(flood_column is not None, f"{filename}: combined flood/inland column missing")
-            tables[filename] = (table, flood_column)
+            require(name_column is not None and address_column is not None,
+                    f"{filename}: identifying columns missing")
+            tables[filename] = (table, flood_column, name_column, address_column)
         for item in results:
             fact = item["fact"]
             require(item["status"] == "UNKNOWN", "Nagoya combined column classified as flood-only")
@@ -158,9 +165,17 @@ def check_nagoya(scenario: dict, locations: dict):
             require(match is not None, f"Nagoya raw-row trace invalid: {trace!r}")
             filename, rownumber = match.group(1), int(match.group(2))
             require(filename in tables, f"Nagoya archive missing {filename}")
-            table, col = tables[filename]
+            table, col, name_col, addr_col = tables[filename]
             require(1 <= rownumber <= len(table), f"{filename}: row {rownumber} out of range")
             original = _cell(table.iat[rownumber - 1, col])
+            original_name = _cell(table.iat[rownumber - 1, name_col])
+            require(original_name == fact["facility_name"],
+                    f"{filename}:{rownumber} facility name/raw-row mismatch")
+            location = next((record for record in locations["records"]
+                             if record["id"] == item["facility_id"]), None)
+            require(location is not None, "Nagoya facility lacks location record")
+            require(_cell(table.iat[rownumber - 1, addr_col]) == (location.get("address") or ""),
+                    f"{filename}:{rownumber} address/raw-row mismatch")
             require((fact.get("official_status_raw") or "").strip() == original,
                     f"{filename}:{rownumber} flood/inland raw marker mismatch")
             require(fact["source_url"] == entries[filename]["url"],
