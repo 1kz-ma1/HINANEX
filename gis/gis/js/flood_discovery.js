@@ -62,7 +62,7 @@
         // A previously generated C-only JSON must no longer be displayable.
         catalog.https_provenance_status !== "MATCH" ||
         typeof catalog.https_provenance_checked_at_utc !== "string" ||
-        !/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|\\+00:00)$/.test(catalog.https_provenance_checked_at_utc) ||
+        !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|\+00:00)$/.test(catalog.https_provenance_checked_at_utc) ||
         !Number.isFinite(Date.parse(catalog.https_provenance_checked_at_utc)) ||
         !Number.isInteger(catalog.total_source_records) ||
         catalog.total_source_records !== catalog.sites?.length ||
