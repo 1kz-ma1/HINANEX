@@ -256,7 +256,8 @@ function renderReferenceDiscovery() {
       `<span class="distance">直線距離：${escapeHtml(site.distanceMetres.toLocaleString("ja-JP"))}m（経路距離ではありません）</span>` +
       `<span class="trace">Source行：${escapeHtml(displayValue(site.trace))}</span>${urlEl}</div>`;
   }).join("");
-  result.innerHTML = `<p>公式の洪水指定掲載地点：${discovery.total}件（直線距離の近い順に最大5件を表示）。<strong>行くべき順ではありません。</strong></p>` +
+  result.innerHTML = `<p>取得した地理院タイル内の洪水指定掲載地点：${discovery.total}件（自治体内の件数とは限りません）。最大5件を距離順で参考表示。</p>` +
+    `<p class="reference-warning">${escapeHtml(discovery.message)}</p>` +
     (cards || '<p>この照合済みデータ内に対象施設はありません。自治体の指定不存在は断定できません。</p>');
 }
 
