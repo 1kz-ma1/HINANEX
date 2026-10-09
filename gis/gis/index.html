@@ -7,13 +7,15 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/current_theme.css?v=gis-facility-drawer-20261009-v6">
-  <link rel="stylesheet" href="css/map_first.css?v=map-first-20261009-v4">
+  <link rel="stylesheet" href="css/map_first.css?v=audience-share-20261010-v1">
 </head>
 <body>
 <header class="header">
   <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i></span><strong>HINANEX</strong><span>地域防災データを、根拠とともに。</span></div>
   <div class="header-actions">
     <span class="role">GIS / FLOOD REFERENCE</span>
+    <button id="mapShareOpen" class="header-evidence-link header-share-button" type="button"
+      aria-controls="mapSharePanel" aria-expanded="false">共有・体験 <span aria-hidden="true">▣</span></button>
     <a class="header-evidence-link" href="../../frontend/" target="_blank" rel="noopener noreferrer"
       aria-label="分析・根拠を別タブで開く">分析・根拠 <span aria-hidden="true">↗</span></a>
   </div>
@@ -187,6 +189,25 @@
     <p id="mapGpsFeedback" class="map-gps-feedback" role="status" hidden></p>
     <p id="mapRasterBanner" class="map-raster-banner" role="status" hidden></p>
     <p id="mapViewportDStatus" class="map-viewport-d-status" role="status" aria-live="polite" hidden></p>
+    <section id="mapSharePanel" class="map-share-panel" role="region" aria-label="観客向けHINANEX共有" hidden>
+      <div class="map-share-heading">
+        <div><strong>HINANEXを体験する</strong><p>QRコードまたはURLを使って、ご自身のスマホから操作できます。</p></div>
+        <button id="mapShareClose" class="map-share-close" type="button" aria-label="共有パネルを閉じる">×</button>
+      </div>
+      <div id="mapShareQR" class="map-share-qr" role="img" aria-label="HINANEX観客用マップへのQRコード"></div>
+      <label class="map-share-label" for="mapShareURL">観客用URL</label>
+      <div class="map-share-urlrow">
+        <input id="mapShareURL" type="text" readonly value="https://hinanex-staging.onrender.com/gis/gis/?demo=audience">
+        <button id="mapShareCopy" type="button">コピー</button>
+      </div>
+      <p id="mapShareStatus" class="map-share-status" role="status" aria-live="polite"></p>
+      <p class="map-share-note">公式情報の閲覧デモです。避難場所の安全性・現在の開設状況・全地域の情報を保証しません。GPSは本人の操作なしには取得しません。</p>
+    </section>
+    <section id="mapAudienceIntro" class="map-audience-intro" aria-label="HINANEXの使い方" hidden>
+      <div class="map-audience-intro-head"><strong>HINANEXへようこそ</strong><button id="mapAudienceIntroClose" type="button" aria-label="案内を閉じる">×</button></div>
+      <p>地図を動かし、施設マークをタップすると出典を確認できます。「シナリオ」から地点を指定すると、確認済みの公式掲載情報を参考表示します。</p>
+      <p>※施設が表示されないことは、安全・施設なしの意味ではありません。避難先の推奨やリアルタイム情報ではありません。</p>
+    </section>
     <section id="mapSettingsPanel" class="map-settings-sheet" aria-label="地図の操作設定" hidden>
       <div class="map-settings-heading">
         <div>
@@ -288,5 +309,6 @@
 <script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v14"></script>
 <script src="js/map.js?v=closer-minzoom-20261010-v2"></script>
 <script src="js/map_first_ui.js?v=map-first-20261009-v3"></script>
+<script src="js/audience_share.js?v=audience-share-20261010-v1"></script>
 </body>
 </html>
