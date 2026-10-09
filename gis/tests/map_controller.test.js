@@ -139,7 +139,7 @@ function makeLeafletStub() {
   };
 }
 
-function makeContext({ protocol, fetchImpl, href = null }) {
+function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = null }) {
   const ids = [
     "map", "mapUnavailable", "mapUnavailableMessage", "details", "status", "region",
     "basemap", "officialFlood", "boundary", "boundaryNote", "shelter", "floodOpacity",
@@ -171,7 +171,7 @@ function makeContext({ protocol, fetchImpl, href = null }) {
   vm.runInContext(referenceCode, context, { filename: "reference_data.js" });
   vm.runInContext(adapterCode, context, { filename: "d_region_adapter.js" });
   vm.runInContext(facilityListCode, context, { filename: "facility_list.js" });
-  vm.runInContext(discoveryCode, context, { filename: "flood_discovery.js" });
+  vm.runInContext(discoveryOverride === null ? discoveryCode : discoveryOverride, context, { filename: "flood_discovery.js" });
   vm.runInContext(mapCode, context, { filename: "map.js" });
   return { context, elements, L };
 }
@@ -281,6 +281,40 @@ nagoya.scenarios = [{
   // Geolocation permission or API absence must not cause a crash.
   httpCase.elements.useGps.listeners.click();
   assert.match(httpCase.elements.originStatus.textContent, /地図をクリック/);
+
+  // Real browsers can load cached single-tile discovery JS with a fresh map.js.
+  // Their method signatures differ: report a module/version mismatch instead
+  // of throwing TypeError on initial region selection or on map click.
+  const pageHtml = fs.readFileSync(path.resolve(__dirname, "../gis/index.html"), "utf8");
+  const discoveryAsset = pageHtml.match(/js\\/flood_discovery\\.js\\?v=([\\w-]+)/);
+  const mapAsset = pageHtml.match(/js\\/map\\.js\\?v=([\\w-]+)/);
+  assert.ok(discoveryAsset, "flood_discovery.js needs a versioned URL");
+  assert.ok(mapAsset, "map.js needs a versioned URL");
+  assert.equal(discoveryAsset[1], mapAsset[1], "map and discovery assets share a release version");
+  assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
+  assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
+  const oldScriptCase = makeContext({
+    protocol: "http:",
+    discoveryOverride: "window.HINANEX_FLOOD_DISCOVERY = { discoverReferenceSites: function () {} };",
+    fetchImpl: async url => ({ ok: true, status: 200, json: async () => edogawa })
+  });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.match(oldScriptCase.elements.floodDiscoveryResults.textContent, /バージョンが一致しません/);
+  oldScriptCase.elements.selectOrigin.listeners.click();
+  oldScriptCase.L.__map.handlers.click({ latlng: { lat: 35.7, lng: 139.9 } });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.match(oldScriptCase.elements.floodDiscoveryResults.textContent, /再読み込み/);
+  assert.equal(oldScriptCase.elements.floodDiscoveryResults.innerHTML, "");
+  assert.equal(oldScriptCase.elements.recordCount.textContent, 2);
+
+  const noScriptCase = makeContext({
+    protocol: "http:",
+    discoveryOverride: "",
+    fetchImpl: async url => ({ ok: true, status: 200, json: async () => edogawa })
+  });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.match(noScriptCase.elements.floodDiscoveryResults.textContent, /バージョンが一致しません/);
+  assert.equal(noScriptCase.elements.recordCount.textContent, 2);
 
   // Frontend -> GIS deep link: a supported region query selects that region before auto-load.
   const queryCase = makeContext({
