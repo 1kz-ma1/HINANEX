@@ -844,7 +844,7 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="uiTabScenario"[^>]*role="tab"/);
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
   assert.match(pageSource, /current_theme[.]css[?]v=gis-facility-drawer-20261009-v6/);
-  assert.match(pageSource, /map_first[.]css[?]v=guided-tour-20261010-v1/);
+  assert.match(pageSource, /map_first[.]css[?]v=evidence-sheet-20261010-v1/);
   assert.match(pageSource, /id="toggleLeftPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="toggleRightPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="gisLeftPanel"/);
@@ -1865,7 +1865,7 @@ nagoya.scenarios = [{
   assert.match(page, /id="mapShareURL"[^>]*readonly value="https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
   assert.match(page, /id="mapAudienceIntro"[^>]*hidden/);
   assert.match(page, /js\/audience_share[.]js[?]v=audience-share-20261010-v1/);
-  assert.match(page, /css\/map_first[.]css[?]v=guided-tour-20261010-v1/);
+  assert.match(page, /css\/map_first[.]css[?]v=evidence-sheet-20261010-v1/);
   assert.match(styles, /\.map-share-panel\[hidden\],\.map-audience-intro\[hidden\]\{display:none\}/);
   assert.match(shareSource, /const AUDIENCE_URL = "https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
   assert.doesNotMatch(shareSource, /geolocation|getCurrentPosition|flyTo|map\.setView|fetch\(|sendBeacon|XMLHttpRequest|<iframe/);
@@ -2093,3 +2093,106 @@ nagoya.scenarios = [{
   console.error(error);
   process.exitCode = 1;
 });
+
+
+// On-map evidence view must separate selected-region D source metrics from
+// viewport D points and explicitly verified GSI/official raster status.
+{
+  const html = fs.readFileSync(path.resolve(__dirname, "../gis/index.html"), "utf8");
+  const style = fs.readFileSync(path.resolve(__dirname, "../gis/css/map_first.css"), "utf8");
+  const source = fs.readFileSync(path.resolve(__dirname, "../gis/js/evidence_sheet.js"), "utf8");
+  assert.match(html, /id="mapEvidenceOpen"[^>]*aria-controls="mapEvidencePanel"/);
+  assert.match(html, /id="mapEvidencePanel"[^>]*hidden/);
+  assert.match(html, /js\/evidence_sheet[.]js[?]v=evidence-sheet-20261010-v1/);
+  assert.match(html, /css\/map_first[.]css[?]v=evidence-sheet-20261010-v1/);
+  assert.match(html, /D施設とGSI公式掲載地点は別情報源/);
+  assert.match(style, /\.map-evidence-panel\[hidden\]\{display:none\}/);
+  assert.doesNotMatch(source, /fetch\(|getCurrentPosition|geolocation|setView\(|flyTo|sendBeacon/);
+  assert.doesNotMatch(source, /innerHTML\s*=/,
+    "all source-derived values must be textContent, never injected HTML");
+
+  const nodes = new Map(), documentListeners = {};
+  function elem(name) {
+    if (nodes.has(name)) return nodes.get(name);
+    const attrs = new Map();
+    const element = {
+      id: name, hidden: false, open: false, textContent: "",
+      checked: true, value: "", listeners: {},
+      setAttribute(key, value) { attrs.set(key, String(value)); },
+      getAttribute(key) {
+        if (name === "gisLayout" && key.startsWith("data-")) return "closed";
+        return attrs.get(key);
+      },
+      addEventListener(type, cb) { this.listeners[type] = cb; },
+      click() { this.listeners.click?.({ target: this }); },
+      contains(target) { return target === this; },
+      focus() { this.focused = true; }
+    };
+    nodes.set(name, element);
+    return element;
+  }
+  elem("mapEvidencePanel").hidden = true;
+  elem("mapSettingsPanel").hidden = true;
+  elem("mapSharePanel").hidden = true;
+  elem("mapTourPanel").hidden = true;
+  elem("referenceMapSummary").hidden = true;
+  elem("mapRasterBanner").hidden = true;
+  elem("region").value = "13123";
+  elem("recordCount").textContent = "152";
+  elem("mappedCount").textContent = "152";
+  elem("missingCoordinateCount").textContent = "0";
+  elem("datasetChip").textContent = "D出力読込済";
+  elem("officialFlood").checked = true;
+  elem("mapViewportDStatus").textContent = "表示範囲のD施設：東京都 江戸川区 50件";
+  const document = {
+    getElementById: elem,
+    addEventListener(name, cb) { documentListeners[name] = cb; }
+  };
+  vm.runInNewContext(source, { document, console }, { filename: "evidence_sheet.js" });
+  elem("mapEvidenceOpen").click();
+  assert.equal(elem("mapEvidencePanel").hidden, false);
+  assert.equal(elem("mapEvidenceOpen").getAttribute("aria-expanded"), "true");
+  assert.match(elem("mapEvidenceRegion").textContent, /東京都 江戸川区/);
+  assert.match(elem("mapEvidenceD").textContent, /152件（選択中の地域のみ）/);
+  assert.match(elem("mapEvidenceCoordinate").textContent, /座標あり 152件/);
+  assert.match(elem("mapEvidenceGSI").textContent, /未照合/);
+  assert.match(elem("mapEvidenceFlood").textContent, /タイル全域の取得・精度/);
+  assert.match(elem("mapEvidenceViewport").textContent, /50件/);
+
+  // Only a selected-point reference with verified GSI tiles is described
+  // as such; it is never conflated with D/municipal coverage.
+  elem("referenceMapSummary").hidden = false;
+  elem("referenceMapCoverage").textContent = "検証済み 2/4 タイル";
+  elem("referenceMapCount").textContent = "119件中 最大5地点";
+  elem("region").value = "15100";
+  elem("region").listeners.change();
+  assert.match(elem("mapEvidenceRegion").textContent, /新潟県 新潟市/);
+  assert.match(elem("mapEvidenceGSI").textContent, /検証済み 2\/4 タイル/);
+  assert.match(elem("mapEvidenceGSI").textContent, /選択地点周辺の照合済み範囲のみ/);
+  elem("recordCount").textContent = "—";
+  elem("datasetChip").textContent = "未読込";
+  elem("officialFlood").checked = false;
+  elem("officialFlood").listeners.change();
+  assert.match(elem("mapEvidenceD").textContent, /件数未確認/);
+  assert.match(elem("mapEvidenceFlood").textContent, /非表示/);
+  elem("officialFlood").checked = true;
+  elem("mapRasterBanner").hidden = false;
+  elem("officialFlood").listeners.change();
+  assert.match(elem("mapEvidenceFlood").textContent, /一部のタイルが未取得/);
+
+  // Menu exclusivity, outside click and keyboard escape must work.
+  elem("mapToolMarks").open = true;
+  elem("mapToolMarks").listeners.toggle();
+  assert.equal(elem("mapEvidencePanel").hidden, true);
+  elem("mapEvidenceOpen").click();
+  assert.equal(elem("mapToolMarks").open, false);
+  documentListeners.click({ target: {} });
+  assert.equal(elem("mapEvidencePanel").hidden, true);
+  elem("mapEvidenceOpen").click();
+  let prevented = false;
+  documentListeners.keydown({ key: "Escape", preventDefault() { prevented = true; } });
+  assert.equal(prevented, true);
+  assert.equal(elem("mapEvidencePanel").hidden, true);
+  assert.equal(elem("mapEvidenceOpen").focused, true);
+  console.log("On-map evidence statuses and menu dismissal: OK");
+}

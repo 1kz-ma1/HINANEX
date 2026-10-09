@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/current_theme.css?v=gis-facility-drawer-20261009-v6">
-  <link rel="stylesheet" href="css/map_first.css?v=guided-tour-20261010-v1">
+  <link rel="stylesheet" href="css/map_first.css?v=evidence-sheet-20261010-v1">
 </head>
 <body>
 <header class="header">
@@ -182,7 +182,8 @@
       </select>
       <p id="facilityDisplayModeDescription" class="display-mode-description" role="status">選択地域のD避難所を表示中。周辺GSIは別データです。</p>
 </div></details>
-      <details class="map-tool map-tool--hazards" id="mapToolHazards"><summary><span class="map-tool-symbol" aria-hidden="true">▤</span><span>災害情報</span><span class="map-tool-arrow" aria-hidden="true">⌄</span></summary><div class="map-tool-panel"><label class="map-tool-check"><input id="mapShowFlood" type="checkbox" checked>洪水浸水想定（想定最大規模）</label><label class="map-tool-check"><input id="mapShowBasemap" type="checkbox" checked>背景地図（国土地理院）</label><p class="map-tool-note">土砂災害・高潮などのレイヤーは今後対応予定です。非表示や未取得を「安全」とは判断できません。</p><p id="mapRasterNotice" class="map-tool-warning" role="status" hidden></p></div></details>
+      <details class="map-tool map-tool--hazards" id="mapToolHazards"><summary><span class="map-tool-symbol" aria-hidden="true">▤</span><span>災害情報</span><span class="map-tool-arrow" aria-hidden="true">⌄</span></summary><div class="map-tool-panel"><label class="map-tool-check"><input id="mapShowFlood" type="checkbox" checked>洪水浸水想定（想定最大規模）</label><label class="map-tool-check"><input id="mapShowBasemap" type="checkbox" checked>背景地図（国土地理院）</label><p class="map-tool-note">土砂災害・高潮などのレイヤーは今後対応予定です。非表示や未取得を「安全」とは判断できません。</p><p id="mapRasterNotice" class="map-tool-warning" role="status" hidden></p>
+<button id="mapEvidenceOpen" class="map-tool-action" type="button" aria-controls="mapEvidencePanel" aria-expanded="false">この画面の根拠・確認状況</button></div></details>
     </div>
     <button id="mapLocateMe" class="map-locate-button" type="button" aria-label="現在地を地図に表示（位置情報の許可が必要）" title="現在地を表示">
       <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
@@ -190,6 +191,23 @@
     <p id="mapGpsFeedback" class="map-gps-feedback" role="status" hidden></p>
     <p id="mapRasterBanner" class="map-raster-banner" role="status" hidden></p>
     <p id="mapViewportDStatus" class="map-viewport-d-status" role="status" aria-live="polite" hidden></p>
+    <section id="mapEvidencePanel" class="map-evidence-panel" role="region" aria-label="表示情報の根拠・確認状況" hidden>
+      <div class="map-evidence-heading">
+        <div><strong>根拠・確認状況</strong><p>地図上の情報源を分けて確認できます。</p></div>
+        <button id="mapEvidenceClose" type="button" aria-label="根拠・確認状況を閉じる">×</button>
+      </div>
+      <dl class="map-evidence-facts">
+        <div><dt>選択中の地域</dt><dd id="mapEvidenceRegion">—</dd></div>
+        <div><dt>D RegionExport（取得レコード）</dt><dd id="mapEvidenceD">未読込</dd></div>
+        <div><dt>D施設の元座標</dt><dd id="mapEvidenceCoordinate">未確認</dd></div>
+        <div><dt>GSI公式掲載地点</dt><dd id="mapEvidenceGSI">地点未指定・未照合</dd></div>
+        <div><dt>洪水浸水想定ラスタ</dt><dd id="mapEvidenceFlood">表示状況を確認中</dd></div>
+      </dl>
+      <p id="mapEvidenceViewport" class="map-evidence-viewport">閲覧範囲に応じた施設データの確認状況は未取得です。</p>
+      <p class="map-evidence-warning">D施設とGSI公式掲載地点は別情報源です。取得件数は網羅数ではありません。元座標がない施設は地図に置きません。タイル未取得・施設が見えないことは安全を意味しません。</p>
+      <p class="map-evidence-warning">洪水時の安全性、現在の開設状況、避難経路や公式データの未確認条件は評価していません。個別施設の元情報は地図マークから確認できます。</p>
+      <a class="map-evidence-details-link" href="../../frontend/" target="_blank" rel="noopener noreferrer">詳しい分析・根拠を見る ↗</a>
+    </section>
     <section id="mapTourPanel" class="map-tour-panel" role="region" aria-label="HINANEXガイド付きデモ" hidden>
       <div class="map-tour-heading">
         <div><strong>ガイド付きデモ</strong><p>取得済み施設データと未確認事項を順番に紹介します。</p></div>
@@ -329,5 +347,6 @@
 <script src="js/map_first_ui.js?v=map-first-20261009-v3"></script>
 <script src="js/audience_share.js?v=audience-share-20261010-v1"></script>
 <script src="js/guided_tour.js?v=guided-tour-loading-fix-20261010-v2"></script>
+<script src="js/evidence_sheet.js?v=evidence-sheet-20261010-v1"></script>
 </body>
 </html>
