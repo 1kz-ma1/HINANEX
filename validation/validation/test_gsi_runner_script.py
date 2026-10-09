@@ -24,8 +24,7 @@ class GsiRunnerSyntaxTests(unittest.TestCase):
         self.assertIn("RegionCode", text)
         self.assertIn("10-", text)
         self.assertIn("will not replace it", text)
-        self.assertIn("Publish-VerifiedGsiEvidence.ps1", text)
-        self.assertIn("verify_gsi_catalog_acceptance.py", RECOVERY.read_text(encoding="utf-8"))
+        self.assertIn("verify_gsi_catalog_acceptance.py", text)
 
     def test_explicit_demo_tile_seeding(self):
         text = SEEDER.read_text(encoding="utf-8")
@@ -34,7 +33,8 @@ class GsiRunnerSyntaxTests(unittest.TestCase):
         self.assertIn("Run-GsiFloodLocalAcceptance.ps1", text)
         self.assertIn("Invoke-WebRequest", text)
         self.assertIn("[switch]$NeighborsOnly", text)
-        self.assertIn("verify_gsi_catalog_acceptance.py", text)
+        self.assertIn("Publish-VerifiedGsiEvidence.ps1", text)
+        self.assertIn("verify_gsi_catalog_acceptance.py", RECOVERY.read_text(encoding="utf-8"))
         self.assertIn("Get-FileHash -LiteralPath $originOutput", text)
         self.assertIn("$tiles = @($tiles | Where-Object { -not $_.Origin })", text)
 
