@@ -62,7 +62,7 @@ assert.equal(ranked.sites[0].name, "TEST_0");
 assert.ok(ranked.sites[1].distanceMetres < ranked.sites[4].distanceMetres);
 assert.match(ranked.message, /距離は安全性を示さず/);
 assert.doesNotMatch(ranked.message, /行くべき順|推奨順位|ランキング/);
-assert.match(ranked.message, /江戸川区内の施設とは限らず/);
+assert.match(ranked.message, /江戸川区内の施設とは限りません/);
 // The official source is ONE GSI tile, not the entire municipality. A GPS
 // fix beyond its coverage must not return misleading distant "nearest" sites.
 const outside = discoverReferenceSites(full, { latitude: 35.7, longitude: 140.1 });
