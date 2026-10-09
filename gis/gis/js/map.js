@@ -129,6 +129,29 @@ for (const [mode, tab] of Object.entries(viewTabs)) {
 }
 setUiMode("normal");
 
+// Independent panel visibility is presentation state, not a data or
+// selection change. Controls stay outside the shrinking columns so either
+// side can always be reopened, including when both sides are hidden.
+for (const [side, buttonId] of [
+  ["left", "toggleLeftPanel"],
+  ["right", "toggleRightPanel"]
+]) {
+  const button = document.getElementById(buttonId);
+  const stateAttribute = "data-" + side + "-panel";
+  button.addEventListener("click", () => {
+    const collapsed = gisLayout.getAttribute(stateAttribute) !== "closed";
+    gisLayout.setAttribute(stateAttribute, collapsed ? "closed" : "open");
+    button.setAttribute("aria-expanded", String(!collapsed));
+    button.textContent = side === "left"
+      ? (collapsed ? "左メニューを開く" : "左メニューを閉じる")
+      : (collapsed ? "右詳細を開く" : "右詳細を閉じる");
+    // Leaflet needs a viewport recalculation after its parent grid changes.
+    // Explicit pan:false avoids repositioning the user-selected center.
+    // No setView, fitBounds, region switch or C/D fetch is performed here.
+    map.invalidateSize({ pan: false, animate: false });
+  });
+}
+
 function currentRegion() {
   return REGION_CONFIGS[selectedRegionCode];
 }
@@ -313,7 +336,7 @@ function updateMapOriginAction(message, picking = false) {
 // A cached single-tile script may expose the old API without throwing during
 // <script> evaluation. Fail CLOSED with actionable feedback instead of
 // crashing the map when the newer controller calls missing functions.
-const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v12";
+const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v13";
 function compatibleDiscoveryEngine() {
   const engine = window.HINANEX_FLOOD_DISCOVERY;
   return engine && engine.apiVersion === REQUIRED_DISCOVERY_VERSION &&

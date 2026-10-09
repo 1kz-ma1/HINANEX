@@ -104,6 +104,7 @@ function makeLeafletStub() {
     removeLayer(layer) { mapLayers.delete(layer); layer._onMap = false; return this; },
     hasLayer(layer) { return mapLayers.has(layer); },
     fitBounds(bounds) { this.lastBounds = bounds; return this; },
+    invalidateSize(options) { this.invalidateCalls = [...(this.invalidateCalls || []), options]; return this; },
     on(name, fn) { this.handlers[name] = fn; return this; }
   };
 
@@ -184,7 +185,8 @@ function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = nul
     "focusReferenceTiles", "toggleDMarkers", "facilityDisplayMode", "facilityDisplayModeDescription",
     "coordinateSearchForm", "coordinateSearchInput", "coordinateSearchButton",
     "coordinateSearchHelp", "coordinateSearchStatus", "externalFloodTileNotice",
-    "gisLayout", "uiTabNormal", "uiTabScenario", "scenarioIntro"
+    "gisLayout", "uiTabNormal", "uiTabScenario", "scenarioIntro",
+    "toggleLeftPanel", "toggleRightPanel"
   ];
   const elements = Object.fromEntries(ids.map(id => [id, makeElement(id)]));
   const L = makeLeafletStub();
@@ -322,6 +324,29 @@ nagoya.scenarios = [{
   fileCase.elements.uiTabScenario.listeners.keydown({key: "Home", preventDefault() {}});
   assert.equal(fileCase.elements.gisLayout.getAttribute("data-ui-mode"), "normal");
   assert.equal(fileFetchCalls, 0, "tabs may not load even D/GSI data in file mode");
+  // Collapse controls remain visible in the header even with both panels closed.
+  // It is only a viewport size notification; never move the map or refetch.
+  const boundsBeforeCollapse = fileMap.lastBounds;
+  const zoomBeforeCollapse = fileMap.getZoom();
+  fileCase.elements.toggleLeftPanel.listeners.click();
+  assert.equal(fileCase.elements.gisLayout.getAttribute("data-left-panel"), "closed");
+  assert.equal(fileCase.elements.toggleLeftPanel.getAttribute("aria-expanded"), "false");
+  assert.match(fileCase.elements.toggleLeftPanel.textContent, /開く/);
+  fileCase.elements.toggleRightPanel.listeners.click();
+  assert.equal(fileCase.elements.gisLayout.getAttribute("data-right-panel"), "closed");
+  assert.equal(fileCase.elements.toggleRightPanel.getAttribute("aria-expanded"), "false");
+  fileCase.elements.toggleLeftPanel.listeners.click();
+  fileCase.elements.toggleRightPanel.listeners.click();
+  assert.equal(fileCase.elements.gisLayout.getAttribute("data-left-panel"), "open");
+  assert.equal(fileCase.elements.gisLayout.getAttribute("data-right-panel"), "open");
+  assert.equal(fileCase.elements.toggleLeftPanel.getAttribute("aria-expanded"), "true");
+  assert.equal(fileCase.elements.toggleRightPanel.getAttribute("aria-expanded"), "true");
+  assert.equal(fileMap.invalidateCalls.length, 4);
+  assert.equal(fileMap.invalidateCalls.every(args => args.pan === false && args.animate === false), true);
+  assert.strictEqual(fileMap.lastBounds, boundsBeforeCollapse);
+  assert.equal(fileMap.getZoom(), zoomBeforeCollapse);
+  assert.strictEqual(fileCase.L.__map, fileMap);
+  assert.equal(fileFetchCalls, 0);
 
   // HTTP: D RegionExport is loaded and counts are reflected in UI state.
   const byUrl = { edogawa, niigata, nagoya };
@@ -766,7 +791,14 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="uiTabNormal"[^>]*role="tab"/);
   assert.match(pageSource, /id="uiTabScenario"[^>]*role="tab"/);
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
-  assert.match(pageSource, /current_theme[.]css[?]v=gis-sidebar-20261009-v2/);
+  assert.match(pageSource, /current_theme[.]css[?]v=gis-map-space-20261009-v3/);
+  assert.match(pageSource, /id="toggleLeftPanel"[^>]*aria-expanded="true"/);
+  assert.match(pageSource, /id="toggleRightPanel"[^>]*aria-expanded="true"/);
+  assert.match(pageSource, /id="gisLeftPanel"/);
+  assert.match(pageSource, /aria-controls="details"/);
+  assert.match(pageSource, /探索の流れ（操作ボタンではありません）/);
+  assert.match(pageSource, /操作は下の地点指定ボタンや地図上の入力欄/);
+  assert.doesNotMatch(pageSource, /<button[^>]*>地域を確認<\/button>/);
   // Sidebar keeps the existing real controls, state and raster limitations;
   // an optional details disclosure only hides expert controls, never source status.
   const sidebar = pageSource.slice(
@@ -811,6 +843,12 @@ nagoya.scenarios = [{
   assert.match(theme, /--bg:#07131e/);
   assert.match(theme, /--cyan:#4ed7dc/);
   assert.match(theme, /\.scenario-intro\[hidden\]\{display:none\}/);
+  assert.match(theme, /\.scenario-intro \.scenario-steps li\{/);
+  assert.match(theme, /cursor:default/);
+  assert.match(theme, /--gis-left-track:0px/);
+  assert.match(theme, /--gis-right-track:0px/);
+  assert.match(theme, /100dvh - 242px/);
+  assert.match(theme, /#map\{height:100%;min-height:0\}/);
   assert.doesNotMatch(theme, /(?:#map|\.leaflet-tile)[^\{]*\{[^}]*\bfilter\s*:/,
     "official imagery must never be filtered or inverted in the dark theme");
   assert.match(theme, /\.map-unavailable\{background:var\(--surface\)/,
