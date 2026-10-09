@@ -766,7 +766,47 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="uiTabNormal"[^>]*role="tab"/);
   assert.match(pageSource, /id="uiTabScenario"[^>]*role="tab"/);
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
-  assert.match(pageSource, /current_theme[.]css[?]v=gis-tabs-20261009-v1/);
+  assert.match(pageSource, /current_theme[.]css[?]v=gis-sidebar-20261009-v2/);
+  // Sidebar keeps the existing real controls, state and raster limitations;
+  // an optional details disclosure only hides expert controls, never source status.
+  const sidebar = pageSource.slice(
+    pageSource.indexOf('<aside class="left"'),
+    pageSource.indexOf('<main class="map-wrap">')
+  );
+  const sections = [
+    'id="sidebarRegionTitle"',
+    'id="sidebarExploreTitle"',
+    'id="sidebarStatusTitle"',
+    'id="sidebarDataTitle"',
+    'id="sidebarLayersTitle"'
+  ];
+  for (let i = 1; i < sections.length; i += 1) {
+    assert.ok(sidebar.indexOf(sections[i - 1]) < sidebar.indexOf(sections[i]),
+      "task-first order is region -> origin -> status -> D -> layers");
+  }
+  for (const id of [
+    "region", "resetView", "selectOrigin", "useGps", "originStatus",
+    "floodDiscoveryResults", "status", "externalFloodTileNotice",
+    "datasetChip", "datasetStatus", "recordCount", "mappedCount",
+    "missingCoordinateCount", "officialFlood", "shelter", "basemap",
+    "boundary", "floodOpacity", "regionExportFile", "autoLoad", "scenarioHazard"
+  ]) {
+    assert.equal((sidebar.match(new RegExp('id="' + id + '"', "g")) || []).length, 1,
+      "sidebar must preserve exactly one existing element: " + id);
+  }
+  for (const panelId of ["sourceDisclosure", "dataDisclosure", "layerDisclosure", "legendDisclosure"]) {
+    assert.match(sidebar, new RegExp('<details[^>]*id="' + panelId + '"[^>]*>'),
+      "advanced settings are native keyboard-accessible details");
+    assert.doesNotMatch(sidebar, new RegExp('<details[^>]*id="' + panelId + '"[^>]*\\bopen\\b'),
+      "advanced controls must start closed");
+  }
+  assert.ok(sidebar.indexOf('id="externalFloodTileNotice"') <
+    sidebar.indexOf('id="dataDisclosure"'), "raster warning cannot be hidden inside D advanced controls");
+  assert.ok(sidebar.indexOf('id="externalFloodTileNotice"') <
+    sidebar.indexOf('id="layerDisclosure"'), "raster warning cannot be hidden in layer options");
+  assert.match(sidebar, /安全な避難先や現在の開設状況を保証しません/);
+  assert.match(sidebar, /座標未確認/);
+  assert.match(sidebar, /UNKNOWNを施設IDで照合/);
   const theme = fs.readFileSync(path.resolve(__dirname, "../gis/css/current_theme.css"), "utf8");
   assert.match(theme, /--bg:#07131e/);
   assert.match(theme, /--cyan:#4ed7dc/);
