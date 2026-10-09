@@ -202,6 +202,11 @@ function detail(title, rows, type, options = {}) {
   document.getElementById("details").innerHTML =
     `<span class="badge${badgeClass}">${escapeHtml(type)}</span>` +
     `<h2 class="detail-title">${escapeHtml(title)}</h2>` + safeRows + externalLink + note;
+  // Map-first presentation only: background dataset summaries remain
+  // collapsed, but a marker/origin/raster selection reveals the detail sheet.
+  if (type !== "D RegionExport" && type !== "地域切替") {
+    window.HINANEX_MAP_FIRST_UI?.showDetail?.();
+  }
 }
 
 function shelterIcon() {
@@ -1246,6 +1251,7 @@ function reportExternalTileError(sourceName, event) {
     rasterNotice.hidden = false;
     rasterNotice.textContent =
       "公的洪水ラスタの一部を取得できません。空白や未表示は「浸水なし」を意味しません。施設のD・GSI掲載情報とは別データです。";
+    window.HINANEX_MAP_FIRST_UI?.showRasterWarning?.(rasterNotice.textContent);
   }
   if (externalTileWarnings.has(sourceName)) return;
   externalTileWarnings.add(sourceName);
