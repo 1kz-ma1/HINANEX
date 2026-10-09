@@ -1220,6 +1220,9 @@ map.on("click", event => {
     setReferenceOrigin(event.latlng.lat, event.latlng.lng);
     return;
   }
+  // A background tap used to dismiss another panel should never instantly
+  // reopen a raster information sheet on that very same click.
+  if (window.HINANEX_MAP_FIRST_UI?.wasDismissalClick?.(event.originalEvent)) return;
   if (!map.hasLayer(officialFloodLayer)) return;
   const { lat, lng } = event.latlng;
   detail(

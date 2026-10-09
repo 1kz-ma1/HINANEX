@@ -574,7 +574,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "map-first-20261009-v1");
+  assert.equal(mapAsset[1], "map-first-20261009-v2");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -809,7 +809,7 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="uiTabScenario"[^>]*role="tab"/);
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
   assert.match(pageSource, /current_theme[.]css[?]v=gis-facility-drawer-20261009-v6/);
-  assert.match(pageSource, /map_first[.]css[?]v=map-first-20261009-v1/);
+  assert.match(pageSource, /map_first[.]css[?]v=map-first-20261009-v2/);
   assert.match(pageSource, /id="toggleLeftPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="toggleRightPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="gisLeftPanel"/);
@@ -1232,6 +1232,9 @@ nagoya.scenarios = [{
   assert.match(css, /\.map-locate-button\{[\s\S]*?right:16px;bottom:18px/);
   assert.match(css, /\.hinanex-bottom-nav\{[\s\S]*?position:fixed;bottom:0/);
   assert.match(css, /\.layout>\.gis-side-shell--right\s*\{[\s\S]*?bottom:0/);
+  assert.match(html, /id="mapOpenAdvanced"[^>]*type="button"/);
+  assert.match(html, /id="referenceMapSummaryDisclosure"/);
+  assert.match(css, /\.layout\[data-left-panel="closed"\]>.gis-side-shell--left\{display:none\}/);
   assert.match(html, /id="mapRegionQuickSelect"/);
   assert.match(html, /id="mapShowShelter"[^>]*type="checkbox"/);
   assert.match(html, /id="mapShowFlood"[^>]*type="checkbox"/);
@@ -1251,7 +1254,9 @@ nagoya.scenarios = [{
     "mapShowShelter", "shelter", "mapShowFlood", "officialFlood", "mapShowBasemap",
     "basemap", "facilityDisplayMode", "mapScenarioSelectOrigin", "selectOrigin",
     "mapLocateMe", "useGps", "mapGpsFeedback", "originStatus", "mapRasterNotice", "mapRasterBanner",
-    "mapToolScene", "mapToolScenario", "mapToolMarks", "mapToolHazards"];
+    "mapToolScene", "mapToolScenario", "mapToolMarks", "mapToolHazards",
+    "mapOpenAdvanced", "toggleLeftPanel", "gisLeftPanel", "details",
+    "referenceMapSummary", "referenceMapSummaryDisclosure"];
   const nodes = Object.fromEntries(uiIds.map(id => {
     const node = makeElement(id);
     // Browser EventTarget allows multiple handlers; the legacy simple stub
@@ -1268,13 +1273,34 @@ nagoya.scenarios = [{
     node.click = function() { this.listeners.click?.({ target: this }); };
     return [id, node];
   }));
+  // Fake a native DOM contains() and the existing GIS panel toggle
+  // controller; these are presentation-only, not data-fetch events.
+  for (const node of Object.values(nodes)) {
+    node.contains = target => target === node;
+  }
+  nodes.referenceMapSummary.hidden = true;
+  nodes.gisLayout.setAttribute("data-left-panel", "closed");
+  nodes.gisLayout.setAttribute("data-right-panel", "closed");
+  const captured = {};
+  nodes.toggleLeftPanel.addEventListener("click", () => {
+    const open = nodes.gisLayout.getAttribute("data-left-panel") !== "open";
+    nodes.gisLayout.setAttribute("data-left-panel", open ? "open" : "closed");
+  });
+  nodes.toggleRightPanel.addEventListener("click", () => {
+    const open = nodes.gisLayout.getAttribute("data-right-panel") !== "open";
+    nodes.gisLayout.setAttribute("data-right-panel", open ? "open" : "closed");
+    nodes.toggleRightPanel.setAttribute("aria-expanded", String(open));
+  });
   nodes.region.value = "13123";
   let regionChanges = 0, gpsRequests = 0, originRequests = 0;
   nodes.region.addEventListener("change", () => { regionChanges += 1; });
   nodes.useGps.addEventListener("click", () => { gpsRequests += 1; });
   nodes.selectOrigin.addEventListener("click", () => { originRequests += 1; });
   const facade = {
-    document: { getElementById: id => nodes[id] },
+    document: {
+      getElementById: id => nodes[id],
+      addEventListener(type, handler) { captured[type] = handler; }
+    },
     window: {},
     Event: class { constructor(type) { this.type = type; } }
   };
@@ -1320,5 +1346,59 @@ nagoya.scenarios = [{
   assert.equal(nodes.mapRasterNotice.hidden, false);
   assert.equal(nodes.mapRasterNotice.textContent, "タイル未取得");
   assert.equal(nodes.mapRasterBanner.hidden, false);
-  assert.equal(nodes.mapRasterBanner.textContent, "タイル未取得");
+  assert.match(nodes.mapRasterBanner.textContent, /空白＝浸水なしではありません/);
+  assert.equal(nodes.mapRasterBanner.title, "タイル未取得");
+
+  // Opening a different top menu closes the active detail sheet.
+  nodes.mapToolScene.open = true;
+  nodes.mapToolScene.listeners.toggle();
+  assert.equal(nodes.gisLayout.getAttribute("data-right-panel"), "closed");
+  assert.equal(nodes.mapToolScene.open, true);
+
+  // Another menu replaces the previous one; clicking within it keeps it open.
+  nodes.mapToolMarks.open = true;
+  nodes.mapToolMarks.listeners.toggle();
+  assert.equal(nodes.mapToolScene.open, false);
+  captured.click({ target: nodes.mapToolMarks });
+  assert.equal(nodes.mapToolMarks.open, true);
+
+  // Outside click dismisses all, is recorded for Leaflet click suppression,
+  // and never modifies map or provider data.
+  const outsideTap = { target: {}, type: "click" };
+  captured.click(outsideTap);
+  assert.equal(nodes.mapToolMarks.open, false);
+  assert.equal(facade.window.HINANEX_MAP_FIRST_UI.wasDismissalClick(outsideTap), true);
+
+  nodes.mapToolHazards.open = true;
+  nodes.mapToolHazards.listeners.toggle();
+  let escapePrevented = false;
+  captured.keydown({ key: "Escape", preventDefault() { escapePrevented = true; } });
+  assert.equal(escapePrevented, true);
+  assert.equal(nodes.mapToolHazards.open, false);
+
+  // The old floating side tile disappears; advanced controls remain
+  // accessible through the Scene menu and dismiss on outside click.
+  nodes.mapToolScene.open = true;
+  nodes.mapToolScene.listeners.toggle();
+  nodes.mapOpenAdvanced.click();
+  assert.equal(nodes.gisLayout.getAttribute("data-left-panel"), "open");
+  assert.equal(nodes.mapToolScene.open, false);
+  captured.click({ target: {}, type: "click" });
+  assert.equal(nodes.gisLayout.getAttribute("data-left-panel"), "closed");
+
+  // A GSI summary is a compact disclosure, never a second large sheet.
+  nodes.referenceMapSummary.hidden = false;
+  nodes.referenceMapSummaryDisclosure.open = true;
+  nodes.referenceMapSummaryDisclosure.listeners.toggle();
+  facade.window.HINANEX_MAP_FIRST_UI.showDetail();
+  assert.equal(nodes.referenceMapSummaryDisclosure.open, false);
+  assert.equal(nodes.gisLayout.getAttribute("data-right-panel"), "open");
+  captured.click({ target: nodes.details });
+  assert.equal(nodes.gisLayout.getAttribute("data-right-panel"), "open");
+  captured.click({ target: nodes.toggleRightPanel });
+  assert.equal(nodes.gisLayout.getAttribute("data-right-panel"), "open",
+    "close button is not pre-emptively toggled by outside-click capture");
+  captured.click({ target: {}, type: "click" });
+  assert.equal(nodes.gisLayout.getAttribute("data-right-panel"), "closed");
+  assert.equal(facade.window.HINANEX_MAP_FIRST_UI.wasDismissalClick(null), false);
 }

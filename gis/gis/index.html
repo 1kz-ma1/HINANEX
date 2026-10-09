@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/current_theme.css?v=gis-facility-drawer-20261009-v6">
-  <link rel="stylesheet" href="css/map_first.css?v=map-first-20261009-v1">
+  <link rel="stylesheet" href="css/map_first.css?v=map-first-20261009-v2">
 </head>
 <body>
 <header class="header">
@@ -152,7 +152,8 @@
   </div>
 
   <p class="gis-view-caption">同じ地図とデータを使って情報を確認します。<span>災害の時間経過予測ではありません。</span></p>
-</nav><label class="map-tool-field" for="mapRegionQuickSelect">表示する地域</label><select id="mapRegionQuickSelect" aria-label="表示する地域"><option value="13123">東京都 江戸川区</option><option value="15100">新潟県 新潟市</option><option value="23100">愛知県 名古屋市</option></select><p class="map-tool-note">災害シミュレーション／災害後シミュレーション／避難経路シミュレーションは今後実装予定です。予測結果を表示していません。</p></div></details>
+</nav><label class="map-tool-field" for="mapRegionQuickSelect">表示する地域</label><select id="mapRegionQuickSelect" aria-label="表示する地域"><option value="13123">東京都 江戸川区</option><option value="15100">新潟県 新潟市</option><option value="23100">愛知県 名古屋市</option></select><p class="map-tool-note">災害シミュレーション／災害後シミュレーション／避難経路シミュレーションは今後実装予定です。予測結果を表示していません。</p>
+<button id="mapOpenAdvanced" class="map-tool-action" type="button" aria-controls="gisLeftPanel">詳細設定・公式データの確認</button></div></details>
       <details class="map-tool map-tool--scenario" id="mapToolScenario"><summary><span class="map-tool-symbol" aria-hidden="true">☷</span><span>シナリオ</span><span class="map-tool-arrow" aria-hidden="true">⌄</span></summary><div class="map-tool-panel"><p class="map-tool-note">現在利用可能：公式掲載地点の参考探索（シミュレーション予測ではありません）。</p><label class="map-tool-field" for="coordinateSearchInput">地点を指定して参考情報を照合</label>      <form id="coordinateSearchForm" class="coordinate-search-form" novalidate>
         <label for="coordinateSearchInput">緯度・経度で地点を指定</label>
         <div class="coordinate-search-row">
@@ -184,6 +185,9 @@
 
 
     <section id="referenceMapSummary" class="reference-map-summary" aria-label="GSI公式掲載情報の可視化" hidden>
+      <details id="referenceMapSummaryDisclosure" class="reference-map-disclosure">
+        <summary>GSI公式掲載情報・参照範囲 <span aria-hidden="true">⌄</span></summary>
+        <div class="reference-map-disclosure-body">
       <strong>GSI公式掲載地点（参考）</strong>
       <div class="reference-map-metrics"><span id="referenceMapCoverage">未探索</span><span id="referenceMapCount">—</span></div>
       <p class="reference-map-legend"><span class="reference-legend-sample" aria-hidden="true"></span> 紫：公式掲載地点（安全性未判定・最大5地点）</p>
@@ -193,6 +197,8 @@
         <button id="focusReferenceTiles" type="button">選択地点と5件を見る</button>
         <button id="toggleDMarkers" type="button">地域Dと比較</button>
       </div>
+        </div>
+      </details>
     </section>
     <div id="mapUnavailable" class="map-unavailable" hidden>
       <strong id="mapUnavailableTitle">表示範囲を確定できません</strong>
@@ -252,7 +258,7 @@
 <script src="js/facility_list.js"></script>
 <!-- Discovery API remains v14; map UI-only consumer has a separate cache-busting key. -->
 <script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v14"></script>
-<script src="js/map.js?v=map-first-20261009-v1"></script>
-<script src="js/map_first_ui.js?v=map-first-20261009-v1"></script>
+<script src="js/map.js?v=map-first-20261009-v2"></script>
+<script src="js/map_first_ui.js?v=map-first-20261009-v2"></script>
 </body>
 </html>

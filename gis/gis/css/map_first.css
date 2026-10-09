@@ -171,7 +171,8 @@ footer{display:none}
   .map-tool-panel{width:min(330px,calc(100vw - 20px));max-height:min(67dvh,480px);padding:13px}
   .map-tool--scene .map-tool-panel{left:0;right:auto}
   .map-tool--scenario .map-tool-panel{left:-76px}
-  .map-tool--marks .map-tool-panel{left:auto;right:-76px}\n  .map-tool--hazards .map-tool-panel{right:0;left:auto}
+  .map-tool--marks .map-tool-panel{left:auto;right:-76px}
+  .map-tool--hazards .map-tool-panel{right:0;left:auto}
   .layout>.gis-side-shell--left{top:67px;left:8px;width:calc(100% - 16px);height:min(60%,460px)}
   .layout[data-left-panel="closed"]>.gis-side-shell--left{width:46px;height:46px}
   .layout>.gis-side-shell--right{width:100%;max-width:none;height:min(52%,400px);border-radius:17px 17px 0 0}
@@ -204,4 +205,43 @@ footer{display:none}
   .layout[data-right-panel="open"] .map-locate-button{
     bottom:calc(min(52%,400px) + 14px);
   }
+}
+
+/* Map-first v2: legacy side-rail opener is redundant with the scene menu.
+   Keep the full evidence/settings pane reachable, but never show an idle tile. */
+.layout[data-left-panel="closed"]>.gis-side-shell--left{display:none}
+.layout[data-left-panel="open"]>.gis-side-shell--left{display:block}
+.map-tool[open]>summary{position:relative}
+.reference-map-summary{
+  padding:0;
+  width:min(280px,calc(100% - 96px));
+  max-height:min(45%,420px);
+}
+.reference-map-disclosure{color:var(--text);background:var(--surface-raised)}
+.reference-map-disclosure>summary{
+  min-height:47px;box-sizing:border-box;padding:13px;
+  list-style:none;cursor:pointer;font-weight:700;
+  font-size:11px;line-height:1.5;
+}
+.reference-map-disclosure>summary::-webkit-details-marker{display:none}
+.reference-map-disclosure>summary::marker{content:""}
+.reference-map-disclosure>summary:focus-visible{
+  outline:3px solid var(--cyan);outline-offset:-3px;border-radius:9px
+}
+.reference-map-disclosure>summary span{float:right;color:var(--cyan)}
+.reference-map-disclosure[open]>summary{border-bottom:1px solid var(--line-strong)}
+.reference-map-disclosure-body{
+  overflow:auto;overscroll-behavior:contain;box-sizing:border-box;
+  padding:11px 12px;max-height:min(37dvh,320px);
+}
+.map-raster-banner{
+  top:79px;left:13px;right:auto;
+  max-width:min(320px,calc(100% - 100px));
+  padding:7px 10px;font-size:10px;border-radius:10px;
+}
+/* The footer/nav remains available while a transient sheet is open. */
+@media(max-width:680px){
+  .reference-map-summary{width:min(265px,calc(100% - 96px))}
+  .reference-map-disclosure-body{max-height:min(30dvh,240px)}
+  .map-raster-banner{left:8px;top:68px;max-width:calc(100% - 102px)}
 }
