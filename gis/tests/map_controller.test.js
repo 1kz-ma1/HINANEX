@@ -123,10 +123,15 @@ function makeLeafletStub() {
     layerGroup: group,
     control: { scale: () => ({ addTo: () => ({}) }) },
     divIcon: value => value,
-    marker: latlng => ({
-      latlng,
+    marker: (latlng, options) => ({
+      latlng, options,
       handlers: {},
+      bindPopup(content) { this.popupHtml = content; return this; },
       on(name, fn) { this.handlers[name] = fn; return this; },
+      addTo(target) { target.addLayer(this); return this; }
+    }),
+    rectangle: (bounds, options) => ({
+      bounds, options,
       addTo(target) { target.addLayer(this); return this; }
     }),
     geoJSON: (data, options) => ({
@@ -151,7 +156,9 @@ function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = nul
     "mapUnavailableTitle", "facilityListPanel", "facilityListSearch",
     "facilityListCount", "facilityListResults", "facilityListPrev", "facilityListNext",
     "facilityListPage", "scenarioHazard", "selectOrigin", "useGps",
-    "originStatus", "floodDiscoveryResults", "mapOriginShortcut", "mapOriginShortcutStatus"
+    "originStatus", "floodDiscoveryResults", "mapOriginShortcut", "mapOriginShortcutStatus",
+    "referenceMapSummary", "referenceMapCoverage", "referenceMapCount",
+    "focusReferenceTiles", "toggleDMarkers"
   ];
   const elements = Object.fromEntries(ids.map(id => [id, makeElement(id)]));
   const L = makeLeafletStub();
@@ -287,6 +294,9 @@ nagoya.scenarios = [{
   assert.match(httpCase.elements.mapOriginShortcutStatus.textContent, /未検証/);
   assert.equal(httpCase.elements.mapOriginShortcut.getAttribute("aria-pressed"), "false");
   assert.doesNotMatch(httpCase.elements.floodDiscoveryResults.innerHTML, /Edogawa A/);
+  assert.equal(httpCase.elements.referenceMapSummary.hidden, true);
+  assert.equal(httpCase.L.__groups[2].items.length, 0);
+  assert.equal(httpCase.L.__groups[3].items.length, 0);
   // Geolocation permission or API absence must not cause a crash.
   httpCase.elements.useGps.listeners.click();
   assert.match(httpCase.elements.originStatus.textContent, /地図をクリック/);
@@ -487,6 +497,30 @@ nagoya.scenarios = [{
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.match(acceptedCase.elements.floodDiscoveryResults.innerHTML, /直線距離/);
   assert.match(acceptedCase.elements.mapOriginShortcutStatus.textContent, /検証済み/);
+  assert.equal(acceptedCase.elements.referenceMapSummary.hidden, false);
+  assert.match(acceptedCase.elements.referenceMapCoverage.textContent, /1\/9/);
+  assert.match(acceptedCase.elements.referenceMapCount.textContent, /最大1地点/);
+  assert.equal(acceptedCase.L.__groups[2].items.length, 1); // verified GSI tile outline
+  assert.equal(acceptedCase.L.__groups[3].items.length, 1); // purple numbered pin, not D
+  const acceptedPin = acceptedCase.L.__groups[3].items[0];
+  assert.ok(acceptedPin.options.icon.html.includes("reference-site-marker"));
+  assert.ok(acceptedPin.popupHtml.includes("未判定"));
+  assert.ok(acceptedPin.popupHtml.includes("&lt;unsafe&gt;"));
+  assert.ok(!acceptedPin.popupHtml.includes("<unsafe>"));
+  acceptedPin.handlers.click({});
+  assert.match(acceptedCase.elements.details.innerHTML, /GSI公式掲載/);
+  assert.match(acceptedCase.elements.details.innerHTML, /未推奨/);
+  assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[1]), true);
+  acceptedCase.elements.toggleDMarkers.listeners.click();
+  assert.equal(acceptedCase.elements.shelter.checked, false);
+  assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[1]), false);
+  assert.match(acceptedCase.elements.toggleDMarkers.textContent, /表示/);
+  acceptedCase.elements.toggleDMarkers.listeners.click();
+  assert.equal(acceptedCase.elements.shelter.checked, true);
+  assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[1]), true);
+  acceptedCase.elements.focusReferenceTiles.listeners.click();
+  assert.ok(acceptedCase.L.__map.lastBounds?.points?.length);
+  assert.equal(acceptedCase.L.__map.lastBounds.points.length, 2);
   assert.match(acceptedCase.elements.floodDiscoveryResults.innerHTML, /行くべき順ではありません/);
   assert.match(acceptedCase.elements.floodDiscoveryResults.innerHTML, /&lt;unsafe&gt;/);
   assert.doesNotMatch(acceptedCase.elements.floodDiscoveryResults.innerHTML, /<unsafe>/);
@@ -497,6 +531,9 @@ nagoya.scenarios = [{
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.equal(acceptedCase.elements.selectOrigin.disabled, false);
   assert.doesNotMatch(acceptedCase.elements.floodDiscoveryResults.innerHTML, /&lt;unsafe&gt;/);
+  assert.equal(acceptedCase.elements.referenceMapSummary.hidden, true);
+  assert.equal(acceptedCase.L.__groups[2].items.length, 0);
+  assert.equal(acceptedCase.L.__groups[3].items.length, 0);
 
 
   // HTTP integration: origin tile plus an independently verified adjacent
@@ -539,6 +576,9 @@ nagoya.scenarios = [{
   assert.match(multiCase.elements.floodDiscoveryResults.innerHTML, /EAST_NEIGHBOR_ONLY/);
   assert.match(multiCase.elements.floodDiscoveryResults.innerHTML, /未検証タイル/);
   assert.match(multiCase.elements.floodDiscoveryResults.innerHTML, /直線距離/);
+  assert.equal(multiCase.L.__groups[2].items.length, 2);
+  assert.equal(multiCase.L.__groups[3].items.length, 2);
+  assert.match(multiCase.elements.referenceMapCoverage.textContent, /2\/9/);
 
   // A wrong tile file on the correct static path is NOT a permitted fallback.
   const substituted = makeContext({
@@ -560,6 +600,9 @@ nagoya.scenarios = [{
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.doesNotMatch(substituted.elements.floodDiscoveryResults.innerHTML, /EAST_NEIGHBOR_ONLY/);
   assert.match(substituted.elements.floodDiscoveryResults.innerHTML, /独立照合待ち|未検証/);
+  assert.equal(substituted.elements.referenceMapSummary.hidden, true);
+  assert.equal(substituted.L.__groups[2].items.length, 0);
+  assert.equal(substituted.L.__groups[3].items.length, 0);
 
   // A slow response from the previously selected region must not overwrite the new region.
   const pending = {};
