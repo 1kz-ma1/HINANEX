@@ -83,6 +83,7 @@ jobs:
           node gis/tests/d_region_adapter.test.js
           node gis/tests/map_controller.test.js
           node gis/tests/region_exports.integration.test.js
+          node gis/tests/inspect_local_region_exports.test.js
           if [ -f gis/tests/facility_list.test.js ]; then node gis/tests/facility_list.test.js; fi
           if [ -f gis/tests/flood_discovery.test.js ]; then node gis/tests/flood_discovery.test.js; fi
 
