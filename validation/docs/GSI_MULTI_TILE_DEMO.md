@@ -46,3 +46,37 @@ Eはあくまで同一originで配信されたファイルを参照します。*
 - 本工程では`main`に統合しない。Merge Captainのリリース判定と新潟ODS #48は独立した確認項目です。
 
 参照：国土地理院「地理院タイル一覧」（skhb01/指定緊急避難場所・洪水）、https://maps.gsi.go.jp/development/index.html
+
+## Detached HEADでのPowerShell公開エラーから復旧する場合
+
+元のローカルCI/独立HTTPS照合/JSON受入はPASS済みだが、その**後**の静的ファイル公開だけがエラーになった場合、同じデータを再ダウンロードしないで、既存エビデンスを**読み直して再照合してから**公開できます。
+
+新しいworktree（例：`C:\HINANEX-Multi`）で新コードを取得してください。Detached HEADでは `git branch --show-current` が空を返すため、以前の `.Trim()` はnullで失敗しました。新コードは `git rev-parse --abbrev-ref HEAD` を使い、detachedの場合は文字列 `HEAD` を受け取ります。`main`からの公開は禁止したままです。
+
+~~~powershell
+cd C:\HINANEX
+git fetch origin
+cd C:\HINANEX-Multi
+git status --short
+# 上の出力が空であると確認できた場合のみ、安全に新しいプレビューコミットへ移動
+git switch --detach origin/integration/flood-scenario-preview
+
+$repo = 'C:\HINANEX-Multi'
+$evidence = Get-ChildItem "$repo\pipeline\data\verified\gsi-acceptance-runs" -Directory |
+  Where-Object { Test-Path (Join-Path $_.FullName 'gsi_flood_site_catalog.json') } |
+  Sort-Object LastWriteTime -Descending |
+  Select-Object -First 1
+$raw = Get-ChildItem "$repo\pipeline\data\raw\gsi-demo-runs" -Filter '10-909-403.geojson' -Recurse -File |
+  Sort-Object LastWriteTime -Descending |
+  Select-Object -First 1
+
+# 自動検出したファイルが今回の監査分と合っているか表示して確認
+$evidence.FullName
+$raw.FullName
+
+& .\validation\scripts\Publish-VerifiedGsiEvidence.ps1 -EvidenceDirectory $evidence.FullName -ArchivePath $raw.FullName -SourceUrl 'https://cyberjapandata.gsi.go.jp/xyz/skhb01/10/909/403.geojson' -RegionCode 13123 -PublishPreview
+~~~
+
+この復旧スクリプトはCのraw監査を元のバイトから再計算し、保存済みC公式HTTPS MATCH証跡・Dカタログ・GSIタイル内座標を読み取り専用で照合したうえで**一度だけ**新規タイルJSONを公開します。すでに公開先があれば上書きせず失敗します。再照合時に新しいネットワーク要求は行わず、保存された取得日時の証跡を再利用するため、**新たな公式データの鮮度は保証しません**。
+
+既存の未コミット変更や原本は上書き・削除しないこと。利用中のサーバーが参照しているworktree内の配信JSONが追加されたことはブラウザで別途確認してください。
