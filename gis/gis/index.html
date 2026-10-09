@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/current_theme.css?v=gis-facility-drawer-20261009-v6">
-  <link rel="stylesheet" href="css/map_first.css?v=audience-share-20261010-v1">
+  <link rel="stylesheet" href="css/map_first.css?v=guided-tour-20261010-v1">
 </head>
 <body>
 <header class="header">
@@ -159,6 +159,7 @@
 
   <p class="gis-view-caption">同じ地図とデータを使って情報を確認します。<span>災害の時間経過予測ではありません。</span></p>
 </nav><label class="map-tool-field" for="mapRegionQuickSelect">地域へ移動（ショートカット）</label><select id="mapRegionQuickSelect" aria-label="表示する地域"><option value="13123">東京都 江戸川区</option><option value="15100">新潟県 新潟市</option><option value="23100">愛知県 名古屋市</option></select><p class="map-tool-note">災害シミュレーション／災害後シミュレーション／避難経路シミュレーションは今後実装予定です。予測結果を表示していません。</p>
+<button id="mapTourOpen" class="map-tool-action" type="button" aria-controls="mapTourPanel">発表用ガイド付きデモ</button>
 <button id="mapOpenAdvanced" class="map-tool-action" type="button" aria-controls="gisLeftPanel">詳細設定・公式データの確認</button></div></details>
       <details class="map-tool map-tool--scenario" id="mapToolScenario"><summary><span class="map-tool-symbol" aria-hidden="true">☷</span><span>シナリオ</span><span class="map-tool-arrow" aria-hidden="true">⌄</span></summary><div class="map-tool-panel"><p class="map-tool-note">現在利用可能：公式掲載地点の参考探索（シミュレーション予測ではありません）。</p><label class="map-tool-field" for="coordinateSearchInput">地点を指定して参考情報を照合</label>      <form id="coordinateSearchForm" class="coordinate-search-form" novalidate>
         <label for="coordinateSearchInput">緯度・経度で地点を指定</label>
@@ -189,6 +190,23 @@
     <p id="mapGpsFeedback" class="map-gps-feedback" role="status" hidden></p>
     <p id="mapRasterBanner" class="map-raster-banner" role="status" hidden></p>
     <p id="mapViewportDStatus" class="map-viewport-d-status" role="status" aria-live="polite" hidden></p>
+    <section id="mapTourPanel" class="map-tour-panel" role="region" aria-label="HINANEXガイド付きデモ" hidden>
+      <div class="map-tour-heading">
+        <div><strong>ガイド付きデモ</strong><p>取得済み施設データと未確認事項を順番に紹介します。</p></div>
+        <button id="mapTourClose" type="button" aria-label="ガイド付きデモを閉じる">×</button>
+      </div>
+      <p class="map-tour-progress" id="mapTourProgress" role="status">開始前</p>
+      <h3 id="mapTourTitle">地域を巡るデモ</h3>
+      <p id="mapTourDescription">江戸川区→新潟市→名古屋市。災害の時間変化や避難ルートの予測ではありません。</p>
+      <p id="mapTourSourceStatus" class="map-tour-source-status"></p>
+      <div class="map-tour-controls">
+        <button id="mapTourStart" type="button">開始</button>
+        <button id="mapTourPause" type="button" disabled>一時停止</button>
+        <button id="mapTourNext" type="button" disabled>次へ</button>
+        <button id="mapTourStop" type="button" disabled>停止・元の位置へ</button>
+      </div>
+      <p class="map-tour-caution">発表用の閲覧演出です。安全な避難先・現在の開設状況・災害進行を示すものではありません。手動で地図を動かすと停止できます。</p>
+    </section>
     <section id="mapSharePanel" class="map-share-panel" role="region" aria-label="観客向けHINANEX共有" hidden>
       <div class="map-share-heading">
         <div><strong>HINANEXを体験する</strong><p>QRコードまたはURLを使って、ご自身のスマホから操作できます。</p></div>
@@ -307,8 +325,9 @@
 <script src="js/facility_list.js"></script>
 <!-- Discovery API remains v14; map UI-only consumer has a separate cache-busting key. -->
 <script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v14"></script>
-<script src="js/map.js?v=closer-minzoom-20261010-v2"></script>
+<script src="js/map.js?v=guided-tour-20261010-v1"></script>
 <script src="js/map_first_ui.js?v=map-first-20261009-v3"></script>
 <script src="js/audience_share.js?v=audience-share-20261010-v1"></script>
+<script src="js/guided_tour.js?v=guided-tour-20261010-v1"></script>
 </body>
 </html>
