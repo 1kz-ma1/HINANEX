@@ -574,7 +574,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "map-first-20261009-v1");
+  assert.equal(mapAsset[1], "map-first-20261009-v2");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -1395,6 +1395,9 @@ nagoya.scenarios = [{
   assert.equal(nodes.gisLayout.getAttribute("data-right-panel"), "open");
   captured.click({ target: nodes.details });
   assert.equal(nodes.gisLayout.getAttribute("data-right-panel"), "open");
+  captured.click({ target: nodes.toggleRightPanel });
+  assert.equal(nodes.gisLayout.getAttribute("data-right-panel"), "open",
+    "close button is not pre-emptively toggled by outside-click capture");
   captured.click({ target: {}, type: "click" });
   assert.equal(nodes.gisLayout.getAttribute("data-right-panel"), "closed");
   assert.equal(facade.window.HINANEX_MAP_FIRST_UI.wasDismissalClick(null), false);
