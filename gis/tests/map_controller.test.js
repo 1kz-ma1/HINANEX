@@ -72,6 +72,7 @@ function makeElement(id) {
     attributes: {},
     setAttribute(name, value) { this.attributes[name] = String(value); },
     getAttribute(name) { return this.attributes[name]; },
+    focus() { this.focusCount = (this.focusCount || 0) + 1; },
     addEventListener(name, fn) { this.listeners[name] = fn; }
   };
 }
@@ -80,6 +81,7 @@ function makeLeafletStub() {
   const mapLayers = new Set();
   const panes = {};
   const groups = [];
+  const markers = [];
 
   const map = {
     handlers: {},
@@ -123,13 +125,17 @@ function makeLeafletStub() {
     layerGroup: group,
     control: { scale: () => ({ addTo: () => ({}) }) },
     divIcon: value => value,
-    marker: (latlng, options) => ({
-      latlng, options,
-      handlers: {},
-      bindPopup(content) { this.popupHtml = content; return this; },
-      on(name, fn) { this.handlers[name] = fn; return this; },
-      addTo(target) { target.addLayer(this); return this; }
-    }),
+    marker: (latlng, options) => {
+      const marker = {
+        latlng, options,
+        handlers: {},
+        bindPopup(content) { this.popupHtml = content; return this; },
+        on(name, fn) { this.handlers[name] = fn; return this; },
+        addTo(target) { target.addLayer(this); return this; }
+      };
+      markers.push(marker);
+      return marker;
+    },
     rectangle: (bounds, options) => ({
       bounds, options,
       addTo(target) { target.addLayer(this); return this; }
@@ -143,11 +149,13 @@ function makeLeafletStub() {
     latLngBounds: bounds,
     DomEvent: { stopPropagation: () => {} },
     __map: map,
-    __groups: groups
+    __groups: groups,
+    __markers: markers,
+    __panes: panes
   };
 }
 
-function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = null }) {
+function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = null, geolocation = undefined }) {
   const ids = [
     "map", "mapUnavailable", "mapUnavailableMessage", "details", "status", "region",
     "basemap", "officialFlood", "boundary", "boundaryNote", "shelter", "floodOpacity",
@@ -177,6 +185,7 @@ function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = nul
   const context = {
     window: { location, history },
     document: { getElementById: id => elements[id] },
+    navigator: geolocation === undefined ? undefined : { geolocation },
     L,
     fetch: fetchImpl,
     AbortController,
@@ -397,7 +406,79 @@ nagoya.scenarios = [{
   assert.equal(httpCase.elements.shelter.disabled, false);
   // Geolocation permission or API absence must not cause a crash.
   httpCase.elements.useGps.listeners.click();
-  assert.match(httpCase.elements.originStatus.textContent, /地図をクリック/);
+  assert.match(httpCase.elements.originStatus.textContent, /緯度・経度/);
+  assert.match(httpCase.elements.coordinateSearchStatus.textContent, /GPSを使わず/);
+  assert.equal(httpCase.elements.coordinateSearchInput.focusCount, 1);
+
+  // Explicit user GPS permission outcome: refusal should preserve the map
+  // and lead back to the numeric coordinate field, even after a pending request.
+  const gpsCallbacks = [];
+  const gpsCase = makeContext({
+    protocol: "http:",
+    geolocation: {
+      getCurrentPosition(success, error, opts) {
+        gpsCallbacks.push({ success, error, opts });
+      }
+    },
+    fetchImpl: async url => String(url).includes("edogawa.json")
+      ? { ok: true, status: 200, json: async () => edogawa }
+      : { ok: false, status: 404, json: async () => ({}) }
+  });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(gpsCallbacks.length, 0, "geolocation must never start without explicit click");
+  gpsCase.elements.useGps.listeners.click();
+  assert.equal(gpsCallbacks.length, 1);
+  assert.equal(gpsCallbacks[0].opts.enableHighAccuracy, false);
+  assert.equal(gpsCallbacks[0].opts.timeout, 10000);
+  assert.match(gpsCase.elements.originStatus.textContent, /許可を確認/);
+  const originalGpsView = gpsCase.L.__map.lastView;
+  gpsCallbacks[0].error({ code: 1, message: "denied" });
+  assert.match(gpsCase.elements.originStatus.textContent, /拒否/);
+  assert.match(gpsCase.elements.originStatus.textContent, /緯度・経度/);
+  assert.match(gpsCase.elements.coordinateSearchStatus.textContent, /GPSを使わず/);
+  assert.equal(gpsCase.elements.coordinateSearchInput.focusCount, 1);
+  assert.equal(gpsCase.elements.facilityDisplayMode.value, "region");
+  assert.strictEqual(gpsCase.L.__map.lastView, originalGpsView);
+
+  // Invalid coordinates from a broken GPS provider are not treated as a
+  // valid origin; no fallback to a guessed nearby location.
+  gpsCase.elements.useGps.listeners.click();
+  gpsCallbacks[1].success({ coords: { latitude: NaN, longitude: 139.9 } });
+  assert.match(gpsCase.elements.originStatus.textContent, /座標を利用できません/);
+  assert.equal(gpsCase.elements.facilityDisplayMode.value, "region");
+
+  // A new explicit form choice supersedes an earlier pending GPS response.
+  gpsCase.elements.useGps.listeners.click();
+  gpsCase.elements.coordinateSearchInput.value = "35.70,140.10";
+  gpsCase.elements.coordinateSearchForm.listeners.submit({ preventDefault() {} });
+  assert.equal(gpsCase.elements.facilityDisplayMode.value, "nearby");
+  assert.match(gpsCase.elements.originStatus.textContent, /35.70000, 140.10000/);
+  gpsCallbacks[2].success({ coords: { latitude: 35.7, longitude: 139.9 } });
+  gpsCallbacks[2].error({ code: 1 });
+  assert.match(gpsCase.elements.originStatus.textContent, /35.70000, 140.10000/);
+  assert.equal(gpsCase.elements.coordinateSearchInput.value, "35.70000, 140.10000");
+
+  // A newly requested and granted GPS position is drawn in its own top pane.
+  gpsCase.elements.useGps.listeners.click();
+  gpsCallbacks[3].success({ coords: { latitude: 35.70, longitude: 139.90 } });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.match(gpsCase.elements.originStatus.textContent, /35.70000, 139.90000/);
+  assert.equal(gpsCase.L.__map.lastView.zoom, 12);
+  assert.equal(gpsCase.elements.coordinateSearchInput.value, "35.70000, 139.90000");
+  assert.equal(gpsCase.elements.facilityDisplayMode.value, "nearby");
+  const activeGpsMarker = gpsCase.L.__markers.at(-1);
+  assert.equal(activeGpsMarker.options.pane, "referenceOriginPane");
+  assert.equal(gpsCase.L.__panes.referenceOriginPane.style.zIndex, 730);
+  assert.equal(gpsCase.L.__panes.referenceSitePane.style.zIndex, 690);
+  assert.equal(activeGpsMarker.options.icon.iconSize[0], 36);
+  assert.match(activeGpsMarker.options.icon.html, /避難先ではありません/);
+  assert.doesNotMatch(gpsCase.context.window.location.href, /origin=|lat=|lon=/);
+  gpsCase.elements.useGps.listeners.click();
+  gpsCase.elements.region.value = "23100";
+  gpsCase.elements.region.listeners.change({ target: gpsCase.elements.region });
+  gpsCallbacks[4].success({ coords: { latitude: 35.7, longitude: 139.9 } });
+  assert.equal(gpsCase.elements.coordinateSearchInput.value, "");
+  assert.equal(gpsCase.elements.facilityDisplayMode.value, "region");
 
   // Real browsers can load cached single-tile discovery JS with a fresh map.js.
   // Their method signatures differ: report a module/version mismatch instead
