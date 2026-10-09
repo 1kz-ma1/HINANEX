@@ -33,6 +33,13 @@ class GsiRunnerSyntaxTests(unittest.TestCase):
         self.assertIn("Run-GsiFloodLocalAcceptance.ps1", text)
         self.assertIn("Invoke-WebRequest", text)
         self.assertIn("[switch]$NeighborsOnly", text)
+        self.assertIn("[switch]$OnlyUnpublished", text)
+        self.assertIn("gsi_geographic_proof_ledger.py", text)
+        self.assertIn("PASS_SAVED_C_EVIDENCE", text)
+        self.assertIn("MISSING_PUBLICATION", text)
+        self.assertIn("SKIP C-REVERIFIED published tile:", text)
+        self.assertIn("C proof ledger/origin/coverage mismatch", text)
+        self.assertIn("No missing publications. No network fetch", text)
         self.assertIn("Publish-VerifiedGsiEvidence.ps1", text)
         self.assertIn("verify_gsi_catalog_acceptance.py", RECOVERY.read_text(encoding="utf-8"))
         self.assertIn("Get-FileHash -LiteralPath $originOutput", text)
@@ -61,6 +68,29 @@ class GsiRunnerSyntaxTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("NeighborsOnly requires -IncludeNeighbors and -PublishPreview",
                       result.stdout + result.stderr)
+
+    @unittest.skipUnless(shutil.which("pwsh"), "PowerShell Core required for opt-in flag guards")
+    def test_only_unpublished_requires_both_opt_in_flags_before_any_fetch(self):
+        for flags in [
+            ["-OnlyUnpublished"],
+            ["-OnlyUnpublished", "-IncludeNeighbors"],
+            ["-OnlyUnpublished", "-PublishPreview"],
+            ["-OnlyUnpublished", "-IncludeNeighbors", "-PublishPreview", "-NeighborsOnly"],
+        ]:
+            with self.subTest(flags=flags):
+                command = [
+                    shutil.which("pwsh"), "-NoProfile", "-NonInteractive",
+                    "-File", str(SEEDER), "-Latitude", "35.7", "-Longitude", "139.9",
+                    *flags,
+                ]
+                result = subprocess.run(
+                    command, capture_output=True, text=True, check=False, timeout=20,
+                )
+                self.assertNotEqual(result.returncode, 0, result.stdout)
+                self.assertIn(
+                    "OnlyUnpublished requires -IncludeNeighbors and -PublishPreview",
+                    result.stdout + result.stderr,
+                )
 
     @unittest.skipUnless(shutil.which("pwsh"), "PowerShell Core required for missing-origin test")
     def test_neighbors_only_refuses_unpublished_origin_before_download(self):
