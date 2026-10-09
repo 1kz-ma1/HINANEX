@@ -33,6 +33,10 @@ map.createPane("boundaryPane");
 map.getPane("boundaryPane").style.zIndex = 450;
 map.createPane("shelterPane");
 map.getPane("shelterPane").style.zIndex = 600;
+map.createPane("referenceFootprintPane");
+map.getPane("referenceFootprintPane").style.zIndex = 460;
+map.createPane("referenceSitePane");
+map.getPane("referenceSitePane").style.zIndex = 690;
 
 const baseMap = L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png", {
   minZoom: 5,
@@ -52,6 +56,8 @@ const officialFloodLayer = L.tileLayer(FLOOD_REFERENCE_URL, {
 
 const boundaryGroup = L.layerGroup().addTo(map);
 const shelterGroup = L.layerGroup().addTo(map);
+const referenceFootprintGroup = L.layerGroup().addTo(map);
+const referenceSiteGroup = L.layerGroup().addTo(map);
 L.control.scale({ imperial: false, position: "bottomleft" }).addTo(map);
 
 const regionSelect = document.getElementById("region");
@@ -73,6 +79,7 @@ let choosingOrigin = false;
 let originMarker = null;
 let verifiedFloodCatalog = null;
 let catalogLoadSequence = 0;
+let referenceFootprintBounds = null;
 
 const externalTileWarnings = new Set();
 
@@ -241,7 +248,7 @@ function updateMapOriginAction(message, picking = false) {
 // A cached single-tile script may expose the old API without throwing during
 // <script> evaluation. Fail CLOSED with actionable feedback instead of
 // crashing the map when the newer controller calls missing functions.
-const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v3";
+const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v4";
 function compatibleDiscoveryEngine() {
   const engine = window.HINANEX_FLOOD_DISCOVERY;
   return engine && engine.apiVersion === REQUIRED_DISCOVERY_VERSION &&
@@ -249,8 +256,103 @@ function compatibleDiscoveryEngine() {
     typeof engine.nearbySourceTiles === "function" ? engine : null;
 }
 
+
+function clearReferenceMap() {
+  referenceFootprintGroup.clearLayers();
+  referenceSiteGroup.clearLayers();
+  referenceFootprintBounds = null;
+  const panel = document.getElementById("referenceMapSummary");
+  panel.hidden = true;
+  document.getElementById("referenceMapCoverage").textContent = "未探索";
+  document.getElementById("referenceMapCount").textContent = "—";
+}
+
+function verifiedTileBounds(key) {
+  const match = /^10\/(\d+)\/(\d+)$/.exec(key || "");
+  if (!match) return null;
+  const x = Number(match[1]), y = Number(match[2]);
+  const n = 1024;
+  if (!Number.isInteger(x) || !Number.isInteger(y) ||
+      x < 0 || y < 0 || x >= n || y >= n) return null;
+  const longitude = column => column / n * 360 - 180;
+  const latitude = row => Math.atan(Math.sinh(Math.PI * (1 - 2 * row / n))) * 180 / Math.PI;
+  return [
+    [latitude(y + 1), longitude(x)],
+    [latitude(y), longitude(x + 1)]
+  ];
+}
+
+function updateDReferenceButton() {
+  const visible = map.hasLayer(shelterGroup);
+  document.getElementById("toggleDMarkers").textContent =
+    visible ? "緑のDマーカーを隠す" : "緑のDマーカーを表示";
+}
+
+function renderReferenceMap(discovery) {
+  clearReferenceMap();
+  // Only call after the *entire* raw source catalog is accepted and the user's
+  // own tile is included. Unverified neighbors must not draw reassuring areas.
+  const corners = [];
+  for (const key of discovery.verifiedTileKeys || []) {
+    const bounds = verifiedTileBounds(key);
+    if (!bounds) {
+      clearReferenceMap(); // fail-closed if engine/visual contracts diverge
+      return;
+    }
+    corners.push(...bounds);
+    L.rectangle(bounds, {
+      pane: "referenceFootprintPane",
+      color: "#7439aa", weight: 2, dashArray: "6 5",
+      fillColor: "#7439aa", fillOpacity: 0.03, interactive: false
+    }).addTo(referenceFootprintGroup);
+  }
+  if (!corners.length) return;
+  referenceFootprintBounds = L.latLngBounds(corners);
+
+  // Five display pins, not 6,656. No lines, routing or safety ranking.
+  discovery.sites.forEach((site, index) => {
+    const label = index + 1;
+    const sourceLink = safeExternalUrl(site.sourceUrl);
+    const popup = '<div class="reference-site-popup"><strong>GSI公式掲載（参考 ' + label + '）</strong>' +
+      '<p>' + escapeHtml(site.name) + '</p>' +
+      '<p>直線距離：' + escapeHtml(site.distanceMetres.toLocaleString("ja-JP")) +
+      'm（経路距離ではありません）</p>' +
+      (sourceLink ? '<a href="' + escapeHtml(sourceLink) +
+        '" target="_blank" rel="noopener noreferrer">原典タイル</a>' : '') +
+      '<p>安全性・現在の開設・避難経路は未判定です。番号は推奨順位ではありません。</p></div>';
+    L.marker([site.latitude, site.longitude], {
+      pane: "referenceSitePane", zIndexOffset: 1000,
+      icon: L.divIcon({
+        className: "",
+        html: '<span class="reference-site-marker" aria-label="GSI公式掲載参考地点' + label + '">' + label + '</span>',
+        iconSize: [32, 32], iconAnchor: [16, 16]
+      })
+    }).bindPopup(popup).on("click", event => {
+      L.DomEvent.stopPropagation(event);
+      detail(site.name, [
+        ["出典", "GSI skhb01 洪水指定緊急避難場所（参照のみ）"],
+        ["直線距離（経路距離ではない）", site.distanceMetres + "m"],
+        ["公式住所", displayValue(site.address)],
+        ["公式備考", displayValue(site.remarks)],
+        ["raw行", displayValue(site.trace)]
+      ], "GSI公式掲載 / 未推奨", {
+        href: site.sourceUrl,
+        note: "番号は表示順序であって避難先の推奨ではありません。施設の安全性、開設状況、実際の経路、自治体所属は未確認です。"
+      });
+    }).addTo(referenceSiteGroup);
+  });
+  const panel = document.getElementById("referenceMapSummary");
+  panel.hidden = false;
+  document.getElementById("referenceMapCoverage").textContent =
+    "検証済み " + discovery.verifiedTileCount + "/" + discovery.requestedTileCount + " タイル";
+  document.getElementById("referenceMapCount").textContent =
+    discovery.total.toLocaleString("ja-JP") + "件中 最大" + discovery.sites.length + "地点を地図表示";
+  updateDReferenceButton();
+}
+
 function renderReferenceDiscovery() {
   const result = document.getElementById("floodDiscoveryResults");
+  clearReferenceMap();
   const engine = compatibleDiscoveryEngine();
   if (!engine) {
     result.textContent = "洪水指定場所の参照モジュールのバージョンが一致しません。ページを再読み込みしてください。古いJavaScriptやブラウザキャッシュの可能性があります（Ctrl+Shift+R）。";
@@ -281,6 +383,7 @@ function renderReferenceDiscovery() {
   result.innerHTML = `<p>検証済み${discovery.verifiedTileCount}/${discovery.requestedTileCount}タイルの掲載地点：${discovery.total}件（自治体内の件数ではありません）。最大5件を参考表示。</p>` +
     `<p class="reference-warning">${escapeHtml(discovery.message)}</p>` +
     (cards || '<p>この照合済みデータ内に対象施設はありません。自治体の指定不存在は断定できません。</p>');
+  renderReferenceMap(discovery);
   updateMapOriginAction("検証済み" + discovery.verifiedTileCount + "/" +
     discovery.requestedTileCount + "タイル・" + discovery.total +
     "掲載件数（左欄に参考結果）。避難先の推奨ではありません。");
@@ -677,6 +780,20 @@ bindToggle("basemap", baseMap);
 bindToggle("officialFlood", officialFloodLayer);
 bindToggle("boundary", boundaryGroup);
 bindToggle("shelter", shelterGroup);
+document.getElementById("focusReferenceTiles").addEventListener("click", () => {
+  if (referenceFootprintBounds?.isValid()) {
+    // Fit only verified-source coverage; not a flood boundary or evacuation route.
+    map.fitBounds(referenceFootprintBounds, { padding: [18, 18], maxZoom: 12 });
+  }
+});
+document.getElementById("toggleDMarkers").addEventListener("click", () => {
+  const input = document.getElementById("shelter");
+  input.checked = !input.checked;
+  if (input.checked) map.addLayer(shelterGroup);
+  else map.removeLayer(shelterGroup);
+  updateDReferenceButton();
+});
+document.getElementById("shelter").addEventListener("change", updateDReferenceButton);
 
 document.getElementById("floodOpacity").addEventListener("input", event => {
   const percent = Number(event.target.value);
