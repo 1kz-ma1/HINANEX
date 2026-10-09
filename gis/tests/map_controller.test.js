@@ -1246,7 +1246,7 @@ nagoya.scenarios = [{
   const uiIds = ["gisLayout", "toggleRightPanel", "region", "mapRegionQuickSelect",
     "mapShowShelter", "shelter", "mapShowFlood", "officialFlood", "mapShowBasemap",
     "basemap", "facilityDisplayMode", "mapScenarioSelectOrigin", "selectOrigin",
-    "mapLocateMe", "useGps", "mapGpsFeedback", "originStatus", "mapRasterNotice",
+    "mapLocateMe", "useGps", "mapGpsFeedback", "originStatus", "mapRasterNotice", "mapRasterBanner",
     "mapToolScene", "mapToolScenario", "mapToolMarks", "mapToolHazards"];
   const nodes = Object.fromEntries(uiIds.map(id => {
     const node = makeElement(id);
@@ -1308,4 +1308,6 @@ nagoya.scenarios = [{
   facade.window.HINANEX_MAP_FIRST_UI.showRasterWarning("タイル未取得");
   assert.equal(nodes.mapRasterNotice.hidden, false);
   assert.equal(nodes.mapRasterNotice.textContent, "タイル未取得");
+  assert.equal(nodes.mapRasterBanner.hidden, false);
+  assert.equal(nodes.mapRasterBanner.textContent, "タイル未取得");
 }
