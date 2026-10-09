@@ -64,6 +64,18 @@ jobs:
         with:
           node-version: "22"
 
+      - name: B Frontend tests
+        working-directory: frontend
+        run: npm test
+
+      - name: B Frontend JavaScript syntax checks
+        working-directory: frontend
+        run: npm run lint
+
+      - name: B Frontend static build validation
+        working-directory: frontend
+        run: npm run build
+
       - name: E GIS independent browser-controller regressions
         working-directory: .
         shell: bash
