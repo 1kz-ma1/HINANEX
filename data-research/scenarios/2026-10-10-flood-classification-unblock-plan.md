@@ -109,3 +109,24 @@ C独立受入：NOT RUN。
 E地図の現在の黄土/青/灰マーカー：既存D statusの表示のみ。**
 
 10/22の発表で言えるのは、**「出典がある条件を保全し、判定不可ならそう表示する」**こと。施設単位で洪水適合性が確定したと主張してはいけない。
+
+## 7. 原本を入手してからA照合台帳を生成する手順
+
+- A専用の候補台帳生成: `data-research/tools/edogawa_review_ledger.py`。合成テスト: `data-research/tests/test_edogawa_review_ledger.py`。
+- 入力は (1) 江戸川区水害待避施設HTMLをブラウザで保存した原本、(2) 江戸川区が公開する位置施設CSVの原本、(3) Dが同じCSV原本から生成したRegionExport JSON。原本をこのrepoへコミットしない。
+- 出力は未確認候補台帳JSON、各入力SHA256、公式HTML表・行、施設名・住所・使用可能階数の原文、厳密な施設名一致の調査ヒント、別ソース住所の有無。
+- 表示上の注記 `(注)` を末尾から外すのは名称の調査ヒントに限る。名前が一致しても `VERIFIED_PAIR` にはせず、出力ステータスは常に `UNREVIEWED` または `CONFLICT`。洪水Scenario判定は増やさず、現行UNKNOWNを維持する。
+
+実行例（Windows PowerShell、ファイルパスは保存した場所に応じて変更）:
+
+~~~powershell
+cd C:\HINANEX
+python -m unittest discover -s data-research/tests -p "test_*.py" -v
+python data-research/tools/edogawa_review_ledger.py --water-html C:\HINANEX-evidence\edogawa-water.html --location-csv pipeline/data/raw/edogawa/20251211_hinanhokan.csv --region-export pipeline/data/output/edogawa.json --out C:\HINANEX-evidence\edogawa-proposals.json
+~~~
+
+作成した `edogawa-proposals.json` は**内部確認用で正式な施設名寄せ結果ではない**。A行と元データ照合 → C独立受入 → DのScenario意味論審査 → C回帰テストという経路を経ること。住所・施設名の対応付けだけで洪水指定や開設中を証明しない。
+
+### 今回の未検証範囲
+
+2026-10-10、公式HTMLとCSVリンクを調べたが、CSVはWeb参照側でcontent-type未対応、実行用コンテナは外部DNS不可。**原本CSVバイトをこの環境で取得していないため、実データで本ツールの実行・施設別確定照合は行っていない**。また既存GitHub required `test` workflowは `data-research/tests` のunittestを呼ばないため、当該単体テストをローカルで別途実行する必要がある。CI greenをAツールの実行成功と表現しない。
