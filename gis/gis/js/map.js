@@ -230,12 +230,23 @@ function setFacilityListMode(summary) {
 const FLOOD_CATALOG_URL = "../../pipeline/data/output/edogawa_flood_site_catalog.json";
 const VERIFIED_TILE_DIR = "../../pipeline/data/output/gsi_verified_tiles/";
 
+// A cached single-tile script may expose the old API without throwing during
+// <script> evaluation. Fail CLOSED with actionable feedback instead of
+// crashing the map when the newer controller calls missing functions.
+const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v2";
+function compatibleDiscoveryEngine() {
+  const engine = window.HINANEX_FLOOD_DISCOVERY;
+  return engine && engine.apiVersion === REQUIRED_DISCOVERY_VERSION &&
+    typeof engine.discoverReferenceTiles === "function" &&
+    typeof engine.nearbySourceTiles === "function" ? engine : null;
+}
+
 function renderReferenceDiscovery() {
   const result = document.getElementById("floodDiscoveryResults");
-  const engine = window.HINANEX_FLOOD_DISCOVERY;
+  const engine = compatibleDiscoveryEngine();
   if (!engine) {
-    result.textContent = "洪水指定場所の参照モジュールを読み込めません。";
-    return;
+    result.textContent = "洪水指定場所の参照モジュールのバージョンが一致しません。ページを再読み込みしてください。古いJavaScriptやブラウザキャッシュの可能性があります（Ctrl+Shift+R）。";
+    return; // never turn unverified facilities into a result
   }
   const discovery = engine.discoverReferenceTiles(verifiedFloodCatalog, selectedOrigin, selectedRegionCode);
   if (discovery.status !== "REFERENCE_ONLY") {
@@ -275,7 +286,7 @@ async function loadFloodReferenceCatalog() {
   const sequence = ++catalogLoadSequence;
   verifiedFloodCatalog = null;
   renderReferenceDiscovery();
-  const engine = window.HINANEX_FLOOD_DISCOVERY;
+  const engine = compatibleDiscoveryEngine();
   const requestedOrigin = selectedOrigin;
   const requestedRegion = selectedRegionCode;
   if (!engine || !requestedOrigin || window.location.protocol === "file:") return;
