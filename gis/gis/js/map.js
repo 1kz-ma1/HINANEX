@@ -1137,14 +1137,32 @@ map.on("click", event => {
   );
 });
 
-function reportExternalTileError(sourceName) {
+const externalTileSampleCounts = new Map();
+function reportExternalTileError(sourceName, event) {
+  // Leaflet's tileerror event is not an HTTP status / proof of no flood.
+  // The official raster specification limits geography and native zoom
+  // 2–17; log URL samples for DevTools Network without guessing a cause.
+  const samples = externalTileSampleCounts.get(sourceName) || 0;
+  if (samples < 3) {
+    const failedUrl = String(event?.tile?.currentSrc || event?.tile?.src || "");
+    console.warn("[HINANEX] 外部タイルの一部を表示できません", {
+      source: sourceName,
+      tileUrl: /^https:\/\/(cyberjapandata|disaportaldata)\.gsi\.go\.jp\//.test(failedUrl) ? failedUrl : "(URL不明)",
+      detail: "HTTP status / 範囲外 / ブラウザ制限はNetworkで個別確認"
+    });
+    externalTileSampleCounts.set(sourceName, samples + 1);
+  }
   if (externalTileWarnings.has(sourceName)) return;
   externalTileWarnings.add(sourceName);
-  setStatus(`外部タイル取得失敗: ${[...externalTileWarnings].join(" / ")}｜Dデータは利用可能`, "warning");
+  setStatus(
+    "外部タイルの一部が表示できません：" + [...externalTileWarnings].join(" / ") +
+    "。浸水の有無・安全性は判定できません。公的洪水ラスタとD/GSI施設情報は別系統です（原因はNetworkで確認）。",
+    "warning"
+  );
 }
 
-baseMap.on("tileerror", () => reportExternalTileError("背景地図"));
-officialFloodLayer.on("tileerror", () => reportExternalTileError("公的洪水"));
+baseMap.on("tileerror", event => reportExternalTileError("背景地図", event));
+officialFloodLayer.on("tileerror", event => reportExternalTileError("公的洪水ラスタ", event));
 
 try {
   selectRegion(selectedRegionCode);
