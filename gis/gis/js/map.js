@@ -21,16 +21,20 @@ const REGION_CONFIGS = {
 
 const FLOOD_REFERENCE_URL = "https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png";
 
+// Side-by-side QA switch: ?zoomFeel=previous retains the previous gesture
+// settings without changing the map data, selected region or URL behavior.
+// Default uses finer scroll snap and less aggressive wheel sensitivity.
+const previousZoomFeel = new URL(window.location.href).searchParams.get("zoomFeel") === "previous";
 const map = L.map("map", {
   zoomControl: true,
   attributionControl: true,
   preferCanvas: true,
-  // Half-step navigation prevents abrupt whole-level jumps from buttons,
-  // keyboard and wheel, while retaining the standard Leaflet animation.
-  // Official integer-zoom tiles are only visually scaled between levels.
-  zoomSnap: 0.5,
+  zoomSnap: previousZoomFeel ? 0.5 : 0.25,
   zoomDelta: 0.5,
-  wheelPxPerZoomLevel: 100
+  // A mouse-wheel notch was still advancing several fractional steps; increase
+  // pixels per zoom level to avoid another abrupt tile/marker visual jump.
+  wheelPxPerZoomLevel: previousZoomFeel ? 100 : 240,
+  wheelDebounceTime: previousZoomFeel ? 40 : 55
 }).setView([35.704, 139.882], 13);
 
 map.createPane("officialFloodPane");
@@ -52,10 +56,11 @@ const baseMap = L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y
   minZoom: 2,
   maxZoom: 18,
   maxNativeZoom: 18,
-  // Reuse nearby loaded tiles across short pan/zoom gestures and request new
-  // zoom levels once the interaction settles (rather than during animation).
+  // Keep nearby tiles cached and refresh the background during animated
+  // fractional zoom to reduce late sharp image swaps. The heavier official
+  // flood raster remains on end-of-zoom updates, with warnings unchanged.
   keepBuffer: 3,
-  updateWhenZooming: false,
+  updateWhenZooming: !previousZoomFeel,
   attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>'
 }).addTo(map);
 
