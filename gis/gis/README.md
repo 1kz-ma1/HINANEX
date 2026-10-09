@@ -100,3 +100,16 @@ node gis/tests/region_exports.integration.test.js
 
 
 `region_exports.integration.test.js` は、Dの実際のRegionExport builderから生成したdeterministic fixtureをE adapterへ通し、D→E Contractの接続を確認します。fixtureはすべて合成TEST recordで、実在の防災情報ではありません。
+
+### D施設の広域表示クラスタ（E可視化のみ）
+
+広域ズーム **12以下** で近接したD RegionExport施設の緑マーカーを**画面ピクセルの固定グリッド**でまとめ、円内に**Dレコードの実件数**を表示する。**ズーム13以上では全施設を元の個別マーカーに戻す**（外部Leafletプラグイン不要）。各クラスタをクリックするとズームを2段階まで拡大し、さらに拡大すると元のD施設ごとのSource由来属性が確認できる。
+
+- 集計範囲は選択地域の**座標が確認済みのD mappableRecordsだけ**。RegionExport自体の総件数・UNKNOWN・座標欠損数は変更しない。座標欠損をグループに混ぜたり、推測補完したりしない。
+- クラスタ円の位置は構成施設座標の**描画上の平均**であり、実在する避難施設の場所・移動先ではない。円内の数字は掲載順位・推奨度・収容人数ではない。
+- **紫のC検証済みGSI公式掲載地点5件、青の探索起点、別災害の判定**はクラスタに含めない。GSI側はこれまでどおり無番号のまま。
+- 地域切替・D JSON差替・ズーム・非表示→復帰でもDの元データとGSI独立監査を維持する。
+
+### 公的洪水ラスタの部分配信の診断
+
+国土地理院の「洪水浸水想定区域（想定最大規模）」ラスタタイルは独立した外部配信（<https://disaportaldata.gsi.go.jp/hazardmap/copyright/opendata.html>、URL `01_flood_l2_shinsuishin_data`、公式ズーム **2～17**）。一部地域は掲載が限定される。Leafletが`tileerror`を返した際は「外部タイルの**一部**が表示できない」とし、**洪水被害なし・安全・避難可能**へ変換しない。DevTools Consoleへ最大3件/配信元の公式タイルURLを出力するが、HTTPステータスや根本原因はこのイベントだけでは確定しない。**NetworkでURL・ステータス・ブラウザブロック理由・ズームを独立確認**する。GSI `skhb01`指定緊急避難場所のC独立監査とは別情報で、未表示ラスタはその照合結果を取り消さない。
