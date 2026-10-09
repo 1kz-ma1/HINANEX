@@ -6,18 +6,39 @@
   <title>HINANEX | GIS / Map</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/current_theme.css?v=gis-height-20261009-v5">
 </head>
 <body>
 <header class="header">
-  <div class="brand"><strong>HINANEX</strong><span>洪水データ分析 MVP</span></div>
-  <div class="role">E担当｜GIS / Map</div>
+  <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i></span><strong>HINANEX</strong><span>地域防災データを、根拠とともに。</span></div>
+  <div class="role">GIS / FLOOD REFERENCE</div>
 </header>
 
-<div class="layout">
-  <aside class="left">
-    <section>
-      <h3>表示地域</h3>
-      <select id="region">
+<nav class="gis-view-switcher" aria-label="GISの操作モード">
+  <div class="gis-view-tabs" role="tablist" aria-label="GISの表示">
+    <button id="uiTabNormal" class="gis-view-tab is-active" type="button" role="tab" aria-selected="true"
+      aria-controls="gisLayout" tabindex="0">通常表示</button>
+    <button id="uiTabScenario" class="gis-view-tab" type="button" role="tab" aria-selected="false"
+      aria-controls="gisLayout" tabindex="-1">シナリオ探索</button>
+  </div>
+
+  <p class="gis-view-caption">同じ地図とデータを使って情報を確認します。<span>災害の時間経過予測ではありません。</span></p>
+</nav>
+
+<div class="layout" id="gisLayout" data-ui-mode="normal" data-left-panel="open" data-right-panel="open" role="tabpanel" aria-labelledby="uiTabNormal">
+  <div class="gis-side-shell gis-side-shell--left">
+  <button id="toggleLeftPanel" class="gis-panel-toggle gis-panel-toggle--left" type="button"
+    aria-controls="gisLeftPanel" aria-expanded="true" aria-label="左メニューを閉じる" title="左メニューを閉じる">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+      <rect x="2.5" y="4" width="19" height="16" rx="3"></rect><path d="M9 4v16"></path>
+    </svg>
+  </button>
+  <aside class="left" id="gisLeftPanel" aria-label="GISの地域・探索・データ操作">
+    <section class="sidebar-section sidebar-section--region" aria-labelledby="sidebarRegionTitle">
+      <p class="sidebar-eyebrow">01 / AREA</p>
+      <h3 id="sidebarRegionTitle">表示地域</h3>
+      <select id="region" aria-label="表示する自治体">
         <option value="13123">東京都 江戸川区</option>
         <option value="15100">新潟県 新潟市</option>
         <option value="23100">愛知県 名古屋市</option>
@@ -25,68 +46,175 @@
       <button id="resetView" class="secondary-button" type="button">東京都 江戸川区の表示範囲へ</button>
     </section>
 
-    <section>
-      <div class="section-heading">
-        <h3>レイヤー</h3>
-        <span class="source-chip official">公的参照</span>
-      </div>
-      <label><input id="basemap" type="checkbox" checked> 背景地図（地理院）</label>
-      <label><input id="officialFlood" type="checkbox" checked> 洪水浸水想定（想定最大規模）</label>
-      <label><input id="boundary" type="checkbox" checked> <span id="boundaryNote">自治体境界（fixture）</span></label>
-      <label><input id="shelter" type="checkbox" checked> D避難所データ</label>
-
-      <div class="opacity-control">
-        <div><span>洪水レイヤー濃度</span><output id="floodOpacityValue">58%</output></div>
-        <input id="floodOpacity" type="range" min="20" max="85" step="5" value="58">
-      </div>
+    <section id="scenarioIntro" class="scenario-intro" aria-label="シナリオ探索の案内" hidden>
+      <p class="scenario-intro-eyebrow">SCENARIO EXPLORER</p>
+      <h2>洪水の参考情報を探索</h2>
+      <p>地域と地点を選び、公式掲載情報とD施設を順に確認します。</p>
+      <p class="scenario-guide-label">探索の流れ（操作ボタンではありません）</p>
+      <ol class="scenario-steps" aria-label="探索の手順を示す説明">
+        <li>地域を確認</li><li>地点を指定</li><li>掲載情報を照合</li><li>データを比較</li>
+      </ol>
+      <p class="scenario-guide-action">操作は下の地点指定ボタンや地図上の入力欄から行います。</p>
+      <p class="scenario-intro-note">これは平時のデータ探索です。浸水予測・安全な避難先の推薦ではありません。</p>
     </section>
 
-    <section class="data-loader">
+    <section class="flood-explorer sidebar-section sidebar-section--explore" id="floodExplorer" aria-labelledby="sidebarExploreTitle">
+      <p class="sidebar-eyebrow">02 / EXPLORE</p>
+      <h3 id="sidebarExploreTitle">地点と公式掲載情報</h3>
+      <p class="sidebar-assist">地図から指定するか、GPSを使用して周辺の検証済み参考情報を確認できます。</p>
+      <button type="button" id="selectOrigin" class="secondary-button">地図から出発地点を指定</button>
+      <button type="button" id="useGps" class="secondary-button">位置情報の利用を許可して現在地を使う</button>
+      <p id="originStatus" class="explorer-origin" role="status">位置は未選択です</p>
+      <div id="floodDiscoveryResults" class="discovery-results" aria-live="polite"></div>
+      <p class="sidebar-safety-note">掲載情報は参考資料です。<strong>安全な避難先や現在の開設状況を保証しません。</strong></p>
+      <details class="sidebar-disclosure" id="sourceDisclosure">
+        <summary>対象データと利用上の注意</summary>
+        <div class="sidebar-disclosure-body">
+          <label for="scenarioHazard">対象の災害</label>
+          <select id="scenarioHazard" disabled><option value="flood">洪水（MVP対象）</option></select>
+          <p class="explorer-intro">位置を指定すると、対応する国土地理院のズーム10タイルと周囲の事前検証済みタイルを参考表示します。未検証の地点は表示しません。</p>
+          <p class="explorer-caveat">これは平時の公式情報探索です。<strong>避難先の推奨・経路の安全・現在の開設を保証しません。</strong> 国土地理院のタイルは他市区町村も含むため、表示地点が選択した自治体内かどうかは未認定です。位置情報の正確な座標はHINANEXに送信しません。ただし、参考施設の読込時に配信サーバへズーム10のタイル識別子が送られるため、おおよその閲覧地域は配信側に分かります。背景地図の配信元にも表示範囲のリクエストが発生します。江戸川区の大規模水害では<a href="https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/hazardmap/5-1gaiyouban/index.html" target="_blank" rel="noopener noreferrer">区の広域避難方針</a>を優先して確認してください。</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="sidebar-section sidebar-section--status notice" aria-labelledby="sidebarStatusTitle">
+      <p class="sidebar-eyebrow">03 / STATUS</p>
+      <h3 id="sidebarStatusTitle">確認状況</h3>
+      <p id="status" role="status" aria-live="polite">地図を初期化中</p>
+      <p id="externalFloodTileNotice" class="external-flood-tile-notice" role="status" aria-live="polite" hidden></p>
+      <small>情報の未確認・取得失敗は「安全」や「施設なし」を意味しません。</small>
+    </section>
+
+    <section class="data-loader sidebar-section sidebar-section--data" aria-labelledby="sidebarDataTitle">
+      <p class="sidebar-eyebrow">04 / DATA</p>
       <div class="section-heading">
-        <h3>D出力</h3>
+        <h3 id="sidebarDataTitle">D施設データ</h3>
         <span id="datasetChip" class="source-chip wait">未読込</span>
       </div>
-      <p class="loader-copy">`RegionExport` の `datasets[].records` をそのまま利用します。</p>
-      <label class="file-label" for="regionExportFile">JSONを選択</label>
-      <input id="regionExportFile" class="file-input" type="file" accept="application/json,.json">
-      <button id="autoLoad" class="secondary-button" type="button">pipeline出力を再読込</button>
       <div class="coverage" aria-live="polite">
-        <div><span>records</span><strong id="recordCount">—</strong></div>
+        <div><span>取得レコード</span><strong id="recordCount">—</strong></div>
         <div><span>地図表示</span><strong id="mappedCount">—</strong></div>
-        <div><span>座標欠損</span><strong id="missingCoordinateCount">—</strong></div>
+        <div><span>座標未確認</span><strong id="missingCoordinateCount">—</strong></div>
       </div>
-      <small id="datasetStatus">ローカルHTTP起動時は選択地域に対応する `pipeline/data/output/{region}.json` を自動探索します。生成物はGit管理外のため、未生成時はJSONを選択してください。</small>
+      <small id="datasetStatus">ローカルHTTP起動時は選択地域に対応する `pipeline/data/output/{region}.json` を自動探索します。生成物はGit管理外です。見つからない場合は元のworktreeからコピーするかJSONを選択してください。公式GSIの地点探索はD出力なしでも利用できます。</small>
+      <details class="sidebar-disclosure" id="dataDisclosure">
+        <summary>JSON読込・データの詳細</summary>
+        <div class="sidebar-disclosure-body">
+          <p class="loader-copy">`RegionExport` の `datasets[].records` をそのまま利用します。</p>
+          <label class="file-label" for="regionExportFile">JSONを選択</label>
+          <input id="regionExportFile" class="file-input" type="file" accept="application/json,.json">
+          <button id="autoLoad" class="secondary-button" type="button">pipeline出力を再読込</button>
+          <small class="scenario-evidence-warning">洪水Scenarioが含まれる場合、公式の記号・利用階とDのUNKNOWNを施設IDで照合して表示します。○・×から安全性や開設可否を推測せず、洪水ラスタと施設点の交差から独自判定もしません。</small>
+        </div>
+      </details>
     </section>
 
-    <section>
-      <h3>凡例｜洪水浸水深</h3>
-      <div class="legend-grid" aria-label="洪水浸水深の公式分類">
-        <span>0.3m未満</span><span>0.3〜0.5m未満</span>
-        <span>0.5〜1.0m未満</span><span>1.0〜3.0m未満</span>
-        <span>3.0〜5.0m未満</span><span>5.0〜10.0m未満</span>
-        <span>10.0〜20.0m未満</span><span>20.0m以上</span>
+    <section class="sidebar-section sidebar-section--layers" aria-labelledby="sidebarLayersTitle">
+      <p class="sidebar-eyebrow">05 / LAYERS</p>
+      <div class="section-heading">
+        <h3 id="sidebarLayersTitle">地図に重ねる情報</h3>
+        <span class="source-chip official">公的参照</span>
       </div>
-      <div class="legend"><i class="line"></i>自治体境界</div>
-      <div class="legend"><i class="dot"></i>D避難所（座標ありのみ）</div>
-      <small class="legend-note">洪水分類はハザードマップポータルサイトの統一後凡例に合わせています。色自体は公的ラスタをそのまま表示し、HINANEX独自の危険度へ変換しません。</small>
+      <label><input id="officialFlood" type="checkbox" checked> 洪水浸水想定（想定最大規模）</label>
+      <label><input id="shelter" type="checkbox" checked> D避難所データ</label>
+      <details class="sidebar-disclosure" id="layerDisclosure">
+        <summary>背景地図・境界・濃度の詳細</summary>
+        <div class="sidebar-disclosure-body">
+          <label><input id="basemap" type="checkbox" checked> 背景地図（地理院）</label>
+          <label><input id="boundary" type="checkbox" checked> <span id="boundaryNote">自治体境界（fixture）</span></label>
+          <div class="opacity-control">
+            <div><span>洪水レイヤー濃度</span><output id="floodOpacityValue">58%</output></div>
+            <input id="floodOpacity" type="range" min="20" max="85" step="5" value="58">
+          </div>
+        </div>
+      </details>
     </section>
 
-    <section class="notice">
-      <h3>状態</h3>
-      <p id="status">地図を初期化中</p>
-      <small>座標が `null` のDレコードは地図に描画しませんが、件数差を必ず表示します。住所からの暗黙geocodingは行いません。</small>
+    <section class="sidebar-section sidebar-section--legend" aria-label="公式凡例">
+      <details class="sidebar-disclosure" id="legendDisclosure">
+        <summary>洪水浸水深の凡例を見る</summary>
+        <div class="sidebar-disclosure-body">
+          <div class="legend-grid" aria-label="洪水浸水深の公式分類">
+            <span>0.3m未満</span><span>0.3〜0.5m未満</span>
+            <span>0.5〜1.0m未満</span><span>1.0〜3.0m未満</span>
+            <span>3.0〜5.0m未満</span><span>5.0〜10.0m未満</span>
+            <span>10.0〜20.0m未満</span><span>20.0m以上</span>
+          </div>
+          <div class="legend"><i class="line"></i>自治体境界</div>
+          <div class="legend"><i class="dot"></i>D避難所（座標ありのみ）</div>
+          <small class="legend-note">洪水分類はハザードマップポータルサイトの統一後凡例に合わせています。色自体は公的ラスタをそのまま表示し、HINANEX独自の危険度へ変換しません。</small>
+        </div>
+      </details>
     </section>
   </aside>
+  </div>
 
   <main class="map-wrap">
     <div id="map"></div>
+    <div class="origin-map-action" aria-label="地点探索・表示切替">
+      <label for="facilityDisplayMode" class="display-mode-label">地図に表示する施設</label>
+      <select id="facilityDisplayMode" aria-label="表示する施設データ">
+        <option value="region">地域のD施設</option>
+        <option value="nearby">選択地点周辺のGSI公式掲載</option>
+        <option value="both">地域Dと周辺GSIを比較</option>
+      </select>
+      <p id="facilityDisplayModeDescription" class="display-mode-description" role="status">選択地域のD避難所を表示中。周辺GSIは別データです。</p>
+      <form id="coordinateSearchForm" class="coordinate-search-form" novalidate>
+        <label for="coordinateSearchInput">緯度・経度で地点を指定</label>
+        <div class="coordinate-search-row">
+          <input id="coordinateSearchInput" type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+            placeholder="35.70, 139.90" aria-describedby="coordinateSearchHelp coordinateSearchStatus">
+          <button id="coordinateSearchButton" type="submit">座標で探索</button>
+        </div>
+        <small id="coordinateSearchHelp">緯度, 経度（10進数）。例：35.70, 140.10</small>
+        <p id="coordinateSearchStatus" role="status" aria-live="polite"></p>
+      </form>
+      <button id="mapOriginShortcut" type="button">地図をクリックして探索</button>
+      <p id="mapOriginShortcutStatus" role="status" aria-live="polite">ボタンを押してから地図をクリック</p>
+    </div>
+    <section id="referenceMapSummary" class="reference-map-summary" aria-label="GSI公式掲載情報の可視化" hidden>
+      <strong>GSI公式掲載地点（参考）</strong>
+      <div class="reference-map-metrics"><span id="referenceMapCoverage">未探索</span><span id="referenceMapCount">—</span></div>
+      <p class="reference-map-legend"><span class="reference-legend-sample" aria-hidden="true"></span> 紫：公式掲載地点（安全性未判定・最大5地点）</p>
+      <p class="reference-map-legend"><span class="d-legend-sample"></span> 緑：D施設（広域では件数をまとめて表示・安全判定なし）</p>
+      <p class="reference-map-caveat">破線＝検証済みタイル境界。掲載範囲であり、洪水の危険域や避難経路ではありません。</p>
+      <div class="reference-map-actions">
+        <button id="focusReferenceTiles" type="button">選択地点と5件を見る</button>
+        <button id="toggleDMarkers" type="button">地域Dと比較</button>
+      </div>
+    </section>
     <div id="mapUnavailable" class="map-unavailable" hidden>
-      <strong>表示範囲を確定できません</strong>
+      <strong id="mapUnavailableTitle">表示範囲を確定できません</strong>
       <span id="mapUnavailableMessage">Dの座標付きデータを読み込むと地図を移動します。</span>
+      <section id="facilityListPanel" class="facility-list-panel" aria-label="取得施設一覧" hidden>
+        <div class="facility-list-heading">
+          <h2>取得施設一覧</h2>
+          <p>地図上の位置は未確認ですが、施設名・住所・公式データの原文を調べられます。</p>
+        </div>
+        <label for="facilityListSearch">施設名・住所・行政区域・公式raw値で検索</label>
+        <input id="facilityListSearch" type="search" placeholder="例：中区、施設名、2階以上" autocomplete="off">
+        <p id="facilityListCount" class="facility-list-count" role="status" aria-live="polite"></p>
+        <div id="facilityListResults" class="facility-list-results"></div>
+        <div class="facility-list-pagination" aria-label="施設一覧のページ送り">
+          <button id="facilityListPrev" type="button">前へ</button>
+          <span id="facilityListPage"></span>
+          <button id="facilityListNext" type="button">次へ</button>
+        </div>
+        <p class="facility-list-caveat">この一覧は取得済みSourceの閲覧機能です。施設の位置・洪水時の安全性・開設状況・避難経路を保証しません。UNKNOWNは危険や利用不可を意味しません。</p>
+      </section>
     </div>
     <div class="map-badge">GIS / RegionExport</div>
   </main>
 
+  <div class="gis-side-shell gis-side-shell--right">
+  <button id="toggleRightPanel" class="gis-panel-toggle gis-panel-toggle--right" type="button"
+    aria-controls="details" aria-expanded="true" aria-label="右詳細を閉じる" title="右詳細を閉じる">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+      <rect x="2.5" y="4" width="19" height="16" rx="3"></rect><path d="M15 4v16"></path>
+    </svg>
+  </button>
   <aside class="right" id="details">
     <div class="empty">
       <div class="empty-icon">⌖</div>
@@ -94,6 +222,7 @@
       <p>地域を選ぶとDのRegionExportを探索し、座標を持つ避難所を描画します。<br>地図上の任意地点をクリックすると公的洪水参照レイヤーの情報を確認できます。</p>
     </div>
   </aside>
+  </div>
 </div>
 
 <footer>
@@ -104,6 +233,9 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="js/reference_data.js"></script>
 <script src="js/d_region_adapter.js"></script>
-<script src="js/map.js"></script>
+<script src="js/facility_list.js"></script>
+<!-- Keep discovery and map on one release key: prevents mixed browser cache versions. -->
+<script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v14"></script>
+<script src="js/map.js?v=gsi-z10-neighbors-20261009-v14"></script>
 </body>
 </html>

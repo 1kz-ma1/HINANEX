@@ -2,6 +2,7 @@ import { buildAssessmentViewModels } from "./assessment-view-model.js";
 import { buildCapabilityViewModels } from "./capability-view-model.js";
 import { collectEvidence } from "./evidence-view-model.js";
 import { buildGapViewModels } from "./gap-view-model.js";
+import { buildFloodScenarioViewModel } from "./flood-scenario-view-model.js";
 import { buildRecommendationViewModels } from "./recommendation-view-model.js";
 import { formatDateTime, textOrNull } from "./view-model-utils.js";
 
@@ -33,6 +34,7 @@ function buildRegionExportViewModel(exportData) {
     gaps: buildGapViewModels(exportData),
     recommendations: buildRecommendationViewModels(exportData),
     evidence: collectEvidence(exportData),
+    floodScenario: buildFloodScenarioViewModel(exportData),
   };
 }
 

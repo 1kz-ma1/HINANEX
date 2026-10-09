@@ -8,7 +8,123 @@ label{display:flex;gap:9px;align-items:center;margin:13px 0;font-size:13px;curso
 .data-loader{background:#fbfdff}.loader-copy{margin:0 0 10px;font-size:10px;line-height:1.55;color:#708399}.file-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}.file-label{display:block;margin:0;padding:9px 10px;border-radius:7px;background:#1476d4;color:#fff;text-align:center;font-weight:700;font-size:12px;cursor:pointer}.coverage{margin:12px 0 8px;padding:10px;border-radius:8px;background:#f5f9fd;display:grid;gap:6px}.coverage div{display:flex;justify-content:space-between;font-size:10px}.coverage span{color:#718399}.coverage strong{font-size:11px}.data-loader small{display:block;font-size:10px;line-height:1.55;color:#708399}.data-loader small[data-tone="warning"]{color:#9a5b00}.data-loader small[data-tone="error"]{color:#b42318}.data-loader small[data-tone="success"]{color:#08764e}
 .legend-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0 12px}.legend-grid span{padding:6px 7px;border:1px solid #dce6f0;border-radius:5px;background:#f8fbfe;font-size:10px;color:#526b84}.legend{display:flex;align-items:center;gap:9px;margin:9px 0;font-size:12px}.line{width:23px;height:15px;border:3px solid #2445dc;border-radius:3px}.dot{width:15px;height:15px;background:#07915c;border-radius:50%;display:inline-block;border:2px solid #fff;box-shadow:0 0 0 1px #07915c}.legend-note{display:block;margin-top:10px;color:#708399;font-size:10px;line-height:1.5}
 .notice p{font-weight:bold;font-size:13px;margin:5px 0 8px}.notice small{font-size:10px;line-height:1.55;color:#708399}#status[data-tone="warning"]{color:#a15c00}#status[data-tone="error"]{color:#b42318}#status[data-tone="success"]{color:#08764e}
-.map-wrap{position:relative;background:#dceaf4}.map-unavailable{position:absolute;z-index:1100;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px;background:rgba(244,248,252,.92);color:#17365d;text-align:center}.map-unavailable[hidden]{display:none}.map-unavailable strong{font-size:18px}.map-unavailable span{max-width:420px;font-size:12px;line-height:1.7;color:#64788d}.map-badge{position:absolute;z-index:1000;top:12px;right:12px;background:#fff;border:1px solid #d4e0eb;border-radius:6px;padding:7px 10px;font-size:11px;box-shadow:0 2px 7px rgba(0,0,0,.12)}#map{height:100%;min-height:650px;background:#dbeaf2}
+.map-wrap{position:relative;background:#dceaf4}.map-unavailable{position:absolute;z-index:1100;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px;background:#f4f8fc;color:#17365d;text-align:center}.map-unavailable[hidden]{display:none}.map-unavailable strong{font-size:18px}.map-unavailable span{max-width:420px;font-size:12px;line-height:1.7;color:#64788d}.map-badge{position:absolute;z-index:1000;top:12px;right:12px;background:#fff;border:1px solid #d4e0eb;border-radius:6px;padding:7px 10px;font-size:11px;box-shadow:0 2px 7px rgba(0,0,0,.12)}#map{height:100%;min-height:650px;background:#dbeaf2}
 .empty{text-align:center;margin-top:140px;color:#718399}.empty-icon{font-size:46px;color:#1779cf}.empty h2{font-size:18px;color:#17365d}.empty p{font-size:13px;line-height:1.7}.badge{display:inline-block;background:#e4f6ee;color:#08764e;border-radius:99px;padding:5px 9px;font-size:11px;margin-bottom:13px}.badge.reference{background:#eaf3ff;color:#155a98}.detail-title{font-size:19px;margin:0 0 15px}.row{display:grid;grid-template-columns:98px 1fr;gap:9px;padding:11px 0;border-bottom:1px solid #e8eef4;font-size:12px}.label{color:#718096}.value{font-weight:bold;word-break:break-word}.note{margin-top:18px;background:#f1f7fc;padding:12px;border-radius:8px;font-size:11px;line-height:1.7}.detail-link{display:inline-flex;margin-top:15px;color:#0d67b5;font-size:12px;font-weight:700;text-decoration:none}.detail-link:hover{text-decoration:underline}.shelter-icon{width:30px;height:30px;background:#07915c;border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px #777}.shelter-icon span{display:block;color:#fff;font-weight:bold;font-size:16px;text-align:center;transform:rotate(45deg);margin-top:2px}
 footer{height:36px;display:flex;justify-content:space-between;align-items:center;padding:0 28px;background:#edf4fa;color:#718399;font-size:10px}.leaflet-control-attribution{font-size:9px}.leaflet-control-scale-line{border-color:#61778d;background:rgba(255,255,255,.86);color:#17365d}
 @media(max-width:1100px){.layout{grid-template-columns:240px 1fr 285px}.brand span{display:none}}@media(max-width:900px){.layout{grid-template-columns:220px 1fr}.right{display:none}.role{display:none}}@media(max-width:680px){.header{height:58px;padding:0 16px}.brand strong{font-size:24px}.layout{height:auto;min-height:0;display:block}.left{border-right:0;display:grid;grid-template-columns:1fr 1fr}.left section{padding:14px}.left .data-loader,.left .notice{grid-column:1/-1}.map-wrap{height:68vh;min-height:500px}.map-badge{font-size:9px}#map{min-height:500px}footer{height:auto;min-height:36px;padding:10px 16px;gap:12px;flex-wrap:wrap}}
+
+/* Unlocated facility list: a usable alternate view, not a map approximation. */
+.map-unavailable.has-facility-list{justify-content:flex-start;overflow-y:auto;align-items:stretch;padding:20px 22px;gap:8px}
+.map-unavailable.has-facility-list>strong,.map-unavailable.has-facility-list>span{text-align:left;max-width:760px;margin:0 auto;width:100%}
+.facility-list-panel{width:100%;max-width:760px;margin:8px auto 0;text-align:left}
+.facility-list-panel[hidden]{display:none}
+.facility-list-heading h2{font-size:19px;margin:4px 0 7px}
+.facility-list-heading p{color:#526b84;font-size:13px;line-height:1.6;margin:0 0 12px}
+.facility-list-panel label{font-size:12px;font-weight:bold;margin:8px 0 5px}
+#facilityListSearch{width:100%;padding:12px;border:1px solid #9ab5cb;border-radius:9px;font:inherit;background:#fff;color:#17365d}
+#facilityListSearch:focus-visible,.facility-list-pagination button:focus-visible,.facility-list-card summary:focus-visible{outline:3px solid #1476d4;outline-offset:2px}
+.facility-list-count{font-size:12px;color:#526b84;margin:10px 0}
+.facility-list-results{display:grid;gap:10px}
+.facility-list-card{border:1px solid #d4e0eb;border-radius:9px;background:#fff;overflow:hidden}
+.facility-list-card summary{list-style-position:inside;cursor:pointer;padding:13px 14px;line-height:1.5}
+.facility-list-card summary strong{font-size:14px}
+.facility-list-card summary small{display:block;margin:5px 0 0 19px;font-size:11px;color:#526b84;overflow-wrap:anywhere}
+.facility-list-card[open] summary{border-bottom:1px solid #e2eaf3}
+.facility-list-card dl{display:grid;grid-template-columns:minmax(95px,160px) minmax(0,1fr);gap:10px;padding:14px;margin:0;font-size:12px;line-height:1.6}
+.facility-list-card dt{color:#62778e}.facility-list-card dd{margin:0;overflow-wrap:anywhere}
+.facility-list-card .list-source{display:inline-block;margin:0 14px 14px;font-size:12px;font-weight:700}
+.facility-list-card .list-note{padding:10px 14px;margin:0;color:#526b84;background:#f5f9fd;font-size:11px;line-height:1.7}
+.facility-list-pagination{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0}
+.facility-list-pagination button{border:1px solid #adc5db;background:#fff;color:#155a98;border-radius:7px;padding:8px 16px;cursor:pointer}
+.facility-list-pagination button:disabled{opacity:.4;cursor:not-allowed}
+.facility-list-pagination span{font-size:12px;color:#526b84}
+.facility-list-caveat{border-left:3px solid #1476d4;background:#eaf3ff;padding:12px;color:#17365d;font-size:12px;line-height:1.7}
+.facility-list-empty{padding:26px 16px;text-align:center;background:#fff;border:1px dashed #9ab5cb;border-radius:8px;color:#526b84;font-size:13px}
+@media(max-width:680px){.map-unavailable.has-facility-list{padding:14px;}.facility-list-card dl{grid-template-columns:92px minmax(0,1fr)}}
+
+/* Flood reference discovery is deliberately source-only, not live navigation. */
+.flood-explorer{background:#f5f9fe}
+.explorer-intro,.explorer-caveat{font-size:11px;line-height:1.65;color:#526b84;margin:8px 0 10px}
+.explorer-caveat{border-left:3px solid #b87915;background:#fff7e8;padding:10px;border-radius:5px}
+.explorer-caveat a{color:#0d67b5;word-break:break-word}
+.flood-explorer label{margin:8px 0 5px;font-size:12px;font-weight:700}
+.flood-explorer select:disabled{color:#17365d;opacity:1;background:#f4f8fc}
+.explorer-origin{margin:10px 0;padding:8px;border-radius:6px;font-size:11px;color:#345a77;background:#eaf2fb}
+.discovery-results{font-size:12px;line-height:1.65}
+.discovery-results>p{margin:10px 0;color:#526b84}
+.discovery-results .reference-result{border:1px solid #d4e0eb;background:#fff;border-radius:8px;padding:10px 12px;margin:9px 0}
+.reference-result strong{display:block;font-size:12px;line-height:1.5}
+.reference-result .distance{display:block;color:#155a98;font-size:11px;margin:3px 0}
+.reference-result .trace{font-size:10px;color:#718399;word-break:break-word}
+.reference-result a{display:inline-block;margin-top:6px;font-size:11px;color:#0d67b5}
+.discovery-results .reference-warning{padding:10px;border-radius:6px;background:#fff7e8;color:#865b15}
+
+.reference-origin-marker{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border:4px solid #fff;border-radius:50%;background:#155a98;color:#fff;font-weight:900;font-size:25px;line-height:1;text-align:center;box-shadow:0 0 0 3px #125fa5,0 0 0 9px rgba(17,110,179,.27),0 5px 12px rgba(0,0,0,.27)}
+
+/* Visible, task-specific location entry independent of the scrollable data sidebar. */
+.origin-map-action{position:absolute;top:92px;left:12px;z-index:1000;width:min(235px,calc(100% - 24px));padding:9px 11px;border:1px solid #b8cfe1;border-radius:9px;background:rgba(255,255,255,.96);box-shadow:0 2px 10px rgba(0,0,0,.16)}
+.origin-map-action button{width:100%;border:1px solid #0e6ab1;border-radius:6px;background:#116eb3;color:#fff;padding:9px 8px;font-size:12px;font-weight:700;cursor:pointer}
+.origin-map-action button:hover{background:#08558f}
+.origin-map-action button:focus-visible{outline:3px solid #ffb547;outline-offset:2px}
+.origin-map-action button[aria-pressed="true"]{background:#136c51;border-color:#136c51}
+.origin-map-action p{margin:6px 1px 0;font-size:10px;line-height:1.6;color:#425b72;overflow-wrap:anywhere}
+@media(max-width:680px){.origin-map-action{top:82px;left:10px;width:min(205px,calc(100% - 20px))}}
+
+/* GSI reference discovery is a distinct, bounded visualization—not D shelter pins. */
+.reference-site-marker{display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:#7439aa;border:3px solid white;border-radius:50%;box-shadow:0 0 0 2px #7439aa,0 2px 9px rgba(23,12,40,.35);cursor:pointer}.reference-site-marker::after{content:"";width:8px;height:8px;border-radius:50%;background:#fff}
+.reference-tile-outline{stroke-dasharray:6 5}
+.reference-map-summary{position:absolute;z-index:1001;right:12px;bottom:36px;max-height:calc(100% - 140px);overflow-y:auto;width:min(300px,calc(100% - 24px));border:1px solid #cbb8df;border-radius:10px;background:rgba(255,255,255,.97);box-shadow:0 4px 14px rgba(27,20,47,.23);padding:11px 12px;font-size:11px;line-height:1.5;color:#29334d}
+.reference-map-summary[hidden]{display:none}
+.reference-map-summary>strong{display:block;font-size:13px;color:#532183}
+.reference-map-metrics{display:flex;gap:6px;flex-wrap:wrap;margin:7px 0;font-weight:700}
+.reference-map-metrics span{padding:5px 7px;border-radius:6px;background:#f0e7f9;color:#562384}
+.reference-map-legend{display:flex;gap:7px;align-items:center;margin:6px 0}
+.reference-legend-sample{display:inline-flex;align-items:center;justify-content:center;width:23px;height:23px;flex:none;background:#7439aa;border:2px solid #fff;outline:1px solid #7439aa;border-radius:50%}.reference-legend-sample::after{content:"";width:6px;height:6px;border-radius:50%;background:#fff}
+.d-legend-sample{display:inline-block;width:18px;height:18px;flex:none;background:#07915c;border:2px solid white;outline:1px solid #07915c;border-radius:50%}
+.reference-map-caveat{margin:7px 0;color:#5d647b;font-size:10px}
+.reference-map-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.reference-map-actions button{cursor:pointer;min-width:0;padding:7px 5px;border-radius:6px;border:1px solid #b9a4d1;color:#532183;background:#faf7ff;font-size:10px;font-weight:700}
+.reference-map-actions button:hover{background:#eee2fa}
+.reference-map-actions button:focus-visible{outline:3px solid #ffb547;outline-offset:2px}
+.reference-site-popup{font-size:12px;line-height:1.6}
+.reference-site-popup strong{display:block;color:#532183}
+.reference-site-popup p{font-size:11px;margin:6px 0}
+@media(max-width:680px){.reference-map-summary{right:8px;bottom:28px;width:min(265px,calc(100% - 16px));max-height:43%;padding:8px 9px}}
+
+/* Independent D region vs GSI local-reference layer selector. */
+.origin-map-action .display-mode-label{display:block;font-size:11px;font-weight:800;color:#1c3653;margin:1px 0 5px}
+.origin-map-action #facilityDisplayMode{width:100%;padding:8px 7px;border-radius:6px;border:1px solid #a9b9cc;background:#fff;color:#1d3650;font-size:11px}
+.origin-map-action .display-mode-description{font-size:10px;line-height:1.5;margin:5px 0 10px;color:#3b5270}
+.origin-map-action #mapOriginShortcutStatus{font-size:10px;line-height:1.5;margin:6px 0 0;color:#52667d}
+@media(max-width:680px){.origin-map-action{top:82px;max-height:53%;overflow-y:auto}}
+
+/* Precise coordinate navigation for C/E real-browser acceptance.
+   Text input is intentionally local; only existing coarse z10 tile IDs are fetched. */
+.origin-map-action{max-height:calc(100% - 124px);overflow-y:auto}
+.origin-map-action .coordinate-search-form{border-top:1px solid #dce6f0;margin:10px 0 9px;padding-top:9px}
+.origin-map-action .coordinate-search-form label{display:block;margin:0 0 6px;font-size:11px;font-weight:800;color:#1c3653;cursor:default}
+.origin-map-action .coordinate-search-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px;align-items:stretch}
+.origin-map-action #coordinateSearchInput{width:100%;min-width:0;border:1px solid #9eafc2;border-radius:6px;background:#fff;color:#1d3650;padding:8px 6px;font-size:11px;font-variant-numeric:tabular-nums}
+.origin-map-action #coordinateSearchInput[aria-invalid="true"]{border-color:#bf2929;outline-color:#bf2929}
+.origin-map-action .coordinate-search-row button{width:auto;padding:7px 6px;white-space:nowrap;font-size:10px}
+.origin-map-action .coordinate-search-form small{display:block;color:#51677e;font-size:10px;line-height:1.5;margin-top:5px}
+.origin-map-action .coordinate-search-form #coordinateSearchStatus{font-size:10px;color:#52667d;margin:4px 0;line-height:1.5}
+.origin-map-action .coordinate-search-form #coordinateSearchInput[aria-invalid="true"]~*{color:#a82424}
+.origin-map-action .coordinate-search-form:has(#coordinateSearchInput[aria-invalid="true"]) #coordinateSearchStatus{color:#a82424}
+@media(max-width:680px){.origin-map-action{max-height:52%;overflow-y:auto}}
+
+/* A comparison with no coordinate-backed D records must not offer a
+   misleading "show both" focus action. The GSI summary itself is hidden
+   via the native [hidden] attribute in the region-only display scope. */
+.reference-map-actions button:disabled{opacity:.52;cursor:not-allowed;background:#f3f0f5}
+
+/* D RegionExport point decluttering only; never a GSI source marker. Cluster
+   center is an arithmetic display centroid, not a designated shelter site.
+   Unlike the small purple GSI source references, counts are literal D rows. */
+.d-facility-cluster{display:flex;align-items:center;justify-content:center;width:42px;height:42px;box-sizing:border-box;border:3px solid #fff;border-radius:50%;background:#076c50;box-shadow:0 0 0 3px #0e8b68,0 3px 12px rgba(12,42,33,.25);color:#fff;font-weight:800;font-size:14px;font-variant-numeric:tabular-nums;cursor:zoom-in}
+.d-facility-cluster:hover{background:#075d46}
+
+/* This independent raster health notice survives subsequent D source status updates.
+   Missing provider tiles never imply safe/unflooded geography. */
+.external-flood-tile-notice{margin:5px 0 12px;padding:9px 10px;border-left:3px solid #b67500;background:#fff5e4;color:#724700;font-size:11px;line-height:1.6;overflow-wrap:anywhere}
+.external-flood-tile-notice[hidden]{display:none}

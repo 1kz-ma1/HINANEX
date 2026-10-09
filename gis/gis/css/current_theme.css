@@ -1,0 +1,432 @@
+/* GIS application chrome uses the CURRENT HINANEX B visual language.
+   The underlying official GSI map/raster tiles and source-specific markers are
+   deliberately NEVER filtered, inverted, or recolored. */
+:root{
+  color-scheme:dark;
+  --bg:#07131e;--surface:#0d1c29;--surface-raised:#122636;
+  --line:rgba(181,216,229,.14);--line-strong:rgba(181,216,229,.24);
+  --text:#edf8fb;--muted:#91a9b5;--cyan:#4ed7dc;
+  --cyan-soft:rgba(78,215,220,.12);--green:#62d7a4;
+  --amber:#f5bd72;--violet:#b9a8ff;
+  font-family:Inter,"Noto Sans JP","Yu Gothic UI",system-ui,sans-serif;
+}
+body{min-width:320px;background:var(--bg);color:var(--text);
+  font-family:Inter,"Noto Sans JP","Yu Gothic UI",system-ui,sans-serif}
+button,input,select{font:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible,
+.gis-view-tab:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+.header{height:72px;background:#091825;border-bottom:1px solid var(--line);
+  color:var(--text);padding:0 28px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand strong{font-size:18px;letter-spacing:.14em}
+.brand span:not(.brand-mark){font-size:12px;color:var(--muted);opacity:1}
+.brand-mark{position:relative;display:inline-flex;width:30px;height:30px;
+  align-items:center;justify-content:center;border:1px solid rgba(78,215,220,.55);
+  border-radius:10px;background:var(--cyan-soft)}
+.brand-mark:before,.brand-mark:after,.brand-mark i{content:"";position:absolute;
+  width:4px;border-radius:9px;background:var(--cyan);bottom:7px}
+.brand-mark:before{height:10px;left:8px}
+.brand-mark i{height:16px;left:13px}
+.brand-mark:after{height:7px;left:18px;background:var(--amber)}
+.role{color:var(--muted);font-size:11px;letter-spacing:.12em}
+.gis-view-switcher{min-height:68px;padding:11px 24px;display:flex;
+  justify-content:space-between;align-items:center;gap:16px;
+  border-bottom:1px solid var(--line);background:var(--bg)}
+.gis-view-tabs{display:flex;gap:4px;padding:4px;border-radius:12px;
+  background:var(--surface);border:1px solid var(--line)}
+.gis-view-tab{min-width:130px;padding:9px 18px;border:1px solid transparent;
+  border-radius:9px;background:transparent;color:var(--muted);
+  font-size:13px;font-weight:700;cursor:pointer}
+.gis-view-tab:hover{background:var(--surface-raised);color:var(--text)}
+.gis-view-tab[aria-selected="true"]{background:var(--cyan-soft);
+  color:var(--cyan);border-color:rgba(78,215,220,.35)}
+.gis-view-caption{margin:0;font-size:11px;color:var(--muted);line-height:1.55}
+.gis-view-caption span{display:block;text-align:right;color:var(--amber)}
+.layout{height:calc(100vh - 176px);min-height:650px;
+  grid-template-columns:minmax(245px,275px) minmax(0,1fr) minmax(290px,325px);background:var(--bg)}
+.left,.right{background:var(--surface);color:var(--text);border-color:var(--line)}
+.left{border-right:1px solid var(--line)}
+.right{border-left:1px solid var(--line);padding:20px}
+.left section{padding:17px 18px;border-color:var(--line)}
+.left h3{color:var(--text);font-size:14px}
+.left .section-heading .source-chip{flex-shrink:0}
+.left .data-loader,.left .flood-explorer{background:var(--surface)}
+.left label,.left .coverage strong{color:var(--text)}
+select,.secondary-button,#facilityListSearch{
+  background:var(--surface-raised);color:var(--text);
+  border:1px solid var(--line-strong);border-radius:9px}
+select:disabled,.flood-explorer select:disabled{background:#101f2b;color:var(--muted);opacity:1}
+.secondary-button{font-size:12px;color:var(--cyan);padding:10px 12px}
+.secondary-button:hover{background:#1c3b47;color:var(--text)}
+.secondary-button:disabled{opacity:.55;cursor:not-allowed;background:#142330;color:var(--muted)}
+input[type="checkbox"],.opacity-control input{accent-color:var(--cyan)}
+.file-label{background:var(--cyan);color:#061923;border-radius:9px}
+.file-label:hover{background:#8be8eb}
+.opacity-control,.coverage{background:var(--surface-raised);border:1px solid var(--line);border-radius:10px}
+.opacity-control>div,.coverage span,.legend-note,.loader-copy,
+.data-loader small,.notice small,.explorer-intro,.explorer-caveat,.discovery-results>p{
+  color:var(--muted)}
+.opacity-control output{color:var(--text)}
+.legend-grid span{background:var(--surface-raised);border-color:var(--line);color:var(--text)}
+.explorer-caveat,.external-flood-tile-notice,.note{background:rgba(245,189,114,.1);
+  color:#efd3a6;border-left:3px solid #bd8741}
+.explorer-caveat a,.detail-link,.reference-result a{color:var(--cyan)}
+.explorer-origin,.discovery-results .reference-result,
+.origin-map-action,.reference-map-summary{background:var(--surface-raised);
+  color:var(--text);border:1px solid var(--line-strong);
+  box-shadow:0 10px 24px rgba(0,0,0,.26)}
+.explorer-origin{color:var(--cyan)}
+.discovery-results .reference-result{border-radius:10px}
+.discovery-results .reference-result .distance{color:var(--violet)}
+.discovery-results .reference-result .trace{color:var(--muted)}
+.discovery-results .reference-warning{background:rgba(245,189,114,.12);color:#f6cd90}
+.source-chip.official,.source-chip.ok{background:rgba(98,215,164,.14);color:var(--green)}
+.source-chip.warning{background:rgba(245,189,114,.14);color:var(--amber)}
+.source-chip.error{background:rgba(255,139,145,.14);color:#ff8b91}
+.source-chip.wait{background:rgba(167,184,194,.12);color:var(--muted)}
+.data-loader small[data-tone="warning"],#status[data-tone="warning"]{color:var(--amber)}
+.data-loader small[data-tone="error"],#status[data-tone="error"]{color:#ff8b91}
+.data-loader small[data-tone="success"],#status[data-tone="success"]{color:var(--green)}
+.map-wrap{background:#b8d2d7}
+#map{background:#cfe1e7}
+.map-badge{background:var(--surface);color:var(--cyan);
+  border:1px solid var(--line);box-shadow:0 8px 20px rgba(0,0,0,.3);
+  font-size:10px;font-weight:800;letter-spacing:.07em}
+.origin-map-action{border-radius:12px;width:min(245px,calc(100% - 24px));padding:11px}
+.origin-map-action .display-mode-label,.origin-map-action .coordinate-search-form label{
+  color:var(--text)}
+.origin-map-action #facilityDisplayMode,.origin-map-action #coordinateSearchInput{
+  background:var(--surface);color:var(--text);border-color:var(--line-strong)}
+.origin-map-action .display-mode-description,.origin-map-action p,
+.origin-map-action #mapOriginShortcutStatus,.origin-map-action .coordinate-search-form small,
+.origin-map-action .coordinate-search-form #coordinateSearchStatus{color:var(--muted)}
+.origin-map-action .coordinate-search-form{border-color:var(--line)}
+.origin-map-action button{background:#136e77;color:#fff;border-color:#30949c}
+.origin-map-action button:hover{background:#168995}
+.origin-map-action button:disabled{background:#223947;border-color:var(--line);color:var(--muted)}
+.origin-map-action button[aria-pressed="true"]{background:#176149;border-color:#2b9972}
+.reference-map-summary{max-height:calc(100% - 140px);border-radius:12px}
+.reference-map-summary>strong{color:var(--violet)}
+.reference-map-metrics span{background:rgba(185,168,255,.14);color:var(--violet)}
+.reference-map-caveat{color:var(--muted)}
+.reference-map-actions button{background:#24243e;color:#dfd1ff;border-color:#584d74}
+.reference-map-actions button:hover{background:#352e50}
+.reference-map-actions button:disabled{background:#172632;color:var(--muted)}
+.empty{color:var(--muted)}
+.empty-icon{color:var(--cyan)}
+.empty h2,.detail-title{color:var(--text)}
+.empty p,.label{color:var(--muted)}
+.row{border-color:var(--line)}
+.value{color:var(--text)}
+.note{line-height:1.65}
+.badge{background:rgba(98,215,164,.14);color:var(--green)}
+.badge.reference{background:rgba(185,168,255,.14);color:var(--violet)}
+/* An opaque list replaces unavailable geography; it is not a map or simulation. */
+.map-unavailable{background:var(--surface);color:var(--text)}
+.map-unavailable strong{color:var(--text)}
+.map-unavailable span{color:var(--muted)}
+.facility-list-heading p,.facility-list-count,
+.facility-list-card summary small,.facility-list-card dt,
+.facility-list-card .list-note,.facility-list-pagination span{color:var(--muted)}
+.facility-list-card,.facility-list-empty{background:var(--surface-raised);
+  border-color:var(--line-strong);color:var(--text)}
+.facility-list-card[open] summary{border-color:var(--line)}
+.facility-list-card .list-note{background:var(--surface)}
+.facility-list-pagination button{background:var(--surface-raised);
+  color:var(--cyan);border-color:var(--line-strong)}
+.facility-list-caveat{background:rgba(78,215,220,.1);
+  border-color:var(--cyan);color:var(--text)}
+#facilityListSearch{background:var(--surface-raised);color:var(--text)}
+#facilityListSearch:focus-visible,.facility-list-pagination button:focus-visible,
+.facility-list-card summary:focus-visible{outline-color:var(--cyan)}
+footer{height:36px;background:#091825;color:var(--muted);border-top:1px solid var(--line)}
+/* The static Stage-1 guide is visibly distinct but does not claim any
+   verified source/tile progress. Stage-2 will derive stages from actual state. */
+.left section.scenario-intro{border-bottom:1px solid rgba(78,215,220,.2);
+  background:linear-gradient(140deg,#122c37,var(--surface));padding:19px}
+.scenario-intro[hidden]{display:none}
+.scenario-intro-eyebrow{margin:0 0 8px;color:var(--cyan);font-size:10px;letter-spacing:.16em;font-weight:800}
+.scenario-intro h2{font-size:17px;margin:0 0 8px;color:var(--text)}
+.scenario-intro>p:not(.scenario-intro-eyebrow){margin:0 0 10px;color:var(--muted);font-size:11px;line-height:1.6}
+.scenario-steps{list-style:none;display:grid;grid-template-columns:1fr 1fr;
+  gap:6px;padding:0;margin:12px 0}
+.scenario-steps li{display:flex;align-items:center;min-height:35px;
+  padding:6px 8px;background:rgba(78,215,220,.07);
+  border:1px solid var(--line);border-radius:7px;color:var(--text);
+  font-size:11px}
+.scenario-steps li:before{content:"○";color:var(--cyan);margin-right:7px}
+.scenario-intro .scenario-intro-note{color:var(--amber)!important;font-size:10px!important}
+/* UI mode changes ONLY presentation; none of these selectors affect #map or Leaflet. */
+.layout[data-ui-mode="scenario"] .left .flood-explorer{border-left:2px solid var(--cyan)}
+.layout[data-ui-mode="scenario"] .left .data-loader{border-left:2px solid var(--line-strong)}
+@media(max-width:1100px){
+  .layout{grid-template-columns:245px minmax(0,1fr) minmax(245px,285px)}
+}
+@media(max-width:900px){
+  .layout{height:auto;min-height:0;display:grid;grid-template-columns:minmax(210px,280px) minmax(0,1fr);
+    grid-template-areas:"left map" "right right"}
+  .left{grid-area:left;max-height:740px;overflow-y:auto}
+  .map-wrap{grid-area:map;height:740px;min-width:0}
+  .right{grid-area:right;display:block;border-left:0;border-top:1px solid var(--line);min-height:210px}
+  #map{min-height:740px}
+}
+@media(max-width:680px){
+  .header{padding:0 16px;height:58px}
+  .brand span:not(.brand-mark){display:none}
+  .role{font-size:9px}
+  .gis-view-switcher{padding:9px 12px;display:block}
+  .gis-view-tabs{width:100%}
+  .gis-view-tab{flex:1;min-width:0;padding:9px 8px}
+  .gis-view-caption{margin-top:6px;font-size:10px}
+  .gis-view-caption span{display:inline;text-align:left;margin-left:4px}
+  .layout{display:block}
+  .left{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);max-height:none;overflow:visible}
+  .left section.scenario-intro{grid-column:1/-1}
+  .left section{min-width:0}
+  .left .flood-explorer{grid-column:1/-1}
+  .map-wrap{height:570px;min-height:570px}
+  #map{min-height:570px}
+  .origin-map-action{top:82px}
+  .right{display:block}
+  footer{height:auto;min-height:36px;padding:10px 16px}
+}
+@media(prefers-reduced-motion:reduce){
+  .gis-view-tab{transition:none}
+}
+
+/* GIS sidebar information hierarchy — actions and safety status first;
+   existing IDs/data contracts are kept, technical controls are native details. */
+.left .sidebar-section{padding:15px 18px;border-bottom:1px solid var(--line)}
+.left .sidebar-eyebrow{margin:0 0 5px;font-size:9px;font-weight:800;
+  color:var(--cyan);letter-spacing:.15em}
+.left .sidebar-section>h3{margin:0 0 10px;font-size:14px}
+.left .sidebar-section>.section-heading{margin:0 0 8px}
+.left .sidebar-section>.section-heading h3{margin:0}
+.left .sidebar-section--region{background:linear-gradient(140deg,#132936,var(--surface))}
+.left .sidebar-section--explore{background:var(--surface)}
+.left .sidebar-assist{margin:0 0 9px;font-size:11px;line-height:1.6;color:var(--muted)}
+.left .sidebar-section--explore .secondary-button{margin-top:7px}
+.left .sidebar-safety-note{margin:8px 0;color:var(--amber);font-size:10px;line-height:1.6}
+.left .sidebar-safety-note strong{font-weight:700}
+.left .sidebar-section--status{background:rgba(78,215,220,.045);
+  border-left:2px solid var(--cyan)}
+.left .sidebar-section--status #status{font-size:12px;line-height:1.6;
+  font-weight:700;color:var(--text);overflow-wrap:anywhere}
+.left .sidebar-section--status #status[data-tone="warning"]{color:var(--amber)}
+.left .sidebar-section--status #status[data-tone="error"]{color:#ff8b91}
+.left .sidebar-section--status #status[data-tone="success"]{color:var(--green)}
+.left .sidebar-section--status .external-flood-tile-notice{font-weight:500;
+  font-size:11px;color:var(--amber);background:rgba(245,189,114,.13);
+  border-left:3px solid var(--amber);padding:9px 10px;border-radius:6px}
+.left .sidebar-section--status .external-flood-tile-notice[hidden]{display:none}
+.left .sidebar-section--status small{display:block;color:var(--muted);font-size:10px;line-height:1.6}
+.left .sidebar-section--data .coverage{margin:7px 0 9px}
+.left .sidebar-section--data #datasetStatus{display:block;
+  font-size:10px;line-height:1.6;overflow-wrap:anywhere}
+.left .sidebar-section--layers>label{margin:9px 0;color:var(--text);line-height:1.4}
+.left .sidebar-section--legend{padding:10px 18px}
+.left .sidebar-disclosure{margin-top:12px;border-top:1px solid var(--line);
+  color:var(--text)}
+.left .sidebar-disclosure summary{list-style:none;position:relative;
+  display:flex;align-items:center;justify-content:space-between;
+  cursor:pointer;gap:6px;min-height:37px;padding:9px 1px;
+  color:var(--muted);font-size:11px;font-weight:700;line-height:1.5}
+.left .sidebar-disclosure summary::-webkit-details-marker{display:none}
+.left .sidebar-disclosure summary:after{content:"＋";font-size:14px;
+  color:var(--cyan);font-weight:700;flex:none}
+.left .sidebar-disclosure[open] summary:after{content:"−"}
+.left .sidebar-disclosure summary:hover{color:var(--cyan)}
+.left .sidebar-disclosure summary:focus-visible{outline:3px solid var(--cyan);outline-offset:2px;border-radius:4px}
+.left .sidebar-disclosure-body{padding:3px 0 12px;
+  color:var(--muted);font-size:11px}
+.left .sidebar-disclosure-body>.explorer-caveat{margin:10px 0 0}
+.left .sidebar-disclosure-body>.explorer-intro{margin:9px 0}
+.left .sidebar-disclosure-body>.loader-copy{margin:6px 0}
+.left .sidebar-disclosure-body>.scenario-evidence-warning{display:block;margin-top:10px}
+.left .sidebar-disclosure-body>.file-label{margin:8px 0;font-size:12px}
+.left .sidebar-disclosure-body>.secondary-button{margin-top:8px}
+.left .sidebar-disclosure-body .opacity-control{margin-top:9px}
+.left .sidebar-disclosure-body .legend-grid{margin:4px 0 9px}
+/* On small screens one full-width sidebar avoids cramped half-width form controls. */
+@media(max-width:680px){
+  .left{display:grid;grid-template-columns:minmax(0,1fr)}
+  .left section,.left .data-loader,.left .flood-explorer,
+  .left section.scenario-intro{grid-column:1/-1}
+  .left .sidebar-section{padding:12px 16px}
+  .left .sidebar-section--legend{padding:9px 16px}
+}
+
+/* GIS usability pass 2026-10-09: deliberate space around the map;
+   the viewport can shrink without the old 650/740px minimum forcing
+   an unnecessary outer document scroll on ordinary desktop screens. */
+.gis-view-switcher{flex-wrap:wrap}
+.gis-panel-controls{display:flex;gap:7px;align-items:center}
+.gis-panel-toggle{padding:8px 12px;min-height:37px;border-radius:9px;
+  background:var(--surface-raised);border:1px solid var(--line-strong);
+  color:var(--text);font-size:11px;font-weight:700;cursor:pointer}
+.gis-panel-toggle:hover{border-color:var(--cyan);color:var(--cyan)}
+.gis-panel-toggle[aria-expanded="false"]{color:var(--cyan);
+  background:var(--cyan-soft);border-color:rgba(78,215,220,.35)}
+.layout{
+  --gis-left-track:minmax(245px,275px);
+  --gis-right-track:minmax(290px,325px);
+  grid-template-columns:var(--gis-left-track) minmax(0,1fr) var(--gis-right-track);
+  height:clamp(390px,calc(100dvh - 204px),900px);min-height:0;
+  margin:10px 0 12px;
+}
+.layout[data-left-panel="closed"]{--gis-left-track:0px}
+.layout[data-right-panel="closed"]{--gis-right-track:0px}
+.layout[data-left-panel="closed"]>.left{display:none}
+.layout[data-right-panel="closed"]>.right{display:none}
+.layout>.map-wrap{
+  height:auto;min-height:0;min-width:0;
+  margin:9px 10px;border-radius:12px;overflow:hidden;
+  border:1px solid var(--line-strong);
+  box-shadow:0 6px 26px rgba(0,0,0,.22)
+}
+.layout>.map-wrap>#map{height:100%;min-height:0}
+.layout>.left,.layout>.right{min-width:0;min-height:0}
+.layout>.map-wrap .map-unavailable{border-radius:11px}
+/* The four steps are a non-interactive numbered timeline, not fake controls.
+   No card backgrounds, buttons, hover or cursor cues. */
+.scenario-guide-label{margin:9px 0 2px!important;color:var(--cyan)!important;
+  font-size:10px!important;font-weight:750;letter-spacing:.02em}
+.scenario-intro .scenario-steps{
+  display:block;counter-reset:scenario-guide;list-style:none;
+  padding:0 0 0 4px;margin:7px 0 9px
+}
+.scenario-intro .scenario-steps li{
+  position:relative;display:flex;align-items:center;
+  width:100%;padding:4px 0 5px 34px;min-height:31px;
+  margin:0;color:var(--text);background:transparent;
+  border:0;border-radius:0;cursor:default;font-size:11px;line-height:1.5;
+  counter-increment:scenario-guide
+}
+.scenario-intro .scenario-steps li:before{
+  content:counter(scenario-guide);
+  position:absolute;left:0;top:3px;width:23px;height:23px;
+  display:grid;place-items:center;flex:none;
+  border:1px solid rgba(78,215,220,.6);border-radius:50%;
+  background:transparent;color:var(--cyan);font-size:11px;font-weight:750
+}
+.scenario-intro .scenario-steps li:not(:last-child):after{
+  content:"";position:absolute;top:27px;left:11px;bottom:-4px;
+  width:1px;background:rgba(78,215,220,.3)
+}
+.scenario-intro .scenario-guide-action{font-size:10px!important;color:var(--muted)!important;
+  margin:0 0 9px!important}
+@media(max-width:1100px){
+  .layout{--gis-left-track:245px;--gis-right-track:285px}
+}
+@media(max-width:900px){
+  .gis-view-switcher{justify-content:flex-start;gap:10px}
+  .gis-view-caption{flex-basis:100%}
+  .gis-view-caption span{display:inline;text-align:left;margin-left:5px}
+  .layout{
+    grid-template-columns:var(--gis-left-track) minmax(0,1fr);
+    grid-template-areas:"left map" "right right";
+    height:auto;min-height:0;margin:8px 0 12px
+  }
+  .layout>.left{max-height:clamp(410px,calc(100dvh - 215px),760px)}
+  .layout>.map-wrap{height:clamp(410px,calc(100dvh - 215px),760px);
+    min-height:0;margin:0 10px 10px}
+  .layout>.map-wrap>#map{min-height:0}
+  .layout[data-left-panel="closed"]>.map-wrap{grid-column:1 / -1}
+  .layout[data-right-panel="closed"]>.right{display:none}
+  .layout>.right{min-height:0}
+}
+@media(max-width:680px){
+  .gis-view-switcher{display:flex;align-items:center;padding:9px 12px}
+  .gis-view-tabs{flex-basis:100%}
+  .gis-panel-controls{flex:1;display:grid;grid-template-columns:1fr 1fr}
+  .gis-panel-toggle{padding:8px 6px}
+  .gis-view-caption{margin:0}
+  .layout{display:block;margin:10px 0 12px}
+  .layout>.left{max-height:none}
+  .layout>.map-wrap{height:clamp(370px,60dvh,620px);
+    min-height:0;margin:10px 12px 12px}
+  .layout>.map-wrap>#map{min-height:0}
+  .layout>.right{min-height:0}
+}
+
+/* Panel rails v4: no grid auto-placement. Previously display:none removed
+   the left child from the auto-placement flow and moved the MAP into the
+   collapsed first track. All three children now have explicit positions. */
+.layout{
+  --gis-left-width:clamp(240px,20vw,275px);
+  --gis-right-width:clamp(270px,24vw,325px);
+  display:grid;
+  grid-template-columns:var(--gis-left-width) minmax(0,1fr) var(--gis-right-width);
+  grid-template-areas:none;
+  min-width:0;
+}
+.layout[data-left-panel="closed"]{--gis-left-width:44px}
+.layout[data-right-panel="closed"]{--gis-right-width:44px}
+.layout>.gis-side-shell--left{grid-column:1;grid-row:1}
+.layout>.map-wrap{grid-column:2;grid-row:1;min-width:0}
+.layout>.gis-side-shell--right{grid-column:3;grid-row:1}
+.gis-side-shell{position:relative;min-width:0;min-height:0;
+  background:var(--surface);border:1px solid var(--line)}
+.gis-side-shell--left{border-left:0}
+.gis-side-shell--right{border-right:0}
+.gis-side-shell>.left,.gis-side-shell>.right{
+  display:block;width:100%;height:100%;min-height:0;min-width:0;
+  border:0;overflow:auto;
+}
+.gis-side-shell--left>.left>.sidebar-section:first-of-type{padding-top:53px}
+.gis-side-shell--right>.right{padding-top:57px}
+.gis-panel-toggle{
+  position:absolute;z-index:30;top:9px;
+  display:grid;place-items:center;box-sizing:border-box;
+  width:35px;height:35px;min-height:35px;padding:6px;
+  color:var(--muted);border:1px solid var(--line-strong);
+  border-radius:9px;background:var(--surface-raised);cursor:pointer;
+}
+.gis-panel-toggle--left{right:5px}
+.gis-panel-toggle--right{left:5px}
+.gis-panel-toggle svg{display:block;width:21px;height:21px;pointer-events:none}
+.gis-panel-toggle:hover{color:var(--cyan);background:var(--cyan-soft)}
+.gis-panel-toggle:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+.layout[data-left-panel="closed"]>.gis-side-shell--left>.left{display:none}
+.layout[data-right-panel="closed"]>.gis-side-shell--right>.right{display:none}
+.layout[data-left-panel="closed"] .gis-panel-toggle--left,
+.layout[data-right-panel="closed"] .gis-panel-toggle--right{color:var(--cyan);
+  background:var(--cyan-soft);border-color:rgba(78,215,220,.4)}
+@media(max-width:900px){
+  .layout{
+    --gis-left-width:clamp(210px,28vw,280px);
+    --gis-right-width:100%;
+    display:grid;grid-template-columns:var(--gis-left-width) minmax(0,1fr);
+    grid-template-areas:none;grid-template-rows:auto auto
+  }
+  .layout>.gis-side-shell--left{grid-column:1;grid-row:1;
+    height:clamp(410px,calc(100dvh - 215px),760px)}
+  .layout>.map-wrap{grid-column:2;grid-row:1}
+  .layout>.gis-side-shell--right{grid-column:1/-1;grid-row:2}
+  .layout[data-left-panel="closed"]>.map-wrap{grid-column:2;grid-row:1}
+  .layout>.gis-side-shell--left>.left{max-height:100%;height:100%}
+  .layout[data-right-panel="closed"]>.gis-side-shell--right{height:45px}
+  .gis-side-shell--right>.right{max-height:none}
+  .gis-panel-toggle--right{left:8px}
+}
+@media(max-width:680px){
+  .layout{
+    display:grid;grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto auto auto;
+    grid-template-areas:none
+  }
+  .layout>.gis-side-shell--left{grid-column:1;grid-row:1;height:auto}
+  .layout>.map-wrap{grid-column:1;grid-row:2}
+  .layout>.gis-side-shell--right{grid-column:1;grid-row:3}
+  .layout[data-left-panel="closed"]>.map-wrap{grid-column:1;grid-row:2}
+  .layout[data-left-panel="closed"]>.gis-side-shell--left{height:45px}
+  .layout[data-right-panel="closed"]>.gis-side-shell--right{height:45px}
+  .layout>.gis-side-shell--left>.left{max-height:none;height:auto}
+  .gis-panel-toggle--left{right:10px}
+  .gis-panel-toggle--right{left:10px}
+}
+
+/* Height tune v5: retain the stable three-column shell/44px panel rails.
+   Use previously unused desktop viewport headroom for the map, without
+   sacrificing the existing top/bottom frame or forcing document scrolling
+   at common laptop viewport heights. Mobile map sizing remains unchanged. */

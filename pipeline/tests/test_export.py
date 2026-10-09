@@ -18,6 +18,10 @@ from src.hinanex.models.assessment import (
 )
 from src.hinanex.models.capability import CapabilityAssessment
 from src.hinanex.models.common import Evidence, NormalizedDataset
+from src.hinanex.models.scenario import (
+    FacilityScenarioResult, FacilityScenarioStatus, HazardFact,
+    ScenarioJoinStatus, ScenarioRequirementAssessment, ScenarioResult,
+)
 from src.hinanex.models.gap import (
     GapAnalysis,
     GapItem,
@@ -170,6 +174,7 @@ class RegionExportTests(unittest.TestCase):
                 "capabilities",
                 "gaps",
                 "recommendations",
+                "scenarios",
                 "meta",
             },
         )
@@ -191,6 +196,46 @@ class RegionExportTests(unittest.TestCase):
                 capabilities=[],
                 gap_analyses=[],
             )
+
+    def test_optional_scenario_round_trips_without_mutating_legacy_results(self):
+        scenario = ScenarioResult(
+            region_code="13123", region_name="東京都江戸川区",
+            requirement_assessment=ScenarioRequirementAssessment(
+                discovery_status=DiscoveryStatus.PARTIAL,
+                record_count=1, directly_joined_count=0,
+                raw_value_count=0, reason="not joined",
+            ),
+            status=CapabilityStatus.UNKNOWN,
+            facility_results=[
+                FacilityScenarioResult(
+                    facility_id="s1", status=FacilityScenarioStatus.UNKNOWN,
+                    reason="separate official source",
+                    fact=HazardFact(
+                        facility_id="s1", facility_name="避難所A",
+                        hazard_scope_raw="水害", source_semantics="待避施設",
+                        source_url="https://example.invalid/hazard",
+                        join_status=ScenarioJoinStatus.UNVERIFIED,
+                        latitude=35.0, longitude=139.0,
+                    ),
+                )
+            ],
+            evaluated_at=NOW,
+        )
+        export = build_region_export(
+            datasets=[make_dataset()],
+            assessments=[make_assessment()],
+            capabilities=[make_capability()],
+            gap_analyses=[make_gap()],
+            scenarios=[scenario],
+        )
+        reloaded = type(export).model_validate_json(export.model_dump_json())
+        self.assertEqual(len(reloaded.scenarios), 1)
+        self.assertEqual(reloaded.scenarios[0].facility_results[0].fact.hazard_scope_raw, "水害")
+        self.assertEqual(reloaded.meta.schema_version, "0.9")
+        self.assertEqual(reloaded.meta.dataset_count, 1)
+        self.assertEqual(reloaded.meta.capability_count, 1)
+        self.assertEqual(reloaded.meta.gap_count, 1)
+        self.assertEqual(reloaded.meta.recommendation_count, 1)
 
     def test_builds_from_existing_json_artifacts(self):
         dataset = make_dataset()
