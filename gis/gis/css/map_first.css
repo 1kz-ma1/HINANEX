@@ -333,3 +333,35 @@ footer{display:none}
     text-align:left;
   }
 }
+
+/* Presentation access: standalone audience URL + QR (no external QR API). */
+.header-share-button{cursor:pointer;font:inherit;font-size:12px;font-weight:750}
+.map-share-panel,.map-audience-intro{
+  position:absolute;z-index:1650;box-sizing:border-box;
+  border:1px solid var(--line-strong);border-radius:17px;
+  background:#102534;color:var(--text);box-shadow:0 16px 40px rgba(0,0,0,.48)
+}
+.map-share-panel{right:18px;top:14px;width:min(366px,calc(100% - 36px));max-height:calc(100% - 28px);overflow:auto;padding:16px}
+.map-share-panel[hidden],.map-audience-intro[hidden]{display:none}
+.map-share-heading,.map-audience-intro-head{display:flex;justify-content:space-between;align-items:start;gap:9px}
+.map-share-heading strong,.map-audience-intro-head strong{font-size:15px}
+.map-share-heading p,.map-share-note,.map-audience-intro p{font-size:11px;line-height:1.55;color:var(--muted);margin:7px 0 11px}
+.map-share-close,.map-audience-intro-head button{
+  flex-shrink:0;width:42px;height:42px;border-radius:50%;
+  border:1px solid var(--line-strong);background:var(--surface-raised);
+  color:var(--text);font-size:22px;cursor:pointer
+}
+.map-share-qr{width:208px;height:208px;margin:8px auto 14px;background:white;padding:12px;box-sizing:border-box;border-radius:9px}
+.map-share-qr svg{display:block;width:100%;height:100%;image-rendering:pixelated}
+.map-share-label{display:block;font-weight:700;font-size:11px;margin-bottom:5px}
+.map-share-urlrow{display:flex;gap:7px;min-width:0}
+.map-share-urlrow input{min-width:0;flex:1;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface-raised);color:var(--text);padding:8px;font-size:11px}
+.map-share-urlrow button{min-height:44px;flex-shrink:0;background:#136e77;color:white;border:1px solid #30949c;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer}
+.map-share-status{min-height:14px;color:var(--cyan);font-size:11px;margin:4px 0}
+.map-audience-intro{left:14px;bottom:16px;width:min(335px,calc(100% - 100px));max-height:min(55%,340px);overflow:auto;padding:15px}
+.map-share-panel :is(button,input):focus-visible,.map-audience-intro button:focus-visible,.header-share-button:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+@media(max-width:680px){
+  .header-share-button{font-size:11px;padding:9px 8px}
+  .map-share-panel{right:8px;top:8px;width:calc(100% - 16px);max-height:calc(100% - 16px)}
+  .map-audience-intro{left:8px;bottom:72px;width:calc(100% - 80px);max-height:min(54%,340px)}
+}
