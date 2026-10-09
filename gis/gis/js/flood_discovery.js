@@ -221,5 +221,5 @@
     };
   }
 
-  window.HINANEX_FLOOD_DISCOVERY = { apiVersion: "gsi-z10-neighbors-20261009-v13", distanceMetres, discoverReferenceSites, sourceTileKey, nearbySourceTiles, discoverReferenceTiles };
+  window.HINANEX_FLOOD_DISCOVERY = { apiVersion: "gsi-z10-neighbors-20261009-v14", distanceMetres, discoverReferenceSites, sourceTileKey, nearbySourceTiles, discoverReferenceTiles };
 })();
