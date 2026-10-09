@@ -108,3 +108,26 @@ test("HTTP error時にerror callbackへ渡す", async () => {
   assert.equal(result.status, "error");
   assert.match(errorMessage, /HTTP 404/);
 });
+
+test("fetch失敗時はloading callbackで旧Scenario表示を先に消去する", async () => {
+  let visibleScenarioRegion = "13123";
+  const events = [];
+  const controller = createRegionExportController({
+    async fetchImpl() {
+      return response({}, { ok: false, status: 503 });
+    },
+    onLoading(source) {
+      visibleScenarioRegion = null;
+      events.push(`clear:${source.code}`);
+    },
+    onError(_error, source) {
+      events.push(`error:${source.code}`);
+    },
+  });
+
+  const result = await controller.selectRegion("15100");
+
+  assert.equal(result.status, "error");
+  assert.equal(visibleScenarioRegion, null);
+  assert.deepEqual(events, ["clear:15100", "error:15100"]);
+});

@@ -12,8 +12,6 @@ const summaryRoot = document.querySelector("#summaryRoot");
 const overviewRoot = document.querySelector("#overviewRoot");
 const capabilityRoot = document.querySelector("#capabilityRoot");
 const floodScenarioRoot = document.querySelector("#floodScenarioRoot");
-const floodScenarioSection = document.querySelector("#floodScenario");
-const floodScenarioNav = document.querySelector("#floodScenarioNav");
 let scenarioPageIndex = 0;
 const assessmentRoot = document.querySelector("#assessmentRoot");
 const gapRoot = document.querySelector("#gapRoot");
@@ -538,25 +536,92 @@ function renderAnalysisSummary(viewModel) {
 
 const SCENARIO_PAGE_SIZE = 20;
 
-function renderFloodScenario(scenario) {
-  const hasScenario = Boolean(scenario);
-  floodScenarioSection.hidden = !hasScenario;
-  floodScenarioNav.hidden = !hasScenario;
+function renderFloodScenario(scenario, context = {}) {
   floodScenarioRoot.replaceChildren();
-  if (!hasScenario) return;
+
+  if (scenario.uiState !== "ready") {
+    const stateContent = {
+      loading: {
+        title: "Scenario結果を読み込み中",
+        message: scenario.message ?? "選択した地域の洪水Scenario Resultを取得しています。",
+        mark: "…",
+      },
+      empty: {
+        title: "Scenario結果なし",
+        message: scenario.message,
+        mark: "—",
+      },
+      error: {
+        title: "Scenario結果の取得に失敗",
+        message: scenario.message,
+        mark: "!",
+      },
+      unsupported: {
+        title: "未対応のScenario Contract",
+        message: scenario.message,
+        mark: "!",
+      },
+    }[scenario.uiState];
+
+    floodScenarioRoot.append(
+      element("div", {
+        className: `scenario-state scenario-state--${scenario.uiState}`,
+        attributes: { role: scenario.uiState === "error" ? "alert" : "status" },
+        children: [
+          element("span", {
+            className: "scenario-state-mark",
+            text: stateContent?.mark ?? "!",
+            attributes: { "aria-hidden": "true" },
+          }),
+          element("strong", { text: stateContent?.title ?? "Scenarioを表示できません" }),
+          element("p", { text: stateContent?.message ?? "表示状態を確認してください。" }),
+          scenario.uiState === "empty"
+            ? element("small", { text: "候補が0件という意味ではありません。" })
+            : null,
+        ].filter(Boolean),
+      }),
+    );
+    return;
+  }
 
   const pages = Math.max(1, Math.ceil(scenario.rows.length / SCENARIO_PAGE_SIZE));
   scenarioPageIndex = Math.min(scenarioPageIndex, pages - 1);
   const start = scenarioPageIndex * SCENARIO_PAGE_SIZE;
   const selected = scenario.rows.slice(start, start + SCENARIO_PAGE_SIZE);
 
-  const summary = element("div", {
-    className: "scenario-metrics",
+  const summary = element("section", {
+    className: `scenario-summary tone-${scenario.statusTone}`,
+    attributes: { "aria-labelledby": "scenarioSummaryTitle" },
     children: [
-      summaryMetric("Scenario状態（D原値）", scenario.statusCode),
-      summaryMetric("公式rawを取得した施設", scenario.rawValueCount === null ? "未確認" : `${scenario.rawValueCount}件`),
-      summaryMetric("施設の判定がUNKNOWN", `${scenario.unknownCount} / ${scenario.total}件`),
-      summaryMetric("利用階の原文を保持", `${scenario.rawFloorCount}件`),
+      element("header", {
+        className: "scenario-summary-header",
+        children: [
+          element("div", {
+            children: [
+              element("span", { className: "summary-label", text: "洪水時の避難候補探索" }),
+              element("h3", {
+                text: scenario.name,
+                attributes: { id: "scenarioSummaryTitle" },
+              }),
+            ],
+          }),
+          statusBadge(scenario.statusLabel, scenario.statusTone),
+        ],
+      }),
+      element("p", { className: "scenario-assessment-reason", text: scenario.assessmentReason }),
+      element("div", {
+        className: "scenario-metrics",
+        children: [
+          summaryMetric("対象施設（D出力）", `${scenario.recordCount}件`),
+          summaryMetric("同じ公式Sourceで照合（D出力）", `${scenario.directlyJoinedCount}件`),
+          summaryMetric("公式raw値あり（D出力）", `${scenario.rawValueCount}件`),
+          summaryMetric("公式情報の取得状態", scenario.discoveryStatusLabel),
+        ],
+      }),
+      element("p", {
+        className: "scenario-technical-line",
+        text: `D原値: status=${scenario.statusCode} / discovery_status=${scenario.discoveryStatusCode} / 評価日時=${scenario.evaluatedAt}`,
+      }),
     ],
   });
 
@@ -566,8 +631,6 @@ function renderFloodScenario(scenario) {
     children: [
       element("strong", { text: "洪水時の安全・開設を保証する情報ではありません" }),
       element("p", { text: scenario.caveat }),
-      element("p", { text: scenario.interpretationNotice }),
-      element("small", { text: `公式Sourceの取得状態（D原値）：${scenario.discoveryStatus}` }),
     ],
   });
 
@@ -577,34 +640,74 @@ function renderFloodScenario(scenario) {
           text: "公式Sourceを確認",
           attributes: { href: row.sourceUrl, target: "_blank", rel: "noopener noreferrer" },
         })
-      : element("span", { text: "出典URL未確認" });
+      : element("span", { text: "安全に開けるHTTPSの出典URLなし" });
+
+    const evidence = element("dl", { className: "scenario-facts" });
+    evidence.append(
+      ...definitionRow("公式項目", row.hazardScopeRaw),
+      ...definitionRow("Source固有の意味", row.sourceSemantics),
+      ...definitionRow("公式記録の原文", row.rawValue ?? "D出力では値なし"),
+      ...definitionRow("利用階の原文", row.floorRaw ?? "D出力では値なし"),
+      ...definitionRow("施設行の照合", row.joinStatusLabel),
+      ...definitionRow("元データの記録", row.sourceTrace ?? "施設単位の記録なし"),
+      ...definitionRow(
+        "位置情報",
+        row.hasCoordinates ? "D出力に座標あり" : "D出力では座標なし（推測補完なし）",
+      ),
+    );
 
     return element("article", {
-      className: "scenario-facility",
+      className: `scenario-facility tone-${row.statusTone}`,
+      attributes: { "data-facility-status": row.statusCode },
       children: [
         element("div", {
           className: "scenario-facility-header",
           children: [
-            element("h3", { text: row.name }),
-            statusBadge(`D判定：${row.statusCode}`, "unknown"),
+            element("div", {
+              children: [
+                element("span", { className: "scenario-facility-mark", text: row.statusMark }),
+                element("h3", { text: row.name }),
+              ],
+            }),
+            statusBadge(row.statusLabel, row.statusTone),
           ],
         }),
-        element("dl", {
-          className: "scenario-facts",
+        element("p", { className: "scenario-status-help", text: row.statusHelp }),
+        element("section", {
+          className: "scenario-reason-block",
           children: [
-            ...definitionRow("災害列の原文", row.hazardScopeRaw),
-            ...definitionRow("公式セルの値", row.rawValue),
-            ...definitionRow("利用階の原文", row.floorRaw),
-            ...definitionRow("施設行の照合", row.joinStatus),
-            ...definitionRow("元データの行", row.sourceTrace),
-            ...definitionRow("位置座標", row.hasCoordinates ? "元データに座標あり" : "欠損（推測補完なし）"),
+            element("h4", { text: "判定理由" }),
+            element("p", { text: row.reason }),
           ],
         }),
-        element("p", { className: "scenario-reason", text: row.reason }),
-        source,
+        element("details", {
+          className: "scenario-evidence",
+          children: [
+            element("summary", { text: "根拠を見る" }),
+            evidence,
+            element("div", { className: "scenario-source-link", children: [source] }),
+            element("p", {
+              className: "scenario-technical-line",
+              text: `技術情報: facility_id=${row.facilityId} / status=${row.statusCode} / join_status=${row.joinStatusCode}`,
+            }),
+          ],
+        }),
       ],
     });
   });
+
+  const scenarioNotes = [
+    ["Dの判定理由", scenario.reasons],
+    ["データ上の制約", scenario.gaps],
+    ["次に必要な確認", scenario.recommendations],
+  ]
+    .filter(([, items]) => items.length)
+    .map(([title, items]) =>
+      element("section", {
+        className: "scenario-note-block",
+        children: [element("h3", { text: title }), reasonList(items, "記録なし")],
+      }),
+    );
 
   const previous = element("button", {
     className: "source-button",
@@ -614,7 +717,7 @@ function renderFloodScenario(scenario) {
   previous.disabled = scenarioPageIndex === 0;
   previous.addEventListener("click", () => {
     scenarioPageIndex -= 1;
-    renderFloodScenario(scenario);
+    renderFloodScenario(scenario, context);
   });
   const next = element("button", {
     className: "source-button",
@@ -624,27 +727,61 @@ function renderFloodScenario(scenario) {
   next.disabled = scenarioPageIndex >= pages - 1;
   next.addEventListener("click", () => {
     scenarioPageIndex += 1;
-    renderFloodScenario(scenario);
+    renderFloodScenario(scenario, context);
   });
 
+  const gisAction =
+    !context.isSynthetic && context.regionCode
+      ? element("div", {
+          className: "scenario-map-action",
+          children: [
+            element("div", {
+              children: [
+                element("strong", { text: "地図で確認" }),
+                element("p", {
+                  text: "選択中の地域をGISで開きます。施設単位の選択情報は付加しません。",
+                }),
+              ],
+            }),
+            element("a", {
+              className: "gis-cta",
+              text: "この地域の地図を開く",
+              attributes: { href: buildGisRegionUrl(context.regionCode) },
+            }),
+          ],
+        })
+      : null;
+
   floodScenarioRoot.append(
-    note,
-    summary,
-    element("div", {
-      className: "scenario-list",
-      children: cards.length ? cards : [emptyState("施設行はありません。")],
-    }),
-    element("nav", {
-      className: "scenario-pagination",
-      attributes: { "aria-label": "Scenario施設一覧のページ" },
-      children: [
-        previous,
-        element("span", {
-          text: `${scenario.total}件中 ${scenario.total ? start + 1 : 0}〜${Math.min(start + SCENARIO_PAGE_SIZE, scenario.total)}件（${scenarioPageIndex + 1}/${pages}ページ）`,
-        }),
-        next,
-      ],
-    }),
+    ...[
+      note,
+      summary,
+      element("div", {
+        className: "scenario-list",
+        children: cards.length
+          ? cards
+          : [
+              emptyState(
+                "Dのfacility_resultsに施設結果はありません。候補なしとは扱いません。",
+              ),
+            ],
+      }),
+      scenarioNotes.length
+        ? element("div", { className: "scenario-notes", children: scenarioNotes })
+        : null,
+      gisAction,
+      element("nav", {
+        className: "scenario-pagination",
+        attributes: { "aria-label": "Scenario施設一覧のページ" },
+        children: [
+          previous,
+          element("span", {
+            text: `ページ ${scenarioPageIndex + 1} / ${pages}（このページ ${selected.length}件）`,
+          }),
+          next,
+        ],
+      }),
+    ].filter(Boolean),
   );
 }
 
@@ -681,7 +818,10 @@ function renderPage(viewModel) {
   renderAnalysisSummary(viewModel);
   renderOverview(viewModel);
   scenarioPageIndex = 0;
-  renderFloodScenario(viewModel.floodScenario);
+  renderFloodScenario(viewModel.floodScenario, {
+    regionCode: viewModel.regionCode,
+    isSynthetic: viewModel.isSynthetic,
+  });
   renderCollection(
     capabilityRoot,
     viewModel.capabilities,
@@ -711,10 +851,6 @@ function renderPage(viewModel) {
 
 function clearRegionContent() {
   for (const root of contentRoots) root.replaceChildren();
-  // Prevent showing an empty/stale Scenario panel during a failed or
-  // cancelled region switch; each successful payload opts in again.
-  floodScenarioSection.hidden = true;
-  floodScenarioNav.hidden = true;
   if (evidenceDialog.open) evidenceDialog.close();
 }
 
@@ -728,6 +864,10 @@ function setActiveRegion(regionCode) {
 
 function renderLoading(source) {
   clearRegionContent();
+  renderFloodScenario({
+    uiState: "loading",
+    message: `${source.label}の洪水Scenario Resultを取得しています。`,
+  });
   setActiveRegion(source.code);
   regionName.textContent = `${source.label}を読み込み中`;
   generatedAt.textContent = "取得中";
@@ -750,6 +890,12 @@ function renderLoading(source) {
 
 function renderError(error, source = null) {
   clearRegionContent();
+  renderFloodScenario({
+    uiState: "error",
+    message: source
+      ? `${source.label}のScenario結果を取得できませんでした。古い地域の結果は消去しました。`
+      : "Scenario結果を取得できませんでした。古い結果は消去しました。",
+  });
   regionName.textContent = source?.label ?? "RegionExport読込失敗";
   generatedAt.textContent = "読込失敗";
   schemaVersion.textContent = "—";

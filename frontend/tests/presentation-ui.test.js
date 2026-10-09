@@ -56,3 +56,42 @@ test("Assessmentは0点と未評価の違いを説明し、2グループをdetai
   assert.match(app, /"データ品質"/);
   assert.match(app, /"アプリ利用適性"/);
 });
+
+test("Flood Scenarioは常設領域でLoading, empty, error, unsupportedを区別する", async () => {
+  const [index, app] = await Promise.all([
+    readFile(new URL("../index.html", import.meta.url), "utf8"),
+    readFile(new URL("../src/app.js", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(index, /id="floodScenario" aria-labelledby="floodScenarioTitle">/);
+  assert.match(index, /id="floodScenarioRoot"[^>]*aria-live="polite"/);
+  assert.match(app, /Scenario結果を読み込み中/);
+  assert.match(app, /Scenario結果なし/);
+  assert.match(app, /Scenario結果の取得に失敗/);
+  assert.match(app, /未対応のScenario Contract/);
+  assert.match(app, /候補が0件という意味ではありません/);
+});
+
+test("Scenario施設結果はkeyboard対応detailsと日本語statusで根拠を開ける", async () => {
+  const app = await readFile(new URL("../src/app.js", import.meta.url), "utf8");
+
+  assert.match(app, /element\("details", \{/);
+  assert.match(app, /element\("summary", \{ text: "根拠を見る" \}\)/);
+  assert.match(app, /statusBadge\(row\.statusLabel, row\.statusTone\)/);
+  assert.match(app, /attributes: \{ type: "button" \}/);
+  assert.doesNotMatch(app, /unknownCount/);
+  assert.doesNotMatch(app, /candidateCount/);
+  assert.doesNotMatch(app, /excludedCount/);
+  assert.match(app, /buildGisRegionUrl\(context\.regionCode\)/);
+  assert.doesNotMatch(app, /buildGisRegionUrl\([^)]*facility/i);
+});
+
+test("Scenario UIはmobileで1列化し長い根拠を折り返す", async () => {
+  const styles = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+
+  assert.match(styles, /@media \(max-width: 620px\)/);
+  assert.match(styles, /\.scenario-facts \{ grid-template-columns: 1fr; \}/);
+  assert.match(styles, /\.scenario-root > \*[\s\S]*min-width: 0;/);
+  assert.match(styles, /\.scenario-source-link a,[\s\S]*overflow-wrap: anywhere;/);
+  assert.match(styles, /\.scenario-evidence > summary:focus-visible/);
+});

@@ -121,7 +121,7 @@
         <nav class="section-nav" aria-label="地域詳細の表示項目">
           <a href="#overview">概要</a>
           <a href="#capabilities">できること</a>
-          <a href="#floodScenario" id="floodScenarioNav" hidden>洪水Scenario</a>
+          <a href="#floodScenario" id="floodScenarioNav">洪水時の避難候補</a>
           <a href="#assessments">データ品質</a>
           <a href="#gaps">課題</a>
           <a href="#recommendations">改善案</a>
@@ -156,13 +156,13 @@
           </div>
         </section>
 
-        <section class="workspace scenario-workspace" id="floodScenario" aria-labelledby="floodScenarioTitle" hidden>
+        <section class="workspace scenario-workspace" id="floodScenario" aria-labelledby="floodScenarioTitle">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Flood Scenario / Source Evidence</p>
-              <h2 id="floodScenarioTitle">洪水に関する公式情報</h2>
+              <p class="eyebrow">Flood Shelter Selection</p>
+              <h2 id="floodScenarioTitle">洪水時の避難候補探索</h2>
             </div>
-            <p>公式のraw値をそのまま表示し、施設の安全性や開設状況を推測しません。</p>
+            <p>DのScenario Resultと根拠を表示します。施設の安全性や開設状況は保証しません。</p>
           </div>
           <div id="floodScenarioRoot" class="scenario-root" aria-live="polite"></div>
         </section>

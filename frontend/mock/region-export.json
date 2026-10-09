@@ -153,6 +153,90 @@
       "rationale": "複数actionと追加調査の表示を確認するための合成Recommendationです。"
     }
   ],
+  "scenarios": [
+    {
+      "region_code": "DEMO-23100",
+      "region_name": "名古屋市（UI確認用合成データ）",
+      "scenario_id": "flood_shelter_selection",
+      "scenario_name": "洪水時の避難候補探索（UI確認用合成データ）",
+      "hazard": "flood",
+      "requirement_assessment": {
+        "requirement_code": "shelter_hazard_applicability",
+        "discovery_status": "AVAILABLE",
+        "record_count": 3,
+        "directly_joined_count": 2,
+        "raw_value_count": 2,
+        "reason": "候補・候補外・判断不能の表示を確認するための合成Scenarioです。"
+      },
+      "status": "DEGRADED",
+      "facility_results": [
+        {
+          "facility_id": "DEMO-CANDIDATE-1",
+          "status": "CANDIDATE",
+          "reason": "DがCANDIDATEを返した場合の表示確認用です。実在施設の判定ではありません。",
+          "fact": {
+            "facility_id": "DEMO-CANDIDATE-1",
+            "facility_name": "合成候補施設",
+            "hazard_scope_raw": "合成_洪水",
+            "source_semantics": "UI表示確認専用の合成項目です。自治体の公式項目ではありません。",
+            "official_status_raw": "合成候補値",
+            "usable_floor_raw": null,
+            "source_url": "https://example.invalid/hinanex-demo-source",
+            "source_record_trace": "synthetic_row=1",
+            "join_status": "DIRECT_SAME_SOURCE",
+            "latitude": 35.1815,
+            "longitude": 136.9066
+          }
+        },
+        {
+          "facility_id": "DEMO-EXCLUDED-1",
+          "status": "EXCLUDED",
+          "reason": "DがEXCLUDEDを返した場合の表示確認用です。危険・利用不可を意味しません。",
+          "fact": {
+            "facility_id": "DEMO-EXCLUDED-1",
+            "facility_name": "合成候補外施設",
+            "hazard_scope_raw": "合成_洪水",
+            "source_semantics": "UI表示確認専用の合成項目です。自治体の公式項目ではありません。",
+            "official_status_raw": "合成候補外値",
+            "usable_floor_raw": null,
+            "source_url": "https://example.invalid/hinanex-demo-source",
+            "source_record_trace": "synthetic_row=2",
+            "join_status": "DIRECT_SAME_SOURCE",
+            "latitude": 35.1709,
+            "longitude": 136.8815
+          }
+        },
+        {
+          "facility_id": "DEMO-UNKNOWN-1",
+          "status": "UNKNOWN",
+          "reason": "施設単位の対応関係が未確定という表示を確認するための合成結果です。",
+          "fact": {
+            "facility_id": "DEMO-UNKNOWN-1",
+            "facility_name": "合成判断不能施設",
+            "hazard_scope_raw": "水害",
+            "source_semantics": "水害というSource固有表現を洪水単独指定へ書き換えない確認用です。",
+            "official_status_raw": null,
+            "usable_floor_raw": "2階以上",
+            "source_url": "https://example.invalid/hinanex-demo-source",
+            "source_record_trace": null,
+            "join_status": "UNVERIFIED",
+            "latitude": null,
+            "longitude": null
+          }
+        }
+      ],
+      "reasons": [
+        "Dの判定理由一覧を表示する領域の確認用合成値です。"
+      ],
+      "gaps": [
+        "施設単位の照合未確定を保持する確認用合成値です。"
+      ],
+      "recommendations": [
+        "公式Sourceとの照合を確認する、という表示の合成値です。"
+      ],
+      "evaluated_at": "2026-10-08T03:00:00Z"
+    }
+  ],
   "meta": {
     "schema_version": "0.9",
     "generated_at": "2026-10-06T01:15:00Z",
