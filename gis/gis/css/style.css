@@ -90,3 +90,10 @@ footer{height:36px;display:flex;justify-content:space-between;align-items:center
 .reference-site-popup strong{display:block;color:#532183}
 .reference-site-popup p{font-size:11px;margin:6px 0}
 @media(max-width:680px){.reference-map-summary{right:8px;bottom:28px;width:min(265px,calc(100% - 16px));max-height:43%;padding:8px 9px}}
+
+/* Independent D region vs GSI local-reference layer selector. */
+.origin-map-action .display-mode-label{display:block;font-size:11px;font-weight:800;color:#1c3653;margin:1px 0 5px}
+.origin-map-action #facilityDisplayMode{width:100%;padding:8px 7px;border-radius:6px;border:1px solid #a9b9cc;background:#fff;color:#1d3650;font-size:11px}
+.origin-map-action .display-mode-description{font-size:10px;line-height:1.5;margin:5px 0 10px;color:#3b5270}
+.origin-map-action #mapOriginShortcutStatus{font-size:10px;line-height:1.5;margin:6px 0 0;color:#52667d}
+@media(max-width:680px){.origin-map-action{top:82px;max-height:53%;overflow-y:auto}}

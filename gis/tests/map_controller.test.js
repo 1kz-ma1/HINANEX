@@ -158,7 +158,7 @@ function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = nul
     "facilityListPage", "scenarioHazard", "selectOrigin", "useGps",
     "originStatus", "floodDiscoveryResults", "mapOriginShortcut", "mapOriginShortcutStatus",
     "referenceMapSummary", "referenceMapCoverage", "referenceMapCount",
-    "focusReferenceTiles", "toggleDMarkers"
+    "focusReferenceTiles", "toggleDMarkers", "facilityDisplayMode", "facilityDisplayModeDescription"
   ];
   const elements = Object.fromEntries(ids.map(id => [id, makeElement(id)]));
   const L = makeLeafletStub();
@@ -278,6 +278,10 @@ nagoya.scenarios = [{
   assert.match(httpCase.elements.status.textContent, /2件表示中/);
   assert.match(httpCase.elements.resetView.textContent, /東京都 江戸川区/);
   assert.equal(httpCase.elements.selectOrigin.disabled, false);
+  assert.equal(httpCase.elements.facilityDisplayMode.value, "region");
+  assert.equal(httpCase.L.__map.hasLayer(httpCase.L.__groups[1]), true);
+  assert.equal(httpCase.L.__map.hasLayer(httpCase.L.__groups[3]), false);
+  assert.match(httpCase.elements.facilityDisplayModeDescription.textContent, /選択地域のD施設/);
   assert.equal(httpCase.elements.mapOriginShortcut.getAttribute("aria-pressed"), "false");
   assert.match(httpCase.elements.mapOriginShortcutStatus.textContent, /地図/);
   assert.match(httpCase.elements.floodDiscoveryResults.innerHTML, /地図から出発地点/);
@@ -289,6 +293,12 @@ nagoya.scenarios = [{
   assert.match(httpCase.elements.originStatus.textContent, /地図上/);
   httpCase.L.__map.handlers.click({ latlng: { lat: 35.700, lng: 139.880 } });
   await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(httpCase.elements.facilityDisplayMode.value, "nearby");
+  assert.equal(httpCase.L.__map.hasLayer(httpCase.L.__groups[1]), false);
+  assert.equal(httpCase.L.__map.hasLayer(httpCase.L.__groups[0]), false);
+  assert.equal(httpCase.L.__map.hasLayer(httpCase.L.__groups[3]), true);
+  assert.equal(httpCase.elements.shelter.disabled, true);
+  assert.match(httpCase.elements.facilityDisplayModeDescription.textContent, /周辺の検証済みGSI/);
   assert.match(httpCase.elements.originStatus.textContent, /端末内だけ/);
   assert.match(httpCase.elements.floodDiscoveryResults.innerHTML, /独立照合待ち/);
   assert.match(httpCase.elements.mapOriginShortcutStatus.textContent, /未検証/);
@@ -297,6 +307,12 @@ nagoya.scenarios = [{
   assert.equal(httpCase.elements.referenceMapSummary.hidden, true);
   assert.equal(httpCase.L.__groups[2].items.length, 0);
   assert.equal(httpCase.L.__groups[3].items.length, 0);
+  // A missing source never restores unrelated D pins into GSI-only scope.
+  httpCase.elements.facilityDisplayMode.value = "region";
+  httpCase.elements.facilityDisplayMode.listeners.change({ target: httpCase.elements.facilityDisplayMode });
+  assert.equal(httpCase.L.__map.hasLayer(httpCase.L.__groups[1]), true);
+  assert.equal(httpCase.L.__map.hasLayer(httpCase.L.__groups[3]), false);
+  assert.equal(httpCase.elements.shelter.disabled, false);
   // Geolocation permission or API absence must not cause a crash.
   httpCase.elements.useGps.listeners.click();
   assert.match(httpCase.elements.originStatus.textContent, /地図をクリック/);
@@ -510,14 +526,28 @@ nagoya.scenarios = [{
   acceptedPin.handlers.click({});
   assert.match(acceptedCase.elements.details.innerHTML, /GSI公式掲載/);
   assert.match(acceptedCase.elements.details.innerHTML, /未推奨/);
-  assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[1]), true);
-  acceptedCase.elements.toggleDMarkers.listeners.click();
-  assert.equal(acceptedCase.elements.shelter.checked, false);
+  assert.equal(acceptedCase.elements.facilityDisplayMode.value, "nearby");
   assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[1]), false);
-  assert.match(acceptedCase.elements.toggleDMarkers.textContent, /表示/);
-  acceptedCase.elements.toggleDMarkers.listeners.click();
+  assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[3]), true);
+  assert.equal(acceptedCase.L.__map.lastBounds.points.length, 2); // origin + one vetted GSI site
+  acceptedCase.elements.toggleDMarkers.listeners.click(); // explicitly compare
+  assert.equal(acceptedCase.elements.facilityDisplayMode.value, "both");
   assert.equal(acceptedCase.elements.shelter.checked, true);
   assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[1]), true);
+  assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[3]), true);
+  assert.match(acceptedCase.elements.toggleDMarkers.textContent, /周辺/);
+  acceptedCase.elements.toggleDMarkers.listeners.click();
+  assert.equal(acceptedCase.elements.facilityDisplayMode.value, "nearby");
+  assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[1]), false);
+  // D scope temporarily hides GSI drawing, but accepted evidence stays in memory.
+  acceptedCase.elements.facilityDisplayMode.value = "region";
+  acceptedCase.elements.facilityDisplayMode.listeners.change({ target: acceptedCase.elements.facilityDisplayMode });
+  assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[1]), true);
+  assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[3]), false);
+  acceptedCase.elements.facilityDisplayMode.value = "nearby";
+  acceptedCase.elements.facilityDisplayMode.listeners.change({ target: acceptedCase.elements.facilityDisplayMode });
+  assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[1]), false);
+  assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[3]), true);
   acceptedCase.elements.focusReferenceTiles.listeners.click();
   assert.ok(acceptedCase.L.__map.lastBounds?.points?.length);
   assert.equal(acceptedCase.L.__map.lastBounds.points.length, 2);
@@ -530,6 +560,9 @@ nagoya.scenarios = [{
   acceptedCase.elements.region.listeners.change({ target: acceptedCase.elements.region });
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.equal(acceptedCase.elements.selectOrigin.disabled, false);
+  assert.equal(acceptedCase.elements.facilityDisplayMode.value, "region");
+  assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[1]), true);
+  assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[3]), false);
   assert.doesNotMatch(acceptedCase.elements.floodDiscoveryResults.innerHTML, /&lt;unsafe&gt;/);
   assert.equal(acceptedCase.elements.referenceMapSummary.hidden, true);
   assert.equal(acceptedCase.L.__groups[2].items.length, 0);
@@ -579,6 +612,41 @@ nagoya.scenarios = [{
   assert.equal(multiCase.L.__groups[2].items.length, 2);
   assert.equal(multiCase.L.__groups[3].items.length, 2);
   assert.match(multiCase.elements.referenceMapCoverage.textContent, /2\/9/);
+  assert.equal(multiCase.elements.facilityDisplayMode.value, "nearby");
+  assert.equal(multiCase.L.__map.hasLayer(multiCase.L.__groups[1]), false);
+  assert.equal(multiCase.L.__map.hasLayer(multiCase.L.__groups[3]), true);
+  assert.equal(multiCase.L.__map.lastBounds.points.length, 3); // origin + two GSI sites
+
+  // Delayed regional D load must not move the map away from an explicitly
+  // selected nearby GSI origin/candidate view.
+  let finishD;
+  const lateDCase = makeContext({
+    protocol: "http:",
+    fetchImpl: async url => {
+      const request = String(url);
+      if (request.includes("/edogawa.json")) {
+        return new Promise(resolve => { finishD = resolve; });
+      }
+      if (request.includes("gsi_verified_tiles/13123/10-909-403.json")) {
+        return { ok: true, status: 200, json: async () => officialCatalog };
+      }
+      return { ok: false, status: 404, json: async () => ({}) };
+    }
+  });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(typeof finishD, "function");
+  lateDCase.elements.mapOriginShortcut.listeners.click();
+  lateDCase.L.__map.handlers.click({ latlng: { lat: 35.7, lng: 139.9 } });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(lateDCase.elements.facilityDisplayMode.value, "nearby");
+  const selectedBounds = lateDCase.L.__map.lastBounds;
+  assert.equal(selectedBounds.points.length, 2);
+  finishD({ ok: true, status: 200, json: async () => edogawa });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.strictEqual(lateDCase.L.__map.lastBounds, selectedBounds,
+    "a delayed D load may not replace the origin-based viewport");
+  assert.equal(lateDCase.L.__map.hasLayer(lateDCase.L.__groups[1]), false);
+  assert.equal(lateDCase.elements.recordCount.textContent, 2);
 
   // A wrong tile file on the correct static path is NOT a permitted fallback.
   const substituted = makeContext({
