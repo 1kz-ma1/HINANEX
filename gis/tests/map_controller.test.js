@@ -108,6 +108,9 @@ function makeLeafletStub() {
       return this;
     },
     setView(latlng, zoom) { this.lastView = { latlng, zoom }; this.zoom = zoom; return this; },
+    getCenter() { return this.lastView?.latlng || [35.704, 139.882]; },
+    stop() { this.stopCalls = (this.stopCalls || 0) + 1; return this; },
+    flyToBounds(bounds, options) { this.lastFly = { bounds, options }; return this; },
     getZoom() { return this.zoom; },
     project(latlng, zoom) {
       // Web Mercator world pixels, deterministic independent of viewport.
@@ -602,7 +605,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "closer-minzoom-20261010-v2");
+  assert.equal(mapAsset[1], "guided-tour-20261010-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -837,7 +840,7 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="uiTabScenario"[^>]*role="tab"/);
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
   assert.match(pageSource, /current_theme[.]css[?]v=gis-facility-drawer-20261009-v6/);
-  assert.match(pageSource, /map_first[.]css[?]v=audience-share-20261010-v1/);
+  assert.match(pageSource, /map_first[.]css[?]v=guided-tour-20261010-v1/);
   assert.match(pageSource, /id="toggleLeftPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="toggleRightPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="gisLeftPanel"/);
@@ -1858,7 +1861,7 @@ nagoya.scenarios = [{
   assert.match(page, /id="mapShareURL"[^>]*readonly value="https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
   assert.match(page, /id="mapAudienceIntro"[^>]*hidden/);
   assert.match(page, /js\/audience_share[.]js[?]v=audience-share-20261010-v1/);
-  assert.match(page, /css\/map_first[.]css[?]v=audience-share-20261010-v1/);
+  assert.match(page, /css\/map_first[.]css[?]v=guided-tour-20261010-v1/);
   assert.match(styles, /\.map-share-panel\[hidden\],\.map-audience-intro\[hidden\]\{display:none\}/);
   assert.match(shareSource, /const AUDIENCE_URL = "https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
   assert.doesNotMatch(shareSource, /geolocation|getCurrentPosition|flyTo|map\.setView|fetch\(|sendBeacon|XMLHttpRequest|<iframe/);
@@ -1946,3 +1949,88 @@ nagoya.scenarios = [{
   assert.equal(b.element("mapAudienceIntro").hidden, false);
   assert.equal(b.element("mapSharePanel").hidden, true);
 }
+
+// 10/22 guided presentation tour API uses only actual source coordinates;
+// it never silently changes selected municipality, D UNKNOWN, GPS or URL.
+(async () => {
+  const requests = [];
+  const tourCase = makeContext({
+    protocol: "http:",
+    fetchImpl: async url => {
+      requests.push(String(url));
+      if (String(url).endsWith("edogawa.json")) return { ok: true, json: async () => edogawa };
+      if (String(url).endsWith("niigata.json")) return { ok: true, json: async () => niigata };
+      if (String(url).endsWith("nagoya.json")) return { ok: true, json: async () => nagoya };
+      return { ok: false, status: 404 };
+    }
+  });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  const tour = tourCase.context.window.HINANEX_PRESENTATION_TOUR;
+  assert.ok(tour, "GIS exposes a small presenter-only camera API");
+  const view = tourCase.L.__map.lastView;
+  const region = tourCase.elements.region.value;
+  const url = tourCase.context.window.location.href;
+  tour.begin();
+  const niigataStop = await tour.focus("15100", true);
+  assert.equal(niigataStop.state, "mapped");
+  assert.equal(niigataStop.mapped, 1);
+  assert.equal(tourCase.L.__map.lastFly.options.maxZoom, 12);
+  assert.equal(tourCase.L.__map.lastFly.options.duration, 1.25);
+  assert.equal(tourCase.elements.region.value, region, "tour does not switch manual municipality");
+  assert.equal(tourCase.context.window.location.href, url, "tour does not rewrite location");
+  const lastFly = tourCase.L.__map.lastFly;
+  const nagoyaStop = await tour.focus("23100", true);
+  assert.equal(nagoyaStop.state, "unlocated");
+  assert.equal(nagoyaStop.mapped, 0);
+  assert.equal(nagoyaStop.total, 2, "the source exists but is not geocoded");
+  assert.strictEqual(tourCase.L.__map.lastFly, lastFly,
+    "unlocated city must not fabricate a camera destination");
+  assert.equal(requests.filter(x => x.endsWith("niigata.json")).length, 1);
+  tour.halt();
+  assert.ok(tourCase.L.__map.stopCalls > 0);
+  tour.end(true);
+  assert.equal(tourCase.L.__map.lastView.zoom, view.zoom);
+  assert.strictEqual(tourCase.L.__map.lastView.latlng, view.latlng,
+    "stopping restores the pre-tour map location");
+  assert.equal(tourCase.L.__map.minZoom > 4, true,
+    "closeup zoom-out floor remains intact");
+
+  let releaseNiigata;
+  const lateCase = makeContext({
+    protocol: "http:",
+    fetchImpl: async url => {
+      if (String(url).endsWith("niigata.json")) {
+        return new Promise(resolve => { releaseNiigata = resolve; });
+      }
+      if (String(url).endsWith("edogawa.json")) return { ok: true, json: async () => edogawa };
+      return { ok: false, status: 404 };
+    }
+  });
+  const lateTour = lateCase.context.window.HINANEX_PRESENTATION_TOUR;
+  lateTour.begin();
+  const pendingFocus = lateTour.focus("15100", true);
+  lateTour.halt();
+  releaseNiigata({ ok: true, json: async () => niigata });
+  const stale = await pendingFocus;
+  assert.equal(stale.state, "cancelled", "in-flight data cannot move a paused demo");
+  assert.equal(lateCase.L.__map.lastFly, undefined);
+  lateTour.end(false);
+
+  const viewSource = fs.readFileSync(path.resolve(__dirname, "../gis/js/guided_tour.js"), "utf8");
+  const html = fs.readFileSync(path.resolve(__dirname, "../gis/index.html"), "utf8");
+  const css = fs.readFileSync(path.resolve(__dirname, "../gis/css/map_first.css"), "utf8");
+  assert.match(html, /id="mapTourPanel"[^>]*hidden/);
+  assert.match(html, /id="mapTourOpen"[^>]*aria-controls="mapTourPanel"/);
+  assert.match(html, /js\/guided_tour[.]js[?]v=guided-tour-20261010-v1/);
+  assert.match(html, /災害の時間変化や避難ルートの予測ではありません/);
+  assert.match(viewSource, /mapTourPause/);
+  assert.match(viewSource, /prefers-reduced-motion: reduce/);
+  assert.match(viewSource, /pointerdown", "wheel", "touchstart"/);
+  assert.match(viewSource, /state === "paused"/);
+  assert.match(css, /\.map-tour-panel\[hidden\]\{display:none\}/);
+  assert.doesNotMatch(viewSource, /getCurrentPosition|geolocation|sendBeacon|setInterval/);
+  console.log("Presenter guided tour sources and cancellation: OK");
+})().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});

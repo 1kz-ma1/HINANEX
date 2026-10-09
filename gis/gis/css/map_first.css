@@ -365,3 +365,38 @@ footer{display:none}
   .map-share-panel{right:8px;top:8px;width:calc(100% - 16px);max-height:calc(100% - 16px)}
   .map-audience-intro{left:8px;bottom:72px;width:calc(100% - 80px);max-height:min(54%,340px)}
 }
+
+/* Presenter-triggered source-only map tour. Nothing here predicts hazards. */
+.map-tour-panel{
+  position:absolute;z-index:1640;left:14px;bottom:14px;
+  width:min(370px,calc(100% - 32px));max-height:min(70%,520px);
+  box-sizing:border-box;padding:16px;overflow:auto;overscroll-behavior:contain;
+  background:#102534;border:1px solid var(--line-strong);
+  border-radius:16px;color:var(--text);box-shadow:0 12px 38px rgba(0,0,0,.42)
+}
+.map-tour-panel[hidden]{display:none}
+.map-tour-heading{display:flex;justify-content:space-between;gap:12px}
+.map-tour-heading strong{font-size:16px}
+.map-tour-heading p,.map-tour-panel>p{
+  margin:6px 0 10px;line-height:1.55;font-size:11px;color:var(--muted)
+}
+.map-tour-heading button{
+  flex-shrink:0;width:42px;height:42px;border:1px solid var(--line-strong);
+  border-radius:50%;background:var(--surface-raised);color:var(--text);
+  font-size:22px;cursor:pointer
+}
+.map-tour-panel .map-tour-progress{color:var(--cyan);font-weight:750;margin:4px 0}
+.map-tour-panel h3{font-size:15px;margin:10px 0 5px}
+.map-tour-panel .map-tour-source-status{color:#f3cf9d;min-height:18px}
+.map-tour-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:12px 0}
+.map-tour-controls button{
+  min-height:43px;padding:8px 4px;border:1px solid #30949c;
+  background:#136e77;color:white;border-radius:9px;
+  font-size:11px;font-weight:700;cursor:pointer
+}
+.map-tour-controls button:disabled{opacity:.5;cursor:not-allowed}
+.map-tour-panel .map-tour-caution{border-top:1px solid var(--line-strong);padding-top:9px}
+.map-tour-panel button:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+@media(max-width:680px){
+  .map-tour-panel{left:8px;bottom:70px;width:min(355px,calc(100% - 16px));max-height:min(62%,450px)}
+}

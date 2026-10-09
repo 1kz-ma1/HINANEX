@@ -1253,6 +1253,71 @@ function scheduleViewportD() {
 }
 map.on("moveend", scheduleViewportD);
 
+// Presentation-only map tour API. This does not select another municipality,
+// alter Scenario contracts, imply data coverage, or infer unlocated facilities.
+// It can only focus on *actual mappable source points* from RegionExport.
+let tourSavedView = null;
+let tourRequestGeneration = 0;
+async function focusPresentationTourRegion(code, animate = true) {
+  const generation = tourRequestGeneration;
+  const config = REGION_CONFIGS[code];
+  if (!config) return { state: "unsupported", region: code, mapped: 0, total: 0 };
+  if (!viewportDCache.has(code) && window.location.protocol !== "file:") {
+    await fetchViewportDOnce(config);
+  }
+  // A presenter may stop/pause while awaiting HTTP. Never allow stale data
+  // completion to move the map after the manual interaction takes control.
+  if (generation !== tourRequestGeneration) return {
+    state: "cancelled", region: config.label, mapped: 0, total: 0
+  };
+  const summary = viewportDCache.get(code)?.summary ||
+    (code === selectedRegionCode ? currentShelterSummary : null);
+  if (!summary) return {
+    state: "unavailable", region: config.label, mapped: 0, total: 0
+  };
+  const locations = summary.mappableRecords;
+  if (!locations.length) return {
+    state: "unlocated", region: config.label,
+    mapped: 0, total: summary.records.length
+  };
+  const bounds = L.latLngBounds(locations.map(item => [item.latitude, item.longitude]));
+  if (!bounds.isValid()) return {
+    state: "unlocated", region: config.label,
+    mapped: 0, total: summary.records.length
+  };
+  viewportTriggered = true;
+  renderViewportD();
+  const viewOptions = { padding: [48, 48], maxZoom: 12 };
+  if (animate && typeof map.flyToBounds === "function") {
+    map.flyToBounds(bounds, { ...viewOptions, duration: 1.25 });
+  } else {
+    map.fitBounds(bounds, { ...viewOptions, animate: false });
+  }
+  return {
+    state: "mapped", region: config.label,
+    mapped: locations.length, total: summary.records.length
+  };
+}
+window.HINANEX_PRESENTATION_TOUR = Object.freeze({
+  begin() {
+    tourRequestGeneration++;
+    tourSavedView = { center: map.getCenter(), zoom: map.getZoom() };
+  },
+  focus: focusPresentationTourRegion,
+  halt() {
+    tourRequestGeneration++;
+    if (typeof map.stop === "function") map.stop();
+  },
+  end(restore = true) {
+    tourRequestGeneration++;
+    if (typeof map.stop === "function") map.stop();
+    if (restore && tourSavedView) {
+      map.setView(tourSavedView.center, tourSavedView.zoom, { animate: false });
+    }
+    tourSavedView = null;
+  }
+});
+
 function renderShelterSummary(summary, sourceLabel) {
   currentShelterSummary = summary;
   rememberViewportD(selectedRegionCode, summary);
