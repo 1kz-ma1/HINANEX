@@ -80,6 +80,8 @@ let originMarker = null;
 let verifiedFloodCatalog = null;
 let catalogLoadSequence = 0;
 let referenceFootprintBounds = null;
+let referenceCandidateBounds = null;
+let displayMode = "region";
 
 const externalTileWarnings = new Set();
 
@@ -248,7 +250,7 @@ function updateMapOriginAction(message, picking = false) {
 // A cached single-tile script may expose the old API without throwing during
 // <script> evaluation. Fail CLOSED with actionable feedback instead of
 // crashing the map when the newer controller calls missing functions.
-const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v4";
+const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v5";
 function compatibleDiscoveryEngine() {
   const engine = window.HINANEX_FLOOD_DISCOVERY;
   return engine && engine.apiVersion === REQUIRED_DISCOVERY_VERSION &&
@@ -261,6 +263,7 @@ function clearReferenceMap() {
   referenceFootprintGroup.clearLayers();
   referenceSiteGroup.clearLayers();
   referenceFootprintBounds = null;
+  referenceCandidateBounds = null;
   const panel = document.getElementById("referenceMapSummary");
   panel.hidden = true;
   document.getElementById("referenceMapCoverage").textContent = "未探索";
@@ -283,9 +286,56 @@ function verifiedTileBounds(key) {
 }
 
 function updateDReferenceButton() {
-  const visible = map.hasLayer(shelterGroup);
   document.getElementById("toggleDMarkers").textContent =
-    visible ? "緑のDマーカーを隠す" : "緑のDマーカーを表示";
+    displayMode === "both" ? "周辺のGSIだけ表示" : "地域Dと比較";
+}
+
+function applyDisplayMode() {
+  const showD = displayMode !== "nearby";
+  const showGSI = displayMode !== "region";
+  const shelterInput = document.getElementById("shelter");
+  const boundaryInput = document.getElementById("boundary");
+
+  // D, GSI, and municipality-fixture layers are independent. A newly selected
+  // origin never changes the municipality or repurposes D as GSI reference.
+  if (showD && shelterInput.checked) map.addLayer(shelterGroup);
+  else map.removeLayer(shelterGroup);
+  if (showD && boundaryInput.checked && boundaryBounds?.isValid()) map.addLayer(boundaryGroup);
+  else map.removeLayer(boundaryGroup);
+  if (showGSI) {
+    map.addLayer(referenceFootprintGroup);
+    map.addLayer(referenceSiteGroup);
+  } else {
+    map.removeLayer(referenceFootprintGroup);
+    map.removeLayer(referenceSiteGroup);
+  }
+
+  shelterInput.disabled = !showD;
+  boundaryInput.disabled = !showD || !boundaryBounds?.isValid();
+  document.getElementById("facilityDisplayMode").value = displayMode;
+  document.getElementById("facilityDisplayModeDescription").textContent =
+    displayMode === "region"
+      ? "選択地域のD施設を表示。現在地周辺のGSI掲載地点とは別データです。"
+      : displayMode === "nearby"
+        ? "クリック地点周辺の検証済みGSI掲載地点だけを表示。安全性・開設は未判定。"
+        : "選択地域D（緑）とクリック地点周辺GSI（紫）を比較。異なる出典の情報です。";
+  updateDReferenceButton();
+}
+
+function setDisplayMode(mode) {
+  if (!["region", "nearby", "both"].includes(mode)) return;
+  displayMode = mode;
+  if (mode === "both") document.getElementById("shelter").checked = true;
+  applyDisplayMode();
+}
+
+// Never zoom to all 9 z10 tiles when the requested action is about nearby
+// candidates. This bounds *only* the selected origin and at most five displayed
+// GSI reference points, with an upper zoom limit; no hazard or travel routing.
+function focusReferenceCandidates() {
+  if (referenceCandidateBounds?.isValid()) {
+    map.fitBounds(referenceCandidateBounds, { padding: [44, 44], maxZoom: 14 });
+  }
 }
 
 function renderReferenceMap(discovery) {
@@ -308,6 +358,10 @@ function renderReferenceMap(discovery) {
   }
   if (!corners.length) return;
   referenceFootprintBounds = L.latLngBounds(corners);
+  const nearbyPoints = selectedOrigin
+    ? [[selectedOrigin.latitude, selectedOrigin.longitude]] : [];
+  nearbyPoints.push(...discovery.sites.map(site => [site.latitude, site.longitude]));
+  referenceCandidateBounds = nearbyPoints.length ? L.latLngBounds(nearbyPoints) : null;
 
   // Five display pins, not 6,656. No lines, routing or safety ranking.
   discovery.sites.forEach((site, index) => {
@@ -347,7 +401,7 @@ function renderReferenceMap(discovery) {
     "検証済み " + discovery.verifiedTileCount + "/" + discovery.requestedTileCount + " タイル";
   document.getElementById("referenceMapCount").textContent =
     discovery.total.toLocaleString("ja-JP") + "件中 最大" + discovery.sites.length + "地点を地図表示";
-  updateDReferenceButton();
+  applyDisplayMode();
 }
 
 function renderReferenceDiscovery() {
@@ -451,6 +505,9 @@ async function loadFloodReferenceCatalog() {
       requestedRegion !== selectedRegionCode || requestedOrigin !== selectedOrigin) return;
   verifiedFloodCatalog = catalogs;
   renderReferenceDiscovery();
+  if (displayMode === "nearby" && referenceCandidateBounds?.isValid()) {
+    focusReferenceCandidates();
+  }
 }
 
 function setReferenceOrigin(latitude, longitude) {
@@ -460,6 +517,9 @@ function setReferenceOrigin(latitude, longitude) {
   }
   choosingOrigin = false;
   selectedOrigin = { latitude, longitude };
+  // A new location request defaults to nearby GSI-only. The user can change
+  // back to region D or combined without losing source-provenance semantics.
+  setDisplayMode("nearby");
   if (originMarker) map.removeLayer(originMarker);
   originMarker = L.marker([latitude, longitude], {
     icon: L.divIcon({
@@ -758,7 +818,7 @@ function selectRegion(regionCode) {
   document.getElementById("boundary").disabled = !hasBoundary;
   if (!hasBoundary) document.getElementById("boundary").checked = false;
   else document.getElementById("boundary").checked = true;
-  if (hasBoundary && !map.hasLayer(boundaryGroup)) map.addLayer(boundaryGroup);
+  setDisplayMode("region");
   setMapAvailability(
     hasBoundary,
     `${currentRegion().label} は境界fixtureがありません。Dの座標付きRegionExportを読み込むまで、地図位置を選択地域として扱いません。`
@@ -778,22 +838,16 @@ function bindToggle(id, layer) {
 
 bindToggle("basemap", baseMap);
 bindToggle("officialFlood", officialFloodLayer);
-bindToggle("boundary", boundaryGroup);
-bindToggle("shelter", shelterGroup);
-document.getElementById("focusReferenceTiles").addEventListener("click", () => {
-  if (referenceFootprintBounds?.isValid()) {
-    // Fit only verified-source coverage; not a flood boundary or evacuation route.
-    map.fitBounds(referenceFootprintBounds, { padding: [18, 18], maxZoom: 12 });
-  }
+document.getElementById("boundary").addEventListener("change", applyDisplayMode);
+document.getElementById("shelter").addEventListener("change", applyDisplayMode);
+document.getElementById("facilityDisplayMode").addEventListener("change", event => {
+  setDisplayMode(event.target.value);
+  if (displayMode === "nearby") focusReferenceCandidates();
 });
+document.getElementById("focusReferenceTiles").addEventListener("click", focusReferenceCandidates);
 document.getElementById("toggleDMarkers").addEventListener("click", () => {
-  const input = document.getElementById("shelter");
-  input.checked = !input.checked;
-  if (input.checked) map.addLayer(shelterGroup);
-  else map.removeLayer(shelterGroup);
-  updateDReferenceButton();
+  setDisplayMode(displayMode === "both" ? "nearby" : "both");
 });
-document.getElementById("shelter").addEventListener("change", updateDReferenceButton);
 
 document.getElementById("floodOpacity").addEventListener("input", event => {
   const percent = Number(event.target.value);
