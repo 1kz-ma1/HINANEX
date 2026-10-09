@@ -166,9 +166,16 @@ function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = nul
   const L = makeLeafletStub();
   const location = { protocol, href: href ?? `${protocol}//test/gis/gis/index.html` };
   if (protocol === "file:" && !href) location.href = "file:///tmp/HINANEX/gis/gis/index.html";
+  const history = {
+    calls: [],
+    replaceState(_state, _title, nextUrl) {
+      this.calls.push(nextUrl);
+      location.href = new URL(nextUrl, location.href).href;
+    }
+  };
 
   const context = {
-    window: { location },
+    window: { location, history },
     document: { getElementById: id => elements[id] },
     L,
     fetch: fetchImpl,
@@ -185,7 +192,7 @@ function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = nul
   vm.runInContext(facilityListCode, context, { filename: "facility_list.js" });
   vm.runInContext(discoveryOverride === null ? discoveryCode : discoveryOverride, context, { filename: "flood_discovery.js" });
   vm.runInContext(mapCode, context, { filename: "map.js" });
-  return { context, elements, L };
+  return { context, elements, L, history };
 }
 
 const edogawa = payload("13123", "東京都江戸川区", [
@@ -332,6 +339,10 @@ nagoya.scenarios = [{
   assert.equal(coordinateCase.L.__map.lastView.zoom, 12);
   assert.equal(coordinateCase.L.__map.lastView.latlng[0], 35.7);
   assert.equal(coordinateCase.L.__map.lastView.latlng[1], 140.1);
+  assert.match(coordinateCase.elements.details.innerHTML, /35.70000, 140.10000/);
+  assert.match(coordinateCase.elements.details.innerHTML, /この地点の浸水リスク/);
+  assert.doesNotMatch(coordinateCase.elements.details.innerHTML, /洪水浸水想定区域（想定最大規模）/);
+  assert.doesNotMatch(coordinateCase.context.window.location.href, /lat=|lon=|origin=/);
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.ok(coordinateFetchCount > initialCount);
   assert.match(coordinateCase.elements.floodDiscoveryResults.innerHTML, /未検証|独立照合待ち/);
@@ -348,6 +359,9 @@ nagoya.scenarios = [{
   assert.equal(coordinateCase.elements.coordinateSearchInput.value, "");
   assert.equal(coordinateCase.elements.coordinateSearchStatus.textContent, "");
   assert.equal(coordinateCase.elements.facilityDisplayMode.value, "region");
+  assert.match(coordinateCase.context.window.location.href, /[?]region=15100$/);
+  assert.equal(coordinateCase.history.calls.length, 1);
+  assert.doesNotMatch(coordinateCase.context.window.location.href, /35.7|139.9|140.1/);
 
   // User action selects a point; missing C-accepted catalog never promotes
   // existing Edogawa shelter_location records into safe/approved candidates.
@@ -365,6 +379,9 @@ nagoya.scenarios = [{
   assert.match(httpCase.elements.facilityDisplayModeDescription.textContent, /周辺の検証済みGSI/);
   assert.match(httpCase.elements.originStatus.textContent, /端末内だけ/);
   assert.equal(httpCase.elements.coordinateSearchInput.value, "35.70000, 139.88000");
+  assert.match(httpCase.elements.details.innerHTML, /35.70000, 139.88000/);
+  assert.match(httpCase.elements.details.innerHTML, /地点指定/);
+  assert.doesNotMatch(httpCase.elements.details.innerHTML, /この地点は安全です/);
   assert.match(httpCase.elements.floodDiscoveryResults.innerHTML, /独立照合待ち/);
   assert.match(httpCase.elements.mapOriginShortcutStatus.textContent, /未検証/);
   assert.equal(httpCase.elements.mapOriginShortcut.getAttribute("aria-pressed"), "false");
@@ -448,6 +465,7 @@ nagoya.scenarios = [{
   });
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.equal(queryCase.elements.region.value, "15100");
+  assert.equal(queryCase.history.calls.length, 0); // initial deep-link unchanged
   assert.equal(queryCase.elements.recordCount.textContent, 1);
   assert.match(queryCase.elements.resetView.textContent, /新潟県 新潟市/);
 
