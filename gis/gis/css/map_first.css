@@ -400,3 +400,46 @@ footer{display:none}
 @media(max-width:680px){
   .map-tour-panel{left:8px;bottom:70px;width:min(355px,calc(100% - 16px));max-height:min(62%,450px)}
 }
+
+/* On-map source evidence: separate D, verified GSI and official raster states. */
+.map-evidence-panel{
+  position:absolute;z-index:1645;right:14px;bottom:14px;
+  box-sizing:border-box;width:min(390px,calc(100% - 28px));
+  max-height:min(78%,570px);overflow:auto;overscroll-behavior:contain;
+  border:1px solid var(--line-strong);border-radius:16px;
+  padding:16px;background:#102534;color:var(--text);
+  box-shadow:0 14px 40px rgba(0,0,0,.46)
+}
+.map-evidence-panel[hidden]{display:none}
+.map-evidence-heading{display:flex;justify-content:space-between;gap:12px;align-items:start}
+.map-evidence-heading strong{font-size:15px}
+.map-evidence-heading p{font-size:11px;line-height:1.5;color:var(--muted);margin:5px 0 12px}
+.map-evidence-heading button{
+  flex-shrink:0;width:42px;height:42px;font-size:22px;cursor:pointer;
+  border-radius:50%;border:1px solid var(--line-strong);
+  background:var(--surface-raised);color:var(--text)
+}
+.map-evidence-facts{margin:4px 0 10px}
+.map-evidence-facts>div{
+  display:grid;grid-template-columns:minmax(116px,43%) minmax(0,1fr);
+  column-gap:10px;align-items:start;padding:9px 0;
+  border-bottom:1px solid var(--line-strong);font-size:11px;line-height:1.5
+}
+.map-evidence-facts dt{color:var(--muted)}
+.map-evidence-facts dd{margin:0;overflow-wrap:anywhere;font-weight:650}
+.map-evidence-viewport,.map-evidence-warning{
+  margin:9px 0;font-size:11px;line-height:1.6;color:var(--muted)
+}
+.map-evidence-warning{color:#f1d2a6}
+.map-evidence-details-link{
+  display:inline-flex;align-items:center;min-height:44px;margin-top:8px;
+  padding:6px 11px;box-sizing:border-box;background:#136e77;color:#fff;
+  border:1px solid #30949c;border-radius:9px;
+  text-decoration:none;font-size:12px;font-weight:750
+}
+.map-evidence-panel :is(button,a):focus-visible{
+  outline:3px solid var(--cyan);outline-offset:2px
+}
+@media(max-width:680px){
+  .map-evidence-panel{right:8px;bottom:70px;width:calc(100% - 16px);max-height:min(69%,510px)}
+}
