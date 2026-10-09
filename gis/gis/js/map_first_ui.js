@@ -72,6 +72,9 @@
     const notice = id("mapRasterNotice");
     notice.textContent = message;
     notice.hidden = false;
+    const banner = id("mapRasterBanner");
+    banner.textContent = message;
+    banner.hidden = false;
   }
   window.HINANEX_MAP_FIRST_UI = Object.freeze({ showDetail, showRasterWarning });
 })();
