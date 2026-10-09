@@ -1140,6 +1140,7 @@ map.on("zoomend", renderDMarkers);
 // absent file never means an area has no shelters or is safe.
 const viewportDCache = new Map();
 const viewportDLoading = new Set();
+const viewportDInFlight = new Map();
 const viewportDFailed = new Set();
 let viewportDMarkers = new Map();
 let viewportDTimer = null;
@@ -1212,25 +1213,36 @@ function renderViewportD() {
   });
 }
 
-async function fetchViewportDOnce(config) {
-  if (viewportDCache.has(config.code) || viewportDLoading.has(config.code) ||
-      viewportDFailed.has(config.code)) return;
-  viewportDLoading.add(config.code);
-  try {
-    const response = await fetch(config.autoUrl, { cache: "force-cache" });
-    if (!response.ok) throw new Error("RegionExport unavailable");
-    const payload = await response.json();
-    const adapter = window.HINANEX_D_ADAPTER;
-    if (!adapter) throw new Error("D adapter missing");
-    const summary = adapter.extractShelterLocation(payload, config.code);
-    rememberViewportD(config.code, summary);
-  } catch (_) {
-    // No guessing from the city's name, map center or a missing JSON file.
-    viewportDFailed.add(config.code);
-  } finally {
-    viewportDLoading.delete(config.code);
-    if (viewportTriggered) renderViewportD();
+function fetchViewportDOnce(config) {
+  // Both normal viewport discovery and presenter tour use this provider.
+  // A second consumer MUST await the existing in-flight request rather than
+  // treating "currently fetching" as "unavailable" and skipping the tour.
+  if (viewportDCache.has(config.code) || viewportDFailed.has(config.code)) {
+    return Promise.resolve();
   }
+  const existing = viewportDInFlight.get(config.code);
+  if (existing) return existing;
+  viewportDLoading.add(config.code);
+  const request = (async () => {
+    try {
+      const response = await fetch(config.autoUrl, { cache: "force-cache" });
+      if (!response.ok) throw new Error("RegionExport unavailable");
+      const payload = await response.json();
+      const adapter = window.HINANEX_D_ADAPTER;
+      if (!adapter) throw new Error("D adapter missing");
+      const summary = adapter.extractShelterLocation(payload, config.code);
+      rememberViewportD(config.code, summary);
+    } catch (_) {
+      // Unknown is never converted into a claim about shelter availability.
+      viewportDFailed.add(config.code);
+    } finally {
+      viewportDLoading.delete(config.code);
+      viewportDInFlight.delete(config.code);
+      if (viewportTriggered) renderViewportD();
+    }
+  })();
+  viewportDInFlight.set(config.code, request);
+  return request;
 }
 
 function updateViewportD() {
@@ -1258,7 +1270,7 @@ map.on("moveend", scheduleViewportD);
 // It can only focus on *actual mappable source points* from RegionExport.
 let tourSavedView = null;
 let tourRequestGeneration = 0;
-async function focusPresentationTourRegion(code, animate = true) {
+async function focusPresentationTourRegion(code, animate = true, focusFirstVerifiedPoint = false) {
   const generation = tourRequestGeneration;
   const config = REGION_CONFIGS[code];
   if (!config) return { state: "unsupported", region: code, mapped: 0, total: 0 };
@@ -1287,15 +1299,30 @@ async function focusPresentationTourRegion(code, animate = true) {
   };
   viewportTriggered = true;
   renderViewportD();
-  const viewOptions = { padding: [48, 48], maxZoom: 12 };
-  if (animate && typeof map.flyToBounds === "function") {
-    map.flyToBounds(bounds, { ...viewOptions, duration: 1.25 });
+  // The first stop starts on the user's already-selected Edogawa region:
+  // focusing its entire extent barely moves the camera. Explicitly focus
+  // the first *verified source point* to make the presenter tour visibly
+  // start; this is an example record, NEVER a recommended shelter.
+  if (focusFirstVerifiedPoint) {
+    const point = locations[0];
+    const center = [point.latitude, point.longitude];
+    if (animate && typeof map.flyTo === "function") {
+      map.flyTo(center, 14, { duration: 1.25 });
+    } else {
+      map.setView(center, 14, { animate: false });
+    }
   } else {
-    map.fitBounds(bounds, { ...viewOptions, animate: false });
+    const viewOptions = { padding: [48, 48], maxZoom: 12 };
+    if (animate && typeof map.flyToBounds === "function") {
+      map.flyToBounds(bounds, { ...viewOptions, duration: 1.25 });
+    } else {
+      map.fitBounds(bounds, { ...viewOptions, animate: false });
+    }
   }
   return {
     state: "mapped", region: config.label,
-    mapped: locations.length, total: summary.records.length
+    mapped: locations.length, total: summary.records.length,
+    focus: focusFirstVerifiedPoint ? "source-example" : "source-bounds"
   };
 }
 window.HINANEX_PRESENTATION_TOUR = Object.freeze({
