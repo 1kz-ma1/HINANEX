@@ -24,7 +24,13 @@ const FLOOD_REFERENCE_URL = "https://disaportaldata.gsi.go.jp/raster/01_flood_l2
 const map = L.map("map", {
   zoomControl: true,
   attributionControl: true,
-  preferCanvas: true
+  preferCanvas: true,
+  // Half-step navigation prevents abrupt whole-level jumps from buttons,
+  // keyboard and wheel, while retaining the standard Leaflet animation.
+  // Official integer-zoom tiles are only visually scaled between levels.
+  zoomSnap: 0.5,
+  zoomDelta: 0.5,
+  wheelPxPerZoomLevel: 100
 }).setView([35.704, 139.882], 13);
 
 map.createPane("officialFloodPane");
