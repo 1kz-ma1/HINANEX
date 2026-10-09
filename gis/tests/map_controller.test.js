@@ -1227,7 +1227,7 @@ nagoya.scenarios = [{
   assert.match(html, /id="mapLocateMe"[^>]*type="button"/);
   assert.match(css, /\.map-locate-button\{[\s\S]*?right:16px;bottom:18px/);
   assert.match(css, /\.hinanex-bottom-nav\{[\s\S]*?position:fixed;bottom:0/);
-  assert.match(css, /\.layout>\.gis-side-shell--right\{[\s\S]*?bottom:0/);
+  assert.match(css, /\.layout>\.gis-side-shell--right\s*\{[\s\S]*?bottom:0/);
   assert.match(html, /id="mapRegionQuickSelect"/);
   assert.match(html, /id="mapShowShelter"[^>]*type="checkbox"/);
   assert.match(html, /id="mapShowFlood"[^>]*type="checkbox"/);
