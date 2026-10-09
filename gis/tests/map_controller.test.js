@@ -795,7 +795,7 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="uiTabNormal"[^>]*role="tab"/);
   assert.match(pageSource, /id="uiTabScenario"[^>]*role="tab"/);
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
-  assert.match(pageSource, /current_theme[.]css[?]v=gis-panel-rails-20261009-v4/);
+  assert.match(pageSource, /current_theme[.]css[?]v=gis-height-20261009-v5/);
   assert.match(pageSource, /id="toggleLeftPanel"[^>]*aria-expanded="true"/);
   assert.match(pageSource, /id="toggleRightPanel"[^>]*aria-expanded="true"/);
   assert.match(pageSource, /id="gisLeftPanel"/);
@@ -875,7 +875,15 @@ nagoya.scenarios = [{
   assert.match(theme, /\.layout\[data-left-panel="closed"\]>.map-wrap\{grid-column:2;grid-row:1\}/);
   assert.match(theme, /\.layout\[data-left-panel="closed"\]>.map-wrap\{grid-column:1;grid-row:2\}/);
   assert.match(theme, /\.gis-panel-toggle svg\{display:block/);
-  assert.match(theme, /100dvh - 242px/);
+  // Restore usable vertical map area without reverting the successful
+  // fixed central map grid and both 44px collapsible icon rails.
+  assert.match(theme, /height:clamp\(390px,calc\(100dvh - 204px\),900px\)/);
+  assert.match(theme, /height:clamp\(410px,calc\(100dvh - 215px\),760px\)/);
+  assert.doesNotMatch(theme, /height:clamp\(420px,calc\(100dvh - 242px\),760px\)/);
+  assert.match(theme, /height:clamp\(370px,60dvh,620px\)/,
+    "mobile map behavior is intentionally unchanged");
+  assert.match(theme, /\.layout>\.map-wrap\{grid-column:2;grid-row:1/,
+    "expanded map must retain the dedicated middle column");
   assert.match(theme, /#map\{height:100%;min-height:0\}/);
   assert.doesNotMatch(theme, /(?:#map|\.leaflet-tile)[^\{]*\{[^}]*\bfilter\s*:/,
     "official imagery must never be filtered or inverted in the dark theme");

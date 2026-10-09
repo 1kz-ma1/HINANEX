@@ -271,7 +271,7 @@ footer{height:36px;background:#091825;color:var(--muted);border-top:1px solid va
   --gis-left-track:minmax(245px,275px);
   --gis-right-track:minmax(290px,325px);
   grid-template-columns:var(--gis-left-track) minmax(0,1fr) var(--gis-right-track);
-  height:clamp(420px,calc(100dvh - 242px),760px);min-height:0;
+  height:clamp(390px,calc(100dvh - 204px),900px);min-height:0;
   margin:10px 0 12px;
 }
 .layout[data-left-panel="closed"]{--gis-left-track:0px}
@@ -327,8 +327,8 @@ footer{height:36px;background:#091825;color:var(--muted);border-top:1px solid va
     grid-template-areas:"left map" "right right";
     height:auto;min-height:0;margin:8px 0 12px
   }
-  .layout>.left{max-height:clamp(400px,calc(100dvh - 242px),660px)}
-  .layout>.map-wrap{height:clamp(400px,calc(100dvh - 242px),660px);
+  .layout>.left{max-height:clamp(410px,calc(100dvh - 215px),760px)}
+  .layout>.map-wrap{height:clamp(410px,calc(100dvh - 215px),760px);
     min-height:0;margin:0 10px 10px}
   .layout>.map-wrap>#map{min-height:0}
   .layout[data-left-panel="closed"]>.map-wrap{grid-column:1 / -1}
@@ -400,7 +400,7 @@ footer{height:36px;background:#091825;color:var(--muted);border-top:1px solid va
     grid-template-areas:none;grid-template-rows:auto auto
   }
   .layout>.gis-side-shell--left{grid-column:1;grid-row:1;
-    height:clamp(400px,calc(100dvh - 242px),660px)}
+    height:clamp(410px,calc(100dvh - 215px),760px)}
   .layout>.map-wrap{grid-column:2;grid-row:1}
   .layout>.gis-side-shell--right{grid-column:1/-1;grid-row:2}
   .layout[data-left-panel="closed"]>.map-wrap{grid-column:2;grid-row:1}
@@ -425,3 +425,8 @@ footer{height:36px;background:#091825;color:var(--muted);border-top:1px solid va
   .gis-panel-toggle--left{right:10px}
   .gis-panel-toggle--right{left:10px}
 }
+
+/* Height tune v5: retain the stable three-column shell/44px panel rails.
+   Use previously unused desktop viewport headroom for the map, without
+   sacrificing the existing top/bottom frame or forcing document scrolling
+   at common laptop viewport heights. Mobile map sizing remains unchanged. */
