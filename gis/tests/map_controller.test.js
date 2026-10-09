@@ -183,7 +183,7 @@ function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = nul
     "referenceMapSummary", "referenceMapCoverage", "referenceMapCount",
     "focusReferenceTiles", "toggleDMarkers", "facilityDisplayMode", "facilityDisplayModeDescription",
     "coordinateSearchForm", "coordinateSearchInput", "coordinateSearchButton",
-    "coordinateSearchHelp", "coordinateSearchStatus"
+    "coordinateSearchHelp", "coordinateSearchStatus", "externalFloodTileNotice"
   ];
   const elements = Object.fromEntries(ids.map(id => [id, makeElement(id)]));
   const L = makeLeafletStub();
@@ -624,6 +624,18 @@ nagoya.scenarios = [{
   assert.equal(httpCase.elements.facilityListPanel.hidden, false);
   assert.equal(httpCase.elements.mapUnavailable.className, "map-unavailable has-facility-list");
   assert.match(httpCase.elements.mapUnavailableTitle.textContent, /施設一覧を検索できます/);
+  assert.equal(httpCase.elements.selectOrigin.disabled, true,
+    "a map click must not be offered under the coordinate-less Nagoya list overlay");
+  assert.equal(httpCase.elements.mapOriginShortcut.disabled, true);
+  assert.match(httpCase.elements.selectOrigin.textContent, /地図位置は未確認/);
+  assert.match(httpCase.elements.originStatus.textContent, /施設一覧を利用/);
+  assert.equal(httpCase.elements.useGps.disabled, false,
+    "independent GPS workflow remains available and unchanged");
+  const blockedOriginStatus = httpCase.elements.originStatus.textContent;
+  httpCase.elements.selectOrigin.listeners.click();
+  httpCase.elements.mapOriginShortcut.listeners.click();
+  assert.equal(httpCase.elements.originStatus.textContent, blockedOriginStatus);
+  assert.equal(httpCase.elements.mapOriginShortcut.getAttribute("aria-pressed"), "false");
   assert.match(httpCase.elements.facilityListCount.textContent, /取得施設 2件 \/ 検索一致 2件/);
   assert.match(httpCase.elements.facilityListResults.innerHTML, /Nagoya A/);
   assert.match(httpCase.elements.facilityListResults.innerHTML, /名古屋市中区丸の内/);
@@ -656,6 +668,9 @@ nagoya.scenarios = [{
   assert.equal(httpCase.elements.facilityListPanel.hidden, true);
   assert.equal(httpCase.elements.facilityListSearch.value, "");
   assert.equal(httpCase.elements.mapUnavailableTitle.textContent, "表示範囲を確定できません");
+  assert.equal(httpCase.elements.selectOrigin.disabled, false);
+  assert.equal(httpCase.elements.mapOriginShortcut.disabled, false);
+  assert.equal(httpCase.elements.selectOrigin.textContent, "地図から出発地点を指定");
   assert.equal(httpCase.elements.mappedCount.textContent, 1);
   // A region with no verified coordinates must not visually expose the
   // previously selected municipality's basemap through a translucent mask.
@@ -950,6 +965,14 @@ nagoya.scenarios = [{
   assert.match(clusterCase.elements.status.textContent, /公的洪水ラスタ/);
   assert.match(clusterCase.elements.status.textContent, /浸水の有無・安全性は判定できません/);
   assert.doesNotMatch(clusterCase.elements.status.textContent, /Dデータは利用可能|浸水なし|安全な避難先/);
+  assert.equal(clusterCase.elements.externalFloodTileNotice.hidden, false);
+  assert.match(clusterCase.elements.externalFloodTileNotice.textContent, /浸水なし/);
+  assert.match(clusterCase.elements.externalFloodTileNotice.textContent, /別データ/);
+  // Later D status updates must not erase the independently visible raster warning.
+  vm.runInContext('setStatus("D出力を更新しました", "success")', clusterCase.context);
+  assert.match(clusterCase.elements.status.textContent, /D出力を更新/);
+  assert.equal(clusterCase.elements.externalFloodTileNotice.hidden, false);
+  assert.match(clusterCase.elements.externalFloodTileNotice.textContent, /公的洪水ラスタ/);
   assert.equal(clusterCase.elements.recordCount.textContent, 3);
 
   // A wrong tile file on the correct static path is NOT a permitted fallback.
