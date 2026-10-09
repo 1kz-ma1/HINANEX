@@ -113,7 +113,7 @@ E地図の現在の黄土/青/灰マーカー：既存D statusの表示のみ。
 ## 7. 原本を入手してからA照合台帳を生成する手順
 
 - A専用の候補台帳生成: `data-research/tools/edogawa_review_ledger.py`。合成テスト: `data-research/tests/test_edogawa_review_ledger.py`。
-- 入力は (1) 江戸川区水害待避施設HTMLをブラウザで保存した原本、(2) 江戸川区が公開する位置施設CSVの原本、(3) Dが同じCSV原本から生成したRegionExport JSON。原本をこのrepoへコミットしない。
+- 入力は (1) 江戸川区の水害待避施設ページを保存したHTML（HTTPレスポンス原本と一致するかは別途C検証）、(2) 江戸川区が公開する位置施設CSVの原本、(3) Dが同じCSV原本から生成したRegionExport JSON。原本をこのrepoへコミットしない。
 - 出力は未確認候補台帳JSON、各入力SHA256、公式HTML表・行、施設名・住所・使用可能階数の原文、厳密な施設名一致の調査ヒント、別ソース住所の有無。
 - 表示上の注記 `(注)` を末尾から外すのは名称の調査ヒントに限る。名前が一致しても `VERIFIED_PAIR` にはせず、出力ステータスは常に `UNREVIEWED` または `CONFLICT`。洪水Scenario判定は増やさず、現行UNKNOWNを維持する。
 
