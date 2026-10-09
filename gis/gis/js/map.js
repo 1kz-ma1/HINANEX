@@ -142,9 +142,12 @@ for (const [side, buttonId] of [
     const collapsed = gisLayout.getAttribute(stateAttribute) !== "closed";
     gisLayout.setAttribute(stateAttribute, collapsed ? "closed" : "open");
     button.setAttribute("aria-expanded", String(!collapsed));
-    button.textContent = side === "left"
+    // Preserve the inline SVG: updating textContent would destroy the icon.
+    const label = side === "left"
       ? (collapsed ? "左メニューを開く" : "左メニューを閉じる")
       : (collapsed ? "右詳細を開く" : "右詳細を閉じる");
+    button.setAttribute("aria-label", label);
+    button.setAttribute("title", label);
     // Leaflet needs a viewport recalculation after its parent grid changes.
     // Explicit pan:false avoids repositioning the user-selected center.
     // No setView, fitBounds, region switch or C/D fetch is performed here.
