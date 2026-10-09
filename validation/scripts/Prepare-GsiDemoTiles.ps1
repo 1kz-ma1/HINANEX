@@ -10,6 +10,7 @@ param(
     [string]$PythonExe = 'C:\HINANEX\pipeline\.venv\Scripts\python.exe',
     [switch]$IncludeNeighbors,
     [switch]$NeighborsOnly,
+    [switch]$OnlyUnpublished,
     [switch]$PublishPreview
 )
 $ErrorActionPreference = 'Stop'
@@ -39,6 +40,12 @@ if ($IncludeNeighbors) {
 }
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $runner = Join-Path $PSScriptRoot 'Run-GsiFloodLocalAcceptance.ps1'
+
+# Validate unsafe option combinations BEFORE -NeighborsOnly revalidates files.
+if ($OnlyUnpublished -and
+    (-not $IncludeNeighbors -or -not $PublishPreview -or $NeighborsOnly)) {
+    throw 'OnlyUnpublished requires -IncludeNeighbors and -PublishPreview and cannot combine with -NeighborsOnly.'
+}
 
 if ($NeighborsOnly) {
     if (-not $IncludeNeighbors -or -not $PublishPreview) {
@@ -93,6 +100,60 @@ if ($NeighborsOnly) {
     }
     $tiles = @($tiles | Where-Object { -not $_.Origin })
     Write-Host "Published origin $z/$x/$y independently revalidated; now fetching neighbors only."
+}
+
+# An opt-in resume mode for a PARTIAL local 3x3 preview.
+# Unlike -NeighborsOnly this mode proves EACH already-published tile using the
+# independent C proof ledger before skipping it. No published tile is replaced.
+if ($OnlyUnpublished) {
+    $ledger = Join-Path $repo 'validation\validation\gsi_geographic_proof_ledger.py'
+    if (-not (Test-Path -LiteralPath $ledger -PathType Leaf)) {
+        throw 'Independent C geographic proof ledger missing; refusing partial resume.'
+    }
+    # The ledger accepts explicit map coordinates but emits only coarse tile IDs.
+    $culture = [System.Globalization.CultureInfo]::InvariantCulture
+    $coordinateArg = $Latitude.ToString($culture) + ',' + $Longitude.ToString($culture)
+    $ledgerOutput = @(& $PythonExe $ledger --region $RegionCode --origin $coordinateArg)
+    if ($LASTEXITCODE -ne 0 -or $ledgerOutput.Count -lt 1) {
+        throw 'C geographic proof ledger failed; no download or publication attempted.'
+    }
+    $proof = ($ledgerOutput -join [Environment]::NewLine) | ConvertFrom-Json -ErrorAction Stop
+    if ([string]$proof.schema -cne 'HINANEX_C_GSI_LOCAL_PROOF_LEDGER_V1' -or
+        [string]$proof.hazard_namespace -cne 'GSI_SKHB01_FLOOD' -or
+        [string]$proof.region_context -cne $RegionCode -or
+        @($proof.origin_checks).Count -ne 1 -or
+        [string]$proof.origin_checks[0].origin_tile -cne "$z/$x/$y" -or
+        [string]$proof.origin_checks[0].status -eq 'ORIGIN_UNVERIFIED' -or
+        @($proof.origin_checks[0].tiles).Count -ne $tiles.Count) {
+        throw 'C proof ledger/origin/coverage mismatch; refusing partial resume.'
+    }
+    $pending = @()
+    $skipped = 0
+    foreach ($tile in $tiles) {
+        $tx = [int]$tile.X
+        $ty = [int]$tile.Y
+        $key = "$z/$tx/$ty"
+        $match = @($proof.origin_checks[0].tiles | Where-Object { [string]$_.tile -ceq $key })
+        if ($match.Count -ne 1) {
+            throw "C proof ledger lacks unique tile $key; refusing partial resume."
+        }
+        if ([string]$match[0].status -ceq 'PASS_SAVED_C_EVIDENCE') {
+            Write-Host "SKIP C-REVERIFIED published tile: $key"
+            $skipped += 1
+        }
+        elseif ([string]$match[0].status -ceq 'MISSING_PUBLICATION') {
+            $pending += $tile
+        }
+        else {
+            throw "Published tile $key has unsupported C status '$($match[0].status)'; refusing partial resume."
+        }
+    }
+    $tiles = @($pending)
+    Write-Host "C revalidated $skipped existing tile(s); need independent fetch/audit/publication for $($tiles.Count) new tile(s)."
+    if ($tiles.Count -eq 0) {
+        Write-Host 'No missing publications. No network fetch, raw archive or preview changes.'
+        return
+    }
 }
 
 if (-not (Test-Path -LiteralPath $runner)) { throw 'Verification runner missing.' }
