@@ -62,6 +62,33 @@ class EdogawaLedgerTests(unittest.TestCase):
         for doc in result["source_documents"]:
             self.assertEqual(len(doc["sha256"]), 64)
 
+    def test_abbreviated_school_name_still_only_yields_unreviewed_hint(self):
+        water = page(row("2", "小松川二小学校", "小松川3丁目6番4号", "3階以上"))
+        loc = output([{"id": "e-2", "name": "小松川第二小学校", "address": None}])
+        result = audit.proposal(water, loc, location_csv())
+        self.assertEqual(result["exact_name_hint_rows"], 0)
+        self.assertEqual(result["abbreviation_hint_rows"], 1)
+        entry = result["rows"][0]
+        self.assertEqual(entry["review_status"], "UNREVIEWED")
+        self.assertEqual(entry["candidate_location_rows"][0]["location_facility_id"], "e-2")
+        self.assertEqual(entry["candidate_location_rows"][0]["matching_basis"],
+                         "ABBREVIATION_HINT_ONLY_NOT_VERIFIED")
+        self.assertEqual(result["all_reviewed_pairs"], 0)
+        self.assertEqual(result["all_scenario_classifications_added"], 0)
+
+    def test_renamed_school_is_not_automatically_joined(self):
+        water = page(row("-", "旧下小岩小学校", "南小岩7丁目8番1号",
+                         "大規模水害では使用不可"))
+        loc = output([
+            {"id": "old", "name": "旧下小岩小学校（体育館のみ使用）"},
+            {"id": "new", "name": "下小岩小学校"},
+        ])
+        result = audit.proposal(water, loc, location_csv())
+        self.assertEqual(result["only_name_hint_proposals"], 0)
+        self.assertEqual(result["rows"][0]["review_status"], "UNREVIEWED")
+        self.assertEqual(result["rows"][0]["candidate_location_rows"], [])
+        self.assertEqual(result["rows"][0]["flood_scenario_status"], "UNCHANGED_UNKNOWN")
+
     def test_missing_address_never_becomes_confirmed(self):
         water = page(row("1", "施設A", "公式住所1", "2階以上"))
         loc = output([{"id": "a", "name": "施設A", "address": None}])
