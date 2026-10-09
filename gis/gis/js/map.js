@@ -37,6 +37,8 @@ map.createPane("referenceFootprintPane");
 map.getPane("referenceFootprintPane").style.zIndex = 460;
 map.createPane("referenceSitePane");
 map.getPane("referenceSitePane").style.zIndex = 690;
+map.createPane("referenceOriginPane");
+map.getPane("referenceOriginPane").style.zIndex = 730;
 
 const baseMap = L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png", {
   minZoom: 5,
@@ -77,6 +79,7 @@ let facilityListPage = 0;
 let selectedOrigin = null;
 let choosingOrigin = false;
 let originMarker = null;
+let gpsRequestSequence = 0;
 let verifiedFloodCatalog = null;
 let catalogLoadSequence = 0;
 let referenceFootprintBounds = null;
@@ -250,7 +253,7 @@ function updateMapOriginAction(message, picking = false) {
 // A cached single-tile script may expose the old API without throwing during
 // <script> evaluation. Fail CLOSED with actionable feedback instead of
 // crashing the map when the newer controller calls missing functions.
-const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v7";
+const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v8";
 function compatibleDiscoveryEngine() {
   const engine = window.HINANEX_FLOOD_DISCOVERY;
   return engine && engine.apiVersion === REQUIRED_DISCOVERY_VERSION &&
@@ -317,8 +320,8 @@ function applyDisplayMode() {
     displayMode === "region"
       ? "選択地域のD施設を表示。現在地周辺のGSI掲載地点とは別データです。"
       : displayMode === "nearby"
-        ? "クリック地点周辺の検証済みGSI掲載地点だけを表示。安全性・開設は未判定。"
-        : "選択地域D（緑）とクリック地点周辺GSI（紫）を比較。異なる出典の情報です。";
+        ? "選択地点周辺の検証済みGSI掲載地点だけを表示。安全性・開設は未判定。"
+        : "選択地域D（緑）と選択地点周辺GSI（紫）を比較。異なる出典の情報です。";
   updateDReferenceButton();
 }
 
@@ -443,6 +446,7 @@ function renderReferenceDiscovery() {
 }
 
 function clearReferenceDiscovery() {
+  gpsRequestSequence += 1; // ignore GPS callbacks from an earlier region
   catalogLoadSequence += 1; // stale async JSON may not update a different region
   choosingOrigin = false;
   selectedOrigin = null;
@@ -518,6 +522,7 @@ function setReferenceOrigin(latitude, longitude) {
     return;
   }
   choosingOrigin = false;
+  gpsRequestSequence += 1; // chosen point supersedes any pending GPS request
   selectedOrigin = { latitude, longitude };
   // Keep the input reproducible for testers even when the source of the
   // selection was a map click or explicit geolocation permission.
@@ -530,10 +535,16 @@ function setReferenceOrigin(latitude, longitude) {
   setDisplayMode("nearby");
   if (originMarker) map.removeLayer(originMarker);
   originMarker = L.marker([latitude, longitude], {
+    // Dedicated upper pane keeps the chosen point visible even if nearby
+    // unranked GSI markers overlap it. Never conflate it with a safe shelter.
+    pane: "referenceOriginPane",
+    zIndexOffset: 1500,
+    title: "探索の起点（避難先ではありません）",
     icon: L.divIcon({
       className: "",
-      html: '<div class="reference-origin-marker" aria-label="選択された出発地点">◎</div>',
-      iconSize: [28, 28]
+      html: '<div class="reference-origin-marker" aria-label="探索の起点・避難先ではありません">◎</div>',
+      iconSize: [36, 36],
+      iconAnchor: [18, 18]
     })
   }).addTo(map);
   document.getElementById("originStatus").textContent =
@@ -928,21 +939,47 @@ function beginSelectingOrigin() {
 }
 document.getElementById("selectOrigin").addEventListener("click", beginSelectingOrigin);
 document.getElementById("mapOriginShortcut").addEventListener("click", beginSelectingOrigin);
+function suggestManualOriginAfterGpsFailure(message) {
+  document.getElementById("originStatus").textContent = message +
+    " 地図上の「緯度・経度で地点を指定」から手動で探索できます。";
+  document.getElementById("coordinateSearchStatus").textContent =
+    "GPSを使わず、緯度・経度を入力して「座標で探索」を押せます。";
+  const input = document.getElementById("coordinateSearchInput");
+  if (typeof input.focus === "function") input.focus();
+}
+
 document.getElementById("useGps").addEventListener("click", () => {
+  const requestId = ++gpsRequestSequence;
   if (typeof navigator === "undefined" || !navigator.geolocation) {
-    document.getElementById("originStatus").textContent =
-      "この環境では位置情報を使えません。「地点を指定して探索」を押してから地図をクリックしてください。";
+    suggestManualOriginAfterGpsFailure("この環境では位置情報を利用できません。");
     return;
   }
   document.getElementById("originStatus").textContent = "位置情報の許可を確認しています…";
-  navigator.geolocation.getCurrentPosition(
-    position => setReferenceOrigin(position.coords.latitude, position.coords.longitude),
-    () => {
-      document.getElementById("originStatus").textContent =
-        "位置情報を利用できませんでした。「地点を指定して探索」を押してから地図をクリックしてください。";
-    },
-    { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }
-  );
+  try {
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        if (requestId !== gpsRequestSequence) return;
+        const latitude = position?.coords?.latitude;
+        const longitude = position?.coords?.longitude;
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+            Math.abs(latitude) > 85.05112878 || Math.abs(longitude) > 180) {
+          suggestManualOriginAfterGpsFailure("取得した位置情報の座標を利用できません。");
+          return;
+        }
+        setReferenceOrigin(latitude, longitude);
+        map.setView([latitude, longitude], 12);
+      },
+      () => {
+        if (requestId !== gpsRequestSequence) return;
+        suggestManualOriginAfterGpsFailure("位置情報が拒否されたか、取得できませんでした。");
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }
+    );
+  } catch (_) {
+    if (requestId === gpsRequestSequence) {
+      suggestManualOriginAfterGpsFailure("位置情報の取得を開始できませんでした。");
+    }
+  }
 });
 
 document.getElementById("resetView").addEventListener("click", fitCurrentRegion);
