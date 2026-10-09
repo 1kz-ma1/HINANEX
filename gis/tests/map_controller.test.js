@@ -962,6 +962,9 @@ nagoya.scenarios = [{
     tile: { src: "https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/10/909/403.png" }
   });
   assert.match(clusterCase.elements.status.textContent, /外部タイルの一部/);
+  assert.match(clusterCase.elements.status.textContent, /公的洪水ラスタ/);
+  assert.match(clusterCase.elements.status.textContent, /浸水の有無・安全性は判定できません/);
+  assert.doesNotMatch(clusterCase.elements.status.textContent, /Dデータは利用可能|浸水なし|安全な避難先/);
   assert.equal(clusterCase.elements.externalFloodTileNotice.hidden, false);
   assert.match(clusterCase.elements.externalFloodTileNotice.textContent, /浸水なし/);
   assert.match(clusterCase.elements.externalFloodTileNotice.textContent, /別データ/);
@@ -969,9 +972,7 @@ nagoya.scenarios = [{
   vm.runInContext('setStatus("D出力を更新しました", "success")', clusterCase.context);
   assert.match(clusterCase.elements.status.textContent, /D出力を更新/);
   assert.equal(clusterCase.elements.externalFloodTileNotice.hidden, false);
-  assert.match(clusterCase.elements.status.textContent, /公的洪水ラスタ/);
-  assert.match(clusterCase.elements.status.textContent, /浸水の有無・安全性は判定できません/);
-  assert.doesNotMatch(clusterCase.elements.status.textContent, /Dデータは利用可能|浸水なし|安全な避難先/);
+  assert.match(clusterCase.elements.externalFloodTileNotice.textContent, /公的洪水ラスタ/);
   assert.equal(clusterCase.elements.recordCount.textContent, 3);
 
   // A wrong tile file on the correct static path is NOT a permitted fallback.
