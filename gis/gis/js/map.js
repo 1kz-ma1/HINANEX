@@ -243,14 +243,14 @@ function updateMapOriginAction(message, picking = false) {
   const button = document.getElementById("mapOriginShortcut");
   const status = document.getElementById("mapOriginShortcutStatus");
   button.setAttribute("aria-pressed", String(picking));
-  button.textContent = picking ? "地図上の地点をクリック" : "地点を指定して探索";
+  button.textContent = picking ? "地図上の地点をクリック" : "地図をクリックして探索";
   status.textContent = message;
 }
 
 // A cached single-tile script may expose the old API without throwing during
 // <script> evaluation. Fail CLOSED with actionable feedback instead of
 // crashing the map when the newer controller calls missing functions.
-const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v6";
+const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v7";
 function compatibleDiscoveryEngine() {
   const engine = window.HINANEX_FLOOD_DISCOVERY;
   return engine && engine.apiVersion === REQUIRED_DISCOVERY_VERSION &&
@@ -450,6 +450,9 @@ function clearReferenceDiscovery() {
   if (originMarker) map.removeLayer(originMarker);
   originMarker = null;
   document.getElementById("originStatus").textContent = "位置は未選択です";
+  document.getElementById("coordinateSearchInput").value = "";
+  document.getElementById("coordinateSearchInput").setAttribute("aria-invalid", "false");
+  document.getElementById("coordinateSearchStatus").textContent = "";
   document.getElementById("selectOrigin").disabled = false;
   document.getElementById("useGps").disabled = false;
   renderReferenceDiscovery();
@@ -516,6 +519,12 @@ function setReferenceOrigin(latitude, longitude) {
   }
   choosingOrigin = false;
   selectedOrigin = { latitude, longitude };
+  // Keep the input reproducible for testers even when the source of the
+  // selection was a map click or explicit geolocation permission.
+  document.getElementById("coordinateSearchInput").value =
+    latitude.toFixed(5) + ", " + longitude.toFixed(5);
+  document.getElementById("coordinateSearchInput").setAttribute("aria-invalid", "false");
+  document.getElementById("coordinateSearchStatus").textContent = "";
   // A new location request defaults to nearby GSI-only. The user can change
   // back to region D or combined without losing source-provenance semantics.
   setDisplayMode("nearby");
@@ -868,6 +877,38 @@ document.getElementById("facilityListPrev").addEventListener("click", () => {
 document.getElementById("facilityListNext").addEventListener("click", () => {
   facilityListPage += 1;
   renderFacilityList();
+});
+
+// Coordinate input is a local test-navigation control, not geocoding and
+// not evidence that an official reference site exists at the selected point.
+function parseCoordinatePair(value) {
+  if (typeof value !== "string") return null;
+  const parts = value.trim().replace(/[，、]/g, ",").split(",");
+  const decimal = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/;
+  if (parts.length !== 2 || parts.some(part => !decimal.test(part.trim()))) return null;
+  const [latitude, longitude] = parts.map(part => Number(part.trim()));
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+      Math.abs(latitude) > 85.05112878 || longitude < -180 || longitude > 180) return null;
+  return { latitude, longitude };
+}
+
+document.getElementById("coordinateSearchForm").addEventListener("submit", event => {
+  event.preventDefault();
+  const input = document.getElementById("coordinateSearchInput");
+  const feedback = document.getElementById("coordinateSearchStatus");
+  const location = parseCoordinatePair(input.value);
+  if (!location) {
+    input.setAttribute("aria-invalid", "true");
+    feedback.textContent =
+      "入力を確認してください。緯度, 経度の順に10進数で入力（例：35.70, 140.10）。" +
+      "緯度は-85.05112878～85.05112878、経度は-180～180です。";
+    return; // Never move the marker, change source mode or request a tile.
+  }
+  setReferenceOrigin(location.latitude, location.longitude);
+  // Always visibly navigate to the requested position, even where the C
+  // reference tile is unpublished and the discovery appropriately fails closed.
+  map.setView([location.latitude, location.longitude], 12);
+  feedback.textContent = "指定座標へ移動しました。公式掲載情報は照合結果を確認してください。";
 });
 
 function beginSelectingOrigin() {

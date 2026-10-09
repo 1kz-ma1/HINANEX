@@ -100,7 +100,17 @@
         <option value="both">地域Dと周辺GSIを比較</option>
       </select>
       <p id="facilityDisplayModeDescription" class="display-mode-description" role="status">選択地域のD避難所を表示中。周辺GSIは別データです。</p>
-      <button id="mapOriginShortcut" type="button">地点を指定して探索</button>
+      <form id="coordinateSearchForm" class="coordinate-search-form" novalidate>
+        <label for="coordinateSearchInput">緯度・経度で地点を指定</label>
+        <div class="coordinate-search-row">
+          <input id="coordinateSearchInput" type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+            placeholder="35.70, 139.90" aria-describedby="coordinateSearchHelp coordinateSearchStatus">
+          <button id="coordinateSearchButton" type="submit">座標で探索</button>
+        </div>
+        <small id="coordinateSearchHelp">緯度, 経度（10進数）。例：35.70, 140.10</small>
+        <p id="coordinateSearchStatus" role="status" aria-live="polite"></p>
+      </form>
+      <button id="mapOriginShortcut" type="button">地図をクリックして探索</button>
       <p id="mapOriginShortcutStatus" role="status" aria-live="polite">ボタンを押してから地図をクリック</p>
     </div>
     <section id="referenceMapSummary" class="reference-map-summary" aria-label="GSI公式掲載情報の可視化" hidden>
@@ -156,7 +166,7 @@
 <script src="js/d_region_adapter.js"></script>
 <script src="js/facility_list.js"></script>
 <!-- Keep discovery and map on one release key: prevents mixed browser cache versions. -->
-<script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v6"></script>
-<script src="js/map.js?v=gsi-z10-neighbors-20261009-v6"></script>
+<script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v7"></script>
+<script src="js/map.js?v=gsi-z10-neighbors-20261009-v7"></script>
 </body>
 </html>

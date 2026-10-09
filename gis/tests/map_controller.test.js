@@ -83,7 +83,7 @@ function makeLeafletStub() {
 
   const map = {
     handlers: {},
-    setView() { return this; },
+    setView(latlng, zoom) { this.lastView = { latlng, zoom }; return this; },
     createPane(name) { panes[name] = { style: {} }; },
     getPane(name) { return panes[name]; },
     addLayer(layer) { mapLayers.add(layer); layer._onMap = true; return this; },
@@ -158,7 +158,9 @@ function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = nul
     "facilityListPage", "scenarioHazard", "selectOrigin", "useGps",
     "originStatus", "floodDiscoveryResults", "mapOriginShortcut", "mapOriginShortcutStatus",
     "referenceMapSummary", "referenceMapCoverage", "referenceMapCount",
-    "focusReferenceTiles", "toggleDMarkers", "facilityDisplayMode", "facilityDisplayModeDescription"
+    "focusReferenceTiles", "toggleDMarkers", "facilityDisplayMode", "facilityDisplayModeDescription",
+    "coordinateSearchForm", "coordinateSearchInput", "coordinateSearchButton",
+    "coordinateSearchHelp", "coordinateSearchStatus"
   ];
   const elements = Object.fromEntries(ids.map(id => [id, makeElement(id)]));
   const L = makeLeafletStub();
@@ -285,6 +287,68 @@ nagoya.scenarios = [{
   assert.equal(httpCase.elements.mapOriginShortcut.getAttribute("aria-pressed"), "false");
   assert.match(httpCase.elements.mapOriginShortcutStatus.textContent, /地図/);
   assert.match(httpCase.elements.floodDiscoveryResults.innerHTML, /地図から出発地点/);
+
+  // Exact numeric-coordinate search is available by Enter/form submission,
+  // not only by an imprecise manual map click. Invalid values must not
+  // change the selected origin, map viewport, mode or make HTTP requests.
+  let coordinateFetchCount = 0;
+  const coordinateCase = makeContext({
+    protocol: "http:",
+    fetchImpl: async url => {
+      coordinateFetchCount += 1;
+      if (String(url).endsWith("edogawa.json")) {
+        return { ok: true, status: 200, json: async () => edogawa };
+      }
+      return { ok: false, status: 404, json: async () => ({}) };
+    }
+  });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  const initialView = coordinateCase.L.__map.lastView;
+  const initialCount = coordinateFetchCount;
+  for (const invalid of ["", "35.70", "35.70,", ",140.10", "35.7,140.1,20",
+                         "nan,140", "35north,139", "90,140", "-90,140",
+                         "35.7,181", "35.7,-181", "1e2,139"]) {
+    const control = coordinateCase.elements.coordinateSearchInput;
+    control.value = invalid;
+    let prevented = false;
+    coordinateCase.elements.coordinateSearchForm.listeners.submit({
+      preventDefault() { prevented = true; }
+    });
+    assert.equal(prevented, true, invalid + " must prevent native navigation");
+    assert.equal(control.getAttribute("aria-invalid"), "true");
+    assert.match(coordinateCase.elements.coordinateSearchStatus.textContent, /入力を確認/);
+    assert.match(coordinateCase.elements.originStatus.textContent, /未選択/);
+    assert.equal(coordinateCase.elements.facilityDisplayMode.value, "region");
+    assert.strictEqual(coordinateCase.L.__map.lastView, initialView);
+    assert.equal(coordinateFetchCount, initialCount, "invalid origin cannot make requests");
+  }
+  coordinateCase.elements.coordinateSearchInput.value = " 35.70， 140.10 ";
+  coordinateCase.elements.coordinateSearchForm.listeners.submit({ preventDefault() {} });
+  assert.equal(coordinateCase.elements.coordinateSearchInput.getAttribute("aria-invalid"), "false");
+  assert.equal(coordinateCase.elements.coordinateSearchInput.value, "35.70000, 140.10000");
+  assert.match(coordinateCase.elements.coordinateSearchStatus.textContent, /指定座標へ移動/);
+  assert.match(coordinateCase.elements.originStatus.textContent, /35.70000, 140.10000/);
+  assert.equal(coordinateCase.elements.facilityDisplayMode.value, "nearby");
+  assert.equal(coordinateCase.L.__map.lastView.zoom, 12);
+  assert.equal(coordinateCase.L.__map.lastView.latlng[0], 35.7);
+  assert.equal(coordinateCase.L.__map.lastView.latlng[1], 140.1);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.ok(coordinateFetchCount > initialCount);
+  assert.match(coordinateCase.elements.floodDiscoveryResults.innerHTML, /未検証|独立照合待ち/);
+  // The same form can move to a second source cell without changing region.
+  coordinateCase.elements.coordinateSearchInput.value = "35.70、139.90";
+  coordinateCase.elements.coordinateSearchForm.listeners.submit({ preventDefault() {} });
+  assert.match(coordinateCase.elements.originStatus.textContent, /35.70000, 139.90000/);
+  assert.equal(coordinateCase.L.__map.lastView.latlng[1], 139.9);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  // A region change clears the old origin and field instead of reusing stale GPS data.
+  coordinateCase.elements.region.value = "15100";
+  coordinateCase.elements.region.listeners.change({ target: coordinateCase.elements.region });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(coordinateCase.elements.coordinateSearchInput.value, "");
+  assert.equal(coordinateCase.elements.coordinateSearchStatus.textContent, "");
+  assert.equal(coordinateCase.elements.facilityDisplayMode.value, "region");
+
   // User action selects a point; missing C-accepted catalog never promotes
   // existing Edogawa shelter_location records into safe/approved candidates.
   httpCase.elements.mapOriginShortcut.listeners.click();
@@ -300,6 +364,7 @@ nagoya.scenarios = [{
   assert.equal(httpCase.elements.shelter.disabled, true);
   assert.match(httpCase.elements.facilityDisplayModeDescription.textContent, /周辺の検証済みGSI/);
   assert.match(httpCase.elements.originStatus.textContent, /端末内だけ/);
+  assert.equal(httpCase.elements.coordinateSearchInput.value, "35.70000, 139.88000");
   assert.match(httpCase.elements.floodDiscoveryResults.innerHTML, /独立照合待ち/);
   assert.match(httpCase.elements.mapOriginShortcutStatus.textContent, /未検証/);
   assert.equal(httpCase.elements.mapOriginShortcut.getAttribute("aria-pressed"), "false");
