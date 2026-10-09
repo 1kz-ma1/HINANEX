@@ -84,6 +84,7 @@ let verifiedFloodCatalog = null;
 let catalogLoadSequence = 0;
 let referenceFootprintBounds = null;
 let referenceCandidateBounds = null;
+let referenceCandidateLocations = [];
 let displayMode = "region";
 
 const externalTileWarnings = new Set();
@@ -253,7 +254,7 @@ function updateMapOriginAction(message, picking = false) {
 // A cached single-tile script may expose the old API without throwing during
 // <script> evaluation. Fail CLOSED with actionable feedback instead of
 // crashing the map when the newer controller calls missing functions.
-const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v8";
+const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v9";
 function compatibleDiscoveryEngine() {
   const engine = window.HINANEX_FLOOD_DISCOVERY;
   return engine && engine.apiVersion === REQUIRED_DISCOVERY_VERSION &&
@@ -267,6 +268,7 @@ function clearReferenceMap() {
   referenceSiteGroup.clearLayers();
   referenceFootprintBounds = null;
   referenceCandidateBounds = null;
+  referenceCandidateLocations = [];
   const panel = document.getElementById("referenceMapSummary");
   panel.hidden = true;
   document.getElementById("referenceMapCoverage").textContent = "未探索";
@@ -298,6 +300,12 @@ function applyDisplayMode() {
   const showGSI = displayMode !== "region";
   const shelterInput = document.getElementById("shelter");
   const boundaryInput = document.getElementById("boundary");
+  const hasGsiEvidence = referenceFootprintBounds?.isValid() === true;
+  const hasMappedD = (currentShelterSummary?.mappableRecords?.length || 0) > 0;
+  const summaryPanel = document.getElementById("referenceMapSummary");
+  // Hide GSI's legend and counts whenever GSI is not drawn. Preserve the
+  // accepted in-memory evidence so toggling back does not trigger a re-fetch.
+  summaryPanel.hidden = !showGSI || !hasGsiEvidence;
 
   // D, GSI, and municipality-fixture layers are independent. A newly selected
   // origin never changes the municipality or repurposes D as GSI reference.
@@ -318,10 +326,16 @@ function applyDisplayMode() {
   document.getElementById("facilityDisplayMode").value = displayMode;
   document.getElementById("facilityDisplayModeDescription").textContent =
     displayMode === "region"
-      ? "選択地域のD施設を表示。現在地周辺のGSI掲載地点とは別データです。"
+      ? "選択地域のD施設を表示。GSIの照合結果は地図で非表示（再切替で復帰）。"
       : displayMode === "nearby"
         ? "選択地点周辺の検証済みGSI掲載地点だけを表示。安全性・開設は未判定。"
-        : "選択地域D（緑）と選択地点周辺GSI（紫）を比較。異なる出典の情報です。";
+        : !hasMappedD
+          ? "選択地域Dの位置情報が未読込・座標欠損のため比較範囲を表示できません。GSIは別データです。"
+          : "選択地域D（緑）と選択地点周辺GSI（紫）を比較。異なる出典の情報です。";
+  const focusButton = document.getElementById("focusReferenceTiles");
+  focusButton.textContent = displayMode === "both"
+    ? "緑と紫を一緒に見る" : "選択地点と5件を見る";
+  focusButton.disabled = displayMode === "both" && !hasMappedD;
   updateDReferenceButton();
 }
 
@@ -339,6 +353,24 @@ function focusReferenceCandidates() {
   if (referenceCandidateBounds?.isValid()) {
     map.fitBounds(referenceCandidateBounds, { padding: [44, 44], maxZoom: 14 });
   }
+}
+
+function focusDisplayScope() {
+  if (displayMode === "both") {
+    // Two independent source sets can be geographically far apart. Fit the
+    // selected origin / up to 5 certified GSI reference pins AND actual
+    // coordinates from the chosen municipality's D RegionExport; never
+    // infer facility location from its name, municipality, or tile coverage.
+    const mappedD = currentShelterSummary?.mappableRecords || [];
+    if (!mappedD.length || !referenceCandidateLocations.length) return;
+    const points = [
+      ...referenceCandidateLocations,
+      ...mappedD.map(record => [record.latitude, record.longitude])
+    ];
+    map.fitBounds(L.latLngBounds(points), { padding: [38, 38], maxZoom: 13 });
+    return;
+  }
+  if (displayMode === "nearby") focusReferenceCandidates();
 }
 
 function renderReferenceMap(discovery) {
@@ -364,6 +396,7 @@ function renderReferenceMap(discovery) {
   const nearbyPoints = selectedOrigin
     ? [[selectedOrigin.latitude, selectedOrigin.longitude]] : [];
   nearbyPoints.push(...discovery.sites.map(site => [site.latitude, site.longitude]));
+  referenceCandidateLocations = nearbyPoints;
   referenceCandidateBounds = nearbyPoints.length ? L.latLngBounds(nearbyPoints) : null;
 
   // Five display pins, not 6,656. No lines, routing or safety ranking.
@@ -585,6 +618,7 @@ function clearShelters() {
   document.getElementById("facilityListSearch").value = "";
   setFacilityListMode(null);
   updateCoverage(null);
+  applyDisplayMode();
 }
 
 function renderReferenceBoundary() {
@@ -676,6 +710,7 @@ function renderShelterSummary(summary, sourceLabel) {
   shelterGroup.clearLayers();
   currentShelterSummary = summary;
   updateCoverage(summary);
+  applyDisplayMode(); // if D arrives after GSI, update comparison availability
 
   const latLngs = [];
   summary.mappableRecords.forEach(record => {
@@ -875,7 +910,7 @@ document.getElementById("facilityDisplayMode").addEventListener("change", event 
   setDisplayMode(event.target.value);
   if (displayMode === "nearby") focusReferenceCandidates();
 });
-document.getElementById("focusReferenceTiles").addEventListener("click", focusReferenceCandidates);
+document.getElementById("focusReferenceTiles").addEventListener("click", focusDisplayScope);
 document.getElementById("toggleDMarkers").addEventListener("click", () => {
   setDisplayMode(displayMode === "both" ? "nearby" : "both");
 });
