@@ -15,6 +15,7 @@ import csv
 import hashlib
 import json
 import re
+import unicodedata
 from collections import defaultdict
 from html.parser import HTMLParser
 from pathlib import Path
@@ -95,8 +96,22 @@ def official_rows(html_bytes):
 
 
 def name_hint(value):
-    """Only remove a literal municipality table note; NEVER assert identity."""
-    return re.sub(r"(?:\(注\)|（注）)$", "", value.strip()).strip()
+    """Whitespace and trailing '(注)' are a name-only search hint, not ID."""
+    name = unicodedata.normalize("NFKC", value).replace(" ", "").replace("　", "")
+    return re.sub(r"(?:\(注\)|（注）)$", "", name).strip()
+
+
+def abbreviation_hint(value):
+    """Controlled school-name abbreviations are only additional review leads."""
+    name = name_hint(value)
+    for full, short in (
+        ("高等学校", "高校"), ("第七", "七"),
+        ("第一", "一"), ("第二", "二"), ("第三", "三"),
+        ("第四", "四"), ("第五", "五"), ("第六", "六"),
+        ("都立", ""), ("江戸川区立", ""), ("区立", ""),
+    ):
+        name = name.replace(full, short)
+    return name
 
 
 def proposal(water_raw, export_raw, location_raw):
@@ -118,11 +133,17 @@ def proposal(water_raw, export_raw, location_raw):
         raise ValueError("Official location CSV required columns unavailable")
     address_cols = [v for v in ("住所", "所在地") if v in archive_header]
     by_name = defaultdict(list)
+    by_abbreviation = defaultdict(list)
     for record in records:
         by_name[name_hint(record["name"])].append(record)
+        by_abbreviation[abbreviation_hint(record["name"])].append(record)
     proposals = []
     for row in official_rows(water_raw):
         suggestions = by_name.get(name_hint(row["name_raw"]), [])
+        basis = "NAME_HINT_ONLY_NOT_VERIFIED"
+        if not suggestions:
+            suggestions = by_abbreviation.get(abbreviation_hint(row["name_raw"]), [])
+            basis = "ABBREVIATION_HINT_ONLY_NOT_VERIFIED"
         conflicting = len(suggestions) > 1
         candidates = []
         for candidate in suggestions:
@@ -138,7 +159,7 @@ def proposal(water_raw, export_raw, location_raw):
                 "location_name_raw": candidate["name"],
                 "location_address_raw": address,
                 "address_raw_exact_match": same_address,
-                "matching_basis": "NAME_HINT_ONLY_NOT_VERIFIED",
+                "matching_basis": basis,
             })
         proposals.append({
             **row,
@@ -161,6 +182,12 @@ def proposal(water_raw, export_raw, location_raw):
         "record_count_from_current_export": len(records),
         "official_water_rows_found": len(proposals),
         "only_name_hint_proposals": sum(bool(x["candidate_location_rows"]) for x in proposals),
+        "exact_name_hint_rows": sum(any(c["matching_basis"] == "NAME_HINT_ONLY_NOT_VERIFIED"
+                                        for c in row["candidate_location_rows"])
+                                    for row in proposals),
+        "abbreviation_hint_rows": sum(any(c["matching_basis"] == "ABBREVIATION_HINT_ONLY_NOT_VERIFIED"
+                                          for c in row["candidate_location_rows"])
+                                      for row in proposals),
         "all_reviewed_pairs": 0,
         "all_scenario_classifications_added": 0,
         "rows": proposals,
