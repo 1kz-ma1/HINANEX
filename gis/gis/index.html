@@ -96,6 +96,17 @@
       <button id="mapOriginShortcut" type="button">地点を指定して探索</button>
       <p id="mapOriginShortcutStatus" role="status" aria-live="polite">ボタンを押してから地図をクリック</p>
     </div>
+    <section id="referenceMapSummary" class="reference-map-summary" aria-label="GSI公式掲載情報の可視化" hidden>
+      <strong>GSI公式掲載地点（参考）</strong>
+      <div class="reference-map-metrics"><span id="referenceMapCoverage">未探索</span><span id="referenceMapCount">—</span></div>
+      <p class="reference-map-legend"><span class="reference-legend-sample">1</span> 紫の番号：直線距離順に最大5地点を表示</p>
+      <p class="reference-map-legend"><span class="d-legend-sample"></span> 緑：別データのD避難所（安全判定なし）</p>
+      <p class="reference-map-caveat">破線＝検証済みタイル境界。掲載範囲であり、洪水の危険域や避難経路ではありません。</p>
+      <div class="reference-map-actions">
+        <button id="focusReferenceTiles" type="button">照合した範囲を見る</button>
+        <button id="toggleDMarkers" type="button">緑のDマーカーを隠す</button>
+      </div>
+    </section>
     <div id="mapUnavailable" class="map-unavailable" hidden>
       <strong id="mapUnavailableTitle">表示範囲を確定できません</strong>
       <span id="mapUnavailableMessage">Dの座標付きデータを読み込むと地図を移動します。</span>
@@ -138,7 +149,7 @@
 <script src="js/d_region_adapter.js"></script>
 <script src="js/facility_list.js"></script>
 <!-- Keep discovery and map on one release key: prevents mixed browser cache versions. -->
-<script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v3"></script>
-<script src="js/map.js?v=gsi-z10-neighbors-20261009-v3"></script>
+<script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v4"></script>
+<script src="js/map.js?v=gsi-z10-neighbors-20261009-v4"></script>
 </body>
 </html>
