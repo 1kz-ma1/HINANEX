@@ -1238,3 +1238,74 @@ nagoya.scenarios = [{
   }
   assert.doesNotMatch(css, /(?:#map|\.leaflet-tile)[^\{]*\{[^}]*\bfilter\s*:/);
 }
+
+// Verify the map-first UI facade actually forwards choices to the existing
+// D/GSI controls and never requests GPS until the locate button is clicked.
+{
+  const uiCode = fs.readFileSync(path.resolve(__dirname, "../gis/js/map_first_ui.js"), "utf8");
+  const uiIds = ["gisLayout", "toggleRightPanel", "region", "mapRegionQuickSelect",
+    "mapShowShelter", "shelter", "mapShowFlood", "officialFlood", "mapShowBasemap",
+    "basemap", "facilityDisplayMode", "mapScenarioSelectOrigin", "selectOrigin",
+    "mapLocateMe", "useGps", "mapGpsFeedback", "originStatus", "mapRasterNotice",
+    "mapToolScene", "mapToolScenario", "mapToolMarks", "mapToolHazards"];
+  const nodes = Object.fromEntries(uiIds.map(id => {
+    const node = makeElement(id);
+    node.dispatchEvent = function(event) {
+      this.listeners[event.type]?.({ target: this });
+      return true;
+    };
+    node.click = function() { this.listeners.click?.({ target: this }); };
+    return [id, node];
+  }));
+  nodes.region.value = "13123";
+  let regionChanges = 0, gpsRequests = 0, originRequests = 0;
+  nodes.region.addEventListener("change", () => { regionChanges += 1; });
+  nodes.useGps.addEventListener("click", () => { gpsRequests += 1; });
+  nodes.selectOrigin.addEventListener("click", () => { originRequests += 1; });
+  const facade = {
+    document: { getElementById: id => nodes[id] },
+    window: {},
+    Event: class { constructor(type) { this.type = type; } }
+  };
+  vm.createContext(facade);
+  vm.runInContext(uiCode, facade, { filename: "map_first_ui.js" });
+  assert.equal(gpsRequests, 0);
+  nodes.mapRegionQuickSelect.value = "15100";
+  nodes.mapRegionQuickSelect.listeners.change();
+  assert.equal(nodes.region.value, "15100");
+  assert.equal(regionChanges, 1);
+  nodes.region.value = "23100";
+  nodes.region.listeners.change({ target: nodes.region });
+  assert.equal(nodes.mapRegionQuickSelect.value, "23100");
+
+  nodes.mapShowShelter.checked = false;
+  nodes.mapShowShelter.listeners.change();
+  assert.equal(nodes.shelter.checked, false);
+  nodes.mapShowFlood.checked = false;
+  nodes.mapShowFlood.listeners.change();
+  assert.equal(nodes.officialFlood.checked, false);
+  nodes.mapShowBasemap.checked = false;
+  nodes.mapShowBasemap.listeners.change();
+  assert.equal(nodes.basemap.checked, false);
+
+  nodes.mapToolScenario.open = true;
+  nodes.mapToolScenario.listeners.toggle();
+  nodes.mapToolScene.open = true;
+  nodes.mapToolScene.listeners.toggle();
+  assert.equal(nodes.mapToolScenario.open, false, "only one toolbar menu opens");
+
+  nodes.mapToolScenario.open = true;
+  nodes.mapScenarioSelectOrigin.click();
+  assert.equal(originRequests, 1);
+  assert.equal(nodes.mapToolScenario.open, false);
+
+  nodes.mapLocateMe.click();
+  assert.equal(gpsRequests, 1, "locate forwards exactly one explicit click");
+
+  facade.window.HINANEX_MAP_FIRST_UI.showDetail();
+  assert.equal(nodes.gisLayout.getAttribute("data-right-panel"), "open");
+  assert.equal(nodes.toggleRightPanel.getAttribute("aria-expanded"), "true");
+  facade.window.HINANEX_MAP_FIRST_UI.showRasterWarning("タイル未取得");
+  assert.equal(nodes.mapRasterNotice.hidden, false);
+  assert.equal(nodes.mapRasterNotice.textContent, "タイル未取得");
+}
