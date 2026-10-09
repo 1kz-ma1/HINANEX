@@ -809,7 +809,7 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="uiTabScenario"[^>]*role="tab"/);
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
   assert.match(pageSource, /current_theme[.]css[?]v=gis-facility-drawer-20261009-v6/);
-  assert.match(pageSource, /map_first[.]css[?]v=map-first-20261009-v2/);
+  assert.match(pageSource, /map_first[.]css[?]v=map-first-20261009-v3/);
   assert.match(pageSource, /id="toggleLeftPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="toggleRightPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="gisLeftPanel"/);
@@ -1401,4 +1401,19 @@ nagoya.scenarios = [{
   captured.click({ target: {}, type: "click" });
   assert.equal(nodes.gisLayout.getAttribute("data-right-panel"), "closed");
   assert.equal(facade.window.HINANEX_MAP_FIRST_UI.wasDismissalClick(null), false);
+}
+
+// The expert analytics/evidence route stays a standalone page, not a
+// modal, iframe or map-state-changing SPA navigation.
+{
+  const page = fs.readFileSync(path.resolve(__dirname, "../gis/index.html"), "utf8");
+  const styles = fs.readFileSync(path.resolve(__dirname, "../gis/css/map_first.css"), "utf8");
+  const header = page.slice(page.indexOf('<header class="header">'), page.indexOf("</header>"));
+  assert.match(header, /<a class="header-evidence-link" href="\.\.\/\.\.\/frontend\/" target="_blank" rel="noopener noreferrer"/);
+  assert.match(header, /aria-label="分析・根拠を別タブで開く"/);
+  assert.match(header, />分析・根拠 <span aria-hidden="true">↗<\/span><\/a>/);
+  assert.equal((page.match(/class="header-evidence-link"/g) || []).length, 1);
+  assert.doesNotMatch(header, /<iframe|<dialog|onclick=/i);
+  assert.match(styles, /\.header-evidence-link:focus-visible/);
+  assert.match(styles, /@media\(max-width:680px\)[\s\S]*?\.header-evidence-link\{min-height:44px/);
 }
