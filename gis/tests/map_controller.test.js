@@ -966,9 +966,8 @@ nagoya.scenarios = [{
   assert.match(clusterCase.elements.externalFloodTileNotice.textContent, /浸水なし/);
   assert.match(clusterCase.elements.externalFloodTileNotice.textContent, /別データ/);
   // Later D status updates must not erase the independently visible raster warning.
-  clusterCase.elements.region.value = "15100";
-  clusterCase.elements.region.listeners.change({ target: clusterCase.elements.region });
-  await new Promise(resolve => setTimeout(resolve, 0));
+  vm.runInContext('setStatus("D出力を更新しました", "success")', clusterCase.context);
+  assert.match(clusterCase.elements.status.textContent, /D出力を更新/);
   assert.equal(clusterCase.elements.externalFloodTileNotice.hidden, false);
   assert.match(clusterCase.elements.status.textContent, /公的洪水ラスタ/);
   assert.match(clusterCase.elements.status.textContent, /浸水の有無・安全性は判定できません/);
