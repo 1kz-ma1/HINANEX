@@ -6,7 +6,7 @@
   const steps = [
     {
       code: "13123", title: "江戸川区｜出典のある施設を調べる",
-      description: "D RegionExportの元データに座標がある施設だけを表示します。安全性・開設状況は未判定です。"
+      description: "最初は実際のD施設の座標付きレコード1件に近づきます（単なる表示例で、推奨施設ではありません）。安全性・開設状況は未判定です。"
     },
     {
       code: "15100", title: "新潟市｜地図の移動で施設を自動表示",
@@ -47,7 +47,9 @@
         ? "元データの座標あり " + result.mapped + "件（取得レコード " + result.total + "件）。表示は安全性の判定ではありません。"
       : result.state === "unlocated"
         ? "取得レコード " + result.total + "件、座標確認済み 0件。位置は推測しません。"
-      : "この地域のRegionExportを取得・確認できませんでした。施設が存在しないという意味ではありません。";
+      : result.state === "cancelled"
+        ? "デモを中断しました。"
+        : "この地域のRegionExportを取得・確認できませんでした。施設が存在しないという意味ではありません。";
   }
   async function runStep(next) {
     clearTimer();
@@ -65,12 +67,12 @@
     const nonce = ++playbackId;
     const step = steps[index];
     get("mapTourTitle").textContent = step.title;
-    get("mapTourDescription").textContent = "元データを確認中…";
+    get("mapTourDescription").textContent = "確認済みの施設位置を読み込み中です。読み込みが完了すると地図が動きます…";
     get("mapTourSourceStatus").textContent = "";
     let result;
     try {
       const reduced = !!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
-      result = await api.focus(step.code, !reduced);
+      result = await api.focus(step.code, !reduced, index === 0);
     } catch (_) {
       result = { state: "unavailable", mapped: 0, total: 0 };
     }

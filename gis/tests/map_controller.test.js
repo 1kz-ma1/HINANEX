@@ -111,6 +111,10 @@ function makeLeafletStub() {
     getCenter() { return this.lastView?.latlng || [35.704, 139.882]; },
     stop() { this.stopCalls = (this.stopCalls || 0) + 1; return this; },
     flyToBounds(bounds, options) { this.lastFly = { bounds, options }; return this; },
+    flyTo(latlng, zoom, options) {
+      this.lastPointFly = { latlng, zoom, options };
+      return this;
+    },
     getZoom() { return this.zoom; },
     project(latlng, zoom) {
       // Web Mercator world pixels, deterministic independent of viewport.
@@ -605,7 +609,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "guided-tour-20261010-v1");
+  assert.equal(mapAsset[1], "guided-tour-loading-fix-20261010-v2");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -1971,6 +1975,13 @@ nagoya.scenarios = [{
   const region = tourCase.elements.region.value;
   const url = tourCase.context.window.location.href;
   tour.begin();
+  const openingStop = await tour.focus("13123", true, true);
+  assert.equal(openingStop.state, "mapped");
+  assert.equal(openingStop.focus, "source-example");
+  assert.equal(tourCase.L.__map.lastPointFly.zoom, 14,
+    "first tour stop zooms into an actual D coordinate rather than the initial regional overview");
+  assert.equal(tourCase.L.__map.lastPointFly.latlng[0], edogawa.datasets[0].records[0].latitude);
+  assert.equal(tourCase.L.__map.lastPointFly.latlng[1], edogawa.datasets[0].records[0].longitude);
   const niigataStop = await tour.focus("15100", true);
   assert.equal(niigataStop.state, "mapped");
   assert.equal(niigataStop.mapped, 1);
@@ -2021,7 +2032,7 @@ nagoya.scenarios = [{
   const css = fs.readFileSync(path.resolve(__dirname, "../gis/css/map_first.css"), "utf8");
   assert.match(html, /id="mapTourPanel"[^>]*hidden/);
   assert.match(html, /id="mapTourOpen"[^>]*aria-controls="mapTourPanel"/);
-  assert.match(html, /js\/guided_tour[.]js[?]v=guided-tour-20261010-v1/);
+  assert.match(html, /js\/guided_tour[.]js[?]v=guided-tour-loading-fix-20261010-v2/);
   assert.match(html, /災害の時間変化や避難ルートの予測ではありません/);
   assert.match(viewSource, /mapTourPause/);
   assert.match(viewSource, /prefers-reduced-motion: reduce/);
@@ -2030,6 +2041,54 @@ nagoya.scenarios = [{
   assert.match(css, /\.map-tour-panel\[hidden\]\{display:none\}/);
   assert.doesNotMatch(viewSource, /getCurrentPosition|geolocation|sendBeacon|setInterval/);
   console.log("Presenter guided tour sources and cancellation: OK");
+})().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});
+
+// A map move may already be downloading Niigata by the time the presenter
+// clicks Start. The tour MUST await that in-flight request: previously
+// fetchViewportDOnce returned immediately and the UI said "unavailable".
+(async () => {
+  let releaseNiigata;
+  let niigataRequests = 0;
+  const h = makeContext({
+    protocol: "http:",
+    fetchImpl: async url => {
+      const u = String(url);
+      if (u.endsWith("edogawa.json")) return { ok: true, json: async () => edogawa };
+      if (u.endsWith("nagoya.json")) return { ok: true, json: async () => nagoya };
+      if (u.endsWith("niigata.json")) {
+        niigataRequests++;
+        return new Promise(resolve => { releaseNiigata = resolve; });
+      }
+      return { ok: false, status: 404 };
+    }
+  });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  // Triggers normal viewport fetching, which is still in progress.
+  h.L.__map.handlers.moveend();
+  await new Promise(resolve => setTimeout(resolve, 150));
+  assert.equal(niigataRequests, 1);
+  const api = h.context.window.HINANEX_PRESENTATION_TOUR;
+  api.begin();
+  let finished = false;
+  const focus = api.focus("15100", true).then(result => {
+    finished = true; return result;
+  });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(finished, false,
+    "presenter must not skip a region while viewport discovery is still fetching");
+  assert.equal(niigataRequests, 1,
+    "a concurrent presenter step reuses the existing download");
+  releaseNiigata({ ok: true, json: async () => niigata });
+  const result = await focus;
+  assert.equal(result.state, "mapped");
+  assert.equal(result.mapped, 1);
+  assert.equal(h.L.__map.lastFly.options.duration, 1.25);
+  assert.equal(niigataRequests, 1);
+  api.end(false);
+  console.log("Concurrent presenter and viewport RegionExport download: OK");
 })().catch(error => {
   console.error(error);
   process.exitCode = 1;
