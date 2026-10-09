@@ -795,7 +795,7 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="uiTabNormal"[^>]*role="tab"/);
   assert.match(pageSource, /id="uiTabScenario"[^>]*role="tab"/);
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
-  assert.match(pageSource, /current_theme[.]css[?]v=gis-height-20261009-v5/);
+  assert.match(pageSource, /current_theme[.]css[?]v=gis-facility-drawer-20261009-v6/);
   assert.match(pageSource, /id="toggleLeftPanel"[^>]*aria-expanded="true"/);
   assert.match(pageSource, /id="toggleRightPanel"[^>]*aria-expanded="true"/);
   assert.match(pageSource, /id="gisLeftPanel"/);
@@ -1200,3 +1200,24 @@ nagoya.scenarios = [{
   console.error(error);
   process.exitCode = 1;
 });
+
+
+// Native <details> keeps map interaction available when collapsed, while
+// preserving facility-mode and coordinate form elements when reopened.
+// This is a static markup/CSS regression; browser visual QA is separate.
+{
+  const html = fs.readFileSync(path.resolve(__dirname, "../gis/index.html"), "utf8");
+  const css = fs.readFileSync(path.resolve(__dirname, "../gis/css/current_theme.css"), "utf8");
+  const drawer = html.match(/<details class="origin-map-action" id="mapFacilityControls"([^>]*)>([\s\S]*?)<\/details>/);
+  assert.ok(drawer, "map facility controls must be a native details drawer");
+  assert.doesNotMatch(drawer[1], /\bopen\b/, "drawer defaults to compact/collapsed");
+  assert.match(drawer[2], /<summary class="origin-map-toggle"/);
+  assert.match(drawer[2], /<svg class="origin-map-icon"/);
+  for (const id of ["facilityDisplayMode", "coordinateSearchForm", "coordinateSearchInput", "mapOriginShortcut"]) {
+    assert.ok(drawer[2].includes('id="' + id + '"'), id + " remains in the drawer");
+  }
+  assert.match(css, /\.origin-map-action:not\(\[open\]\)\s*\{[^}]*width:52px/);
+  assert.match(css, /\.origin-map-action\[open\]\s*\{[^}]*z-index:1100/);
+  assert.match(css, /@media\(max-width:680px\)\s*\{[\s\S]*?\.origin-map-action\[open\]\s*\{[^}]*bottom:12px/);
+  assert.match(css, /\.origin-map-toggle:focus-visible/);
+}
