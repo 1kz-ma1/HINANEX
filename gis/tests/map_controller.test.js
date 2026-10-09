@@ -324,6 +324,15 @@ nagoya.scenarios = [{
   fileCase.elements.uiTabScenario.listeners.keydown({key: "Home", preventDefault() {}});
   assert.equal(fileCase.elements.gisLayout.getAttribute("data-ui-mode"), "normal");
   assert.equal(fileFetchCalls, 0, "tabs may not load even D/GSI data in file mode");
+  // Start in map-first: rails are collapsed so the map fills the viewport.
+  assert.equal(fileCase.elements.gisLayout.getAttribute("data-left-panel"), "closed");
+  assert.equal(fileCase.elements.gisLayout.getAttribute("data-right-panel"), "closed");
+  assert.equal(fileCase.elements.toggleLeftPanel.getAttribute("aria-expanded"), "false");
+  assert.equal(fileCase.elements.toggleRightPanel.getAttribute("aria-expanded"), "false");
+  fileCase.elements.toggleLeftPanel.listeners.click();
+  fileCase.elements.toggleRightPanel.listeners.click();
+  // Exclude the initial map-first setup from the legacy four-toggle invariant.
+  fileCase.L.__map.invalidateCalls = [];
   // Collapse controls remain visible in the header even with both panels closed.
   // It is only a viewport size notification; never move the map or refetch.
   const boundsBeforeCollapse = fileMap.lastBounds;
@@ -561,7 +570,11 @@ nagoya.scenarios = [{
   const mapAsset = pageHtml.match(new RegExp("js/map[.]js[?]v=([A-Za-z0-9_-]+)"));
   assert.ok(discoveryAsset, "flood_discovery.js needs a versioned URL");
   assert.ok(mapAsset, "map.js needs a versioned URL");
-  assert.equal(discoveryAsset[1], mapAsset[1], "map and discovery assets share a release version");
+  // UI-only map changes bust the consumer asset without changing the
+  // accepted discovery API. Assert compatibility by both embedded signatures,
+  // not by equating unrelated HTTP cache tags.
+  assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
+  assert.equal(mapAsset[1], "map-first-20261009-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -796,13 +809,14 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="uiTabScenario"[^>]*role="tab"/);
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
   assert.match(pageSource, /current_theme[.]css[?]v=gis-facility-drawer-20261009-v6/);
-  assert.match(pageSource, /id="toggleLeftPanel"[^>]*aria-expanded="true"/);
-  assert.match(pageSource, /id="toggleRightPanel"[^>]*aria-expanded="true"/);
+  assert.match(pageSource, /map_first[.]css[?]v=map-first-20261009-v1/);
+  assert.match(pageSource, /id="toggleLeftPanel"[^>]*aria-expanded="false"/);
+  assert.match(pageSource, /id="toggleRightPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="gisLeftPanel"/);
   assert.match(pageSource, /gis-side-shell gis-side-shell--left/);
   assert.match(pageSource, /gis-side-shell gis-side-shell--right/);
-  assert.match(pageSource, /aria-label="左メニューを閉じる"/);
-  assert.match(pageSource, /aria-label="右詳細を閉じる"/);
+  assert.match(pageSource, /aria-label="左メニューを開く"/);
+  assert.match(pageSource, /aria-label="右詳細を開く"/);
   assert.equal((pageSource.match(/id="map"/g) || []).length, 1);
   assert.equal((pageSource.match(/id="toggleLeftPanel"/g) || []).length, 1);
   assert.equal((pageSource.match(/id="toggleRightPanel"/g) || []).length, 1);
@@ -1202,22 +1216,109 @@ nagoya.scenarios = [{
 });
 
 
-// Native <details> keeps map interaction available when collapsed, while
-// preserving facility-mode and coordinate form elements when reopened.
-// This is a static markup/CSS regression; browser visual QA is separate.
+// Map-first toolbar semantics, future navigation and responsive positioning.
+// Actual DOM gesture/visual behavior requires a separate browser check.
 {
   const html = fs.readFileSync(path.resolve(__dirname, "../gis/index.html"), "utf8");
-  const css = fs.readFileSync(path.resolve(__dirname, "../gis/css/current_theme.css"), "utf8");
-  const drawer = html.match(/<details class="origin-map-action" id="mapFacilityControls"([^>]*)>([\s\S]*?)<\/details>/);
-  assert.ok(drawer, "map facility controls must be a native details drawer");
-  assert.doesNotMatch(drawer[1], /\bopen\b/, "drawer defaults to compact/collapsed");
-  assert.match(drawer[2], /<summary class="origin-map-toggle"/);
-  assert.match(drawer[2], /<svg class="origin-map-icon"/);
-  for (const id of ["facilityDisplayMode", "coordinateSearchForm", "coordinateSearchInput", "mapOriginShortcut"]) {
-    assert.ok(drawer[2].includes('id="' + id + '"'), id + " remains in the drawer");
+  const css = fs.readFileSync(path.resolve(__dirname, "../gis/css/map_first.css"), "utf8");
+  for (const menu of ["mapToolScene", "mapToolScenario", "mapToolMarks", "mapToolHazards"]) {
+    assert.match(html, new RegExp('id="' + menu + '"'));
   }
-  assert.match(css, /\.origin-map-action:not\(\[open\]\)\s*\{[^}]*width:52px/);
-  assert.match(css, /\.origin-map-action\[open\]\s*\{[^}]*z-index:1100/);
-  assert.match(css, /@media\(max-width:680px\)\s*\{[\s\S]*?\.origin-map-action\[open\]\s*\{[^}]*bottom:12px/);
-  assert.match(css, /\.origin-map-toggle:focus-visible/);
+  for (const [label, planned] of [["地図",false],["やること",true],["マイ情報",true],["設定",true]]) {
+    assert.ok(html.includes("<span>" + label + "</span>"));
+    if (planned) assert.match(html, /今後実装予定/);
+  }
+  assert.match(html, /id="mapLocateMe"[^>]*type="button"/);
+  assert.match(css, /\.map-locate-button\{[\s\S]*?right:16px;bottom:18px/);
+  assert.match(css, /\.hinanex-bottom-nav\{[\s\S]*?position:fixed;bottom:0/);
+  assert.match(css, /\.layout>\.gis-side-shell--right\s*\{[\s\S]*?bottom:0/);
+  assert.match(html, /id="mapRegionQuickSelect"/);
+  assert.match(html, /id="mapShowShelter"[^>]*type="checkbox"/);
+  assert.match(html, /id="mapShowFlood"[^>]*type="checkbox"/);
+  assert.match(html, /id="mapShowBasemap"[^>]*type="checkbox"/);
+  assert.match(html, /災害後シミュレーション／避難経路シミュレーションは今後実装予定/);
+  for (const id of ["coordinateSearchForm","coordinateSearchInput","mapOriginShortcut","facilityDisplayMode","useGps","mapLocateMe"]) {
+    assert.equal((html.match(new RegExp('id="' + id + '"', "g")) || []).length,1,id + " must have one instance");
+  }
+  assert.doesNotMatch(css, /(?:#map|\.leaflet-tile)[^\{]*\{[^}]*\bfilter\s*:/);
+}
+
+// Verify the map-first UI facade actually forwards choices to the existing
+// D/GSI controls and never requests GPS until the locate button is clicked.
+{
+  const uiCode = fs.readFileSync(path.resolve(__dirname, "../gis/js/map_first_ui.js"), "utf8");
+  const uiIds = ["gisLayout", "toggleRightPanel", "region", "mapRegionQuickSelect",
+    "mapShowShelter", "shelter", "mapShowFlood", "officialFlood", "mapShowBasemap",
+    "basemap", "facilityDisplayMode", "mapScenarioSelectOrigin", "selectOrigin",
+    "mapLocateMe", "useGps", "mapGpsFeedback", "originStatus", "mapRasterNotice", "mapRasterBanner",
+    "mapToolScene", "mapToolScenario", "mapToolMarks", "mapToolHazards"];
+  const nodes = Object.fromEntries(uiIds.map(id => {
+    const node = makeElement(id);
+    // Browser EventTarget allows multiple handlers; the legacy simple stub
+    // overwrites by name, so wrap listeners for the facade integration test.
+    const callbacks = {};
+    node.addEventListener = function(name, callback) {
+      (callbacks[name] ||= []).push(callback);
+      this.listeners[name] = event => callbacks[name].forEach(fn => fn(event));
+    };
+    node.dispatchEvent = function(event) {
+      this.listeners[event.type]?.({ target: this });
+      return true;
+    };
+    node.click = function() { this.listeners.click?.({ target: this }); };
+    return [id, node];
+  }));
+  nodes.region.value = "13123";
+  let regionChanges = 0, gpsRequests = 0, originRequests = 0;
+  nodes.region.addEventListener("change", () => { regionChanges += 1; });
+  nodes.useGps.addEventListener("click", () => { gpsRequests += 1; });
+  nodes.selectOrigin.addEventListener("click", () => { originRequests += 1; });
+  const facade = {
+    document: { getElementById: id => nodes[id] },
+    window: {},
+    Event: class { constructor(type) { this.type = type; } }
+  };
+  vm.createContext(facade);
+  vm.runInContext(uiCode, facade, { filename: "map_first_ui.js" });
+  assert.equal(gpsRequests, 0);
+  nodes.mapRegionQuickSelect.value = "15100";
+  nodes.mapRegionQuickSelect.listeners.change();
+  assert.equal(nodes.region.value, "15100");
+  assert.equal(regionChanges, 1);
+  nodes.region.value = "23100";
+  nodes.region.listeners.change({ target: nodes.region });
+  assert.equal(nodes.mapRegionQuickSelect.value, "23100");
+
+  nodes.mapShowShelter.checked = false;
+  nodes.mapShowShelter.listeners.change();
+  assert.equal(nodes.shelter.checked, false);
+  nodes.mapShowFlood.checked = false;
+  nodes.mapShowFlood.listeners.change();
+  assert.equal(nodes.officialFlood.checked, false);
+  nodes.mapShowBasemap.checked = false;
+  nodes.mapShowBasemap.listeners.change();
+  assert.equal(nodes.basemap.checked, false);
+
+  nodes.mapToolScenario.open = true;
+  nodes.mapToolScenario.listeners.toggle();
+  nodes.mapToolScene.open = true;
+  nodes.mapToolScene.listeners.toggle();
+  assert.equal(nodes.mapToolScenario.open, false, "only one toolbar menu opens");
+
+  nodes.mapToolScenario.open = true;
+  nodes.mapScenarioSelectOrigin.click();
+  assert.equal(originRequests, 1);
+  assert.equal(nodes.mapToolScenario.open, false);
+
+  nodes.mapLocateMe.click();
+  assert.equal(gpsRequests, 1, "locate forwards exactly one explicit click");
+
+  facade.window.HINANEX_MAP_FIRST_UI.showDetail();
+  assert.equal(nodes.gisLayout.getAttribute("data-right-panel"), "open");
+  assert.equal(nodes.toggleRightPanel.getAttribute("aria-expanded"), "true");
+  facade.window.HINANEX_MAP_FIRST_UI.showRasterWarning("タイル未取得");
+  assert.equal(nodes.mapRasterNotice.hidden, false);
+  assert.equal(nodes.mapRasterNotice.textContent, "タイル未取得");
+  assert.equal(nodes.mapRasterBanner.hidden, false);
+  assert.equal(nodes.mapRasterBanner.textContent, "タイル未取得");
 }

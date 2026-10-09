@@ -138,6 +138,16 @@ for (const [side, buttonId] of [
 ]) {
   const button = document.getElementById(buttonId);
   const stateAttribute = "data-" + side + "-panel";
+  // Initialize from markup, and default to map-first closed rails if an
+  // older cached HTML version omitted the state attribute.
+  const initialClosed = gisLayout.getAttribute(stateAttribute) !== "open";
+  gisLayout.setAttribute(stateAttribute, initialClosed ? "closed" : "open");
+  button.setAttribute("aria-expanded", String(!initialClosed));
+  const initialLabel = side === "left"
+    ? (initialClosed ? "左メニューを開く" : "左メニューを閉じる")
+    : (initialClosed ? "右詳細を開く" : "右詳細を閉じる");
+  button.setAttribute("aria-label", initialLabel);
+  button.setAttribute("title", initialLabel);
   button.addEventListener("click", () => {
     const collapsed = gisLayout.getAttribute(stateAttribute) !== "closed";
     gisLayout.setAttribute(stateAttribute, collapsed ? "closed" : "open");
@@ -202,6 +212,11 @@ function detail(title, rows, type, options = {}) {
   document.getElementById("details").innerHTML =
     `<span class="badge${badgeClass}">${escapeHtml(type)}</span>` +
     `<h2 class="detail-title">${escapeHtml(title)}</h2>` + safeRows + externalLink + note;
+  // Map-first presentation only: background dataset summaries remain
+  // collapsed, but a marker/origin/raster selection reveals the detail sheet.
+  if (type !== "D RegionExport" && type !== "地域切替") {
+    window.HINANEX_MAP_FIRST_UI?.showDetail?.();
+  }
 }
 
 function shelterIcon() {
@@ -1246,6 +1261,7 @@ function reportExternalTileError(sourceName, event) {
     rasterNotice.hidden = false;
     rasterNotice.textContent =
       "公的洪水ラスタの一部を取得できません。空白や未表示は「浸水なし」を意味しません。施設のD・GSI掲載情報とは別データです。";
+    window.HINANEX_MAP_FIRST_UI?.showRasterWarning?.(rasterNotice.textContent);
   }
   if (externalTileWarnings.has(sourceName)) return;
   externalTileWarnings.add(sourceName);
