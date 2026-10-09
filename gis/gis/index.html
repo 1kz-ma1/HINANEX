@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/current_theme.css?v=gis-facility-drawer-20261009-v6">
-  <link rel="stylesheet" href="css/map_first.css?v=evidence-sheet-20261010-v1">
+  <link rel="stylesheet" href="css/map_first.css?v=d-decision-filter-20261010-v1">
 </head>
 <body>
 <header class="header">
@@ -180,7 +180,19 @@
         <option value="nearby">選択地点周辺のGSI公式掲載</option>
         <option value="both">地域Dと周辺GSIを比較</option>
       </select>
-      <p id="facilityDisplayModeDescription" class="display-mode-description" role="status">選択地域のD避難所を表示中。周辺GSIは別データです。</p>
+      <p id="facilityDisplayModeDescription" class="display-mode-description" role="status">選択地域の施設情報を表示中。周辺GSIは別データです。</p>
+      <label class="map-tool-field" for="mapDDecisionFilter">施設情報の洪水対応分類</label>
+      <select id="mapDDecisionFilter" aria-label="施設情報の洪水対応分類で絞り込み">
+        <option value="all">すべて表示</option>
+        <option value="classified">分類済みのみ表示</option>
+        <option value="unclassified">未判定のみ表示</option>
+      </select>
+      <p class="map-tool-note map-decision-legend">
+        <span><i class="map-decision-dot d-status-classified"></i>分類済み（候補・対象外、開設・安全性未判定）</span>
+        <span><i class="map-decision-dot d-status-unknown"></i>未判定（UNKNOWN・資料不足）</span>
+        <span><i class="map-decision-dot d-status-gsi"></i>GSI公式掲載（別の情報源）</span>
+      </p>
+      <p id="mapDDecisionFilterStatus" class="map-tool-note" role="status">判定の取得状況を確認中。非表示は施設なしを意味しません。</p>
 </div></details>
       <details class="map-tool map-tool--hazards" id="mapToolHazards"><summary><span class="map-tool-symbol" aria-hidden="true">▤</span><span>災害情報</span><span class="map-tool-arrow" aria-hidden="true">⌄</span></summary><div class="map-tool-panel"><label class="map-tool-check"><input id="mapShowFlood" type="checkbox" checked>洪水浸水想定（想定最大規模）</label><label class="map-tool-check"><input id="mapShowBasemap" type="checkbox" checked>背景地図（国土地理院）</label><p class="map-tool-note">土砂災害・高潮などのレイヤーは今後対応予定です。非表示や未取得を「安全」とは判断できません。</p><p id="mapRasterNotice" class="map-tool-warning" role="status" hidden></p>
 <button id="mapEvidenceOpen" class="map-tool-action" type="button" aria-controls="mapEvidencePanel" aria-expanded="false">この画面の根拠・確認状況</button></div></details>
@@ -343,7 +355,7 @@
 <script src="js/facility_list.js"></script>
 <!-- Discovery API remains v14; map UI-only consumer has a separate cache-busting key. -->
 <script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v14"></script>
-<script src="js/map.js?v=guided-tour-loading-fix-20261010-v2"></script>
+<script src="js/map.js?v=d-decision-filter-20261010-v1"></script>
 <script src="js/map_first_ui.js?v=map-first-20261009-v3"></script>
 <script src="js/audience_share.js?v=audience-share-20261010-v1"></script>
 <script src="js/guided_tour.js?v=guided-tour-loading-fix-20261010-v2"></script>
