@@ -6,7 +6,7 @@
   <title>HINANEX | GIS / Map</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/current_theme.css?v=gis-sidebar-20261009-v2">
+  <link rel="stylesheet" href="css/current_theme.css?v=gis-map-space-20261009-v3">
 </head>
 <body>
 <header class="header">
@@ -21,11 +21,15 @@
     <button id="uiTabScenario" class="gis-view-tab" type="button" role="tab" aria-selected="false"
       aria-controls="gisLayout" tabindex="-1">シナリオ探索</button>
   </div>
-  <p class="gis-view-caption">同じ地図とデータを使って、情報を確認します。<span>災害の時間経過予測ではありません。</span></p>
+  <div class="gis-panel-controls" role="group" aria-label="地図の表示領域">
+    <button id="toggleLeftPanel" class="gis-panel-toggle" type="button" aria-controls="gisLeftPanel" aria-expanded="true">左メニューを閉じる</button>
+    <button id="toggleRightPanel" class="gis-panel-toggle" type="button" aria-controls="details" aria-expanded="true">右詳細を閉じる</button>
+  </div>
+  <p class="gis-view-caption">同じ地図とデータを使って情報を確認します。<span>災害の時間経過予測ではありません。</span></p>
 </nav>
 
-<div class="layout" id="gisLayout" data-ui-mode="normal" role="tabpanel" aria-labelledby="uiTabNormal">
-  <aside class="left" aria-label="GISの地域・探索・データ操作">
+<div class="layout" id="gisLayout" data-ui-mode="normal" data-left-panel="open" data-right-panel="open" role="tabpanel" aria-labelledby="uiTabNormal">
+  <aside class="left" id="gisLeftPanel" aria-label="GISの地域・探索・データ操作">
     <section class="sidebar-section sidebar-section--region" aria-labelledby="sidebarRegionTitle">
       <p class="sidebar-eyebrow">01 / AREA</p>
       <h3 id="sidebarRegionTitle">表示地域</h3>
@@ -40,10 +44,12 @@
     <section id="scenarioIntro" class="scenario-intro" aria-label="シナリオ探索の案内" hidden>
       <p class="scenario-intro-eyebrow">SCENARIO EXPLORER</p>
       <h2>洪水の参考情報を探索</h2>
-      <p>地域と地点を選び、確認できた公式掲載情報とD施設を比べて調べます。</p>
-      <ol class="scenario-steps" aria-label="探索の手順">
+      <p>地域と地点を選び、公式掲載情報とD施設を順に確認します。</p>
+      <p class="scenario-guide-label">探索の流れ（操作ボタンではありません）</p>
+      <ol class="scenario-steps" aria-label="探索の手順を示す説明">
         <li>地域を確認</li><li>地点を指定</li><li>掲載情報を照合</li><li>データを比較</li>
       </ol>
+      <p class="scenario-guide-action">操作は下の地点指定ボタンや地図上の入力欄から行います。</p>
       <p class="scenario-intro-note">これは平時のデータ探索です。浸水予測・安全な避難先の推薦ではありません。</p>
     </section>
 
