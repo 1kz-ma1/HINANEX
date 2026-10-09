@@ -1257,12 +1257,19 @@ map.on("moveend", scheduleViewportD);
 // alter Scenario contracts, imply data coverage, or infer unlocated facilities.
 // It can only focus on *actual mappable source points* from RegionExport.
 let tourSavedView = null;
+let tourRequestGeneration = 0;
 async function focusPresentationTourRegion(code, animate = true) {
+  const generation = tourRequestGeneration;
   const config = REGION_CONFIGS[code];
   if (!config) return { state: "unsupported", region: code, mapped: 0, total: 0 };
   if (!viewportDCache.has(code) && window.location.protocol !== "file:") {
     await fetchViewportDOnce(config);
   }
+  // A presenter may stop/pause while awaiting HTTP. Never allow stale data
+  // completion to move the map after the manual interaction takes control.
+  if (generation !== tourRequestGeneration) return {
+    state: "cancelled", region: config.label, mapped: 0, total: 0
+  };
   const summary = viewportDCache.get(code)?.summary ||
     (code === selectedRegionCode ? currentShelterSummary : null);
   if (!summary) return {
@@ -1293,13 +1300,16 @@ async function focusPresentationTourRegion(code, animate = true) {
 }
 window.HINANEX_PRESENTATION_TOUR = Object.freeze({
   begin() {
+    tourRequestGeneration++;
     tourSavedView = { center: map.getCenter(), zoom: map.getZoom() };
   },
   focus: focusPresentationTourRegion,
   halt() {
+    tourRequestGeneration++;
     if (typeof map.stop === "function") map.stop();
   },
   end(restore = true) {
+    tourRequestGeneration++;
     if (typeof map.stop === "function") map.stop();
     if (restore && tourSavedView) {
       map.setView(tourSavedView.center, tourSavedView.zoom, { animate: false });
