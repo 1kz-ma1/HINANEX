@@ -230,10 +230,18 @@ function setFacilityListMode(summary) {
 const FLOOD_CATALOG_URL = "../../pipeline/data/output/edogawa_flood_site_catalog.json";
 const VERIFIED_TILE_DIR = "../../pipeline/data/output/gsi_verified_tiles/";
 
+function updateMapOriginAction(message, picking = false) {
+  const button = document.getElementById("mapOriginShortcut");
+  const status = document.getElementById("mapOriginShortcutStatus");
+  button.setAttribute("aria-pressed", String(picking));
+  button.textContent = picking ? "地図上の地点をクリック" : "地点を指定して探索";
+  status.textContent = message;
+}
+
 // A cached single-tile script may expose the old API without throwing during
 // <script> evaluation. Fail CLOSED with actionable feedback instead of
 // crashing the map when the newer controller calls missing functions.
-const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v2";
+const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v3";
 function compatibleDiscoveryEngine() {
   const engine = window.HINANEX_FLOOD_DISCOVERY;
   return engine && engine.apiVersion === REQUIRED_DISCOVERY_VERSION &&
@@ -246,11 +254,17 @@ function renderReferenceDiscovery() {
   const engine = compatibleDiscoveryEngine();
   if (!engine) {
     result.textContent = "洪水指定場所の参照モジュールのバージョンが一致しません。ページを再読み込みしてください。古いJavaScriptやブラウザキャッシュの可能性があります（Ctrl+Shift+R）。";
+    updateMapOriginAction("参照モジュールの読み込み不一致。Ctrl+Shift+Rで再読込。");
     return; // never turn unverified facilities into a result
   }
   const discovery = engine.discoverReferenceTiles(verifiedFloodCatalog, selectedOrigin, selectedRegionCode);
   if (discovery.status !== "REFERENCE_ONLY") {
     result.innerHTML = `<p class="reference-warning">${escapeHtml(discovery.message)}</p>`;
+    if (!selectedOrigin) {
+      updateMapOriginAction("ボタンを押してから地図上の地点をクリック", choosingOrigin);
+    } else {
+      updateMapOriginAction("地点の公式参考情報は未検証／範囲外。左の欄で詳細確認。");
+    }
     return;
   }
   const cards = discovery.sites.map((site) => {
@@ -267,6 +281,9 @@ function renderReferenceDiscovery() {
   result.innerHTML = `<p>検証済み${discovery.verifiedTileCount}/${discovery.requestedTileCount}タイルの掲載地点：${discovery.total}件（自治体内の件数ではありません）。最大5件を参考表示。</p>` +
     `<p class="reference-warning">${escapeHtml(discovery.message)}</p>` +
     (cards || '<p>この照合済みデータ内に対象施設はありません。自治体の指定不存在は断定できません。</p>');
+  updateMapOriginAction("検証済み" + discovery.verifiedTileCount + "/" +
+    discovery.requestedTileCount + "タイル・" + discovery.total +
+    "掲載件数（左欄に参考結果）。避難先の推奨ではありません。");
 }
 
 function clearReferenceDiscovery() {
@@ -286,6 +303,7 @@ async function loadFloodReferenceCatalog() {
   const sequence = ++catalogLoadSequence;
   verifiedFloodCatalog = null;
   renderReferenceDiscovery();
+  updateMapOriginAction("指定地点周辺の検証済みデータを照合中…");
   const engine = compatibleDiscoveryEngine();
   const requestedOrigin = selectedOrigin;
   const requestedRegion = selectedRegionCode;
@@ -349,6 +367,7 @@ function setReferenceOrigin(latitude, longitude) {
   }).addTo(map);
   document.getElementById("originStatus").textContent =
     `選択した地点：${latitude.toFixed(5)}, ${longitude.toFixed(5)}（正確な座標は端末内だけで使用。タイルIDは配信サーバへ送信）`;
+  updateMapOriginAction("選択地点の公式参考情報を照合しています…");
   loadFloodReferenceCatalog();
 }
 
@@ -603,7 +622,7 @@ async function tryAutoLoad() {
     updateCoverage(null);
     updateDatasetChip("未読込", "wait");
     setDatasetStatus(
-      `自動読込できませんでした（${error.message}）。${config.label} のRegionExport JSONを選択できます。`,
+      `D RegionExportを読み込めませんでした（${error.message}）。${config.label} のJSONを選択するか、元のworktreeのpipeline/data/outputからコピーしてください。GSI公式地点探索は別データなので利用できます。`,
       "warning"
     );
     showRegionWaitingDetail();
@@ -679,14 +698,17 @@ document.getElementById("facilityListNext").addEventListener("click", () => {
   renderFacilityList();
 });
 
-document.getElementById("selectOrigin").addEventListener("click", () => {
+function beginSelectingOrigin() {
   choosingOrigin = true;
   document.getElementById("originStatus").textContent = "地図上の出発地点をクリックしてください。";
-});
+  updateMapOriginAction("地点指定モード：地図を1回クリック", true);
+}
+document.getElementById("selectOrigin").addEventListener("click", beginSelectingOrigin);
+document.getElementById("mapOriginShortcut").addEventListener("click", beginSelectingOrigin);
 document.getElementById("useGps").addEventListener("click", () => {
   if (typeof navigator === "undefined" || !navigator.geolocation) {
     document.getElementById("originStatus").textContent =
-      "この環境では位置情報を使えません。地図をクリックして地点を指定してください。";
+      "この環境では位置情報を使えません。「地点を指定して探索」を押してから地図をクリックしてください。";
     return;
   }
   document.getElementById("originStatus").textContent = "位置情報の許可を確認しています…";
@@ -694,7 +716,7 @@ document.getElementById("useGps").addEventListener("click", () => {
     position => setReferenceOrigin(position.coords.latitude, position.coords.longitude),
     () => {
       document.getElementById("originStatus").textContent =
-        "位置情報を利用できませんでした。地図をクリックして地点を指定してください。";
+        "位置情報を利用できませんでした。「地点を指定して探索」を押してから地図をクリックしてください。";
     },
     { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }
   );
