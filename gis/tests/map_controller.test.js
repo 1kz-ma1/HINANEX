@@ -570,7 +570,11 @@ nagoya.scenarios = [{
   const mapAsset = pageHtml.match(new RegExp("js/map[.]js[?]v=([A-Za-z0-9_-]+)"));
   assert.ok(discoveryAsset, "flood_discovery.js needs a versioned URL");
   assert.ok(mapAsset, "map.js needs a versioned URL");
-  assert.equal(discoveryAsset[1], mapAsset[1], "map and discovery assets share a release version");
+  // UI-only map changes bust the consumer asset without changing the
+  // accepted discovery API. Assert compatibility by both embedded signatures,
+  // not by equating unrelated HTTP cache tags.
+  assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
+  assert.equal(mapAsset[1], "map-first-20261009-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
