@@ -827,7 +827,7 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="uiTabScenario"[^>]*role="tab"/);
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
   assert.match(pageSource, /current_theme[.]css[?]v=gis-facility-drawer-20261009-v6/);
-  assert.match(pageSource, /map_first[.]css[?]v=map-first-20261009-v3/);
+  assert.match(pageSource, /map_first[.]css[?]v=map-first-20261009-v4/);
   assert.match(pageSource, /id="toggleLeftPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="toggleRightPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="gisLeftPanel"/);
