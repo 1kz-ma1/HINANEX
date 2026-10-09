@@ -339,12 +339,12 @@ nagoya.scenarios = [{
   const zoomBeforeCollapse = fileMap.getZoom();
   fileCase.elements.toggleLeftPanel.listeners.click();
   assert.equal(fileCase.elements.gisLayout.getAttribute("data-left-panel"), "closed");
-  assert.equal(fileCase.elements.toggleLeftPanel.getAttribute("aria-expanded"), "true");
+  assert.equal(fileCase.elements.toggleLeftPanel.getAttribute("aria-expanded"), "false");
   assert.equal(fileCase.elements.toggleLeftPanel.getAttribute("aria-label"), "左メニューを開く");
   assert.equal(fileCase.elements.toggleLeftPanel.getAttribute("title"), "左メニューを開く");
   fileCase.elements.toggleRightPanel.listeners.click();
   assert.equal(fileCase.elements.gisLayout.getAttribute("data-right-panel"), "closed");
-  assert.equal(fileCase.elements.toggleRightPanel.getAttribute("aria-expanded"), "true");
+  assert.equal(fileCase.elements.toggleRightPanel.getAttribute("aria-expanded"), "false");
   assert.equal(fileCase.elements.toggleRightPanel.getAttribute("aria-label"), "右詳細を開く");
   fileCase.elements.toggleLeftPanel.listeners.click();
   fileCase.elements.toggleRightPanel.listeners.click();
