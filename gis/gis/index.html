@@ -6,15 +6,35 @@
   <title>HINANEX | GIS / Map</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/current_theme.css?v=gis-tabs-20261009-v1">
 </head>
 <body>
 <header class="header">
-  <div class="brand"><strong>HINANEX</strong><span>洪水データ分析 MVP</span></div>
-  <div class="role">E担当｜GIS / Map</div>
+  <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i></span><strong>HINANEX</strong><span>地域防災データを、根拠とともに。</span></div>
+  <div class="role">GIS / FLOOD REFERENCE</div>
 </header>
 
-<div class="layout">
+<nav class="gis-view-switcher" aria-label="GISの操作モード">
+  <div class="gis-view-tabs" role="tablist" aria-label="GISの表示">
+    <button id="uiTabNormal" class="gis-view-tab is-active" type="button" role="tab" aria-selected="true"
+      aria-controls="gisLayout" tabindex="0">通常表示</button>
+    <button id="uiTabScenario" class="gis-view-tab" type="button" role="tab" aria-selected="false"
+      aria-controls="gisLayout" tabindex="-1">シナリオ探索</button>
+  </div>
+  <p class="gis-view-caption">同じ地図とデータを使って、情報を確認します。<span>災害の時間経過予測ではありません。</span></p>
+</nav>
+
+<div class="layout" id="gisLayout" data-ui-mode="normal">
   <aside class="left">
+    <section id="scenarioIntro" class="scenario-intro" aria-label="シナリオ探索の案内" hidden>
+      <p class="scenario-intro-eyebrow">SCENARIO EXPLORER</p>
+      <h2>洪水の参考情報を探索</h2>
+      <p>地域と地点を選び、確認できた公式掲載情報とD施設を比べて調べます。</p>
+      <ol class="scenario-steps" aria-label="探索の手順">
+        <li>地域を確認</li><li>地点を指定</li><li>掲載情報を照合</li><li>データを比較</li>
+      </ol>
+      <p class="scenario-intro-note">これは平時のデータ探索です。浸水予測・安全な避難先の推薦ではありません。</p>
+    </section>
     <section>
       <h3>表示地域</h3>
       <select id="region">
