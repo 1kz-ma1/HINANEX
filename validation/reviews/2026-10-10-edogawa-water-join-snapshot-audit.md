@@ -50,3 +50,17 @@ python validation/validation/verify_edogawa_water_join.py --water-html "C:\evide
 6. Review latest main, A #133, D #135 and multi-role contract before Merge Captain integration.
 
 Related: [A PR #133](https://github.com/1kz-ma1/HINANEX/pull/133), [D PR #135](https://github.com/1kz-ma1/HINANEX/pull/135), [Edogawa source join Issue #134](https://github.com/1kz-ma1/HINANEX/issues/134), [10/22 gate Issue #89](https://github.com/1kz-ma1/HINANEX/issues/89).
+
+## 2026-10-10 official secondary-source corroboration of three exceptions (research leads; no approval)
+
+This **additional web review** checks separate authoritative institutions' descriptions. It is **not** official server-byte archive acceptance, not independent C signer review, not a valid D ID cross-source join, and not a flood-only Scenario interpretation.
+
+| Case on user-saved water table | Original water row evidence | Separate authoritative evidence / interpretation |
+| --- | --- | --- |
+| `都立 葛西工高等学校` | `一之江7丁目68番1号` / `03-3653-4111` / `2階以上` | City official [都立・私立学校一覧](https://www.city.edogawa.tokyo.jp/e004/kuseijoho/gaiyo/shisetsuguide/bunya/gakko/toritsushiritsu.html) lists `都立葛西工科高校` with matching address/phone; official [東京都立葛西工科高等学校アクセス](https://www.metro.ed.jp/kasaikoka-h/access/access.html) independently lists its full name and same address. **Cross-document institution reference is strongly corroborated**, but the D location record's own municipal Source has no address column and C has NOT accepted its ID against the water-page facility. |
+| `私立 関東一高等学校` | `松島2丁目10番11号` / `03-3653-1541` / `3階以上` | Same city official school list lists `関東第一高校` with same address/phone. [School's official overview](https://www.kanto-ichiko.ac.jp/about/outline/) confirms formal name `関東第一高等学校`, address and same phone. **Additional documentary corroboration**, NOT a D official-flood-Scenario pairing acceptance. |
+| `旧下小岩小学校` | `南小岩7丁目8番1号` / `大規模水害では使用不可` | Tokyo Metropolitan Government's [避難施設一覧（令和7年8月29日現在）](https://www.bousai.metro.tokyo.lg.jp/_res/projects/default_project/_page_/001/030/344/250901itiran.pdf) distinguishes `旧下小岩小学校` at `南小岩7丁目8番1号` from `下小岩小学校` at `南小岩5丁目5番1号`; the [Edogawa official neighborhood shelter page](https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/jijo/search-1/s-koiwa1-8.html) independently lists both. **Never join the old school's non-use condition to the newer school or collapse them into one site**. Flood-only or real-time status remains unverified. |
+
+- **Important temporal scope:** the city school list is dated 2023-12-26 and the Tokyo PDF 2025-08-29; the city's saved water-facility page displays 2025-12-19. These different versions have not been accepted as a synchronized current emergency dataset. C must check official latest revisions when accepting matching.
+- These external corroboration links were checked as public website/page content; do not claim that the linked PDFs/HTML were independently downloaded and byte-hashed locally in this run.
+- Recommended reviewer sequence: validate official source version → verify identity of each location **record** via a separate authoritative address and origin row/ID → decide water standby vs flood-only semantics in D/C → assert scenario outcomes only with positive evidence. Until then `C-approved=0`, `Scenario newly classified=0`.
