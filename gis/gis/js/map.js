@@ -177,6 +177,9 @@ const boundaryGroup = L.layerGroup().addTo(map);
 const shelterGroup = L.layerGroup().addTo(map);
 const referenceFootprintGroup = L.layerGroup().addTo(map);
 const referenceSiteGroup = L.layerGroup().addTo(map);
+// Additional D records seen during map navigation. Kept independent from the
+// selected municipality, its full-source records, and verified GSI layers.
+const viewportDGroup = L.layerGroup().addTo(map);
 L.control.scale({ imperial: false, position: "bottomleft" }).addTo(map);
 
 // Navigation-only overview: this rectangle approximates the visible Japanese
@@ -205,9 +208,11 @@ function updateJapanOverviewMinimumZoom() {
   // Rounding all the way down to an integer made a Japan-fitting map as
   // much as one full zoom level smaller than necessary. Round downward only
   // to the nearest quarter-step; rounding *up* would crop the reference area.
-  const tightFitZoom = Math.floor(
-    fittedZoom * OVERVIEW_MIN_ZOOM_STEPS_PER_LEVEL
-  ) / OVERVIEW_MIN_ZOOM_STEPS_PER_LEVEL;
+  const tightFitZoom = Math.min(
+    fittedZoom,
+    Math.floor(fittedZoom * OVERVIEW_MIN_ZOOM_STEPS_PER_LEVEL) /
+      OVERVIEW_MIN_ZOOM_STEPS_PER_LEVEL + 0.1
+  );
   map.setMinZoom(Math.max(
     OVERVIEW_TILE_MIN_ZOOM,
     Math.min(OVERVIEW_MAX_MIN_ZOOM, tightFitZoom)
@@ -563,8 +568,16 @@ function applyDisplayMode() {
 
   // D, GSI, and municipality-fixture layers are independent. A newly selected
   // origin never changes the municipality or repurposes D as GSI reference.
-  if (showD && shelterInput.checked) map.addLayer(shelterGroup);
-  else map.removeLayer(shelterGroup);
+  if (showD && shelterInput.checked) {
+    map.addLayer(shelterGroup);
+    map.addLayer(viewportDGroup);
+  } else {
+    map.removeLayer(shelterGroup);
+    map.removeLayer(viewportDGroup);
+  }
+  const viewportBadge = document.getElementById("mapViewportDStatus");
+  if (viewportBadge) viewportBadge.hidden =
+    !showD || !shelterInput.checked || !summaryPanel.hidden;
   if (showD && boundaryInput.checked && boundaryBounds?.isValid()) map.addLayer(boundaryGroup);
   else map.removeLayer(boundaryGroup);
   if (showGSI) {
@@ -1025,7 +1038,7 @@ let dRecordIndices = new Map();
 // Quantize display-only cluster membership, never actual map zoom or D points.
 // The same fractional wheel band should not recreate visual clusters.
 let lastDMarkerZoomBucket = null;
-function drawDClusterMarker(records) {
+function drawDClusterMarker(records, regionLabel = currentRegion().label) {
   const latitude = records.reduce((sum, record) => sum + record.latitude, 0) / records.length;
   const longitude = records.reduce((sum, record) => sum + record.longitude, 0) / records.length;
   const count = records.length;
@@ -1044,7 +1057,7 @@ function drawDClusterMarker(records) {
     L.DomEvent.stopPropagation(event);
     detail("D施設の表示上の集合（" + count + "件）", [
       ["件数", count + "件（地図上の重なりを軽減するための表示件数）"],
-      ["対象", currentRegion().label + "のD RegionExport"],
+      ["対象", regionLabel + "のD RegionExport"],
       ["表示位置", "含まれる施設座標の平均値（実在する施設位置ではありません）"]
     ], "地図表示用クラスタ", {
       note: "この円の中心は避難場所ではありません。クリックで拡大すると個別施設の元データを確認できます。安全性・開設状況・経路・優先順位は未判定です。"
@@ -1116,8 +1129,128 @@ function renderDMarkers() {
 
 map.on("zoomend", renderDMarkers);
 
+// D locations across all three *known* RegionExport files are considered
+// only after the user navigates the map. This is not municipality inference:
+// a visible coordinate is an observed D point, and an absent coordinate or
+// absent file never means an area has no shelters or is safe.
+const viewportDCache = new Map();
+const viewportDLoading = new Set();
+const viewportDFailed = new Set();
+let viewportDMarkers = new Map();
+let viewportDTimer = null;
+let viewportTriggered = false;
+
+function rememberViewportD(code, summary) {
+  if (!REGION_CONFIGS[code] || !summary) return;
+  viewportDCache.set(code, {
+    summary,
+    indices: new Map(summary.mappableRecords.map((record, index) => [record, index]))
+  });
+  viewportDFailed.delete(code);
+}
+
+function renderViewportD() {
+  const badge = document.getElementById("mapViewportDStatus");
+  const bounds = map.getBounds();
+  if (!bounds || typeof bounds.contains !== "function") return;
+  const start = debugMapPerf ? perfTime() : 0;
+  const zoom = map.getZoom();
+  const next = new Map();
+  const counts = [];
+  let activeTotal = 0;
+  for (const config of Object.values(REGION_CONFIGS)) {
+    const item = viewportDCache.get(config.code);
+    const summary = config.code === selectedRegionCode
+      ? currentShelterSummary : item?.summary;
+    if (!summary) continue;
+    const visible = summary.mappableRecords.filter(record =>
+      bounds.contains([record.latitude, record.longitude]));
+    if (visible.length) counts.push(config.label + " " + visible.length + "件");
+    activeTotal += visible.length;
+    // The selected municipality already owns its marker layer; avoid
+    // duplicates while preserving its full RegionExport detail/list state.
+    if (config.code === selectedRegionCode || !item || !visible.length) continue;
+    const groupingZoom = zoom >= 13 ? zoom : Math.floor(zoom);
+    const batches = groupMappedDRecords(visible, groupingZoom,
+      (coordinate, level) => map.project(coordinate, level));
+    for (const records of batches) {
+      const key = config.code + ":" +
+        records.map(record => item.indices.get(record)).join(",");
+      let marker = viewportDMarkers.get(key);
+      if (!marker) {
+        marker = records.length === 1
+          ? drawIndividualDMarker(records[0], summary)
+          : drawDClusterMarker(records, config.label);
+        viewportDGroup.addLayer(marker);
+      }
+      next.set(key, marker);
+    }
+  }
+  for (const [key, marker] of viewportDMarkers) {
+    if (!next.has(key)) viewportDGroup.removeLayer(marker);
+  }
+  viewportDMarkers = next;
+  const loading = viewportDLoading.size;
+  const failures = viewportDFailed.size;
+  badge.textContent = activeTotal
+    ? "表示範囲のD施設：" + counts.join(" / ") + "（開設・安全性未判定）"
+    : "表示範囲：確認済み座標のD施設は未表示（未収録・未取得を含む）";
+  if (loading) badge.textContent += "｜他地域のDデータ確認中";
+  if (failures) badge.textContent += "｜未取得 " + failures + "地域";
+  // A second official GSI legend has priority on small screens.
+  badge.hidden = !viewportTriggered || displayMode === "nearby" ||
+    !document.getElementById("shelter").checked ||
+    !document.getElementById("referenceMapSummary").hidden;
+  if (debugMapPerf) console.info("[HINANEX map perf] viewport D", {
+    zoom, visibleSourcePoints: activeTotal, otherRegionMarkers: next.size,
+    durationMs: Math.round(perfTime() - start)
+  });
+}
+
+async function fetchViewportDOnce(config) {
+  if (viewportDCache.has(config.code) || viewportDLoading.has(config.code) ||
+      viewportDFailed.has(config.code)) return;
+  viewportDLoading.add(config.code);
+  try {
+    const response = await fetch(config.autoUrl, { cache: "force-cache" });
+    if (!response.ok) throw new Error("RegionExport unavailable");
+    const payload = await response.json();
+    const adapter = window.HINANEX_D_ADAPTER;
+    if (!adapter) throw new Error("D adapter missing");
+    const summary = adapter.extractShelterLocation(payload, config.code);
+    rememberViewportD(config.code, summary);
+  } catch (_) {
+    // No guessing from the city's name, map center or a missing JSON file.
+    viewportDFailed.add(config.code);
+  } finally {
+    viewportDLoading.delete(config.code);
+    if (viewportTriggered) renderViewportD();
+  }
+}
+
+function updateViewportD() {
+  viewportTriggered = true;
+  // Fetch is lazy and once per verified RegionExport URL, NEVER per pixel of
+  // pan/zoom; it does not change selectedRegionCode or the current map view.
+  if (window.location.protocol !== "file:") {
+    for (const config of Object.values(REGION_CONFIGS)) {
+      if (config.code !== selectedRegionCode) fetchViewportDOnce(config);
+    }
+  }
+  renderViewportD();
+}
+function scheduleViewportD() {
+  if (viewportDTimer !== null) clearTimeout(viewportDTimer);
+  viewportDTimer = setTimeout(() => {
+    viewportDTimer = null;
+    updateViewportD();
+  }, 120);
+}
+map.on("moveend", scheduleViewportD);
+
 function renderShelterSummary(summary, sourceLabel) {
   currentShelterSummary = summary;
+  rememberViewportD(selectedRegionCode, summary);
   updateCoverage(summary);
   applyDisplayMode(); // if D arrives after GSI, update comparison availability
 
@@ -1125,6 +1258,7 @@ function renderShelterSummary(summary, sourceLabel) {
   // display points (which are not actual facility locations).
   const latLngs = summary.mappableRecords.map(record => [record.latitude, record.longitude]);
   renderDMarkers();
+  if (viewportTriggered) renderViewportD();
 
   shelterBounds = latLngs.length ? L.latLngBounds(latLngs) : null;
   const listOnly = summary.records.length > 0 && summary.mappableRecords.length === 0;
@@ -1245,6 +1379,9 @@ function fitCurrentRegion() {
 function selectRegion(regionCode) {
   if (!REGION_CONFIGS[regionCode]) throw new Error(`Unsupported region: ${regionCode}`);
   selectedRegionCode = regionCode;
+  // Switching the manual region is still a deliberate shortcut; viewport D
+  // points from other confirmed sources remain independent and do not pan.
+  if (viewportTriggered) renderViewportD();
   clearReferenceDiscovery();
   document.getElementById("resetView").textContent = `${currentRegion().label}の表示範囲へ`;
   clearShelters();
@@ -1264,6 +1401,7 @@ function selectRegion(regionCode) {
   setStatus(`${currentRegion().label}｜D RegionExport を読み込みます`);
   tryAutoLoad();
   if (hasBoundary) fitCurrentRegion();
+  if (viewportTriggered) renderViewportD();
 }
 
 function bindToggle(id, layer) {

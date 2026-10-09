@@ -88,6 +88,16 @@ function makeLeafletStub() {
     handlers: {},
     zoom: 13,
     overviewFitZoom: 4,
+    viewportLimits: { south: 35.65, north: 35.8, west: 139.80, east: 139.96 },
+    getBounds() {
+      const b = this.viewportLimits;
+      return {
+        contains(coords) {
+          return coords[0] >= b.south && coords[0] <= b.north &&
+            coords[1] >= b.west && coords[1] <= b.east;
+        }
+      };
+    },
     getBoundsZoom(bounds, inside, padding) {
       this.overviewFitArgs = { bounds, inside, padding };
       return this.overviewFitZoom;
@@ -204,7 +214,7 @@ function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = nul
     "coordinateSearchForm", "coordinateSearchInput", "coordinateSearchButton",
     "coordinateSearchHelp", "coordinateSearchStatus", "externalFloodTileNotice",
     "gisLayout", "uiTabNormal", "uiTabScenario", "scenarioIntro",
-    "toggleLeftPanel", "toggleRightPanel"
+    "toggleLeftPanel", "toggleRightPanel", "mapViewportDStatus"
   ];
   const elements = Object.fromEntries(ids.map(id => [id, makeElement(id)]));
   const L = makeLeafletStub();
@@ -592,7 +602,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "overview-tight-fit-20261010-v1");
+  assert.equal(mapAsset[1], "viewport-d-20261010-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -1290,6 +1300,7 @@ nagoya.scenarios = [{
     if (planned) assert.match(html, /今後実装予定/);
   }
   assert.match(html, /id="mapLocateMe"[^>]*type="button"/);
+  assert.match(html, /id="mapViewportDStatus"[^>]*role="status"/);
   assert.match(html, /id="mapSettingsPanel"[^>]*hidden/);
   assert.match(html, /id="mapSettingsToggle"[^>]*type="button"/);
   assert.match(html, /id="mapWheelSensitivity"[^>]*type="range"[^>]*min="0.5"[^>]*max="2.5"/);
@@ -1555,17 +1566,17 @@ nagoya.scenarios = [{
   // floor produced excessive surrounding space even though Japan fit tighter.
   map.overviewFitZoom = 4.85;
   map.handlers.resize();
-  assert.equal(map.minZoom, 4.75,
-    "quarter-step minZoom keeps Japan close to the screen edge");
+  assert.equal(map.minZoom, 4.85,
+    "the tighter fit uses the fitted fraction rather than extra quarter-step whitespace");
   assert.ok(map.minZoom <= map.overviewFitZoom,
     "minimum zoom never crops the reference extent by rounding upward");
   map.overviewFitZoom = 4.24;
   map.handlers.resize();
-  assert.equal(map.minZoom, 4,
-    "quarter rounding retains a little room when the fitted zoom is near an integer");
+  assert.equal(map.minZoom, 4.1,
+    "the new limit is at most 0.1 level closer while retaining a fit");
   map.overviewFitZoom = 4.55;
   map.handlers.resize();
-  assert.equal(map.minZoom, 4.5,
+  assert.equal(map.minZoom, 4.55,
     "minimum zoom is not tied to integer-level tiles");
   map.overviewFitZoom = 4;
   map.handlers.resize();
@@ -1599,7 +1610,7 @@ nagoya.scenarios = [{
   // Check a just-above-tile-floor fit and maximum-clamped large viewport.
   map.overviewFitZoom = 2.9;
   map.handlers.resize();
-  assert.equal(map.minZoom, 2.75);
+  assert.equal(map.minZoom, 2.85);
   map.overviewFitZoom = 6.9;
   map.handlers.resize();
   assert.equal(map.minZoom, 6);
@@ -1729,3 +1740,96 @@ nagoya.scenarios = [{
   assert.match(mapCode, /lastDMarkerZoomBucket = null;/);
   assert.match(mapCode, /\[HINANEX map perf\] D grouping reused/);
 }
+
+// Viewport-based multi-region D markers: the *visible verified coordinates*
+// drive what appears, not guessed municipality polygons, and do not pan.
+(async () => {
+  const received = [];
+  const http = makeContext({
+    protocol: "http:",
+    fetchImpl: async url => {
+      const path = String(url);
+      received.push(path);
+      if (path.endsWith("edogawa.json")) return { ok: true, json: async () => edogawa };
+      if (path.endsWith("niigata.json")) return { ok: true, json: async () => niigata };
+      if (path.endsWith("nagoya.json")) return { ok: true, json: async () => nagoya };
+      return { ok: false, status: 404 };
+    }
+  });
+  const map = http.L.__map;
+  const group = http.L.__groups[4];
+  const pill = http.elements.mapViewportDStatus;
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(http.elements.region.value, "13123");
+  const beforeView = map.lastView, beforeUrl = http.context.window.location.href;
+  // The user scrolls Niigata into view; only real source positions may appear.
+  map.viewportLimits = { south: 37.75, north: 38.25, west: 138.80, east: 139.50 };
+  map.handlers.moveend();
+  await new Promise(resolve => setTimeout(resolve, 155));
+  assert.equal(group.items.length, 1, "Niigata's verified coordinates appear without region-click");
+  assert.equal(group.items[0].latlng[0], niigata.datasets[0].records[0].latitude);
+  assert.equal(group.items[0].latlng[1], niigata.datasets[0].records[0].longitude);
+  assert.match(pill.textContent, /新潟県 新潟市 1件/);
+  assert.match(pill.textContent, /開設・安全性未判定/);
+  assert.equal(pill.hidden, false);
+  assert.strictEqual(map.lastView, beforeView, "panning does not reset chosen map view");
+  assert.equal(http.context.window.location.href, beforeUrl, "no implicit region URL mutation");
+  assert.equal(http.elements.region.value, "13123", "manual region remains a navigation shortcut");
+  group.items[0].handlers.click({});
+  assert.match(http.elements.details.innerHTML, /Niigata A/);
+  assert.match(http.elements.details.innerHTML, /UNKNOWN/);
+  const firstMarker = group.items[0];
+
+  // Repeat pans/zoom inside the area: no further HTTP, same marker identity.
+  map.handlers.moveend();
+  await new Promise(resolve => setTimeout(resolve, 155));
+  assert.strictEqual(group.items[0], firstMarker);
+  assert.equal(received.filter(url => url.endsWith("niigata.json")).length, 1);
+  assert.equal(received.filter(url => url.endsWith("nagoya.json")).length, 1);
+  map.zoom = 12.2;
+  map.handlers.moveend();
+  await new Promise(resolve => setTimeout(resolve, 155));
+  assert.equal(group.items.length, 1);
+  // Pan away: extra-layer marker disappears. No claim that there are no sites.
+  map.viewportLimits = { south: 34.9, north: 35.3, west: 136.7, east: 137.4 };
+  map.handlers.moveend();
+  await new Promise(resolve => setTimeout(resolve, 155));
+  assert.equal(group.items.length, 0);
+  assert.match(pill.textContent, /未収録・未取得を含む/);
+  assert.doesNotMatch(pill.textContent, /安全な地域|避難所が存在しない/);
+
+  // The selected region still works as a manual shortcut, and must never
+  // duplicate its source markers in the viewport-only overlay.
+  http.elements.region.value = "15100";
+  http.elements.region.listeners.change({ target: http.elements.region });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  map.viewportLimits = { south: 37.75, north: 38.25, west: 138.80, east: 139.50 };
+  map.handlers.moveend();
+  await new Promise(resolve => setTimeout(resolve, 155));
+  assert.equal(group.items.length, 0, "selected Niigata D is rendered by its original layer");
+  assert.equal(http.L.__groups[1].items.length, 1);
+  assert.equal(http.elements.region.value, "15100");
+  assert.match(pill.textContent, /新潟県 新潟市 1件/);
+
+  // GSI-only mode must hide the independent D viewport layer.
+  http.elements.facilityDisplayMode.value = "nearby";
+  http.elements.facilityDisplayMode.listeners.change({ target: http.elements.facilityDisplayMode });
+  assert.equal(map.hasLayer(group), false);
+  assert.equal(pill.hidden, true);
+  http.elements.facilityDisplayMode.value = "region";
+  http.elements.facilityDisplayMode.listeners.change({ target: http.elements.facilityDisplayMode });
+  assert.equal(map.hasLayer(group), true);
+
+  const localFile = makeContext({
+    protocol: "file:",
+    fetchImpl: async () => { throw Error("file mode must not fetch"); }
+  });
+  localFile.L.__map.handlers.moveend();
+  await new Promise(resolve => setTimeout(resolve, 155));
+  assert.equal(localFile.L.__groups[4].items.length, 0);
+  assert.match(localFile.elements.mapViewportDStatus.textContent, /未収録・未取得を含む/);
+  console.log("viewport D navigation: OK");
+})().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});
