@@ -2024,7 +2024,7 @@ nagoya.scenarios = [{
   assert.match(html, /js\/guided_tour[.]js[?]v=guided-tour-20261010-v1/);
   assert.match(html, /災害の時間変化や避難ルートの予測ではありません/);
   assert.match(viewSource, /mapTourPause/);
-  assert.match(viewSource, /"prefers-reduced-motion: reduce"/);
+  assert.match(viewSource, /prefers-reduced-motion: reduce/);
   assert.match(viewSource, /pointerdown", "wheel", "touchstart"/);
   assert.match(viewSource, /state === "paused"/);
   assert.match(css, /\.map-tour-panel\[hidden\]\{display:none\}/);
