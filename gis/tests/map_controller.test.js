@@ -561,7 +561,8 @@ nagoya.scenarios = [{
   acceptedCase.elements.focusReferenceTiles.listeners.click();
   assert.ok(acceptedCase.L.__map.lastBounds?.points?.length);
   assert.equal(acceptedCase.L.__map.lastBounds.points.length, 2);
-  assert.match(acceptedCase.elements.floodDiscoveryResults.innerHTML, /行くべき順ではありません/);
+  assert.match(acceptedCase.elements.floodDiscoveryResults.innerHTML, /距離は安全性を表さず/);
+  assert.doesNotMatch(acceptedCase.elements.floodDiscoveryResults.innerHTML, /行くべき順|推奨順位|ランキング/);
   assert.match(acceptedCase.elements.floodDiscoveryResults.innerHTML, /&lt;unsafe&gt;/);
   assert.doesNotMatch(acceptedCase.elements.floodDiscoveryResults.innerHTML, /<unsafe>/);
   assert.doesNotMatch(acceptedCase.elements.floodDiscoveryResults.innerHTML, /Edogawa A/);
