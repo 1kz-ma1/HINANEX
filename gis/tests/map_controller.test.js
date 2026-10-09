@@ -85,7 +85,18 @@ function makeLeafletStub() {
 
   const map = {
     handlers: {},
-    setView(latlng, zoom) { this.lastView = { latlng, zoom }; return this; },
+    zoom: 13,
+    setView(latlng, zoom) { this.lastView = { latlng, zoom }; this.zoom = zoom; return this; },
+    getZoom() { return this.zoom; },
+    project(latlng, zoom) {
+      // Web Mercator world pixels, deterministic independent of viewport.
+      const world = 256 * Math.pow(2, zoom);
+      const latRad = latlng[0] * Math.PI / 180;
+      return {
+        x: (latlng[1] + 180) / 360 * world,
+        y: (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * world
+      };
+    },
     createPane(name) { panes[name] = { style: {} }; },
     getPane(name) { return panes[name]; },
     addLayer(layer) { mapLayers.add(layer); layer._onMap = true; return this; },
@@ -865,6 +876,65 @@ nagoya.scenarios = [{
     "a delayed D load may not replace the origin-based viewport");
   assert.equal(lateDCase.L.__map.hasLayer(lateDCase.L.__groups[1]), false);
   assert.equal(lateDCase.elements.recordCount.textContent, 2);
+
+  // D-only visual aggregation at low zoom: counts represent actual
+  // D RegionExport mappableRecords, never evidence of safe facilities.
+  const closeD = payload("13123", "東京都江戸川区", [
+    record("cluster-1", "FIRST original D site", 35.70, 139.88),
+    record("cluster-2", "SECOND original D site", 35.7001, 139.8801),
+    record("cluster-3", "THIRD original D site", 35.7002, 139.8802)
+  ]);
+  const clusterCase = makeContext({
+    protocol: "http:",
+    fetchImpl: async url => String(url).includes("gsi_verified_tiles/")
+      ? { ok: false, status: 404, json: async () => ({}) }
+      : { ok: true, status: 200, json: async () => closeD }
+  });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(clusterCase.elements.recordCount.textContent, 3);
+  assert.equal(clusterCase.elements.mappedCount.textContent, 3);
+  assert.equal(clusterCase.L.__groups[1].items.length, 3,
+    "zoom 13 keeps all precise D source markers");
+  clusterCase.L.__map.zoom = 9;
+  clusterCase.L.__map.handlers.zoomend();
+  assert.equal(clusterCase.L.__groups[1].items.length, 1,
+    "zoomed out actual nearby D source coordinates aggregate into a single visual circle");
+  const oneCluster = clusterCase.L.__groups[1].items[0];
+  assert.match(oneCluster.options.icon.html, /d-facility-cluster/);
+  assert.match(oneCluster.options.icon.html, />3<\/div>/);
+  assert.match(oneCluster.options.icon.html, /安全性未判定/);
+  assert.doesNotMatch(oneCluster.options.icon.html, /reference-site-marker/);
+  oneCluster.handlers.click({});
+  assert.match(clusterCase.elements.details.innerHTML, /3件/);
+  assert.match(clusterCase.elements.details.innerHTML, /実在する施設位置ではありません/);
+  assert.equal(clusterCase.L.__map.lastView.zoom, 11);
+  // A zoom change regenerates the display without touching the original D row count.
+  clusterCase.L.__map.zoom = 13;
+  clusterCase.L.__map.handlers.zoomend();
+  assert.equal(clusterCase.L.__groups[1].items.length, 3);
+  const originalDMarker = clusterCase.L.__groups[1].items[0];
+  originalDMarker.handlers.click({});
+  assert.match(clusterCase.elements.details.innerHTML, /FIRST original D site/);
+  assert.equal(clusterCase.elements.mappedCount.textContent, 3);
+  // Hiding the D layer while the user examines GSI never transforms D into purple.
+  clusterCase.elements.facilityDisplayMode.value = "nearby";
+  clusterCase.elements.facilityDisplayMode.listeners.change({
+    target: clusterCase.elements.facilityDisplayMode
+  });
+  assert.equal(clusterCase.L.__map.hasLayer(clusterCase.L.__groups[1]), false);
+  clusterCase.L.__map.zoom = 9;
+  clusterCase.L.__map.handlers.zoomend();
+  assert.equal(clusterCase.L.__groups[1].items.length, 1);
+  assert.equal(clusterCase.L.__map.hasLayer(clusterCase.L.__groups[1]), false);
+  clusterCase.elements.facilityDisplayMode.value = "region";
+  clusterCase.elements.facilityDisplayMode.listeners.change({
+    target: clusterCase.elements.facilityDisplayMode
+  });
+  assert.equal(clusterCase.L.__map.hasLayer(clusterCase.L.__groups[1]), true);
+  assert.equal(clusterCase.L.__groups[1].items.length, 1);
+  // Exact same coordinates were used to calculate the D display centroid.
+  assert.ok(Math.abs(clusterCase.L.__groups[1].items[0].latlng[0] - 35.7001) < 0.00000001);
+  assert.ok(Math.abs(clusterCase.L.__groups[1].items[0].latlng[1] - 139.8801) < 0.00000001);
 
   // A wrong tile file on the correct static path is NOT a permitted fallback.
   const substituted = makeContext({
