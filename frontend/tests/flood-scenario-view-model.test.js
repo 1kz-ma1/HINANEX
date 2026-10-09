@@ -21,6 +21,7 @@ function withScenario() {
         status: "UNKNOWN",
         reason: "公式対応表が未確認",
         fact: {
+          facility_id: "s1",
           facility_name: "施設A",
           hazard_scope_raw: "災害種別_洪水",
           official_status_raw: "○",
@@ -37,6 +38,7 @@ function withScenario() {
         status: "UNKNOWN",
         reason: "条件の意味が未確定",
         fact: {
+          facility_id: "s2",
           facility_name: "施設B",
           hazard_scope_raw: "災害種別_洪水",
           official_status_raw: "2階以上",
@@ -53,6 +55,7 @@ function withScenario() {
         status: "UNKNOWN",
         reason: "元の記号だけ保持",
         fact: {
+          facility_id: "s3",
           facility_name: "施設C",
           hazard_scope_raw: "災害種別_洪水",
           official_status_raw: "×",
@@ -112,4 +115,49 @@ test("unknown scenario IDs do not override flood UI", () => {
   const payload = withScenario();
   payload.scenarios[0].scenario_id = "unrelated_scenario";
   assert.equal(buildFloodScenarioViewModel(payload), null);
+});
+
+test("malformed scenarios shape is explicit unsupported, while absence stays legacy", () => {
+  const payload = withScenario();
+  payload.scenarios = "not-an-array";
+  assert.equal(buildFloodScenarioViewModel(payload).uiState, "unsupported");
+});
+
+test("mismatched facility IDs fail closed instead of displaying plausible rows", () => {
+  const payload = withScenario();
+  payload.scenarios[0].facility_results[0].fact.facility_id = "another-id";
+  const view = buildFloodScenarioViewModel(payload);
+  assert.equal(view.uiState, "unsupported");
+  assert.match(view.message, /表示を停止/);
+});
+
+test("unrecognized facility status fails closed", () => {
+  const payload = withScenario();
+  payload.scenarios[0].facility_results[0].status = "SAFE";
+  assert.equal(buildFloodScenarioViewModel(payload).uiState, "unsupported");
+});
+
+test("duplicate facility IDs fail closed", () => {
+  const payload = withScenario();
+  payload.scenarios[0].facility_results[1].facility_id = "s1";
+  payload.scenarios[0].facility_results[1].fact.facility_id = "s1";
+  assert.equal(buildFloodScenarioViewModel(payload).uiState, "unsupported");
+});
+
+test("scenario region mismatch fails closed", () => {
+  const payload = withScenario();
+  payload.scenarios[0].region_code = "13123";
+  assert.equal(buildFloodScenarioViewModel(payload).uiState, "unsupported");
+});
+
+test("invalid coordinate value fails closed", () => {
+  const payload = withScenario();
+  payload.scenarios[0].facility_results[0].fact.latitude = "37.9";
+  assert.equal(buildFloodScenarioViewModel(payload).uiState, "unsupported");
+});
+
+test("duplicate flood scenarios fail closed", () => {
+  const payload = withScenario();
+  payload.scenarios.push(structuredClone(payload.scenarios[0]));
+  assert.equal(buildFloodScenarioViewModel(payload).uiState, "unsupported");
 });
