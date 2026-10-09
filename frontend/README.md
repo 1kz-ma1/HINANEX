@@ -94,12 +94,14 @@ D `RegionExport.scenarios[]` に `scenario_id=flood_shelter_selection` がある
 
 - Dの元status・施設名・公式raw値・利用階の原文・Source URL・元の施設行trace・reasonを表示
 - `UNKNOWN`を「危険」「利用不可」「情報なし」と言い換えない。rawセル取得済み（`discovery_status=AVAILABLE`）と適合判定不能（`Scenario.status=UNKNOWN`）を区別
-- 施設一覧は20件ずつ表示し、総件数と閲覧位置を明示する
-- 公式リンクはHTTPSのみ、施設名/原文はtextContentとして安全に表示
+- 施設一覧は20件ずつ表示し、総件数と閲覧位置を明示する。結果0件ではページ送りを出さず、避難先不存在とはみなさない
+- 公式リンクはHTTPSのみ、施設名/原文はtextContentとして安全に表示。施設の公式記録・出典はキーボード操作可能な折りたたみで確認
 - 現行新潟ODSの `○`、`×`、`－` はIssue #48で公式意味未確定。B側で「候補・除外」へ再分類しない
 - `2階以上`等の`usable_floor_raw`は生の制約文。階数条件だけで安全・開設状況・安全な移動経路を判定しない
 - 旧暫定status `CANDIDATE/EXCLUDED`を含む古いJSONを手動読込した場合も**Dの元値としてのみ**表示し、公式安全適合とは扱わない
 
+読み込み中・データ取得失敗・Contract不整合・0件結果は別々に表示します。`FULL` はScenarioの判定範囲、`AVAILABLE` は公式raw取得状況を表し、安全性や開設状況を保証しません。詳細仕様: `docs/FLOOD_SCENARIO_CONSUMER_GUARD.md`。
+
 新規テスト: `tests/flood-scenario-view-model.test.js`。新モデルは `src/flood-scenario-view-model.js` で、Dの評価ロジックを再実装しません。
 
-**依存関係**: D #41/#44/#49（`role/d-pipeline`）、A #43、C #42/#50。mainへのD統合（Draft #46）が完了する前はBの消費側のPRを最終統合しないでください。新潟ODSの公式記号意味の確定は[Issue #48](https://github.com/1kz-ma1/HINANEX/issues/48)で引き続き確認します。
+**統合状況**: #106でD/C/B/EのFlood Scenario統合版をmainへ反映済み。#110でContract不整合のfail-closed guardを追加済み。新潟ODSの公式記号意味の確定は[Issue #48](https://github.com/1kz-ma1/HINANEX/issues/48)で引き続き確認します。

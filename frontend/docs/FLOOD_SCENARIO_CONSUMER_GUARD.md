@@ -19,3 +19,20 @@
 ## Follow-up from old PR #83
 
 This is a **partial** migration from stale #83, not a replacement for its broader UX proposal. After this guard reaches main, separately rebase/redesign loading, empty-state, coverage labels, source panel, accessibility and responsive presentation on a short-lived main-based branch. Avoid overwriting current #106/#108 frontend/deploy integration.
+
+## UI presentation increment (2026-10-09, follow-up to #110)
+
+**Required UI states and non-claims**
+- Region auto-load, manual file read, and demo load render a visible `loading` notice in the Scenario panel without retaining the previous municipality's records. The parent region summary remains the primary fetch status.
+- Fetch/file errors render `error` in the Scenario panel with a safe retry path; malformed optional Contract remains `unsupported` and displays no facility rows. A legacy RegionExport with no `scenarios[]` continues to hide this optional panel.
+- A valid Scenario with `facility_results=[]` displays the D status and caveat, and a separate zero-row message. No pagination for zero rows. **Zero exported results does not mean no shelters or no safe/unsafe shelters exist.**
+- D Scenario `FULL` means coverage of evaluation, not that all shelters are eligible. D discovery `AVAILABLE` means raw-source acquisition, not evaluation readiness or facility opening. Label mapping changes display copy only and never edits D statuses or their counts.
+- The safety/non-opening caveat remains visible. Per-facility reason and D status remain visible while raw markers, trace and source URL live inside a keyboard-operable native `details` disclosure.
+- Mobile 620px or narrower uses vertically stacked evidence fields, flexible paging buttons and visible focus styling.
+
+**Verification**
+- Frontend unit tests for the view model and static UI semantics, plus whole-repo CI, must pass before merge.
+- Real mobile Safari/Edge visual checks and human acceptance of wording are separate manual checks; automated tests do not certify emergency suitability.
+
+**Remaining after this increment**
+- Do not wholesale merge stale #83. Review only independently useful accessible UI enhancements against current main, and close old PR only after verifying scope coverage.

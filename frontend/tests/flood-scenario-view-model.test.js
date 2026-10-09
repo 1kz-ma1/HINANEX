@@ -161,3 +161,27 @@ test("duplicate flood scenarios fail closed", () => {
   payload.scenarios.push(structuredClone(payload.scenarios[0]));
   assert.equal(buildFloodScenarioViewModel(payload).uiState, "unsupported");
 });
+
+test("Scenario coverage is not a facility safety or opening guarantee", () => {
+  const payload = withScenario();
+  payload.scenarios[0].status = "FULL";
+  const full = buildFloodScenarioViewModel(payload);
+  assert.equal(full.statusDescription, "全施設を判定可能");
+  assert.equal(full.discoveryDescription, "公式raw情報を取得済み");
+  assert.equal(full.unknownCount, 3);
+  assert.match(full.caveat, /安全性はこの画面では確定できません/);
+  payload.scenarios[0].status = "DEGRADED";
+  assert.equal(buildFloodScenarioViewModel(payload).statusDescription, "一部施設を判定可能");
+  payload.scenarios[0].requirement_assessment.discovery_status = "NOT_FOUND";
+  assert.match(buildFloodScenarioViewModel(payload).discoveryDescription, /現在の取得経路/);
+});
+
+test("valid empty Scenario is ready with zero facility rows, not malformed", () => {
+  const payload = withScenario();
+  payload.scenarios[0].facility_results = [];
+  const view = buildFloodScenarioViewModel(payload);
+  assert.equal(view.uiState, "ready");
+  assert.equal(view.total, 0);
+  assert.deepEqual(view.rows, []);
+  assert.equal(view.unknownCount, 0);
+});

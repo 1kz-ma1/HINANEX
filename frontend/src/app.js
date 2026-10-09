@@ -543,15 +543,23 @@ function renderFloodScenario(scenario) {
   floodScenarioSection.hidden = !hasScenario;
   floodScenarioNav.hidden = !hasScenario;
   floodScenarioRoot.replaceChildren();
+  floodScenarioRoot.setAttribute("aria-busy", String(scenario?.uiState === "loading"));
   if (!hasScenario) return;
 
-  if (scenario.uiState === "unsupported") {
+  if (["loading", "error", "unsupported"].includes(scenario.uiState)) {
+    const loading = scenario.uiState === "loading";
     floodScenarioRoot.append(
       element("div", {
-        className: "scenario-alert",
-        attributes: { role: "alert" },
+        className: `scenario-feedback scenario-feedback--${scenario.uiState}`,
+        attributes: { role: loading ? "status" : "alert" },
         children: [
-          element("strong", { text: "洪水Scenarioを表示できません" }),
+          element("strong", {
+            text: loading
+              ? "洪水Scenarioを読み込み中"
+              : scenario.uiState === "unsupported"
+                ? "洪水Scenarioを表示できません"
+                : "洪水Scenarioを取得できませんでした",
+          }),
           element("p", { text: scenario.message }),
         ],
       }),
@@ -567,8 +575,8 @@ function renderFloodScenario(scenario) {
   const summary = element("div", {
     className: "scenario-metrics",
     children: [
-      summaryMetric("Scenario状態（D原値）", scenario.statusCode),
-      summaryMetric("公式rawを取得した施設", scenario.rawValueCount === null ? "未確認" : `${scenario.rawValueCount}件`),
+      summaryMetric("Scenario評価範囲（D原値）", `${scenario.statusDescription}（${scenario.statusCode}）`),
+      summaryMetric("公式raw値の件数（D提供）", scenario.rawValueCount === null ? "未確認" : `${scenario.rawValueCount}件`),
       summaryMetric("施設の判定がUNKNOWN", `${scenario.unknownCount} / ${scenario.total}件`),
       summaryMetric("利用階の原文を保持", `${scenario.rawFloorCount}件`),
     ],
@@ -581,7 +589,9 @@ function renderFloodScenario(scenario) {
       element("strong", { text: "洪水時の安全・開設を保証する情報ではありません" }),
       element("p", { text: scenario.caveat }),
       element("p", { text: scenario.interpretationNotice }),
-      element("small", { text: `公式Sourceの取得状態（D原値）：${scenario.discoveryStatus}` }),
+      element("small", {
+        text: `公式Sourceの取得状態（D原値）：${scenario.discoveryDescription}（${scenario.discoveryStatus}）`,
+      }),
     ],
   });
 
@@ -603,19 +613,25 @@ function renderFloodScenario(scenario) {
             statusBadge(`D判定：${row.statusCode}`, "unknown"),
           ],
         }),
-        element("dl", {
-          className: "scenario-facts",
+        element("p", { className: "scenario-reason", text: row.reason }),
+        element("details", {
+          className: "scenario-trace",
           children: [
-            ...definitionRow("災害列の原文", row.hazardScopeRaw),
-            ...definitionRow("公式セルの値", row.rawValue),
-            ...definitionRow("利用階の原文", row.floorRaw),
-            ...definitionRow("施設行の照合", row.joinStatus),
-            ...definitionRow("元データの行", row.sourceTrace),
-            ...definitionRow("位置座標", row.hasCoordinates ? "元データに座標あり" : "欠損（推測補完なし）"),
+            element("summary", { text: "公式記録と出典を確認" }),
+            element("dl", {
+              className: "scenario-facts",
+              children: [
+                ...definitionRow("災害列の原文", row.hazardScopeRaw),
+                ...definitionRow("公式セルの値", row.rawValue),
+                ...definitionRow("利用階の原文", row.floorRaw),
+                ...definitionRow("施設行の照合", row.joinStatus),
+                ...definitionRow("元データの行", row.sourceTrace),
+                ...definitionRow("位置座標", row.hasCoordinates ? "元データに座標あり" : "欠損（推測補完なし）"),
+              ],
+            }),
+            source,
           ],
         }),
-        element("p", { className: "scenario-reason", text: row.reason }),
-        source,
       ],
     });
   });
@@ -641,12 +657,26 @@ function renderFloodScenario(scenario) {
     renderFloodScenario(scenario);
   });
 
+  floodScenarioRoot.append(note, summary);
+  if (scenario.total === 0) {
+    floodScenarioRoot.append(
+      element("div", {
+        className: "scenario-feedback scenario-feedback--empty",
+        attributes: { role: "status" },
+        children: [
+          element("strong", { text: "今回の施設別結果は0件です" }),
+          element("p", {
+            text: "このScenarioには表示できる施設行がありません。施設が存在しないことや、安全・危険を意味しません。",
+          }),
+        ],
+      }),
+    );
+    return;
+  }
   floodScenarioRoot.append(
-    note,
-    summary,
     element("div", {
       className: "scenario-list",
-      children: cards.length ? cards : [emptyState("施設行はありません。")],
+      children: cards,
     }),
     element("nav", {
       className: "scenario-pagination",
@@ -654,7 +684,7 @@ function renderFloodScenario(scenario) {
       children: [
         previous,
         element("span", {
-          text: `${scenario.total}件中 ${scenario.total ? start + 1 : 0}〜${Math.min(start + SCENARIO_PAGE_SIZE, scenario.total)}件（${scenarioPageIndex + 1}/${pages}ページ）`,
+          text: `${scenario.total}件中 ${start + 1}〜${Math.min(start + SCENARIO_PAGE_SIZE, scenario.total)}件（${scenarioPageIndex + 1}/${pages}ページ）`,
         }),
         next,
       ],
@@ -742,6 +772,10 @@ function setActiveRegion(regionCode) {
 
 function renderLoading(source) {
   clearRegionContent();
+  renderFloodScenario({
+    uiState: "loading",
+    message: `${source.label}の公式記録を取得しています。前の地域の結果は表示しません。`,
+  });
   setActiveRegion(source.code);
   regionName.textContent = `${source.label}を読み込み中`;
   generatedAt.textContent = "取得中";
@@ -764,6 +798,10 @@ function renderLoading(source) {
 
 function renderError(error, source = null) {
   clearRegionContent();
+  renderFloodScenario({
+    uiState: "error",
+    message: "地域データを読み込めなかったため、施設の評価結果も表示できません。詳細設定から再読込または手動JSON読込を行ってください。",
+  });
   regionName.textContent = source?.label ?? "RegionExport読込失敗";
   generatedAt.textContent = "読込失敗";
   schemaVersion.textContent = "—";
@@ -831,6 +869,7 @@ function selectRegion(regionCode) {
 async function loadDemoRegionExport() {
   regionController.cancel();
   clearRegionContent();
+  renderFloodScenario({ uiState: "loading", message: "UI検証用の合成データを確認しています。" });
   setSourceStatus("UI検証用の合成データを読み込んでいます…", "loading");
   try {
     const payload = await fetchRegionExport("./mock/region-export.json");
@@ -858,6 +897,7 @@ regionExportFile.addEventListener("change", async (event) => {
 
   regionController.cancel();
   clearRegionContent();
+  renderFloodScenario({ uiState: "loading", message: "選択したJSONのScenario構造を確認しています。" });
   setSourceStatus(`${file.name} を読み込んでいます…`, "loading");
   try {
     const payload = JSON.parse(await file.text());

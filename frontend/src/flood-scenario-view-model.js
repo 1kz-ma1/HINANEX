@@ -16,7 +16,23 @@ function officialHttpsUrl(url) {
   }
 }
 
-const SCENARIO_STATUSES = new Set(["FULL", "DEGRADED", "BLOCKED", "UNKNOWN", "NOT_APPLICABLE"]);
+const SCENARIO_STATUS_DESCRIPTIONS = Object.freeze({
+  FULL: "全施設を判定可能",
+  DEGRADED: "一部施設を判定可能",
+  BLOCKED: "処理上の前提不足",
+  UNKNOWN: "判定範囲が未確定",
+  NOT_APPLICABLE: "対象外",
+});
+const DISCOVERY_STATUS_DESCRIPTIONS = Object.freeze({
+  AVAILABLE: "公式raw情報を取得済み",
+  PARTIAL: "公式raw情報を一部取得",
+  NOT_MACHINE_READABLE: "機械判読できない",
+  ACCESS_RESTRICTED: "取得制限あり",
+  NOT_FOUND: "現在の取得経路では確認できず",
+  UNKNOWN: "取得状態を確認できず",
+  NOT_APPLICABLE: "対象外",
+});
+const SCENARIO_STATUSES = new Set(Object.keys(SCENARIO_STATUS_DESCRIPTIONS));
 const FACILITY_STATUSES = new Set(["CANDIDATE", "EXCLUDED", "UNKNOWN"]);
 const JOIN_STATUSES = new Set(["DIRECT_SAME_SOURCE", "UNVERIFIED"]);
 
@@ -106,7 +122,10 @@ function buildFloodScenarioViewModel(exportData) {
     uiState: "ready",
     name: readable(scenario.scenario_name, "洪水時の避難候補探索"),
     statusCode: readable(scenario.status, "UNKNOWN"),
+    statusDescription: SCENARIO_STATUS_DESCRIPTIONS[scenario.status],
     discoveryStatus: readable(scenario.requirement_assessment?.discovery_status),
+    discoveryDescription:
+      DISCOVERY_STATUS_DESCRIPTIONS[scenario.requirement_assessment?.discovery_status] ?? "確認不能",
     rawValueCount: Number.isInteger(scenario.requirement_assessment?.raw_value_count)
       ? scenario.requirement_assessment.raw_value_count
       : null,
