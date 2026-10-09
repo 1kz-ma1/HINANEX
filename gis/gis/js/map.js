@@ -182,10 +182,10 @@ const referenceSiteGroup = L.layerGroup().addTo(map);
 const viewportDGroup = L.layerGroup().addTo(map);
 L.control.scale({ imperial: false, position: "bottomleft" }).addTo(map);
 
-// Navigation-only overview: this rectangle approximates the visible Japanese
-// archipelago from the southwest islands through Hokkaido. It is NOT a
-// jurisdiction border, official hazard extent, data coverage or safety area.
-// The outermost remote islands outside this frame are not all included.
+// Navigation-only zoom scale reference: approximate Japanese archipelago
+// dimensions. The user prefers the closer map scale over an all-Japan fit.
+// This is NOT a jurisdiction border, data coverage or disaster safety area;
+// the outer edges of Japan may be cropped at the minimum zoom.
 const JAPAN_OVERVIEW_BOUNDS = L.latLngBounds([
   [24.0, 122.5],
   [45.8, 146.5]
@@ -193,9 +193,12 @@ const JAPAN_OVERVIEW_BOUNDS = L.latLngBounds([
 const OVERVIEW_TILE_MIN_ZOOM = 2;
 const OVERVIEW_MAX_MIN_ZOOM = 6;
 const OVERVIEW_VIEWPORT_PADDING = [32, 32];
-// Preserve enough room for the whole visual Japan reference rectangle while
-// avoiding an unnecessary full integer zoom level of empty surroundings.
+// Keep responsive minimum-zoom sizing, but stop zooming out around the
+// closer, 200 km scale-bar reference from the user's second screenshot
+// rather than demanding the full Japan rectangle fit. At the same viewport,
+// +0.6 zoom is roughly 1.5x the rendered map scale (300 km -> 200 km).
 const OVERVIEW_MIN_ZOOM_STEPS_PER_LEVEL = 4;
+const NAVIGATION_CLOSEUP_ZOOM_OFFSET = 0.6;
 
 function updateJapanOverviewMinimumZoom() {
   // getBoundsZoom returns the largest zoom level that fits the overview
@@ -205,9 +208,10 @@ function updateJapanOverviewMinimumZoom() {
     JAPAN_OVERVIEW_BOUNDS, false, OVERVIEW_VIEWPORT_PADDING
   );
   if (!Number.isFinite(fittedZoom)) return;
-  // Rounding all the way down to an integer made a Japan-fitting map as
-  // much as one full zoom level smaller than necessary. Round downward only
-  // to the nearest quarter-step; rounding *up* would crop the reference area.
+  // Derive a responsive baseline from Japan dimensions, then intentionally
+  // zoom in ~0.6 more levels for navigation. Unlike the former all-Japan-fit
+  // rule, Hokkaido/Kyushu/remote islands can be offscreen at this limit.
+  // Never recenter the map: only constrain how far a user can zoom out.
   const tightFitZoom = Math.min(
     fittedZoom,
     Math.floor(fittedZoom * OVERVIEW_MIN_ZOOM_STEPS_PER_LEVEL) /
@@ -215,7 +219,8 @@ function updateJapanOverviewMinimumZoom() {
   );
   map.setMinZoom(Math.max(
     OVERVIEW_TILE_MIN_ZOOM,
-    Math.min(OVERVIEW_MAX_MIN_ZOOM, tightFitZoom)
+    Math.min(OVERVIEW_MAX_MIN_ZOOM,
+      tightFitZoom + NAVIGATION_CLOSEUP_ZOOM_OFFSET)
   ));
 }
 updateJapanOverviewMinimumZoom();
