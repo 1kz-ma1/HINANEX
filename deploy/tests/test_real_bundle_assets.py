@@ -67,7 +67,13 @@ class ActualStagingBundleSmokeTests(unittest.TestCase):
                 self.assertTrue(html_path.is_file(), page)
                 parser = StaticAssets()
                 parser.feed(html_path.read_text(encoding="utf-8"))
-                self.assertTrue(parser.references, f"{page} must list its real CSS/JS dependencies")
+                if page == "index.html":
+                    # Landing is deliberately standalone: inline CSS, no JS.
+                    landing = html_path.read_text(encoding="utf-8")
+                    self.assertIn('href="/frontend/"', landing)
+                    self.assertIn('href="/gis/gis/"', landing)
+                else:
+                    self.assertTrue(parser.references, f"{page} must list its real CSS/JS dependencies")
                 for ref in parser.references:
                     url = urlsplit(ref)
                     if url.scheme in ("http", "https"):
