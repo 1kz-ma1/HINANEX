@@ -250,7 +250,7 @@ function updateMapOriginAction(message, picking = false) {
 // A cached single-tile script may expose the old API without throwing during
 // <script> evaluation. Fail CLOSED with actionable feedback instead of
 // crashing the map when the newer controller calls missing functions.
-const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v5";
+const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v6";
 function compatibleDiscoveryEngine() {
   const engine = window.HINANEX_FLOOD_DISCOVERY;
   return engine && engine.apiVersion === REQUIRED_DISCOVERY_VERSION &&
@@ -364,21 +364,20 @@ function renderReferenceMap(discovery) {
   referenceCandidateBounds = nearbyPoints.length ? L.latLngBounds(nearbyPoints) : null;
 
   // Five display pins, not 6,656. No lines, routing or safety ranking.
-  discovery.sites.forEach((site, index) => {
-    const label = index + 1;
+  discovery.sites.forEach(site => {
     const sourceLink = safeExternalUrl(site.sourceUrl);
-    const popup = '<div class="reference-site-popup"><strong>GSI公式掲載（参考 ' + label + '）</strong>' +
+    const popup = '<div class="reference-site-popup"><strong>GSI公式掲載地点（参考情報）</strong>' +
       '<p>' + escapeHtml(site.name) + '</p>' +
       '<p>直線距離：' + escapeHtml(site.distanceMetres.toLocaleString("ja-JP")) +
       'm（経路距離ではありません）</p>' +
       (sourceLink ? '<a href="' + escapeHtml(sourceLink) +
         '" target="_blank" rel="noopener noreferrer">原典タイル</a>' : '') +
-      '<p>安全性・現在の開設・避難経路は未判定です。番号は推奨順位ではありません。</p></div>';
+      '<p>安全性・現在の開設・避難経路は未判定です。直線距離は安全性や優先度を表すものではありません。</p></div>';
     L.marker([site.latitude, site.longitude], {
       pane: "referenceSitePane", zIndexOffset: 1000,
       icon: L.divIcon({
         className: "",
-        html: '<span class="reference-site-marker" aria-label="GSI公式掲載参考地点' + label + '">' + label + '</span>',
+        html: '<span class="reference-site-marker" aria-label="GSI公式掲載地点・安全性未判定"></span>',
         iconSize: [32, 32], iconAnchor: [16, 16]
       })
     }).bindPopup(popup).on("click", event => {
@@ -391,7 +390,7 @@ function renderReferenceMap(discovery) {
         ["raw行", displayValue(site.trace)]
       ], "GSI公式掲載 / 未推奨", {
         href: site.sourceUrl,
-        note: "番号は表示順序であって避難先の推奨ではありません。施設の安全性、開設状況、実際の経路、自治体所属は未確認です。"
+        note: "国土地理院に掲載された場所の参考情報です。安全性・現在の開設状況・避難経路・自治体所属は確認できていません。"
       });
     }).addTo(referenceSiteGroup);
   });

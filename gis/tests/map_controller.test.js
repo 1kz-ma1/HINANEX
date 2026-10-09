@@ -520,12 +520,22 @@ nagoya.scenarios = [{
   assert.equal(acceptedCase.L.__groups[3].items.length, 1); // purple numbered pin, not D
   const acceptedPin = acceptedCase.L.__groups[3].items[0];
   assert.ok(acceptedPin.options.icon.html.includes("reference-site-marker"));
+  assert.match(acceptedPin.options.icon.html, /aria-label="GSI公式掲載地点・安全性未判定"/);
+  assert.doesNotMatch(acceptedPin.options.icon.html, />[1-5]<|GSI公式掲載参考地点[1-5]/);
+  assert.match(acceptedPin.popupHtml, /GSI公式掲載地点（参考情報）/);
+  assert.doesNotMatch(acceptedPin.popupHtml, /GSI公式掲載（参考\s*[0-9]|番号は|順位/);
   assert.ok(acceptedPin.popupHtml.includes("未判定"));
   assert.ok(acceptedPin.popupHtml.includes("&lt;unsafe&gt;"));
   assert.ok(!acceptedPin.popupHtml.includes("<unsafe>"));
   acceptedPin.handlers.click({});
   assert.match(acceptedCase.elements.details.innerHTML, /GSI公式掲載/);
   assert.match(acceptedCase.elements.details.innerHTML, /未推奨/);
+  assert.doesNotMatch(acceptedCase.elements.details.innerHTML, /番号は表示順序/);
+  const pageSource = fs.readFileSync(path.resolve(__dirname, "../gis/index.html"), "utf8");
+  assert.match(pageSource, /紫：公式掲載地点（安全性未判定/);
+  assert.doesNotMatch(pageSource, /紫の番号|reference-legend-sample">1/);
+  const cssSource = fs.readFileSync(path.resolve(__dirname, "../gis/css/style.css"), "utf8");
+  assert.match(cssSource, /reference-site-marker::after/);
   assert.equal(acceptedCase.elements.facilityDisplayMode.value, "nearby");
   assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[1]), false);
   assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[3]), true);
@@ -551,7 +561,8 @@ nagoya.scenarios = [{
   acceptedCase.elements.focusReferenceTiles.listeners.click();
   assert.ok(acceptedCase.L.__map.lastBounds?.points?.length);
   assert.equal(acceptedCase.L.__map.lastBounds.points.length, 2);
-  assert.match(acceptedCase.elements.floodDiscoveryResults.innerHTML, /行くべき順ではありません/);
+  assert.match(acceptedCase.elements.floodDiscoveryResults.innerHTML, /距離は安全性を表さず/);
+  assert.doesNotMatch(acceptedCase.elements.floodDiscoveryResults.innerHTML, /行くべき順|推奨順位|ランキング/);
   assert.match(acceptedCase.elements.floodDiscoveryResults.innerHTML, /&lt;unsafe&gt;/);
   assert.doesNotMatch(acceptedCase.elements.floodDiscoveryResults.innerHTML, /<unsafe>/);
   assert.doesNotMatch(acceptedCase.elements.floodDiscoveryResults.innerHTML, /Edogawa A/);

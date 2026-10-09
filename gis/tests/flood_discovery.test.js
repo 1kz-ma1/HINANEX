@@ -60,8 +60,9 @@ assert.equal(ranked.sites.length, 5);
 assert.equal(ranked.sites[0].distanceMetres, 0);
 assert.equal(ranked.sites[0].name, "TEST_0");
 assert.ok(ranked.sites[1].distanceMetres < ranked.sites[4].distanceMetres);
-assert.match(ranked.message, /行くべき順ではありません/);
-assert.match(ranked.message, /江戸川区内の施設とは限らず/);
+assert.match(ranked.message, /距離は安全性を示さず/);
+assert.doesNotMatch(ranked.message, /行くべき順|推奨順位|ランキング/);
+assert.match(ranked.message, /江戸川区内の施設とは限りません/);
 // The official source is ONE GSI tile, not the entire municipality. A GPS
 // fix beyond its coverage must not return misleading distant "nearest" sites.
 const outside = discoverReferenceSites(full, { latitude: 35.7, longitude: 140.1 });
@@ -105,6 +106,8 @@ assert.ok(nearbySourceTiles(point).includes("10/910/403"));
 const multiOriginOnly = discoverReferenceTiles([full], point);
 assert.equal(multiOriginOnly.status, "REFERENCE_ONLY");
 assert.equal(multiOriginOnly.total, 10);
+assert.match(multiOriginOnly.message, /距離は安全性を表さず/);
+assert.doesNotMatch(multiOriginOnly.message, /行くべき順|推奨順位|ランキング/);
 assert.equal(multiOriginOnly.verifiedTileCount, 1);
 assert.equal(multiOriginOnly.partialCoverage, true);
 assert.match(multiOriginOnly.message, /未検証タイル/);

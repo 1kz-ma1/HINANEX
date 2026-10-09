@@ -131,7 +131,7 @@
       status: "REFERENCE_ONLY",
       sites: sites.slice(0, LIMIT),
       total: sites.length,
-      message: "取得した国土地理院の1タイル内の掲載地点を直線距離順に表示。江戸川区内の施設とは限らず、安全性・経路・開設状況・行くべき順ではありません。"
+      message: "国土地理院の1タイル内で直線距離の近い掲載地点を参考表示。江戸川区内の施設とは限りません。距離は安全性を示さず、開設状況や避難経路は未確認です。"
     };
   }
 
@@ -215,11 +215,11 @@
       // Only cells that passed all source checks can be drawn on the map.
       verifiedTileKeys: [...seenTiles].sort(),
       partialCoverage: partial,
-      message: "公式指定場所を検証済み" + seenTiles.size + "タイル内で直線距離順に参考表示。" +
-        (partial ? "周辺の未検証タイルがあるため、地域全体の最寄り順や網羅性は保証しません。" : "") +
-        " 自治体所属・安全性・経路・開設状況は未認定で、行くべき順ではありません。"
+      message: "検証済み" + seenTiles.size + "タイルに掲載された場所から、直線距離の近い最大5地点を表示。" +
+        (partial ? "他の未検証タイルがあるため、周辺すべてを調べた結果ではありません。" : "") +
+        " 距離は安全性を表さず、開設状況・避難経路・自治体所属も未確認です。"
     };
   }
 
-  window.HINANEX_FLOOD_DISCOVERY = { apiVersion: "gsi-z10-neighbors-20261009-v5", distanceMetres, discoverReferenceSites, sourceTileKey, nearbySourceTiles, discoverReferenceTiles };
+  window.HINANEX_FLOOD_DISCOVERY = { apiVersion: "gsi-z10-neighbors-20261009-v6", distanceMetres, discoverReferenceSites, sourceTileKey, nearbySourceTiles, discoverReferenceTiles };
 })();
