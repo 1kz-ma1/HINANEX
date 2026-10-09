@@ -171,3 +171,8 @@ console.log("d_region_adapter.test.js: OK");
   const result = adapter.extractShelterLocation(payload(), "13123");
   assert.equal(result.floodScenario, null);
 }
+
+
+// CI's dedicated E adapter test entrypoint also exercises the exact same
+// consumer adapter against synthetic local file inventories (no real D raw).
+require("./inspect_local_region_exports.test.js");
