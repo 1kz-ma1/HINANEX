@@ -545,6 +545,20 @@ function renderFloodScenario(scenario) {
   floodScenarioRoot.replaceChildren();
   if (!hasScenario) return;
 
+  if (scenario.uiState === "unsupported") {
+    floodScenarioRoot.append(
+      element("div", {
+        className: "scenario-alert",
+        attributes: { role: "alert" },
+        children: [
+          element("strong", { text: "洪水Scenarioを表示できません" }),
+          element("p", { text: scenario.message }),
+        ],
+      }),
+    );
+    return;
+  }
+
   const pages = Math.max(1, Math.ceil(scenario.rows.length / SCENARIO_PAGE_SIZE));
   scenarioPageIndex = Math.min(scenarioPageIndex, pages - 1);
   const start = scenarioPageIndex * SCENARIO_PAGE_SIZE;
