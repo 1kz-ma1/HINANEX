@@ -212,6 +212,8 @@
     return {
       status: "REFERENCE_ONLY", sites: sites.slice(0, LIMIT), total: sites.length,
       verifiedTileCount: seenTiles.size, requestedTileCount: permittedKeys.size,
+      // Only cells that passed all source checks can be drawn on the map.
+      verifiedTileKeys: [...seenTiles].sort(),
       partialCoverage: partial,
       message: "公式指定場所を検証済み" + seenTiles.size + "タイル内で直線距離順に参考表示。" +
         (partial ? "周辺の未検証タイルがあるため、地域全体の最寄り順や網羅性は保証しません。" : "") +
@@ -219,5 +221,5 @@
     };
   }
 
-  window.HINANEX_FLOOD_DISCOVERY = { apiVersion: "gsi-z10-neighbors-20261009-v3", distanceMetres, discoverReferenceSites, sourceTileKey, nearbySourceTiles, discoverReferenceTiles };
+  window.HINANEX_FLOOD_DISCOVERY = { apiVersion: "gsi-z10-neighbors-20261009-v4", distanceMetres, discoverReferenceSites, sourceTileKey, nearbySourceTiles, discoverReferenceTiles };
 })();
