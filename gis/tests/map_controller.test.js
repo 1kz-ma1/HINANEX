@@ -592,7 +592,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "zoom-feel-20261009-v2");
+  assert.equal(mapAsset[1], "zoom-continuous-20261009-v3");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -1519,8 +1519,8 @@ nagoya.scenarios = [{
   for (const tile of L.__tiles.slice(0, 2)) {
     assert.equal(tile.options.keepBuffer, 3);
   }
-  assert.equal(L.__tiles[0].options.updateWhenZooming, true,
-    "background tile images can update during fractional animation");
+  assert.equal(L.__tiles[0].options.updateWhenZooming, false,
+    "avoid mid-gesture bitmap swaps in the responsive mode");
   assert.equal(L.__tiles[1].options.updateWhenZooming, false,
     "official flood raster retains lighter end-of-zoom tile loading");
   assert.equal(L.__tiles[0].options.minZoom, 2);
@@ -1530,11 +1530,14 @@ nagoya.scenarios = [{
   assert.match(mapCode, /new URL\(window\.location\.href\)\.searchParams\.get\("debugMapPerf"\) === "1"/);
   assert.match(mapCode, /\[HINANEX map perf\] tile batch/);
   assert.match(mapCode, /\[HINANEX map perf\] D markers/);
-  assert.equal(L.__map.options.zoomSnap, 0.25, "new scroll zoom snaps to quarter steps");
+  assert.equal(L.__map.options.zoomSnap, 0,
+    "continuous mode must not snap wheel and pinch gestures to discrete levels");
   assert.equal(L.__map.options.zoomDelta, 0.5, "+/- and keyboard remain half steps");
-  assert.equal(L.__map.options.wheelPxPerZoomLevel, 240, "gentler wheel needs more travel");
-  assert.equal(L.__map.options.wheelDebounceTime, 55, "briefly combine wheel bursts");
+  assert.equal(L.__map.options.wheelPxPerZoomLevel, 100,
+    "restore responsive wheel speed: the previous 240 was too sluggish");
+  assert.equal(L.__map.options.wheelDebounceTime, 40, "restore default debounce");
   assert.equal(L.__map.options.preferCanvas, true, "renderer is unchanged");
+  assert.match(mapCode, /\[HINANEX map perf\] zoom gesture/);
 
   const old = makeContext({
     protocol: "http:",
@@ -1551,4 +1554,20 @@ nagoya.scenarios = [{
     "both versions retain Japan zoom floor");
   assert.equal(old.L.__map.getZoom(), L.__map.getZoom(),
     "same municipality zoom for fair comparisons");
+
+  const slow = makeContext({
+    protocol: "http:",
+    href: "http://test/gis/gis/?region=13123&zoomFeel=slow",
+    fetchImpl: async () => ({ ok: false, status: 404, json: async () => ({}) })
+  });
+  assert.equal(slow.L.__map.options.zoomSnap, 0.25,
+    "rejected slow mode remains available for controlled comparison");
+  assert.equal(slow.L.__map.options.zoomDelta, 0.5);
+  assert.equal(slow.L.__map.options.wheelPxPerZoomLevel, 240);
+  assert.equal(slow.L.__map.options.wheelDebounceTime, 55);
+  assert.equal(slow.L.__tiles[0].options.updateWhenZooming, true);
+  assert.equal(slow.L.__tiles[1].options.updateWhenZooming, false);
+  assert.equal(slow.L.__map.minZoom, L.__map.minZoom,
+    "slow and responsive modes respect the same Japan min zoom");
+  assert.equal(slow.L.__map.getZoom(), L.__map.getZoom());
 }

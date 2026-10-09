@@ -21,20 +21,24 @@ const REGION_CONFIGS = {
 
 const FLOOD_REFERENCE_URL = "https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png";
 
-// Side-by-side QA switch: ?zoomFeel=previous retains the previous gesture
-// settings without changing the map data, selected region or URL behavior.
-// Default uses finer scroll snap and less aggressive wheel sensitivity.
-const previousZoomFeel = new URL(window.location.href).searchParams.get("zoomFeel") === "previous";
+// A/B investigation: the prior 240px wheel setting felt unresponsive, while
+// even 0.25 zoomSnap still rounded gestures into visible steps. Default to
+// continuous (unsnapped) wheel/pinch zoom at the formerly responsive speed.
+// ?zoomFeel=previous compares with 0.5-step/100px; ?zoomFeel=slow compares
+// with the rejected 0.25-step/240px tuning. Neither touches source data.
+const zoomFeelMode = new URL(window.location.href).searchParams.get("zoomFeel");
+const previousZoomFeel = zoomFeelMode === "previous";
+const slowZoomFeel = zoomFeelMode === "slow";
 const map = L.map("map", {
   zoomControl: true,
   attributionControl: true,
   preferCanvas: true,
-  zoomSnap: previousZoomFeel ? 0.5 : 0.25,
+  // Leaflet docs: zoomSnap 0 removes intermediate zoom-level snapping.
+  zoomSnap: slowZoomFeel ? 0.25 : previousZoomFeel ? 0.5 : 0,
+  // Keep +/- button and keyboard navigation predictable.
   zoomDelta: 0.5,
-  // A mouse-wheel notch was still advancing several fractional steps; increase
-  // pixels per zoom level to avoid another abrupt tile/marker visual jump.
-  wheelPxPerZoomLevel: previousZoomFeel ? 100 : 240,
-  wheelDebounceTime: previousZoomFeel ? 40 : 55
+  wheelPxPerZoomLevel: slowZoomFeel ? 240 : 100,
+  wheelDebounceTime: slowZoomFeel ? 55 : 40
 }).setView([35.704, 139.882], 13);
 
 map.createPane("officialFloodPane");
@@ -56,11 +60,11 @@ const baseMap = L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y
   minZoom: 2,
   maxZoom: 18,
   maxNativeZoom: 18,
-  // Keep nearby tiles cached and refresh the background during animated
-  // fractional zoom to reduce late sharp image swaps. The heavier official
-  // flood raster remains on end-of-zoom updates, with warnings unchanged.
+  // Avoid additional bitmap swaps while the wheel gesture is still moving.
+  // Only the rejected slow mode re-enables mid-animation basemap requests.
+  // Official flood data is never hidden/changed to simulate smoothness.
   keepBuffer: 3,
-  updateWhenZooming: !previousZoomFeel,
+  updateWhenZooming: slowZoomFeel,
   attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>'
 }).addTo(map);
 
@@ -84,6 +88,19 @@ function perfTime() {
     ? performance.now() : Date.now();
 }
 if (debugMapPerf) {
+  // Zoom duration is recorded without location coordinates or user events
+  // being transmitted; this distinguishes rendering delay from sensitivity.
+  let zoomStartedAt = null;
+  map.on("zoomstart", () => { zoomStartedAt = perfTime(); });
+  map.on("zoomend", () => {
+    if (zoomStartedAt === null) return;
+    console.info("[HINANEX map perf] zoom gesture", {
+      durationMs: Math.round(perfTime() - zoomStartedAt),
+      zoom: Number(map.getZoom().toFixed(2)),
+      mode: zoomFeelMode || "continuous"
+    });
+    zoomStartedAt = null;
+  });
   for (const [label, layer] of [["GSI basemap", baseMap], ["Official flood raster", officialFloodLayer]]) {
     let loadingSince = null;
     layer.on("loading", () => { loadingSince = perfTime(); });
