@@ -61,8 +61,15 @@ foreach ($tile in $tiles) {
     }
     catch {
         $unverified += 1
-        Write-Warning ("NOT VERIFIED tile " + $z + "/" + $tx + "/" + $ty + ": " + $_.Exception.Message)
-        if ($tile.Origin) { throw 'Origin tile did not pass C + HTTPS verification; demo data unavailable.' }
+        # The error might have occurred AFTER C HTTPS MATCH and all Node tests,
+        # e.g. the opt-in static publication step. Do not relabel that audit as
+        # failed or claim that the official source was unverified.
+        Write-Warning ("TILE PIPELINE INCOMPLETE " + $z + "/" + $tx + "/" + $ty +
+            " (validation OR publication; inspect the preserved audit folder): " +
+            $_.Exception.Message)
+        if ($tile.Origin) {
+            throw 'Origin tile pipeline did not complete. Preserve its audit evidence and inspect the original error.'
+        }
     }
 }
 Write-Host "Result: verified $verified tile(s); unverified $unverified tile(s)."
