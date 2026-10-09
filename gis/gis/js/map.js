@@ -29,17 +29,74 @@ const FLOOD_REFERENCE_URL = "https://disaportaldata.gsi.go.jp/raster/01_flood_l2
 const zoomFeelMode = new URL(window.location.href).searchParams.get("zoomFeel");
 const previousZoomFeel = zoomFeelMode === "previous";
 const slowZoomFeel = zoomFeelMode === "slow";
+// Persist only gesture preferences in this browser. Never persist map/GPS
+// coordinates, source data, or disaster/safety assessments.
+const GESTURE_PREF_KEY = "hinanex.gis.gesture.v1";
+const DEFAULT_WHEEL_SENSITIVITY = 1.5;
+function normalizeWheelSensitivity(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return DEFAULT_WHEEL_SENSITIVITY;
+  return Math.round(Math.max(0.5, Math.min(2.5, number)) * 4) / 4;
+}
+function normalizeZoomStyle(value) {
+  return value === "steps" ? "steps" : "continuous";
+}
+function readGesturePrefs() {
+  try {
+    const stored = JSON.parse(window.localStorage?.getItem(GESTURE_PREF_KEY) || "null");
+    if (stored && typeof stored === "object") return {
+      sensitivity: normalizeWheelSensitivity(stored.sensitivity),
+      style: normalizeZoomStyle(stored.style)
+    };
+  } catch (_) {
+    // Private browsing/storage blocking must not disable map interaction.
+  }
+  return { sensitivity: DEFAULT_WHEEL_SENSITIVITY, style: "continuous" };
+}
+const savedGesturePrefs = readGesturePrefs();
+let gesturePrefs = { ...savedGesturePrefs };
 const map = L.map("map", {
   zoomControl: true,
   attributionControl: true,
   preferCanvas: true,
-  // Leaflet docs: zoomSnap 0 removes intermediate zoom-level snapping.
-  zoomSnap: slowZoomFeel ? 0.25 : previousZoomFeel ? 0.5 : 0,
-  // Keep +/- button and keyboard navigation predictable.
+  // Retain historical A/B comparison query modes; settings take over once
+  // the user explicitly changes a control.
+  zoomSnap: slowZoomFeel ? 0.25 : previousZoomFeel ? 0.5
+    : gesturePrefs.style === "steps" ? 0.5 : 0,
   zoomDelta: 0.5,
-  wheelPxPerZoomLevel: slowZoomFeel ? 240 : 100,
+  wheelPxPerZoomLevel: slowZoomFeel ? 240 : previousZoomFeel ? 100
+    : Math.round(100 / gesturePrefs.sensitivity),
   wheelDebounceTime: slowZoomFeel ? 55 : 40
 }).setView([35.704, 139.882], 13);
+function getGesturePrefs() {
+  return { ...gesturePrefs };
+}
+function setGesturePrefs(changes) {
+  gesturePrefs = {
+    sensitivity: normalizeWheelSensitivity(
+      changes.sensitivity === undefined ? gesturePrefs.sensitivity : changes.sensitivity
+    ),
+    style: normalizeZoomStyle(
+      changes.style === undefined ? gesturePrefs.style : changes.style
+    )
+  };
+  // Leaflet's wheel handler reads wheelPxPerZoomLevel from map.options for
+  // each gesture; live changes don't need a map reload or a setView() call.
+  map.options.wheelPxPerZoomLevel = Math.round(100 / gesturePrefs.sensitivity);
+  map.options.zoomSnap = gesturePrefs.style === "steps" ? 0.5 : 0;
+  map.options.wheelDebounceTime = 40;
+  try { window.localStorage?.setItem(GESTURE_PREF_KEY, JSON.stringify(gesturePrefs)); }
+  catch (_) { /* session-only fallback */ }
+  return getGesturePrefs();
+}
+function resetGesturePrefs() {
+  return setGesturePrefs({ sensitivity: DEFAULT_WHEEL_SENSITIVITY, style: "continuous" });
+}
+window.HINANEX_MAP_GESTURES = Object.freeze({
+  getSettings: getGesturePrefs,
+  setSettings: setGesturePrefs,
+  resetSettings: resetGesturePrefs
+});
 
 map.createPane("officialFloodPane");
 map.getPane("officialFloodPane").style.zIndex = 410;
