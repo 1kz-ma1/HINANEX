@@ -46,6 +46,10 @@ const baseMap = L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y
   minZoom: 2,
   maxZoom: 18,
   maxNativeZoom: 18,
+  // Reuse nearby loaded tiles across short pan/zoom gestures and request new
+  // zoom levels once the interaction settles (rather than during animation).
+  keepBuffer: 3,
+  updateWhenZooming: false,
   attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>'
 }).addTo(map);
 
@@ -55,8 +59,34 @@ const officialFloodLayer = L.tileLayer(FLOOD_REFERENCE_URL, {
   maxZoom: 18,
   maxNativeZoom: 17,
   opacity: 0.58,
+  keepBuffer: 3,
+  updateWhenZooming: false,
   attribution: '出典：<a href="https://disaportal.gsi.go.jp/" target="_blank" rel="noopener">ハザードマップポータルサイト</a>'
 }).addTo(map);
+
+// Opt-in, local-only timing. ?debugMapPerf=1 logs tile-batch completion
+// latency and visible D marker changes; no coordinates, network telemetry or
+// persistent state is captured. Useful for desktop/mobile before-after QA.
+const debugMapPerf = new URL(window.location.href).searchParams.get("debugMapPerf") === "1";
+function perfTime() {
+  return typeof performance !== "undefined" && performance.now
+    ? performance.now() : Date.now();
+}
+if (debugMapPerf) {
+  for (const [label, layer] of [["GSI basemap", baseMap], ["Official flood raster", officialFloodLayer]]) {
+    let loadingSince = null;
+    layer.on("loading", () => { loadingSince = perfTime(); });
+    layer.on("load", () => {
+      if (loadingSince === null) return;
+      console.info("[HINANEX map perf] tile batch", {
+        layer: label,
+        durationMs: Math.round(perfTime() - loadingSince),
+        zoom: map.getZoom()
+      });
+      loadingSince = null;
+    });
+  }
+}
 
 const boundaryGroup = L.layerGroup().addTo(map);
 const shelterGroup = L.layerGroup().addTo(map);
@@ -853,7 +883,7 @@ function groupMappedDRecords(records, zoom, project) {
 }
 
 function drawIndividualDMarker(record, summary) {
-    L.marker([record.latitude, record.longitude], { icon: shelterIcon(), pane: "shelterPane" })
+    return L.marker([record.latitude, record.longitude], { icon: shelterIcon(), pane: "shelterPane" })
       .on("click", event => {
         L.DomEvent.stopPropagation(event);
         detail(
@@ -889,48 +919,86 @@ function drawIndividualDMarker(record, summary) {
               : "null は未確認 / 判定不能を意味します。E側で値を補完・推測していません。"
           }
         );
-      })
-      .addTo(shelterGroup);
+      });
+}
+
+// Layer objects are retained while their exact D-record membership stays the
+// same across zoom steps. No location data is changed, and group centroids
+// remain clearly labelled non-facility visual aggregates.
+let visibleDMarkers = new Map();
+let visibleDMarkerSummary = null;
+let dRecordIndices = new Map();
+function drawDClusterMarker(records) {
+  const latitude = records.reduce((sum, record) => sum + record.latitude, 0) / records.length;
+  const longitude = records.reduce((sum, record) => sum + record.longitude, 0) / records.length;
+  const count = records.length;
+  return L.marker([latitude, longitude], {
+    pane: "shelterPane",
+    title: "近接するD施設" + count + "件（地図表示用の集合、優先順位ではありません）",
+    icon: L.divIcon({
+      className: "",
+      html: '<div class="d-facility-cluster" aria-label="近接するD施設' +
+        count + '件を地図表示用にまとめています。安全性未判定">' +
+        count.toLocaleString("ja-JP") + '</div>',
+      iconSize: [42, 42],
+      iconAnchor: [21, 21]
+    })
+  }).on("click", event => {
+    L.DomEvent.stopPropagation(event);
+    detail("D施設の表示上の集合（" + count + "件）", [
+      ["件数", count + "件（地図上の重なりを軽減するための表示件数）"],
+      ["対象", currentRegion().label + "のD RegionExport"],
+      ["表示位置", "含まれる施設座標の平均値（実在する施設位置ではありません）"]
+    ], "地図表示用クラスタ", {
+      note: "この円の中心は避難場所ではありません。クリックで拡大すると個別施設の元データを確認できます。安全性・開設状況・経路・優先順位は未判定です。"
+    });
+    map.setView([latitude, longitude], Math.min(13, map.getZoom() + 2));
+  });
 }
 
 function renderDMarkers() {
-  shelterGroup.clearLayers();
+  const startedAt = debugMapPerf ? perfTime() : 0;
   const summary = currentShelterSummary;
+  if (summary !== visibleDMarkerSummary) {
+    // A municipality/data refresh must never reuse stale markers or closures.
+    shelterGroup.clearLayers();
+    visibleDMarkers.clear();
+    visibleDMarkerSummary = summary;
+    dRecordIndices = new Map((summary?.mappableRecords || []).map((record, index) => [record, index]));
+  }
   if (!summary?.mappableRecords?.length) return;
   const zoom = map.getZoom();
   const batches = groupMappedDRecords(summary.mappableRecords, zoom,
     (coordinate, level) => map.project(coordinate, level));
-  batches.forEach(records => {
-    if (records.length === 1) {
-      drawIndividualDMarker(records[0], summary);
-      return;
+  const next = new Map();
+  let added = 0;
+  let removed = 0;
+  // This key denotes *exact membership* within one loaded RegionExport.
+  // Duplicate facility IDs are safe because identity is based on row index.
+  for (const records of batches) {
+    const key = records.map(record => dRecordIndices.get(record)).join(",");
+    let marker = visibleDMarkers.get(key);
+    if (!marker) {
+      marker = records.length === 1
+        ? drawIndividualDMarker(records[0], summary)
+        : drawDClusterMarker(records);
+      shelterGroup.addLayer(marker);
+      added++;
     }
-    const latitude = records.reduce((sum, record) => sum + record.latitude, 0) / records.length;
-    const longitude = records.reduce((sum, record) => sum + record.longitude, 0) / records.length;
-    const count = records.length;
-    L.marker([latitude, longitude], {
-      pane: "shelterPane",
-      title: "近接するD施設" + count + "件（地図表示用の集合、優先順位ではありません）",
-      icon: L.divIcon({
-        className: "",
-        html: '<div class="d-facility-cluster" aria-label="近接するD施設' +
-          count + '件を地図表示用にまとめています。安全性未判定">' +
-          count.toLocaleString("ja-JP") + '</div>',
-        iconSize: [42, 42],
-        iconAnchor: [21, 21]
-      })
-    }).on("click", event => {
-      L.DomEvent.stopPropagation(event);
-      detail("D施設の表示上の集合（" + count + "件）", [
-        ["件数", count + "件（地図上の重なりを軽減するための表示件数）"],
-        ["対象", currentRegion().label + "のD RegionExport"],
-        ["表示位置", "含まれる施設座標の平均値（実在する施設位置ではありません）"]
-      ], "地図表示用クラスタ", {
-        note: "この円の中心は避難場所ではありません。クリックで拡大すると個別施設の元データを確認できます。安全性・開設状況・経路・優先順位は未判定です。"
-      });
-      map.setView([latitude, longitude], Math.min(13, map.getZoom() + 2));
-    }).addTo(shelterGroup);
-  });
+    next.set(key, marker);
+  }
+  for (const [key, marker] of visibleDMarkers) {
+    if (next.has(key)) continue;
+    shelterGroup.removeLayer(marker);
+    removed++;
+  }
+  visibleDMarkers = next;
+  if (debugMapPerf) {
+    console.info("[HINANEX map perf] D markers", {
+      zoom, visible: next.size, added, removed,
+      durationMs: Math.round(perfTime() - startedAt)
+    });
+  }
 }
 
 map.on("zoomend", renderDMarkers);
