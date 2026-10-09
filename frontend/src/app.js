@@ -27,6 +27,7 @@ const evidenceDialog = document.querySelector("#evidenceDialog");
 const evidenceBody = document.querySelector("#evidenceBody");
 const closeEvidence = document.querySelector("#closeEvidence");
 const regionSelect = document.querySelector("#regionSelect");
+const mapBackLink = document.querySelector("#mapBackLink");
 const reloadRegionExport = document.querySelector("#reloadRegionExport");
 const regionExportFile = document.querySelector("#regionExportFile");
 const loadDemoData = document.querySelector("#loadDemoData");
@@ -763,6 +764,9 @@ function clearRegionContent() {
 }
 
 function setActiveRegion(regionCode) {
+  // Keep the persistent GIS return link aligned to the region being viewed.
+  // Synthetic demo data is not promoted as a mapped real-world region.
+  mapBackLink.href = buildGisRegionUrl(regionCode ?? regionSelect.value);
   for (const button of regionButtons) {
     const isActive = isSelectedRegion(regionCode, button.dataset.regionCode);
     button.classList.toggle("is-active", isActive);
