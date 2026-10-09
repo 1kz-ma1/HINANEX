@@ -254,7 +254,7 @@ function updateMapOriginAction(message, picking = false) {
 // A cached single-tile script may expose the old API without throwing during
 // <script> evaluation. Fail CLOSED with actionable feedback instead of
 // crashing the map when the newer controller calls missing functions.
-const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v9";
+const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v10";
 function compatibleDiscoveryEngine() {
   const engine = window.HINANEX_FLOOD_DISCOVERY;
   return engine && engine.apiVersion === REQUIRED_DISCOVERY_VERSION &&
@@ -706,15 +706,23 @@ function showDatasetOverview(summary, sourceLabel) {
   );
 }
 
-function renderShelterSummary(summary, sourceLabel) {
-  shelterGroup.clearLayers();
-  currentShelterSummary = summary;
-  updateCoverage(summary);
-  applyDisplayMode(); // if D arrives after GSI, update comparison availability
+// This screen-pixel grid is visual decluttering only; not a facility location,
+// coverage zone, opening-capacity aggregate, recommendation or safety ranking.
+// Cluster coordinates are display centroids of original D coordinates.
+function groupMappedDRecords(records, zoom, project) {
+  if (zoom >= 13) return records.map(record => [record]);
+  const width = zoom <= 10 ? 84 : 64;
+  const cells = new Map();
+  records.forEach(record => {
+    const point = project([record.latitude, record.longitude], zoom);
+    const key = Math.floor(point.x / width) + ":" + Math.floor(point.y / width);
+    if (!cells.has(key)) cells.set(key, []);
+    cells.get(key).push(record);
+  });
+  return [...cells.values()];
+}
 
-  const latLngs = [];
-  summary.mappableRecords.forEach(record => {
-    latLngs.push([record.latitude, record.longitude]);
+function drawIndividualDMarker(record, summary) {
     L.marker([record.latitude, record.longitude], { icon: shelterIcon(), pane: "shelterPane" })
       .on("click", event => {
         L.DomEvent.stopPropagation(event);
@@ -753,7 +761,59 @@ function renderShelterSummary(summary, sourceLabel) {
         );
       })
       .addTo(shelterGroup);
+}
+
+function renderDMarkers() {
+  shelterGroup.clearLayers();
+  const summary = currentShelterSummary;
+  if (!summary?.mappableRecords?.length) return;
+  const zoom = map.getZoom();
+  const batches = groupMappedDRecords(summary.mappableRecords, zoom,
+    (coordinate, level) => map.project(coordinate, level));
+  batches.forEach(records => {
+    if (records.length === 1) {
+      drawIndividualDMarker(records[0], summary);
+      return;
+    }
+    const latitude = records.reduce((sum, record) => sum + record.latitude, 0) / records.length;
+    const longitude = records.reduce((sum, record) => sum + record.longitude, 0) / records.length;
+    const count = records.length;
+    L.marker([latitude, longitude], {
+      pane: "shelterPane",
+      title: "近接するD施設" + count + "件（地図表示用の集合、優先順位ではありません）",
+      icon: L.divIcon({
+        className: "",
+        html: '<div class="d-facility-cluster" aria-label="近接するD施設' +
+          count + '件を地図表示用にまとめています。安全性未判定">' +
+          count.toLocaleString("ja-JP") + '</div>',
+        iconSize: [42, 42],
+        iconAnchor: [21, 21]
+      })
+    }).on("click", event => {
+      L.DomEvent.stopPropagation(event);
+      detail("D施設の表示上の集合（" + count + "件）", [
+        ["件数", count + "件（地図上の重なりを軽減するための表示件数）"],
+        ["対象", currentRegion().label + "のD RegionExport"],
+        ["表示位置", "含まれる施設座標の平均値（実在する施設位置ではありません）"]
+      ], "地図表示用クラスタ", {
+        note: "この円の中心は避難場所ではありません。クリックで拡大すると個別施設の元データを確認できます。安全性・開設状況・経路・優先順位は未判定です。"
+      });
+      map.setView([latitude, longitude], Math.min(13, map.getZoom() + 2));
+    }).addTo(shelterGroup);
   });
+}
+
+map.on("zoomend", renderDMarkers);
+
+function renderShelterSummary(summary, sourceLabel) {
+  currentShelterSummary = summary;
+  updateCoverage(summary);
+  applyDisplayMode(); // if D arrives after GSI, update comparison availability
+
+  // Keep bounds based on ALL verified D positions, never on cluster-centroid
+  // display points (which are not actual facility locations).
+  const latLngs = summary.mappableRecords.map(record => [record.latitude, record.longitude]);
+  renderDMarkers();
 
   shelterBounds = latLngs.length ? L.latLngBounds(latLngs) : null;
   const listOnly = summary.records.length > 0 && summary.mappableRecords.length === 0;
