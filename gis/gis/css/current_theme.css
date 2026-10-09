@@ -193,3 +193,65 @@ footer{height:36px;background:#091825;color:var(--muted);border-top:1px solid va
 @media(prefers-reduced-motion:reduce){
   .gis-view-tab{transition:none}
 }
+
+/* GIS sidebar information hierarchy — actions and safety status first;
+   existing IDs/data contracts are kept, technical controls are native details. */
+.left .sidebar-section{padding:15px 18px;border-bottom:1px solid var(--line)}
+.left .sidebar-eyebrow{margin:0 0 5px;font-size:9px;font-weight:800;
+  color:var(--cyan);letter-spacing:.15em}
+.left .sidebar-section>h3{margin:0 0 10px;font-size:14px}
+.left .sidebar-section>.section-heading{margin:0 0 8px}
+.left .sidebar-section>.section-heading h3{margin:0}
+.left .sidebar-section--region{background:linear-gradient(140deg,#132936,var(--surface))}
+.left .sidebar-section--explore{background:var(--surface)}
+.left .sidebar-assist{margin:0 0 9px;font-size:11px;line-height:1.6;color:var(--muted)}
+.left .sidebar-section--explore .secondary-button{margin-top:7px}
+.left .sidebar-safety-note{margin:8px 0;color:var(--amber);font-size:10px;line-height:1.6}
+.left .sidebar-safety-note strong{font-weight:700}
+.left .sidebar-section--status{background:rgba(78,215,220,.045);
+  border-left:2px solid var(--cyan)}
+.left .sidebar-section--status #status{font-size:12px;line-height:1.6;
+  font-weight:700;color:var(--text);overflow-wrap:anywhere}
+.left .sidebar-section--status #status[data-tone="warning"]{color:var(--amber)}
+.left .sidebar-section--status #status[data-tone="error"]{color:#ff8b91}
+.left .sidebar-section--status #status[data-tone="success"]{color:var(--green)}
+.left .sidebar-section--status .external-flood-tile-notice{font-weight:500;
+  font-size:11px;color:var(--amber);background:rgba(245,189,114,.13);
+  border-left:3px solid var(--amber);padding:9px 10px;border-radius:6px}
+.left .sidebar-section--status .external-flood-tile-notice[hidden]{display:none}
+.left .sidebar-section--status small{display:block;color:var(--muted);font-size:10px;line-height:1.6}
+.left .sidebar-section--data .coverage{margin:7px 0 9px}
+.left .sidebar-section--data #datasetStatus{display:block;
+  font-size:10px;line-height:1.6;overflow-wrap:anywhere}
+.left .sidebar-section--layers>label{margin:9px 0;color:var(--text);line-height:1.4}
+.left .sidebar-section--legend{padding:10px 18px}
+.left .sidebar-disclosure{margin-top:12px;border-top:1px solid var(--line);
+  color:var(--text)}
+.left .sidebar-disclosure summary{list-style:none;position:relative;
+  display:flex;align-items:center;justify-content:space-between;
+  cursor:pointer;gap:6px;min-height:37px;padding:9px 1px;
+  color:var(--muted);font-size:11px;font-weight:700;line-height:1.5}
+.left .sidebar-disclosure summary::-webkit-details-marker{display:none}
+.left .sidebar-disclosure summary:after{content:"＋";font-size:14px;
+  color:var(--cyan);font-weight:700;flex:none}
+.left .sidebar-disclosure[open] summary:after{content:"−"}
+.left .sidebar-disclosure summary:hover{color:var(--cyan)}
+.left .sidebar-disclosure summary:focus-visible{outline:3px solid var(--cyan);outline-offset:2px;border-radius:4px}
+.left .sidebar-disclosure-body{padding:3px 0 12px;
+  color:var(--muted);font-size:11px}
+.left .sidebar-disclosure-body>.explorer-caveat{margin:10px 0 0}
+.left .sidebar-disclosure-body>.explorer-intro{margin:9px 0}
+.left .sidebar-disclosure-body>.loader-copy{margin:6px 0}
+.left .sidebar-disclosure-body>.scenario-evidence-warning{display:block;margin-top:10px}
+.left .sidebar-disclosure-body>.file-label{margin:8px 0;font-size:12px}
+.left .sidebar-disclosure-body>.secondary-button{margin-top:8px}
+.left .sidebar-disclosure-body .opacity-control{margin-top:9px}
+.left .sidebar-disclosure-body .legend-grid{margin:4px 0 9px}
+/* On small screens one full-width sidebar avoids cramped half-width form controls. */
+@media(max-width:680px){
+  .left{display:grid;grid-template-columns:minmax(0,1fr)}
+  .left section,.left .data-loader,.left .flood-explorer,
+  .left section.scenario-intro{grid-column:1/-1}
+  .left .sidebar-section{padding:12px 16px}
+  .left .sidebar-section--legend{padding:9px 16px}
+}
