@@ -66,7 +66,7 @@
         <div><span>地図表示</span><strong id="mappedCount">—</strong></div>
         <div><span>座標欠損</span><strong id="missingCoordinateCount">—</strong></div>
       </div>
-      <small id="datasetStatus">ローカルHTTP起動時は選択地域に対応する `pipeline/data/output/{region}.json` を自動探索します。生成物はGit管理外のため、未生成時はJSONを選択してください。</small>
+      <small id="datasetStatus">ローカルHTTP起動時は選択地域に対応する `pipeline/data/output/{region}.json` を自動探索します。生成物はGit管理外です。見つからない場合は元のworktreeからコピーするかJSONを選択してください。公式GSIの地点探索はD出力なしでも利用できます。</small>
       <small class="scenario-evidence-warning">洪水Scenarioが含まれる場合、公式の記号・利用階とDのUNKNOWNを施設IDで照合して表示します。○・×から安全性や開設可否を推測せず、洪水ラスタと施設点の交差から独自判定もしません。</small>
     </section>
 
@@ -92,6 +92,10 @@
 
   <main class="map-wrap">
     <div id="map"></div>
+    <div class="origin-map-action" aria-label="地点探索操作">
+      <button id="mapOriginShortcut" type="button">地点を指定して探索</button>
+      <p id="mapOriginShortcutStatus" role="status" aria-live="polite">ボタンを押してから地図をクリック</p>
+    </div>
     <div id="mapUnavailable" class="map-unavailable" hidden>
       <strong id="mapUnavailableTitle">表示範囲を確定できません</strong>
       <span id="mapUnavailableMessage">Dの座標付きデータを読み込むと地図を移動します。</span>
@@ -134,7 +138,7 @@
 <script src="js/d_region_adapter.js"></script>
 <script src="js/facility_list.js"></script>
 <!-- Keep discovery and map on one release key: prevents mixed browser cache versions. -->
-<script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v2"></script>
-<script src="js/map.js?v=gsi-z10-neighbors-20261009-v2"></script>
+<script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v3"></script>
+<script src="js/map.js?v=gsi-z10-neighbors-20261009-v3"></script>
 </body>
 </html>

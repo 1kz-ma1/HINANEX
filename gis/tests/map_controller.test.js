@@ -69,6 +69,9 @@ function makeElement(id) {
     dataset: {},
     files: [],
     listeners: {},
+    attributes: {},
+    setAttribute(name, value) { this.attributes[name] = String(value); },
+    getAttribute(name) { return this.attributes[name]; },
     addEventListener(name, fn) { this.listeners[name] = fn; }
   };
 }
@@ -148,7 +151,7 @@ function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = nul
     "mapUnavailableTitle", "facilityListPanel", "facilityListSearch",
     "facilityListCount", "facilityListResults", "facilityListPrev", "facilityListNext",
     "facilityListPage", "scenarioHazard", "selectOrigin", "useGps",
-    "originStatus", "floodDiscoveryResults"
+    "originStatus", "floodDiscoveryResults", "mapOriginShortcut", "mapOriginShortcutStatus"
   ];
   const elements = Object.fromEntries(ids.map(id => [id, makeElement(id)]));
   const L = makeLeafletStub();
@@ -268,15 +271,21 @@ nagoya.scenarios = [{
   assert.match(httpCase.elements.status.textContent, /2件表示中/);
   assert.match(httpCase.elements.resetView.textContent, /東京都 江戸川区/);
   assert.equal(httpCase.elements.selectOrigin.disabled, false);
+  assert.equal(httpCase.elements.mapOriginShortcut.getAttribute("aria-pressed"), "false");
+  assert.match(httpCase.elements.mapOriginShortcutStatus.textContent, /地図/);
   assert.match(httpCase.elements.floodDiscoveryResults.innerHTML, /地図から出発地点/);
   // User action selects a point; missing C-accepted catalog never promotes
   // existing Edogawa shelter_location records into safe/approved candidates.
-  httpCase.elements.selectOrigin.listeners.click();
+  httpCase.elements.mapOriginShortcut.listeners.click();
+  assert.equal(httpCase.elements.mapOriginShortcut.getAttribute("aria-pressed"), "true");
+  assert.match(httpCase.elements.mapOriginShortcutStatus.textContent, /地点指定モード/);
   assert.match(httpCase.elements.originStatus.textContent, /地図上/);
   httpCase.L.__map.handlers.click({ latlng: { lat: 35.700, lng: 139.880 } });
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.match(httpCase.elements.originStatus.textContent, /端末内だけ/);
   assert.match(httpCase.elements.floodDiscoveryResults.innerHTML, /独立照合待ち/);
+  assert.match(httpCase.elements.mapOriginShortcutStatus.textContent, /未検証/);
+  assert.equal(httpCase.elements.mapOriginShortcut.getAttribute("aria-pressed"), "false");
   assert.doesNotMatch(httpCase.elements.floodDiscoveryResults.innerHTML, /Edogawa A/);
   // Geolocation permission or API absence must not cause a crash.
   httpCase.elements.useGps.listeners.click();
@@ -315,6 +324,27 @@ nagoya.scenarios = [{
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.match(noScriptCase.elements.floodDiscoveryResults.textContent, /バージョンが一致しません/);
   assert.equal(noScriptCase.elements.recordCount.textContent, 2);
+
+  // GIS must explain a missing ignored RegionExport without disabling
+  // the independent official GSI discovery origin picker or hiding the map.
+  const missingDCase = makeContext({
+    protocol: "http:",
+    fetchImpl: async url => {
+      if (String(url).includes("edogawa.json")) return { ok: false, status: 404 };
+      return { ok: false, status: 404 };
+    }
+  });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.match(missingDCase.elements.datasetStatus.textContent, /D RegionExportを読み込めません/);
+  assert.match(missingDCase.elements.datasetStatus.textContent, /GSI公式地点探索は別データ/);
+  assert.equal(missingDCase.elements.mapOriginShortcut.disabled, false);
+  assert.equal(missingDCase.elements.mapOriginShortcut.getAttribute("aria-pressed"), "false");
+  missingDCase.elements.mapOriginShortcut.listeners.click();
+  assert.equal(missingDCase.elements.mapOriginShortcut.getAttribute("aria-pressed"), "true");
+  missingDCase.L.__map.handlers.click({ latlng: { lat: 35.7, lng: 139.9 } });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(missingDCase.elements.mapOriginShortcut.getAttribute("aria-pressed"), "false");
+  assert.match(missingDCase.elements.originStatus.textContent, /35.70000/);
 
   // Frontend -> GIS deep link: a supported region query selects that region before auto-load.
   const queryCase = makeContext({
@@ -456,6 +486,7 @@ nagoya.scenarios = [{
   acceptedCase.L.__map.handlers.click({ latlng: { lat: 35.7, lng: 139.88 } });
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.match(acceptedCase.elements.floodDiscoveryResults.innerHTML, /直線距離/);
+  assert.match(acceptedCase.elements.mapOriginShortcutStatus.textContent, /検証済み/);
   assert.match(acceptedCase.elements.floodDiscoveryResults.innerHTML, /行くべき順ではありません/);
   assert.match(acceptedCase.elements.floodDiscoveryResults.innerHTML, /&lt;unsafe&gt;/);
   assert.doesNotMatch(acceptedCase.elements.floodDiscoveryResults.innerHTML, /<unsafe>/);
