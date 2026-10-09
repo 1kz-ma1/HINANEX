@@ -3,12 +3,67 @@
   const id = name => document.getElementById(name);
   const layout = id("gisLayout");
   const menuIds = ["mapToolScene", "mapToolScenario", "mapToolMarks", "mapToolHazards"];
-  for (const menuId of menuIds) {
-    id(menuId).addEventListener("toggle", () => {
-      if (!id(menuId).open) return;
-      for (const other of menuIds) if (other !== menuId) id(other).open = false;
+  const toolMenus = menuIds.map(id);
+  const referenceDisclosure = id("referenceMapSummaryDisclosure");
+  const referenceSummary = id("referenceMapSummary");
+  const leftPanel = id("gisLeftPanel"), rightPanel = id("details");
+  const dismissedMapClicks = new WeakSet();
+
+  function isPanelOpen(side) {
+    return layout.getAttribute("data-" + side + "-panel") === "open";
+  }
+  function closePanel(side) {
+    if (!isPanelOpen(side)) return;
+    id(side === "left" ? "toggleLeftPanel" : "toggleRightPanel").click();
+  }
+  function closeMenus(except = null) {
+    for (const menu of toolMenus) if (menu !== except) menu.open = false;
+  }
+  function closeOtherSurfaces(except = null) {
+    closeMenus(except);
+    if (except !== leftPanel) closePanel("left");
+    if (except !== rightPanel) closePanel("right");
+    if (except !== referenceDisclosure) referenceDisclosure.open = false;
+  }
+  for (const menu of toolMenus) {
+    menu.addEventListener("toggle", () => {
+      if (!menu.open) return;
+      closeOtherSurfaces(menu);
     });
   }
+  referenceDisclosure.addEventListener("toggle", () => {
+    if (referenceDisclosure.open) closeOtherSurfaces(referenceDisclosure);
+  });
+  id("mapOpenAdvanced").addEventListener("click", () => {
+    closeOtherSurfaces(leftPanel);
+    if (!isPanelOpen("left")) id("toggleLeftPanel").click();
+  });
+
+  // Capture before Leaflet's map/marker click handler: a tap that dismisses a
+  // sheet is not simultaneously interpreted as a new hazard reference tap.
+  // A deliberate second tap can still inspect the map as before.
+  document.addEventListener("click", event => {
+    const target = event.target;
+    const inOpenMenu = toolMenus.some(menu => menu.open && menu.contains(target));
+    const inLeft = isPanelOpen("left") && leftPanel.contains(target);
+    const inRight = isPanelOpen("right") && rightPanel.contains(target);
+    const inReference = !referenceSummary.hidden && referenceDisclosure.open &&
+      referenceSummary.contains(target);
+    if (inOpenMenu || inLeft || inRight || inReference) return;
+    const wasOpen = toolMenus.some(menu => menu.open) ||
+      isPanelOpen("left") || isPanelOpen("right") || referenceDisclosure.open;
+    if (!wasOpen) return;
+    if (event && typeof event === "object") dismissedMapClicks.add(event);
+    closeOtherSurfaces();
+  }, true);
+  document.addEventListener("keydown", event => {
+    if (event.key !== "Escape") return;
+    const wasOpen = toolMenus.some(menu => menu.open) ||
+      isPanelOpen("left") || isPanelOpen("right") || referenceDisclosure.open;
+    if (!wasOpen) return;
+    event.preventDefault();
+    closeOtherSurfaces();
+  });
 
   const region = id("region"), quickRegion = id("mapRegionQuickSelect");
   const forwardChange = target => target.dispatchEvent(new Event("change", { bubbles: true }));
@@ -62,6 +117,7 @@
   }
 
   function showDetail() {
+    closeOtherSurfaces(rightPanel);
     layout.setAttribute("data-right-panel", "open");
     const button = id("toggleRightPanel");
     button.setAttribute("aria-expanded", "true");
@@ -73,8 +129,17 @@
     notice.textContent = message;
     notice.hidden = false;
     const banner = id("mapRasterBanner");
-    banner.textContent = message;
+    // Short but explicit map warning; the full original evidence remains in
+    // the 災害情報 menu and in the persistent legacy status/evidence section.
+    banner.textContent = "洪水情報の一部が未取得です（空白＝浸水なしではありません）";
+    banner.title = message;
     banner.hidden = false;
   }
-  window.HINANEX_MAP_FIRST_UI = Object.freeze({ showDetail, showRasterWarning });
+  window.HINANEX_MAP_FIRST_UI = Object.freeze({
+    showDetail,
+    showRasterWarning,
+    wasDismissalClick(event) {
+      return !!event && dismissedMapClicks.has(event);
+    }
+  });
 })();
