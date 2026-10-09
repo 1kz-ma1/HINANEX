@@ -842,13 +842,13 @@ nagoya.scenarios = [{
   const theme = fs.readFileSync(path.resolve(__dirname, "../gis/css/current_theme.css"), "utf8");
   assert.match(theme, /--bg:#07131e/);
   assert.match(theme, /--cyan:#4ed7dc/);
-  assert.match(theme, /\\.scenario-intro\\[hidden\\]\\{display:none\\}/);
-  assert.match(theme, /\\.scenario-intro \\.scenario-steps li\\{/);
+  assert.match(theme, /\.scenario-intro\[hidden\]\{display:none\}/);
+  assert.match(theme, /\.scenario-intro \.scenario-steps li\{/);
   assert.match(theme, /cursor:default/);
   assert.match(theme, /--gis-left-track:0px/);
   assert.match(theme, /--gis-right-track:0px/);
   assert.match(theme, /100dvh - 242px/);
-  assert.match(theme, /#map\\{height:100%;min-height:0\\}/);
+  assert.match(theme, /#map\{height:100%;min-height:0\}/);
   assert.doesNotMatch(theme, /(?:#map|\.leaflet-tile)[^\{]*\{[^}]*\bfilter\s*:/,
     "official imagery must never be filtered or inverted in the dark theme");
   assert.match(theme, /\.map-unavailable\{background:var\(--surface\)/,
