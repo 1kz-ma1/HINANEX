@@ -331,16 +331,20 @@ nagoya.scenarios = [{
   fileCase.elements.toggleLeftPanel.listeners.click();
   assert.equal(fileCase.elements.gisLayout.getAttribute("data-left-panel"), "closed");
   assert.equal(fileCase.elements.toggleLeftPanel.getAttribute("aria-expanded"), "false");
-  assert.match(fileCase.elements.toggleLeftPanel.textContent, /開く/);
+  assert.equal(fileCase.elements.toggleLeftPanel.getAttribute("aria-label"), "左メニューを開く");
+  assert.equal(fileCase.elements.toggleLeftPanel.getAttribute("title"), "左メニューを開く");
   fileCase.elements.toggleRightPanel.listeners.click();
   assert.equal(fileCase.elements.gisLayout.getAttribute("data-right-panel"), "closed");
   assert.equal(fileCase.elements.toggleRightPanel.getAttribute("aria-expanded"), "false");
+  assert.equal(fileCase.elements.toggleRightPanel.getAttribute("aria-label"), "右詳細を開く");
   fileCase.elements.toggleLeftPanel.listeners.click();
   fileCase.elements.toggleRightPanel.listeners.click();
   assert.equal(fileCase.elements.gisLayout.getAttribute("data-left-panel"), "open");
   assert.equal(fileCase.elements.gisLayout.getAttribute("data-right-panel"), "open");
   assert.equal(fileCase.elements.toggleLeftPanel.getAttribute("aria-expanded"), "true");
   assert.equal(fileCase.elements.toggleRightPanel.getAttribute("aria-expanded"), "true");
+  assert.equal(fileCase.elements.toggleLeftPanel.getAttribute("aria-label"), "左メニューを閉じる");
+  assert.equal(fileCase.elements.toggleRightPanel.getAttribute("aria-label"), "右詳細を閉じる");
   assert.equal(fileMap.invalidateCalls.length, 4);
   assert.equal(fileMap.invalidateCalls.every(args => args.pan === false && args.animate === false), true);
   assert.strictEqual(fileMap.lastBounds, boundsBeforeCollapse);
@@ -791,10 +795,24 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="uiTabNormal"[^>]*role="tab"/);
   assert.match(pageSource, /id="uiTabScenario"[^>]*role="tab"/);
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
-  assert.match(pageSource, /current_theme[.]css[?]v=gis-map-space-20261009-v3/);
+  assert.match(pageSource, /current_theme[.]css[?]v=gis-panel-rails-20261009-v4/);
   assert.match(pageSource, /id="toggleLeftPanel"[^>]*aria-expanded="true"/);
   assert.match(pageSource, /id="toggleRightPanel"[^>]*aria-expanded="true"/);
   assert.match(pageSource, /id="gisLeftPanel"/);
+  assert.match(pageSource, /gis-side-shell gis-side-shell--left/);
+  assert.match(pageSource, /gis-side-shell gis-side-shell--right/);
+  assert.match(pageSource, /aria-label="左メニューを閉じる"/);
+  assert.match(pageSource, /aria-label="右詳細を閉じる"/);
+  assert.equal((pageSource.match(/id="map"/g) || []).length, 1);
+  assert.equal((pageSource.match(/id="toggleLeftPanel"/g) || []).length, 1);
+  assert.equal((pageSource.match(/id="toggleRightPanel"/g) || []).length, 1);
+  assert.ok(pageSource.indexOf('gis-side-shell--left') < pageSource.indexOf('<main class="map-wrap">'));
+  assert.ok(pageSource.indexOf('<main class="map-wrap">') < pageSource.indexOf('gis-side-shell--right'));
+  assert.ok(pageSource.indexOf('id="toggleRightPanel"') < pageSource.indexOf('id="details"'),
+    "right rail control must survive replacing the dynamic details innerHTML");
+  assert.doesNotMatch(pageSource.slice(pageSource.indexOf('<nav'), pageSource.indexOf('</nav>')), /gis-panel-controls/,
+    "panel toggles must not remain as text buttons in the top tab bar");
+  assert.match(pageSource, /<svg[^>]*viewBox="0 0 24 24"/);
   assert.match(pageSource, /aria-controls="details"/);
   assert.match(pageSource, /探索の流れ（操作ボタンではありません）/);
   assert.match(pageSource, /操作は下の地点指定ボタンや地図上の入力欄/);
@@ -847,6 +865,16 @@ nagoya.scenarios = [{
   assert.match(theme, /cursor:default/);
   assert.match(theme, /--gis-left-track:0px/);
   assert.match(theme, /--gis-right-track:0px/);
+  assert.match(theme, /\.layout>\.gis-side-shell--left\{grid-column:1;grid-row:1\}/);
+  assert.match(theme, /\.layout>\.map-wrap\{grid-column:2;grid-row:1/);
+  assert.match(theme, /\.layout>\.gis-side-shell--right\{grid-column:3;grid-row:1\}/);
+  assert.match(theme, /--gis-left-width:44px/);
+  assert.match(theme, /--gis-right-width:44px/);
+  assert.match(theme, /\.layout\[data-left-panel="closed"\]>.gis-side-shell--left>.left\{display:none\}/);
+  assert.match(theme, /\.layout\[data-right-panel="closed"\]>.gis-side-shell--right>.right\{display:none\}/);
+  assert.match(theme, /\.layout\[data-left-panel="closed"\]>.map-wrap\{grid-column:2;grid-row:1\}/);
+  assert.match(theme, /\.layout\[data-left-panel="closed"\]>.map-wrap\{grid-column:1;grid-row:2\}/);
+  assert.match(theme, /\.gis-panel-toggle svg\{display:block/);
   assert.match(theme, /100dvh - 242px/);
   assert.match(theme, /#map\{height:100%;min-height:0\}/);
   assert.doesNotMatch(theme, /(?:#map|\.leaflet-tile)[^\{]*\{[^}]*\bfilter\s*:/,
