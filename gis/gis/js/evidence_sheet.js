@@ -90,7 +90,8 @@
       const node = id(key);
       if (node) observer.observe(node, {
         childList: true, characterData: true, subtree: true,
-        attributes: key === "mapRasterBanner", attributeFilter: ["hidden"]
+        ...(key === "mapRasterBanner"
+          ? { attributes: true, attributeFilter: ["hidden"] } : {})
       });
     }
   }
