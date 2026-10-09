@@ -237,6 +237,25 @@ function setFacilityListMode(summary) {
   document.getElementById("mapUnavailableTitle").textContent = active
     ? "位置は未確認ですが、施設一覧を検索できます"
     : "表示範囲を確定できません";
+  // The list-only overlay physically covers the map. Do not offer an
+  // impossible "click on map" task when none of this region's D records
+  // has verified coordinates. The GPS and coordinate-search workflows
+  // remain independent and keep their existing privacy/source semantics.
+  const selectOriginButton = document.getElementById("selectOrigin");
+  const mapOriginShortcut = document.getElementById("mapOriginShortcut");
+  selectOriginButton.disabled = active;
+  mapOriginShortcut.disabled = active;
+  selectOriginButton.textContent = active
+    ? "D施設の地図位置は未確認（地図選択不可）"
+    : "地図から出発地点を指定";
+  if (active) {
+    choosingOrigin = false;
+    updateMapOriginAction("選択地域のD施設は座標未確認です。施設一覧で名前・住所を確認してください。");
+    if (!selectedOrigin) {
+      document.getElementById("originStatus").textContent =
+        "選択地域のD施設は地図位置を確認できません。地図をクリックして選択する操作は使えません。施設一覧を利用してください。";
+    }
+  }
   if (active) renderFacilityList();
 }
 
@@ -254,7 +273,7 @@ function updateMapOriginAction(message, picking = false) {
 // A cached single-tile script may expose the old API without throwing during
 // <script> evaluation. Fail CLOSED with actionable feedback instead of
 // crashing the map when the newer controller calls missing functions.
-const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v10";
+const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v11";
 function compatibleDiscoveryEngine() {
   const engine = window.HINANEX_FLOOD_DISCOVERY;
   return engine && engine.apiVersion === REQUIRED_DISCOVERY_VERSION &&
@@ -1028,6 +1047,7 @@ document.getElementById("coordinateSearchForm").addEventListener("submit", event
 });
 
 function beginSelectingOrigin() {
+  if (!document.getElementById("facilityListPanel").hidden) return;
   choosingOrigin = true;
   document.getElementById("originStatus").textContent = "地図上の出発地点をクリックしてください。";
   updateMapOriginAction("地点指定モード：地図を1回クリック", true);
@@ -1151,6 +1171,15 @@ function reportExternalTileError(sourceName, event) {
       detail: "HTTP status / 範囲外 / ブラウザ制限はNetworkで個別確認"
     });
     externalTileSampleCounts.set(sourceName, samples + 1);
+  }
+  if (sourceName === "公的洪水ラスタ") {
+    // D load/region navigation may later overwrite the generic status line.
+    // Preserve an independent and visible fail-closed notice near the raster
+    // toggle; it applies to observed missing imagery only, NOT to shelters.
+    const rasterNotice = document.getElementById("externalFloodTileNotice");
+    rasterNotice.hidden = false;
+    rasterNotice.textContent =
+      "公的洪水ラスタの一部を取得できません。空白や未表示は「浸水なし」を意味しません。施設のD・GSI掲載情報とは別データです。";
   }
   if (externalTileWarnings.has(sourceName)) return;
   externalTileWarnings.add(sourceName);
