@@ -4,6 +4,8 @@
 import { formatDateTime } from "./view-model-utils.js";
 
 const SCENARIO_ID = "flood_shelter_selection";
+const SCENARIO_NAME = "洪水時の避難候補探索";
+const SCENARIO_HAZARD = "flood";
 const REQUIREMENT_CODE = "shelter_hazard_applicability";
 const SCENARIO_STATUSES = new Set([
   "FULL",
@@ -70,6 +72,10 @@ const JOIN_LABELS = Object.freeze({
 
 function text(value) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function schemaDefault(value, defaultValue) {
+  return value === undefined ? defaultValue : value;
 }
 
 function nullableText(value) {
@@ -162,10 +168,15 @@ function buildFloodScenarioViewModel(exportData) {
     return unsupportedScenario("scenarios がD Contractの配列形式ではありません。");
   }
 
-  const scenario = exportData.scenarios.find((item) => item?.scenario_id === SCENARIO_ID);
+  const scenario = exportData.scenarios.find(
+    (item) => schemaDefault(item?.scenario_id, SCENARIO_ID) === SCENARIO_ID,
+  );
   if (!scenario) return emptyScenario();
 
   const assessment = scenario.requirement_assessment;
+  const scenarioName = text(schemaDefault(scenario.scenario_name, SCENARIO_NAME));
+  const scenarioHazard = schemaDefault(scenario.hazard, SCENARIO_HAZARD);
+  const requirementCode = schemaDefault(assessment?.requirement_code, REQUIREMENT_CODE);
   const statusCode = text(scenario.status);
   const reasons = stringList(scenario.reasons);
   const gaps = stringList(scenario.gaps);
@@ -178,10 +189,10 @@ function buildFloodScenarioViewModel(exportData) {
     text(scenario.region_code) !== null &&
     scenario.region_code.trim() === exportRegionCode &&
     text(scenario.region_name) !== null &&
-    text(scenario.scenario_name) !== null &&
-    scenario.hazard === "flood" &&
+    scenarioName !== null &&
+    scenarioHazard === SCENARIO_HAZARD &&
     SCENARIO_STATUSES.has(statusCode) &&
-    assessment?.requirement_code === REQUIREMENT_CODE &&
+    requirementCode === REQUIREMENT_CODE &&
     DISCOVERY_STATUSES.has(text(assessment?.discovery_status)) &&
     nonNegativeInteger(assessment?.record_count) &&
     nonNegativeInteger(assessment?.directly_joined_count) &&
@@ -210,7 +221,7 @@ function buildFloodScenarioViewModel(exportData) {
   const scenarioStatus = SCENARIO_STATUS_META[statusCode];
   return Object.freeze({
     uiState: "ready",
-    name: scenario.scenario_name.trim(),
+    name: scenarioName,
     statusCode,
     statusLabel: scenarioStatus.label,
     statusTone: scenarioStatus.tone,

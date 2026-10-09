@@ -118,6 +118,38 @@ test("Scenario Summary keeps D status and all three D counts without record aggr
   assert.deepEqual(view.reasons, ["Dが公開した全体理由"]);
 });
 
+test("D Schema defaults are applied only when optional Scenario fields are missing", () => {
+  const payload = withScenario();
+  delete payload.scenarios[0].scenario_id;
+  delete payload.scenarios[0].scenario_name;
+  delete payload.scenarios[0].hazard;
+  delete payload.scenarios[0].requirement_assessment.requirement_code;
+
+  const view = buildFloodScenarioViewModel(payload);
+
+  assert.equal(view.uiState, "ready");
+  assert.equal(view.name, "洪水時の避難候補探索");
+  assert.equal(view.statusCode, "UNKNOWN");
+});
+
+test("explicit invalid Scenario values are not replaced with Schema defaults", () => {
+  const emptyName = withScenario();
+  emptyName.scenarios[0].scenario_name = "";
+  assert.equal(buildFloodScenarioViewModel(emptyName).uiState, "unsupported");
+
+  const otherHazard = withScenario();
+  otherHazard.scenarios[0].hazard = "tsunami";
+  assert.equal(buildFloodScenarioViewModel(otherHazard).uiState, "unsupported");
+
+  const paddedHazard = withScenario();
+  paddedHazard.scenarios[0].hazard = " flood ";
+  assert.equal(buildFloodScenarioViewModel(paddedHazard).uiState, "unsupported");
+
+  const otherRequirement = withScenario();
+  otherRequirement.scenarios[0].requirement_assessment.requirement_code = "other_requirement";
+  assert.equal(buildFloodScenarioViewModel(otherRequirement).uiState, "unsupported");
+});
+
 test("FULL and DEGRADED describe D coverage, not the presence of candidates", () => {
   const payload = withScenario();
 

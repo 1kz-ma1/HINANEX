@@ -48,7 +48,7 @@ runtime artifactが未生成の場合は、先に`pipeline/run_all_workflows.py`
 /gis/gis/?region=23100
 ```
 
-FrontendはURL生成だけを担当します。現時点のGIS画面には`region` query parameterを読み取って初期選択へ反映する処理がないため、E担当での対応が必要です。
+FrontendはURL生成を担当し、現在のGIS画面は`region` query parameterを読み取って対応地域を初期選択します。未対応の地域コードはGIS側で無視され、既定地域の選択を維持します。
 
 ## 起動
 
