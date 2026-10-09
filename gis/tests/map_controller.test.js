@@ -1844,3 +1844,105 @@ nagoya.scenarios = [{
   assert.match(mapCode, /tightFitZoom \+ NAVIGATION_CLOSEUP_ZOOM_OFFSET/);
   assert.doesNotMatch(mapCode, /map\.setView\(\[24\.0,\s*122\.5\]/);
 }
+
+
+// Audience QR and on-device access must remain a controlled, view-only GIS
+// presentation surface: never auto-request GPS or start a scenario tour.
+{
+  const page = fs.readFileSync(path.resolve(__dirname, "../gis/index.html"), "utf8");
+  const shareSource = fs.readFileSync(path.resolve(__dirname, "../gis/js/audience_share.js"), "utf8");
+  const styles = fs.readFileSync(path.resolve(__dirname, "../gis/css/map_first.css"), "utf8");
+  const audienceURL = "https://hinanex-staging.onrender.com/gis/gis/?demo=audience";
+  assert.match(page, /id="mapShareOpen"[^>]*aria-controls="mapSharePanel"/);
+  assert.match(page, /id="mapSharePanel"[^>]*hidden/);
+  assert.match(page, /id="mapShareURL"[^>]*readonly value="https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
+  assert.match(page, /id="mapAudienceIntro"[^>]*hidden/);
+  assert.match(page, /js\/audience_share[.]js[?]v=audience-share-20261010-v1/);
+  assert.match(page, /css\/map_first[.]css[?]v=audience-share-20261010-v1/);
+  assert.match(styles, /\.map-share-panel\[hidden\],\.map-audience-intro\[hidden\]\{display:none\}/);
+  assert.match(shareSource, /const AUDIENCE_URL = "https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
+  assert.doesNotMatch(shareSource, /geolocation|getCurrentPosition|flyTo|map\.setView|fetch\(|sendBeacon|XMLHttpRequest|<iframe/);
+
+  function harness(href, store = new Map()) {
+    const nodes = new Map(), listeners = {};
+    function makeNode(key) {
+      const attrs = new Map();
+      const node = {
+        key, hidden: false, open: false, children: [], listeners: {},
+        appendChild(child) { this.children.push(child); return child; },
+        get firstChild() { return this.children[0] || null; },
+        setAttribute(name, value) { attrs.set(name, String(value)); },
+        getAttribute(name) {
+          if (key === "gisLayout" && name.startsWith("data-")) return "closed";
+          return attrs.get(name) || null;
+        },
+        addEventListener(type, callback) { this.listeners[type] = callback; },
+        contains(target) { return this === target; },
+        click() { this.listeners.click?.({ target: this }); },
+        focus() { this.wasFocused = true; },
+        select() { this.wasSelected = true; }
+      };
+      return node;
+    }
+    const element = id => {
+      if (!nodes.has(id)) nodes.set(id, makeNode(id));
+      return nodes.get(id);
+    };
+    for (const id of ["mapSharePanel", "mapAudienceIntro", "mapSettingsPanel"]) element(id).hidden = true;
+    const location = { href };
+    const sessionStorage = {
+      getItem(k) { return store.get(k) ?? null; },
+      setItem(k, v) { store.set(k, v); }
+    };
+    const document = {
+      getElementById: element,
+      createElementNS(_ns, type) { return makeNode(type); },
+      addEventListener(name, fn) { listeners[name] = fn; }
+    };
+    const window = { location, sessionStorage };
+    const navigator = { clipboard: { async writeText(v) { window.copied = v; } } };
+    vm.runInNewContext(shareSource, { document, window, navigator, URL, console });
+    return { element, window, listeners, store };
+  }
+  const h = harness("https://hinanex-staging.onrender.com/gis/gis/");
+  h.element("mapShareOpen").click();
+  assert.equal(h.element("mapSharePanel").hidden, false);
+  assert.equal(h.element("mapShareOpen").getAttribute("aria-expanded"), "true");
+  assert.equal(h.element("mapShareURL").value, audienceURL);
+  const svg = h.element("mapShareQR").firstChild;
+  assert.equal(svg.getAttribute("viewBox"), "0 0 41 41");
+  assert.equal(svg.children.length, 2, "in-page SVG QR requires no third-party image service");
+  assert.equal((svg.children[1].getAttribute("d").match(/M/g) || []).length, 575,
+    "locally encoded URL has the expected dark QR modules");
+  assert.equal(h.element("mapSharePanel").hidden, false);
+  const outside = { target: {} };
+  h.listeners.click(outside);
+  assert.equal(h.element("mapSharePanel").hidden, true);
+  assert.equal(h.element("mapShareOpen").getAttribute("aria-expanded"), "false");
+  h.element("mapShareOpen").click();
+  h.listeners.keydown({ key: "Escape", preventDefault() { this.prevented = true; } });
+  assert.equal(h.element("mapSharePanel").hidden, true);
+  assert.equal(h.element("mapShareOpen").wasFocused, true);
+  h.element("mapShareOpen").click();
+  h.element("mapToolMarks").open = true;
+  h.element("mapToolMarks").listeners.toggle();
+  assert.equal(h.element("mapSharePanel").hidden, true,
+    "opening another map control closes the sharing card");
+
+  const v1 = harness(audienceURL);
+  assert.equal(v1.element("mapAudienceIntro").hidden, false,
+    "audience URL shows a one-time, dismissible guide");
+  assert.equal(v1.element("mapSharePanel").hidden, true,
+    "visitors never see a presenter sharing panel automatically");
+  assert.equal(v1.element("mapShareQR").children.length, 0,
+    "QR is generated only on an explicit sharing click");
+  v1.element("mapAudienceIntroClose").click();
+  assert.equal(v1.element("mapAudienceIntro").hidden, true);
+  const v2 = harness(audienceURL, v1.store);
+  assert.equal(v2.element("mapAudienceIntro").hidden, true,
+    "the same browser session does not repeatedly interrupt exploration");
+
+  const b = harness("https://hinanex-staging.onrender.com/gis/gis/?demo=audience", new Map());
+  assert.equal(b.element("mapAudienceIntro").hidden, false);
+  assert.equal(b.element("mapSharePanel").hidden, true);
+}
