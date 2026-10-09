@@ -113,7 +113,7 @@ def proposal(water_raw, export_raw, location_raw):
     ids = [r["id"] for r in records]
     if len(ids) != len(set(ids)):
         raise ValueError("Duplicate D facility IDs")
-    archive_header = list(next(csv.reader(location_raw.decode("cp932-sig").splitlines())))
+    archive_header = list(next(csv.reader(location_raw.decode("cp932").lstrip("\ufeff").splitlines())))
     if not {"名称", "緯度", "経度"}.issubset(archive_header):
         raise ValueError("Official location CSV required columns unavailable")
     address_cols = [v for v in ("住所", "所在地") if v in archive_header]
