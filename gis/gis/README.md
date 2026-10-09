@@ -52,6 +52,27 @@ Cのローカル証跡検査（ユーザー実行で `35.70,139.90` / `35.70,140
 
 **PASSと区別すべきもの：** この手順でマーカーと地域切替が動いても、公式データの最新性、実際の開設・避難経路・リスク判定、全国対応、`main`リリース可否にはならない。コンソール・GPS・外部ラスタ・3自治体Dの確認結果はIssue #89へ `PASS / LIMITATION / NOT TESTED` を分けて記録する。
 
+## 3自治体のローカルD出力を一括で受入前チェックする（読み取り専用）
+
+実機の\`C:\HINANEX-Multi\`でD RegionExportが各地域に用意されているかを、**ブラウザと同じE D adapter**で検証する。Rawソース・生成済みJSONは**変更・削除・上書きしない**。同じadapterで解析できることは、A/C独立監査や公式ソースの正しさを証明するものではない。
+
+~~~powershell
+cd C:\HINANEX-Multi
+node .\gis\tests\inspect_local_region_exports.js
+# 構造化した全結果が必要なら:
+node .\gis\tests\inspect_local_region_exports.js --json
+~~~
+
+自動照合する3ファイルは \`pipeline/data/output/edogawa.json\` / \`niigata.json\` / \`nagoya.json\`。欠損している場合は \`MISSING_FILE\` と表示し、**公式施設が存在しないという意味にはしない**。元のD用worktreeにしかファイルがないなら別途コピーするか、その地域のJSONを画面の手動読込から指定する。
+
+- \`LOCAL_CONTRACT_OK\`: その地域コードのRegionExport 0.9をEが解析できる。出典の独立検証や開設・避難安全性は未検証。
+- \`INVALID_JSON\` / \`INVALID_CONTRACT\` / \`DUPLICATE_FACILITY_ID\`: ファイル・整合性の問題。既存データの推測補完や自動修復をせずD側へ引き継ぐ。
+- \`records\` / \`mapped\` / \`missing_coordinates\`: それぞれ元レコード全数・座標を確認できた件数・欠損数。3数値間の整合を確認する。
+- \`scenario_unknown\` と \`scenario_status\`: D原値のみ。新潟ODSや名古屋の災害列の意味はEで推測せず \`UNKNOWN\` を保持する。Scenarioが存在しない場合は \`NO_FLOOD_SCENARIO_PRESENT\`。
+- 出力にはローカルファイルのSHA256を付けるが、**C公的原本照合を実行したという意味ではない**。\`baseline_accepted\` は常に \`false\`、HTTPで配信できるか、GPSや洪水ラスタは \`NOT TESTED\`。
+
+実機の最後の受入は、3つの地域のそれぞれでGIS URLを開き、画面の「D出力読込済」・元件数・座標欠損・\`UNKNOWN\`・位置を人間が確認する。コマンドの \`LOCAL_CONTRACT_OK\` だけで公開可能と判定しない。
+
 ## D出力
 
 Dのruntime artifactはGit管理外です。先に `pipeline` で生成するか、画面からRegionExport JSONを選択してください。
