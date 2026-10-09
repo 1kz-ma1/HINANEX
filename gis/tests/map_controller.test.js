@@ -592,7 +592,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "map-zoom-step-20261009-v1");
+  assert.equal(mapAsset[1], "zoom-feel-20261009-v2");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -1518,8 +1518,11 @@ nagoya.scenarios = [{
   });
   for (const tile of L.__tiles.slice(0, 2)) {
     assert.equal(tile.options.keepBuffer, 3);
-    assert.equal(tile.options.updateWhenZooming, false);
   }
+  assert.equal(L.__tiles[0].options.updateWhenZooming, true,
+    "background tile images can update during fractional animation");
+  assert.equal(L.__tiles[1].options.updateWhenZooming, false,
+    "official flood raster retains lighter end-of-zoom tile loading");
   assert.equal(L.__tiles[0].options.minZoom, 2);
   assert.equal(L.__tiles[1].options.minZoom, 2);
   assert.equal(L.__map.getZoom(), 13);
@@ -1527,8 +1530,25 @@ nagoya.scenarios = [{
   assert.match(mapCode, /new URL\(window\.location\.href\)\.searchParams\.get\("debugMapPerf"\) === "1"/);
   assert.match(mapCode, /\[HINANEX map perf\] tile batch/);
   assert.match(mapCode, /\[HINANEX map perf\] D markers/);
-  assert.equal(L.__map.options.zoomSnap, 0.5, "half-step visual zoom");
-  assert.equal(L.__map.options.zoomDelta, 0.5, "+/- and keyboard use half steps");
-  assert.equal(L.__map.options.wheelPxPerZoomLevel, 100, "gentler mouse wheel zoom");
+  assert.equal(L.__map.options.zoomSnap, 0.25, "new scroll zoom snaps to quarter steps");
+  assert.equal(L.__map.options.zoomDelta, 0.5, "+/- and keyboard remain half steps");
+  assert.equal(L.__map.options.wheelPxPerZoomLevel, 240, "gentler wheel needs more travel");
+  assert.equal(L.__map.options.wheelDebounceTime, 55, "briefly combine wheel bursts");
   assert.equal(L.__map.options.preferCanvas, true, "renderer is unchanged");
+
+  const old = makeContext({
+    protocol: "http:",
+    href: "http://test/gis/gis/?region=13123&zoomFeel=previous",
+    fetchImpl: async () => ({ ok: false, status: 404, json: async () => ({}) })
+  });
+  assert.equal(old.L.__map.options.zoomSnap, 0.5,
+    "QA query restores previous zoom snap");
+  assert.equal(old.L.__map.options.wheelPxPerZoomLevel, 100);
+  assert.equal(old.L.__map.options.wheelDebounceTime, 40);
+  assert.equal(old.L.__tiles[0].options.updateWhenZooming, false);
+  assert.equal(old.L.__tiles[1].options.updateWhenZooming, false);
+  assert.equal(old.L.__map.minZoom, L.__map.minZoom,
+    "both versions retain Japan zoom floor");
+  assert.equal(old.L.__map.getZoom(), L.__map.getZoom(),
+    "same municipality zoom for fair comparisons");
 }
