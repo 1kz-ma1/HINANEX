@@ -189,7 +189,7 @@ function makeLeafletStub() {
   };
 }
 
-function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = null, geolocation = undefined }) {
+function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = null, geolocation = undefined, localStorage = undefined }) {
   const ids = [
     "map", "mapUnavailable", "mapUnavailableMessage", "details", "status", "region",
     "basemap", "officialFlood", "boundary", "boundaryNote", "shelter", "floodOpacity",
@@ -219,7 +219,7 @@ function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = nul
   };
 
   const context = {
-    window: { location, history },
+    window: { location, history, localStorage },
     document: { getElementById: id => elements[id] },
     navigator: geolocation === undefined ? undefined : { geolocation },
     L,
@@ -592,7 +592,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "zoom-continuous-20261009-v3");
+  assert.equal(mapAsset[1], "gesture-settings-20261009-v4");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -827,7 +827,7 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="uiTabScenario"[^>]*role="tab"/);
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
   assert.match(pageSource, /current_theme[.]css[?]v=gis-facility-drawer-20261009-v6/);
-  assert.match(pageSource, /map_first[.]css[?]v=map-first-20261009-v3/);
+  assert.match(pageSource, /map_first[.]css[?]v=map-first-20261009-v4/);
   assert.match(pageSource, /id="toggleLeftPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="toggleRightPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="gisLeftPanel"/);
@@ -1268,11 +1268,16 @@ nagoya.scenarios = [{
   for (const menu of ["mapToolScene", "mapToolScenario", "mapToolMarks", "mapToolHazards"]) {
     assert.match(html, new RegExp('id="' + menu + '"'));
   }
-  for (const [label, planned] of [["地図",false],["やること",true],["マイ情報",true],["設定",true]]) {
+  for (const [label, planned] of [["地図",false],["やること",true],["マイ情報",true],["設定",false]]) {
     assert.ok(html.includes("<span>" + label + "</span>"));
     if (planned) assert.match(html, /今後実装予定/);
   }
   assert.match(html, /id="mapLocateMe"[^>]*type="button"/);
+  assert.match(html, /id="mapSettingsPanel"[^>]*hidden/);
+  assert.match(html, /id="mapSettingsToggle"[^>]*type="button"/);
+  assert.match(html, /id="mapWheelSensitivity"[^>]*type="range"[^>]*min="0.5"[^>]*max="2.5"/);
+  assert.match(html, /id="mapZoomStyle"/);
+  assert.match(css, /\.map-settings-sheet\[hidden\]\{display:none\}/);
   assert.match(css, /\.map-locate-button\{[\s\S]*?right:16px;bottom:18px/);
   assert.match(css, /\.hinanex-bottom-nav\{[\s\S]*?position:fixed;bottom:0/);
   assert.match(css, /\.layout>\.gis-side-shell--right\s*\{[\s\S]*?bottom:0/);
@@ -1300,7 +1305,9 @@ nagoya.scenarios = [{
     "mapLocateMe", "useGps", "mapGpsFeedback", "originStatus", "mapRasterNotice", "mapRasterBanner",
     "mapToolScene", "mapToolScenario", "mapToolMarks", "mapToolHazards",
     "mapOpenAdvanced", "toggleLeftPanel", "gisLeftPanel", "details",
-    "referenceMapSummary", "referenceMapSummaryDisclosure"];
+    "referenceMapSummary", "referenceMapSummaryDisclosure",
+    "mapSettingsPanel", "mapSettingsToggle", "mapSettingsClose",
+    "mapWheelSensitivity", "mapWheelSensitivityValue", "mapZoomStyle", "mapGestureReset"];
   const nodes = Object.fromEntries(uiIds.map(id => {
     const node = makeElement(id);
     // Browser EventTarget allows multiple handlers; the legacy simple stub
@@ -1323,6 +1330,7 @@ nagoya.scenarios = [{
     node.contains = target => target === node;
   }
   nodes.referenceMapSummary.hidden = true;
+  nodes.mapSettingsPanel.hidden = true;
   nodes.gisLayout.setAttribute("data-left-panel", "closed");
   nodes.gisLayout.setAttribute("data-right-panel", "closed");
   const captured = {};
@@ -1345,12 +1353,27 @@ nagoya.scenarios = [{
       getElementById: id => nodes[id],
       addEventListener(type, handler) { captured[type] = handler; }
     },
-    window: {},
+    window: {
+      HINANEX_MAP_GESTURES: {
+        settings: { sensitivity: 1.5, style: "continuous" },
+        getSettings() { return { ...this.settings }; },
+        setSettings(changes) {
+          this.settings = { ...this.settings, ...changes };
+          return this.getSettings();
+        },
+        resetSettings() {
+          this.settings = { sensitivity: 1.5, style: "continuous" };
+          return this.getSettings();
+        }
+      }
+    },
     Event: class { constructor(type) { this.type = type; } }
   };
   vm.createContext(facade);
   vm.runInContext(uiCode, facade, { filename: "map_first_ui.js" });
   assert.equal(gpsRequests, 0);
+  assert.equal(nodes.mapWheelSensitivity.value, "1.5");
+  assert.equal(nodes.mapZoomStyle.value, "continuous");
   nodes.mapRegionQuickSelect.value = "15100";
   nodes.mapRegionQuickSelect.listeners.change();
   assert.equal(nodes.region.value, "15100");
@@ -1445,6 +1468,41 @@ nagoya.scenarios = [{
   captured.click({ target: {}, type: "click" });
   assert.equal(nodes.gisLayout.getAttribute("data-right-panel"), "closed");
   assert.equal(facade.window.HINANEX_MAP_FIRST_UI.wasDismissalClick(null), false);
+
+  // The future Settings slot is now an active map-only preference sheet.
+  nodes.mapSettingsToggle.click();
+  assert.equal(nodes.mapSettingsPanel.hidden, false);
+  assert.equal(nodes.mapSettingsToggle.getAttribute("aria-expanded"), "true");
+  nodes.mapWheelSensitivity.value = "2";
+  nodes.mapWheelSensitivity.listeners.input({ target: nodes.mapWheelSensitivity });
+  assert.equal(facade.window.HINANEX_MAP_GESTURES.settings.sensitivity, "2");
+  assert.equal(nodes.mapWheelSensitivityValue.textContent, "2倍");
+  nodes.mapZoomStyle.value = "steps";
+  nodes.mapZoomStyle.listeners.change({ target: nodes.mapZoomStyle });
+  assert.equal(facade.window.HINANEX_MAP_GESTURES.settings.style, "steps");
+  captured.click({ target: nodes.mapSettingsPanel });
+  assert.equal(nodes.mapSettingsPanel.hidden, false,
+    "tapping within settings should not dismiss or change the map");
+  nodes.mapGestureReset.click();
+  assert.equal(nodes.mapWheelSensitivity.value, "1.5");
+  assert.equal(nodes.mapZoomStyle.value, "continuous");
+  nodes.mapToolMarks.open = true;
+  nodes.mapToolMarks.listeners.toggle();
+  assert.equal(nodes.mapSettingsPanel.hidden, true,
+    "opening map layer controls dismisses the settings surface");
+
+  nodes.mapSettingsToggle.click();
+  const dismissSettings = { target: {}, type: "click" };
+  captured.click(dismissSettings);
+  assert.equal(nodes.mapSettingsPanel.hidden, true);
+  assert.equal(facade.window.HINANEX_MAP_FIRST_UI.wasDismissalClick(dismissSettings), true);
+
+  nodes.mapSettingsToggle.click();
+  captured.keydown({ key: "Escape", preventDefault() {} });
+  assert.equal(nodes.mapSettingsPanel.hidden, true);
+  nodes.mapSettingsToggle.click();
+  nodes.mapSettingsClose.click();
+  assert.equal(nodes.mapSettingsPanel.hidden, true);
 }
 
 // The expert analytics/evidence route stays a standalone page, not a
@@ -1533,11 +1591,13 @@ nagoya.scenarios = [{
   assert.equal(L.__map.options.zoomSnap, 0,
     "continuous mode must not snap wheel and pinch gestures to discrete levels");
   assert.equal(L.__map.options.zoomDelta, 0.5, "+/- and keyboard remain half steps");
-  assert.equal(L.__map.options.wheelPxPerZoomLevel, 100,
-    "restore responsive wheel speed: the previous 240 was too sluggish");
+  assert.equal(L.__map.options.wheelPxPerZoomLevel, 67,
+    "new default is 1.5x, but map remains unsnapped");
+  assert.equal(L.__map.options.zoomSnap, 0);
   assert.equal(L.__map.options.wheelDebounceTime, 40, "restore default debounce");
   assert.equal(L.__map.options.preferCanvas, true, "renderer is unchanged");
   assert.match(mapCode, /\[HINANEX map perf\] zoom gesture/);
+  assert.match(mapCode, /HINANEX_MAP_GESTURES/);
 
   const old = makeContext({
     protocol: "http:",
@@ -1570,4 +1630,50 @@ nagoya.scenarios = [{
   assert.equal(slow.L.__map.minZoom, L.__map.minZoom,
     "slow and responsive modes respect the same Japan min zoom");
   assert.equal(slow.L.__map.getZoom(), L.__map.getZoom());
+}
+
+// Gesture settings are opt-in, persistent only in this browser, and never
+// modify location/region/official data. Storage errors degrade gracefully.
+{
+  const memory = {};
+  const storage = {
+    getItem(key) { return memory[key] ?? null; },
+    setItem(key, value) { memory[key] = value; }
+  };
+  const makeGestureCase = () => makeContext({
+    protocol: "http:", localStorage: storage,
+    fetchImpl: async () => ({ ok: false, status: 404, json: async () => ({}) })
+  });
+  const first = makeGestureCase();
+  const api = first.context.window.HINANEX_MAP_GESTURES;
+  assert.deepEqual({ ...api.getSettings() }, { sensitivity: 1.5, style: "continuous" });
+  assert.equal(first.L.__map.options.wheelPxPerZoomLevel, 67);
+  const startView = first.L.__map.lastView;
+  const minZoom = first.L.__map.minZoom;
+  api.setSettings({ sensitivity: 2, style: "steps" });
+  assert.equal(first.L.__map.options.wheelPxPerZoomLevel, 50);
+  assert.equal(first.L.__map.options.zoomSnap, 0.5);
+  assert.strictEqual(first.L.__map.lastView, startView);
+  assert.equal(first.L.__map.minZoom, minZoom);
+  assert.match(memory["hinanex.gis.gesture.v1"], /"sensitivity":2/);
+  const reopened = makeGestureCase();
+  assert.equal(reopened.L.__map.options.zoomSnap, 0.5);
+  assert.equal(reopened.L.__map.options.wheelPxPerZoomLevel, 50);
+  reopened.context.window.HINANEX_MAP_GESTURES.setSettings({ sensitivity: 99, style: "invalid" });
+  assert.equal(reopened.L.__map.options.wheelPxPerZoomLevel, 40,
+    "clamp unsafe extreme inputs to 2.5x");
+  assert.equal(reopened.L.__map.options.zoomSnap, 0);
+  reopened.context.window.HINANEX_MAP_GESTURES.resetSettings();
+  assert.equal(reopened.L.__map.options.wheelPxPerZoomLevel, 67);
+  assert.equal(reopened.L.__map.options.zoomSnap, 0);
+
+  const blocked = makeContext({
+    protocol: "http:",
+    localStorage: { getItem() { throw Error("storage blocked"); },
+      setItem() { throw Error("storage blocked"); } },
+    fetchImpl: async () => ({ ok: false, status: 404, json: async () => ({}) })
+  });
+  assert.equal(blocked.L.__map.options.zoomSnap, 0);
+  assert.equal(blocked.context.window.HINANEX_MAP_GESTURES.setSettings({ sensitivity: 1.75 }).sensitivity, 1.75);
+  assert.equal(blocked.L.__map.options.wheelPxPerZoomLevel, 57);
 }

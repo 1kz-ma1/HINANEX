@@ -265,3 +265,51 @@ footer{display:none}
   .header-actions{gap:4px}
   .header-evidence-link{min-height:44px;padding:9px 10px;font-size:11px}
 }
+
+/* Live map gesture preferences, using the existing planned Settings nav slot. */
+.bottom-nav-settings{
+  appearance:none;width:100%;height:100%;font:inherit;
+  border:0;background:transparent;cursor:pointer;
+  color:var(--muted);padding:0;
+}
+.bottom-nav-settings[aria-expanded="true"]{color:var(--cyan);font-weight:750}
+.bottom-nav-settings:focus-visible{outline:3px solid var(--cyan);outline-offset:-3px;border-radius:8px}
+.map-settings-sheet{
+  position:absolute;z-index:1630;
+  right:12px;bottom:12px;
+  width:min(352px,calc(100% - 24px));
+  box-sizing:border-box;max-height:min(76%,530px);overflow:auto;
+  padding:17px 18px;background:#102534;color:var(--text);
+  border:1px solid var(--line-strong);border-radius:17px;
+  box-shadow:0 16px 40px rgba(0,0,0,.45);
+  overscroll-behavior:contain;
+}
+.map-settings-sheet[hidden]{display:none}
+.map-settings-heading{display:flex;justify-content:space-between;align-items:start;gap:10px}
+.map-settings-heading strong{font-size:15px}
+.map-settings-heading p,.map-settings-help{
+  font-size:11px;line-height:1.55;color:var(--muted);margin:7px 0 13px
+}
+.map-settings-heading button{
+  flex-shrink:0;width:40px;height:40px;border-radius:50%;
+  border:1px solid var(--line-strong);background:var(--surface-raised);
+  color:var(--text);font-size:23px;cursor:pointer;
+}
+.map-settings-label{font-size:12px;font-weight:700;display:flex;justify-content:space-between;gap:8px;margin:12px 0 9px}
+.map-settings-label output{color:var(--cyan);font-variant-numeric:tabular-nums}
+.map-settings-sheet input[type="range"]{width:100%;accent-color:var(--cyan);cursor:pointer;min-height:30px;margin:0}
+.map-settings-range-labels{display:flex;justify-content:space-between;color:var(--muted);font-size:10px}
+.map-settings-sheet select{
+  box-sizing:border-box;width:100%;min-height:44px;border-radius:9px;
+  padding:9px;background:var(--surface-raised);color:var(--text);
+  border:1px solid var(--line-strong);font-size:12px
+}
+.map-settings-reset{
+  margin-top:13px;border-radius:9px;min-height:42px;padding:8px 12px;
+  color:var(--cyan);border:1px solid var(--line-strong);
+  background:transparent;font-weight:700;cursor:pointer
+}
+.map-settings-sheet :is(button,input,select):focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+@media(max-width:680px){
+  .map-settings-sheet{right:8px;bottom:8px;width:calc(100% - 16px);max-height:min(70%,500px)}
+}
