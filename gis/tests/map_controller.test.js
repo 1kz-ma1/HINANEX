@@ -617,6 +617,37 @@ nagoya.scenarios = [{
   assert.equal(multiCase.L.__map.hasLayer(multiCase.L.__groups[3]), true);
   assert.equal(multiCase.L.__map.lastBounds.points.length, 3); // origin + two GSI sites
 
+  // Delayed regional D load must not move the map away from an explicitly
+  // selected nearby GSI origin/candidate view.
+  let finishD;
+  const lateDCase = makeContext({
+    protocol: "http:",
+    fetchImpl: async url => {
+      const request = String(url);
+      if (request.includes("/edogawa.json")) {
+        return new Promise(resolve => { finishD = resolve; });
+      }
+      if (request.includes("gsi_verified_tiles/13123/10-909-403.json")) {
+        return { ok: true, status: 200, json: async () => officialCatalog };
+      }
+      return { ok: false, status: 404, json: async () => ({}) };
+    }
+  });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(typeof finishD, "function");
+  lateDCase.elements.mapOriginShortcut.listeners.click();
+  lateDCase.L.__map.handlers.click({ latlng: { lat: 35.7, lng: 139.9 } });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(lateDCase.elements.facilityDisplayMode.value, "nearby");
+  const selectedBounds = lateDCase.L.__map.lastBounds;
+  assert.equal(selectedBounds.points.length, 2);
+  finishD({ ok: true, status: 200, json: async () => edogawa });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.strictEqual(lateDCase.L.__map.lastBounds, selectedBounds,
+    "a delayed D load may not replace the origin-based viewport");
+  assert.equal(lateDCase.L.__map.hasLayer(lateDCase.L.__groups[1]), false);
+  assert.equal(lateDCase.elements.recordCount.textContent, 2);
+
   // A wrong tile file on the correct static path is NOT a permitted fallback.
   const substituted = makeContext({
     protocol: "http:",
