@@ -84,9 +84,16 @@ try {
     }
 
     if ($PublishPreview) {
-        $currentBranch = [string](& git branch --show-current)
-        $currentBranch = $currentBranch.Trim()
-        Assert-Success 'Read git branch'
+        # Detached Git worktrees return an empty value for 'branch --show-current'.
+        # rev-parse --abbrev-ref HEAD returns the literal 'HEAD' instead; never
+        # invoke .Trim() on an unchecked native-command result.
+        $currentRefOutput = @(& git -C $repo rev-parse --abbrev-ref HEAD)
+        Assert-Success 'Read git branch or detached HEAD'
+        if ($currentRefOutput.Count -ne 1 -or
+            [string]::IsNullOrWhiteSpace([string]$currentRefOutput[0])) {
+            throw 'Cannot identify the current Git worktree; refusing GIS publication.'
+        }
+        $currentBranch = ([string]$currentRefOutput[0]).Trim()
         if ($currentBranch -eq 'main') {
             throw 'Publishing is prohibited from a main checkout. Use an isolated preview worktree.'
         }
