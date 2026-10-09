@@ -80,3 +80,23 @@ $raw.FullName
 この復旧スクリプトはCのraw監査を元のバイトから再計算し、保存済みC公式HTTPS MATCH証跡・Dカタログ・GSIタイル内座標を読み取り専用で照合したうえで**一度だけ**新規タイルJSONを公開します。すでに公開先があれば上書きせず失敗します。再照合時に新しいネットワーク要求は行わず、保存された取得日時の証跡を再利用するため、**新たな公式データの鮮度は保証しません**。
 
 既存の未コミット変更や原本は上書き・削除しないこと。利用中のサーバーが参照しているworktree内の配信JSONが追加されたことはブラウザで別途確認してください。
+
+## 公開済みの起点を保持して周辺8タイルだけ追加
+
+一度成功した `10/909/403` タイルを持つ新規worktreeでは、同じ `-IncludeNeighbors -PublishPreview` コマンドを再実行すると既存の起点JSONに上書き防止ガードがかかります。この場合は**`-NeighborsOnly`を明示指定**してください。
+
+~~~powershell
+cd C:\HINANEX-Multi
+& .\validation\scripts\Prepare-GsiDemoTiles.ps1 `
+    -Latitude 35.70 `
+    -Longitude 139.90 `
+    -RegionCode 13123 `
+    -IncludeNeighbors `
+    -NeighborsOnly `
+    -PublishPreview
+~~~
+
+- 起点を単に「ファイルがあるから」とスキップしません。既存の静的JSONのSHA256が、同じ隔離worktree内に残るC/D監査エビデンスに一致し、対応するアーカイブのrawバイトのSHA256が一致し、Cのローカル独立監査と公式HTTPS MATCHの**保存済み証跡**をもう一度チェックできた場合に限って起点をスキップします。これは新たなGSI再取得ではありません。
+- 必要なJSON・raw・証跡がないか、整合しないときは周辺の取得開始前に失敗します。既存の公開済みファイルを勝手に置換しません。
+- 追加する8タイルはそれぞれ新たなGSI公式URLから取得し、独立C監査・公式HTTPSバイト照合MATCHを実施してから公開します。未検証の隣接タイルは「施設なし」ではありません。
+- `-NeighborsOnly`は`-IncludeNeighbors -PublishPreview`との組み合わせでだけ使えます。ブラウザ上の結果は検証・公開できた範囲のみです。

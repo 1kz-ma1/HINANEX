@@ -32,6 +32,12 @@ class GsiRunnerSyntaxTests(unittest.TestCase):
         self.assertIn("[switch]$PublishPreview", text)
         self.assertIn("Run-GsiFloodLocalAcceptance.ps1", text)
         self.assertIn("Invoke-WebRequest", text)
+        self.assertIn("[switch]$NeighborsOnly", text)
+        self.assertIn("Publish-VerifiedGsiEvidence.ps1", text)
+        self.assertIn("verify_gsi_catalog_acceptance.py", RECOVERY.read_text(encoding="utf-8"))
+        self.assertIn("Get-FileHash -LiteralPath $originOutput", text)
+        self.assertIn("$tiles = @($tiles | Where-Object { -not $_.Origin })", text)
+
 
     def test_detached_checkout_probe_is_safe_in_source(self):
         runner = SCRIPT.read_text(encoding="utf-8")
@@ -43,6 +49,29 @@ class GsiRunnerSyntaxTests(unittest.TestCase):
         self.assertIn("verify_gsi_catalog_acceptance.py", recovery)
         self.assertIn("if (-not $PublishPreview)", recovery)
         self.assertIn("refusing overwrite", recovery)
+
+    @unittest.skipUnless(shutil.which("pwsh"), "PowerShell Core required for explicit safety flags")
+    def test_neighbors_only_requires_both_opt_in_flags(self):
+        result = subprocess.run(
+            [shutil.which("pwsh"), "-NoProfile", "-NonInteractive",
+             "-File", str(SEEDER), "-Latitude", "35.7", "-Longitude", "139.9",
+             "-NeighborsOnly"],
+            text=True, capture_output=True, check=False, timeout=20,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("NeighborsOnly requires -IncludeNeighbors and -PublishPreview",
+                      result.stdout + result.stderr)
+
+    @unittest.skipUnless(shutil.which("pwsh"), "PowerShell Core required for missing-origin test")
+    def test_neighbors_only_refuses_unpublished_origin_before_download(self):
+        result = subprocess.run(
+            [shutil.which("pwsh"), "-NoProfile", "-NonInteractive",
+             "-File", str(SEEDER), "-Latitude", "0.0", "-Longitude", "0.0",
+             "-IncludeNeighbors", "-PublishPreview", "-NeighborsOnly"],
+            text=True, capture_output=True, check=False, timeout=20,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Origin tile must already be published", result.stdout + result.stderr)
 
     @unittest.skipUnless(shutil.which("pwsh") and shutil.which("git"),
                          "PowerShell and Git required for detached worktree test")
