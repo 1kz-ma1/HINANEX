@@ -313,7 +313,7 @@ function updateMapOriginAction(message, picking = false) {
 // A cached single-tile script may expose the old API without throwing during
 // <script> evaluation. Fail CLOSED with actionable feedback instead of
 // crashing the map when the newer controller calls missing functions.
-const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v11";
+const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v12";
 function compatibleDiscoveryEngine() {
   const engine = window.HINANEX_FLOOD_DISCOVERY;
   return engine && engine.apiVersion === REQUIRED_DISCOVERY_VERSION &&
