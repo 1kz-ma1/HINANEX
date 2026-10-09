@@ -138,6 +138,16 @@ for (const [side, buttonId] of [
 ]) {
   const button = document.getElementById(buttonId);
   const stateAttribute = "data-" + side + "-panel";
+  // Initialize from markup, and default to map-first closed rails if an
+  // older cached HTML version omitted the state attribute.
+  const initialClosed = gisLayout.getAttribute(stateAttribute) !== "open";
+  gisLayout.setAttribute(stateAttribute, initialClosed ? "closed" : "open");
+  button.setAttribute("aria-expanded", String(!initialClosed));
+  const initialLabel = side === "left"
+    ? (initialClosed ? "左メニューを開く" : "左メニューを閉じる")
+    : (initialClosed ? "右詳細を開く" : "右詳細を閉じる");
+  button.setAttribute("aria-label", initialLabel);
+  button.setAttribute("title", initialLabel);
   button.addEventListener("click", () => {
     const collapsed = gisLayout.getAttribute(stateAttribute) !== "closed";
     gisLayout.setAttribute(stateAttribute, collapsed ? "closed" : "open");
