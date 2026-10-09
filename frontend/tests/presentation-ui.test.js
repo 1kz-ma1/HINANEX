@@ -56,3 +56,23 @@ test("Assessmentは0点と未評価の違いを説明し、2グループをdetai
   assert.match(app, /"データ品質"/);
   assert.match(app, /"アプリ利用適性"/);
 });
+
+test("洪水Scenarioの読込・取得失敗・Contract不整合・0件表示を区別する", async () => {
+  const app = await readFile(new URL("../src/app.js", import.meta.url), "utf8");
+  assert.match(app, /scenario.uiState === "loading"/);
+  assert.match(app, /"error", "unsupported"/);
+  assert.match(app, /role: loading \? "status" : "alert"/);
+  assert.match(app, /今回の施設別結果は0件です/);
+  assert.match(app, /scenario.total === 0/);
+  assert.match(app, /公式記録と出典を確認/);
+  assert.match(app, /element\("details", \{\s*className: "scenario-trace"/);
+  assert.match(app, /renderFloodScenario\(\{\s*uiState: "loading"/);
+  assert.match(app, /renderFloodScenario\(\{\s*uiState: "error"/);
+});
+
+test("洪水Scenarioのモバイル表示とキーボード操作が破綻しないCSSを持つ", async () => {
+  const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+  assert.match(css, /\.scenario-trace summary:focus-visible/);
+  assert.match(css, /\.scenario-pagination > span \{ order: -1/);
+  assert.match(css, /\.scenario-facts \{ grid-template-columns: minmax\(0, 1fr\)/);
+});
