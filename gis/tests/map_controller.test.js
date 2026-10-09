@@ -183,7 +183,8 @@ function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = nul
     "referenceMapSummary", "referenceMapCoverage", "referenceMapCount",
     "focusReferenceTiles", "toggleDMarkers", "facilityDisplayMode", "facilityDisplayModeDescription",
     "coordinateSearchForm", "coordinateSearchInput", "coordinateSearchButton",
-    "coordinateSearchHelp", "coordinateSearchStatus", "externalFloodTileNotice"
+    "coordinateSearchHelp", "coordinateSearchStatus", "externalFloodTileNotice",
+    "gisLayout", "uiTabNormal", "uiTabScenario", "scenarioIntro"
   ];
   const elements = Object.fromEntries(ids.map(id => [id, makeElement(id)]));
   const L = makeLeafletStub();
@@ -293,6 +294,34 @@ nagoya.scenarios = [{
   assert.equal(fileFetchCalls, 0);
   assert.match(fileCase.elements.datasetStatus.textContent, /file:\/\//);
   assert.match(fileCase.elements.status.textContent, /手動読込/);
+
+  // Two independent UI tabs operate on ONE map, never on two data pipelines.
+  assert.equal(fileCase.elements.gisLayout.getAttribute("data-ui-mode"), "normal");
+  assert.equal(fileCase.elements.gisLayout.getAttribute("aria-labelledby"), "uiTabNormal");
+  assert.equal(fileCase.elements.uiTabNormal.getAttribute("aria-selected"), "true");
+  assert.equal(fileCase.elements.uiTabScenario.getAttribute("aria-selected"), "false");
+  assert.equal(fileCase.elements.scenarioIntro.hidden, true);
+  const fileMap = fileCase.L.__map;
+  fileCase.elements.uiTabScenario.listeners.click();
+  assert.equal(fileCase.elements.gisLayout.getAttribute("data-ui-mode"), "scenario");
+  assert.equal(fileCase.elements.gisLayout.getAttribute("aria-labelledby"), "uiTabScenario");
+  assert.equal(fileCase.elements.uiTabScenario.getAttribute("aria-selected"), "true");
+  assert.equal(fileCase.elements.uiTabScenario.tabIndex, 0);
+  assert.equal(fileCase.elements.uiTabNormal.tabIndex, -1);
+  assert.equal(fileCase.elements.scenarioIntro.hidden, false);
+  assert.strictEqual(fileCase.L.__map, fileMap);
+  let preventedTabScroll = false;
+  fileCase.elements.uiTabScenario.listeners.keydown({
+    key: "ArrowLeft", preventDefault() { preventedTabScroll = true; }
+  });
+  assert.equal(preventedTabScroll, true);
+  assert.equal(fileCase.elements.gisLayout.getAttribute("data-ui-mode"), "normal");
+  assert.equal(fileCase.elements.uiTabNormal.focusCount, 1);
+  fileCase.elements.uiTabNormal.listeners.keydown({key: "End", preventDefault() {}});
+  assert.equal(fileCase.elements.gisLayout.getAttribute("data-ui-mode"), "scenario");
+  fileCase.elements.uiTabScenario.listeners.keydown({key: "Home", preventDefault() {}});
+  assert.equal(fileCase.elements.gisLayout.getAttribute("data-ui-mode"), "normal");
+  assert.equal(fileFetchCalls, 0, "tabs may not load even D/GSI data in file mode");
 
   // HTTP: D RegionExport is loaded and counts are reflected in UI state.
   const byUrl = { edogawa, niigata, nagoya };
@@ -734,6 +763,18 @@ nagoya.scenarios = [{
   assert.doesNotMatch(acceptedCase.elements.details.innerHTML, /番号は表示順序/);
   const pageSource = fs.readFileSync(path.resolve(__dirname, "../gis/index.html"), "utf8");
   assert.match(pageSource, /紫：公式掲載地点（安全性未判定/);
+  assert.match(pageSource, /id="uiTabNormal"[^>]*role="tab"/);
+  assert.match(pageSource, /id="uiTabScenario"[^>]*role="tab"/);
+  assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
+  assert.match(pageSource, /current_theme[.]css[?]v=gis-tabs-20261009-v1/);
+  const theme = fs.readFileSync(path.resolve(__dirname, "../gis/css/current_theme.css"), "utf8");
+  assert.match(theme, /--bg:#07131e/);
+  assert.match(theme, /--cyan:#4ed7dc/);
+  assert.match(theme, /\.scenario-intro\[hidden\]\{display:none\}/);
+  assert.doesNotMatch(theme, /(?:#map|\.leaflet-tile)[^\{]*\{[^}]*\bfilter\s*:/,
+    "official imagery must never be filtered or inverted in the dark theme");
+  assert.match(theme, /\.map-unavailable\{background:var\(--surface\)/,
+    "unlocated facility overlay must stay opaque under dark palette");
   assert.doesNotMatch(pageSource, /紫の番号|reference-legend-sample">1/);
   const cssSource = fs.readFileSync(path.resolve(__dirname, "../gis/css/style.css"), "utf8");
   assert.match(cssSource, /reference-site-marker::after/);
@@ -782,6 +823,25 @@ nagoya.scenarios = [{
   acceptedCase.elements.focusReferenceTiles.listeners.click();
   assert.ok(acceptedCase.L.__map.lastBounds?.points?.length);
   assert.equal(acceptedCase.L.__map.lastBounds.points.length, 2);
+  const sharedMap = acceptedCase.L.__map;
+  const currentBounds = sharedMap.lastBounds;
+  const sourceCount = acceptedCase.L.__groups[3].items.length;
+  const compareValue = acceptedCase.elements.facilityDisplayMode.value;
+  const referenceDetails = acceptedCase.elements.referenceMapCount.textContent;
+  const originCopy = acceptedCase.elements.coordinateSearchInput.value;
+  acceptedCase.elements.uiTabScenario.listeners.click();
+  acceptedCase.elements.uiTabNormal.listeners.click();
+  acceptedCase.elements.uiTabScenario.listeners.click();
+  assert.strictEqual(acceptedCase.L.__map, sharedMap, "the Leaflet instance is shared");
+  assert.strictEqual(sharedMap.lastBounds, currentBounds,
+    "tab only switches UI, never triggers map navigation");
+  assert.equal(acceptedCase.L.__groups[3].items.length, sourceCount);
+  assert.equal(acceptedCase.elements.facilityDisplayMode.value, compareValue);
+  assert.equal(acceptedCase.elements.referenceMapCount.textContent, referenceDetails);
+  assert.equal(acceptedCase.elements.coordinateSearchInput.value, originCopy,
+    "tab switch must not clear the selected coordinate origin");
+  assert.equal(acceptedCase.elements.referenceMapSummary.hidden, false);
+  assert.equal(acceptedCase.elements.region.value, "13123");
   assert.match(acceptedCase.elements.floodDiscoveryResults.innerHTML, /距離は安全性を表さず/);
   assert.doesNotMatch(acceptedCase.elements.floodDiscoveryResults.innerHTML, /行くべき順|推奨順位|ランキング/);
   assert.match(acceptedCase.elements.floodDiscoveryResults.innerHTML, /&lt;unsafe&gt;/);
