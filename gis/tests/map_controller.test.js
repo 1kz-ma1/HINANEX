@@ -602,7 +602,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "viewport-d-20261010-v1");
+  assert.equal(mapAsset[1], "closer-minzoom-20261010-v2");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -1548,8 +1548,9 @@ nagoya.scenarios = [{
   assert.match(styles, /@media\(max-width:680px\)[\s\S]*?\.header-evidence-link\{min-height:44px/);
 }
 
-// Navigation-only minimum zoom must keep the Japanese archipelago overview
-// on-screen, without changing the selected region or guessing data locations.
+// Navigation-only min zoom uses Japan dimensions as a responsive reference,
+// but stops closer (the second screenshot), intentionally allowing cropping.
+// No municipality/source selection or map coordinates may change.
 {
   const { L, elements } = makeContext({
     protocol: "http:",
@@ -1561,26 +1562,27 @@ nagoya.scenarios = [{
   ]);
   assert.equal(map.overviewFitArgs.inside, false);
   assert.deepEqual(Array.from(map.overviewFitArgs.padding), [32, 32]);
-  assert.equal(map.minZoom, 4, "minimum is derived from overview fit, not a hard-coded world view");
-  // Fractional fitting is important on short desktop/map panels: integer
-  // floor produced excessive surrounding space even though Japan fit tighter.
+  const assertZoom = (actual, expected, reason) =>
+    assert.ok(Math.abs(actual - expected) < 1e-9,
+      reason + ": expected " + expected + ", got " + actual);
+  assertZoom(map.minZoom, 4.6,
+    "closer navigation limit should be 0.6 zoom above the former reference fit");
+  // Round baseline is still responsive to desktop/panels/portrait. The
+  // requested closer limit may intentionally crop the former full-Japan fit.
   map.overviewFitZoom = 4.85;
   map.handlers.resize();
-  assert.equal(map.minZoom, 4.85,
-    "the tighter fit uses the fitted fraction rather than extra quarter-step whitespace");
-  assert.ok(map.minZoom <= map.overviewFitZoom,
-    "minimum zoom never crops the reference extent by rounding upward");
+  assertZoom(map.minZoom, 5.45, "near 200km rather than 300km scale");
+  assert.ok(map.minZoom > map.overviewFitZoom,
+    "the navigation-oriented floor no longer guarantees fitting all Japan");
   map.overviewFitZoom = 4.24;
   map.handlers.resize();
-  assert.equal(map.minZoom, 4.1,
-    "the new limit is at most 0.1 level closer while retaining a fit");
+  assertZoom(map.minZoom, 4.7, "fractional viewport keeps its fit-derived baseline");
   map.overviewFitZoom = 4.55;
   map.handlers.resize();
-  assert.equal(map.minZoom, 4.55,
-    "minimum zoom is not tied to integer-level tiles");
+  assertZoom(map.minZoom, 5.15, "fractional minZoom is not tied to tile integers");
   map.overviewFitZoom = 4;
   map.handlers.resize();
-  assert.equal(map.minZoom, 4);
+  assertZoom(map.minZoom, 4.6, "same reference fit has predictable +0.6 offset");
   assert.equal(map.zoom, 13, "initial city zoom remains unchanged");
   assert.equal(map.lastView.zoom, 13);
   assert.equal(elements.region.value, "13123", "municipality selection is unchanged");
@@ -1592,10 +1594,10 @@ nagoya.scenarios = [{
   // desktops, without changing the user's map center/zoom when not needed.
   map.overviewFitZoom = 3;
   map.handlers.resize();
-  assert.equal(map.minZoom, 3);
+  assertZoom(map.minZoom, 3.6, "small portrait viewport retains responsive floor");
   map.overviewFitZoom = 5;
   map.handlers.resize();
-  assert.equal(map.minZoom, 5);
+  assertZoom(map.minZoom, 5.6, "wide viewport retains responsive floor");
   map.overviewFitZoom = 11;
   map.handlers.resize();
   assert.equal(map.minZoom, 6, "limit min-zoom escalation on very large canvases");
@@ -1610,7 +1612,7 @@ nagoya.scenarios = [{
   // Check a just-above-tile-floor fit and maximum-clamped large viewport.
   map.overviewFitZoom = 2.9;
   map.handlers.resize();
-  assert.equal(map.minZoom, 2.85);
+  assertZoom(map.minZoom, 3.45, "above tile floor with the new 0.6 closer scale");
   map.overviewFitZoom = 6.9;
   map.handlers.resize();
   assert.equal(map.minZoom, 6);
@@ -1638,7 +1640,8 @@ nagoya.scenarios = [{
   assert.equal(L.__tiles[0].options.minZoom, 2);
   assert.equal(L.__tiles[1].options.minZoom, 2);
   assert.equal(L.__map.getZoom(), 13);
-  assert.equal(L.__map.minZoom, 4, "Japan overview minimum zoom unchanged");
+  assert.ok(Math.abs(L.__map.minZoom - 4.6) < 1e-9,
+    "navigation floor is closer without changing tile/gesture options");
   assert.match(mapCode, /new URL\(window\.location\.href\)\.searchParams\.get\("debugMapPerf"\) === "1"/);
   assert.match(mapCode, /\[HINANEX map perf\] tile batch/);
   assert.match(mapCode, /\[HINANEX map perf\] D markers/);
@@ -1833,3 +1836,11 @@ nagoya.scenarios = [{
   console.error(error);
   process.exitCode = 1;
 });
+
+// The map scale change is intentionally small and purely presentational:
+// exact D/GSI/official raster semantics are not modified by a minZoom setter.
+{
+  assert.match(mapCode, /const NAVIGATION_CLOSEUP_ZOOM_OFFSET = 0\.6/);
+  assert.match(mapCode, /tightFitZoom \+ NAVIGATION_CLOSEUP_ZOOM_OFFSET/);
+  assert.doesNotMatch(mapCode, /map\.setView\(\[24\.0,\s*122\.5\]/);
+}
