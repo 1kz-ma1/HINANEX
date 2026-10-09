@@ -161,3 +161,11 @@ node gis/tests/region_exports.integration.test.js
 - Leafletのmoveend/zoomendで判定し、短い遅延と前回範囲・読込済みセットの比較で不要なHTTP/再描画を抑制。旧リクエストは既存AbortControllerの考え方で安全に取消。パン中のfitBoundsは行わない。
 - GSIの指定緊急避難場所探索は現在のC-accepted範囲・地点選択要件を維持し、D施設・公式洪水ラスタと明確に分離。地図タイル未取得は『浸水なし』を意味しない。データがない領域は『未確認・未対応』と明示。
 - 実装前にカバレッジの出典・3地域境界の信頼度・広域ビューの仕様・失敗時挙動・表示モードとの関係を検証し、D/C契約の追加が必要なら担当ごとにPRを分ける。
+
+## 2026-10-09 ホイール操作・背景タイル切替の第3段階UX調整
+
+- 新しいデフォルト：`zoomSnap:0.25`（ホイール終了時のスナップ）、`zoomDelta:0.5`（±とキーボードは変更なし）、`wheelPxPerZoomLevel:240`（旧100から低感度化）、`wheelDebounceTime:55`（旧40ms）。ホイール1操作で複数半段飛ぶ印象を減らす。Leaflet標準ズームアニメーションを継続。
+- 地理院**背景地図のみ** `updateWhenZooming:true` に戻してズーム中も適切な背景タイルを先行更新。公式洪水ラスタは `updateWhenZooming:false` のまま読み込み負荷を抑え、出典別の表示と失敗時の「空白 ≠ 浸水なし」警告を維持。背景も公的ラスタも `keepBuffer:3` を維持。
+- 比較用の `?zoomFeel=previous` は直前の `zoomSnap:0.5`／`wheelPxPerZoomLevel:100`／`wheelDebounceTime:40`／背景 `updateWhenZooming:false` に戻す。URLクエリは見た目・操作のA/B確認専用で、地域D/公式GSI・GPS/公的タイルSource・安全性解釈は変えない。
+- PCホイール・タッチパッド・スマホのピンチで、拡大/縮小の滑らかさ・タイル読込エラー・コンソール `?debugMapPerf=1` を実機検証する。**体感改善は未計測**であり、滑らかさの保証や外部タイル再取得増加を避けられる保証はない。
+- 長期の表示対象自動切替は引き続き別段階。Leafletのパン/ズームだけでデータセットを切り替えず、公式境界の根拠を確認してから作る。
