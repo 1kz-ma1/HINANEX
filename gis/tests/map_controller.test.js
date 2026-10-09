@@ -727,7 +727,8 @@ nagoya.scenarios = [{
   assert.notStrictEqual(acceptedCase.L.__map.lastBounds, originalFocus);
   assert.equal(acceptedCase.L.__map.lastBounds.points.length, 4, 
     "comparison fits clicked origin + certified GSI pin + both D coordinates");
-  assert.deepEqual(acceptedCase.L.__map.lastBounds.points[0], [35.7, 139.88]);
+  assert.equal(acceptedCase.L.__map.lastBounds.points[0][0], 35.7);
+  assert.equal(acceptedCase.L.__map.lastBounds.points[0][1], 139.88);
   assert.match(acceptedCase.elements.toggleDMarkers.textContent, /周辺/);
   acceptedCase.elements.toggleDMarkers.listeners.click();
   assert.equal(acceptedCase.elements.facilityDisplayMode.value, "nearby");
