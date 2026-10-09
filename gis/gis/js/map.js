@@ -190,6 +190,9 @@ const JAPAN_OVERVIEW_BOUNDS = L.latLngBounds([
 const OVERVIEW_TILE_MIN_ZOOM = 2;
 const OVERVIEW_MAX_MIN_ZOOM = 6;
 const OVERVIEW_VIEWPORT_PADDING = [32, 32];
+// Preserve enough room for the whole visual Japan reference rectangle while
+// avoiding an unnecessary full integer zoom level of empty surroundings.
+const OVERVIEW_MIN_ZOOM_STEPS_PER_LEVEL = 4;
 
 function updateJapanOverviewMinimumZoom() {
   // getBoundsZoom returns the largest zoom level that fits the overview
@@ -199,9 +202,15 @@ function updateJapanOverviewMinimumZoom() {
     JAPAN_OVERVIEW_BOUNDS, false, OVERVIEW_VIEWPORT_PADDING
   );
   if (!Number.isFinite(fittedZoom)) return;
+  // Rounding all the way down to an integer made a Japan-fitting map as
+  // much as one full zoom level smaller than necessary. Round downward only
+  // to the nearest quarter-step; rounding *up* would crop the reference area.
+  const tightFitZoom = Math.floor(
+    fittedZoom * OVERVIEW_MIN_ZOOM_STEPS_PER_LEVEL
+  ) / OVERVIEW_MIN_ZOOM_STEPS_PER_LEVEL;
   map.setMinZoom(Math.max(
     OVERVIEW_TILE_MIN_ZOOM,
-    Math.min(OVERVIEW_MAX_MIN_ZOOM, Math.floor(fittedZoom))
+    Math.min(OVERVIEW_MAX_MIN_ZOOM, tightFitZoom)
   ));
 }
 updateJapanOverviewMinimumZoom();

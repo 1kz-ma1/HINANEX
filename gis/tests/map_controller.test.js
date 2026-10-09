@@ -592,7 +592,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "cluster-stable-20261009-v5");
+  assert.equal(mapAsset[1], "overview-tight-fit-20261010-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -1551,6 +1551,25 @@ nagoya.scenarios = [{
   assert.equal(map.overviewFitArgs.inside, false);
   assert.deepEqual(Array.from(map.overviewFitArgs.padding), [32, 32]);
   assert.equal(map.minZoom, 4, "minimum is derived from overview fit, not a hard-coded world view");
+  // Fractional fitting is important on short desktop/map panels: integer
+  // floor produced excessive surrounding space even though Japan fit tighter.
+  map.overviewFitZoom = 4.85;
+  map.handlers.resize();
+  assert.equal(map.minZoom, 4.75,
+    "quarter-step minZoom keeps Japan close to the screen edge");
+  assert.ok(map.minZoom <= map.overviewFitZoom,
+    "minimum zoom never crops the reference extent by rounding upward");
+  map.overviewFitZoom = 4.24;
+  map.handlers.resize();
+  assert.equal(map.minZoom, 4,
+    "quarter rounding retains a little room when the fitted zoom is near an integer");
+  map.overviewFitZoom = 4.55;
+  map.handlers.resize();
+  assert.equal(map.minZoom, 4.5,
+    "minimum zoom is not tied to integer-level tiles");
+  map.overviewFitZoom = 4;
+  map.handlers.resize();
+  assert.equal(map.minZoom, 4);
   assert.equal(map.zoom, 13, "initial city zoom remains unchanged");
   assert.equal(map.lastView.zoom, 13);
   assert.equal(elements.region.value, "13123", "municipality selection is unchanged");
@@ -1577,6 +1596,13 @@ nagoya.scenarios = [{
   map.handlers.resize();
   assert.equal(map.minZoomCalls.length, callsBeforeInvalid,
     "invalid viewport size must not override the previous minimum");
+  // Check a just-above-tile-floor fit and maximum-clamped large viewport.
+  map.overviewFitZoom = 2.9;
+  map.handlers.resize();
+  assert.equal(map.minZoom, 2.75);
+  map.overviewFitZoom = 6.9;
+  map.handlers.resize();
+  assert.equal(map.minZoom, 6);
   assert.equal(map.zoom, 13, "resizing does not reset current detailed view");
 
   // Leaflet handles +/- zoom, wheel and touch pinch using the same minZoom.
