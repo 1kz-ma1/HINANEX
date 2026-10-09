@@ -348,3 +348,80 @@ footer{height:36px;background:#091825;color:var(--muted);border-top:1px solid va
   .layout>.map-wrap>#map{min-height:0}
   .layout>.right{min-height:0}
 }
+
+/* Panel rails v4: no grid auto-placement. Previously display:none removed
+   the left child from the auto-placement flow and moved the MAP into the
+   collapsed first track. All three children now have explicit positions. */
+.layout{
+  --gis-left-width:clamp(240px,20vw,275px);
+  --gis-right-width:clamp(270px,24vw,325px);
+  display:grid;
+  grid-template-columns:var(--gis-left-width) minmax(0,1fr) var(--gis-right-width);
+  grid-template-areas:none;
+  min-width:0;
+}
+.layout[data-left-panel="closed"]{--gis-left-width:44px}
+.layout[data-right-panel="closed"]{--gis-right-width:44px}
+.layout>.gis-side-shell--left{grid-column:1;grid-row:1}
+.layout>.map-wrap{grid-column:2;grid-row:1;min-width:0}
+.layout>.gis-side-shell--right{grid-column:3;grid-row:1}
+.gis-side-shell{position:relative;min-width:0;min-height:0;
+  background:var(--surface);border:1px solid var(--line)}
+.gis-side-shell--left{border-left:0}
+.gis-side-shell--right{border-right:0}
+.gis-side-shell>.left,.gis-side-shell>.right{
+  display:block;width:100%;height:100%;min-height:0;min-width:0;
+  border:0;overflow:auto;
+}
+.gis-side-shell--left>.left>.sidebar-section:first-of-type{padding-top:53px}
+.gis-side-shell--right>.right{padding-top:57px}
+.gis-panel-toggle{
+  position:absolute;z-index:30;top:9px;
+  display:grid;place-items:center;box-sizing:border-box;
+  width:35px;height:35px;min-height:35px;padding:6px;
+  color:var(--muted);border:1px solid var(--line-strong);
+  border-radius:9px;background:var(--surface-raised);cursor:pointer;
+}
+.gis-panel-toggle--left{right:5px}
+.gis-panel-toggle--right{left:5px}
+.gis-panel-toggle svg{display:block;width:21px;height:21px;pointer-events:none}
+.gis-panel-toggle:hover{color:var(--cyan);background:var(--cyan-soft)}
+.gis-panel-toggle:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+.layout[data-left-panel="closed"]>.gis-side-shell--left>.left{display:none}
+.layout[data-right-panel="closed"]>.gis-side-shell--right>.right{display:none}
+.layout[data-left-panel="closed"] .gis-panel-toggle--left,
+.layout[data-right-panel="closed"] .gis-panel-toggle--right{color:var(--cyan);
+  background:var(--cyan-soft);border-color:rgba(78,215,220,.4)}
+@media(max-width:900px){
+  .layout{
+    --gis-left-width:clamp(210px,28vw,280px);
+    --gis-right-width:100%;
+    display:grid;grid-template-columns:var(--gis-left-width) minmax(0,1fr);
+    grid-template-areas:none;grid-template-rows:auto auto
+  }
+  .layout>.gis-side-shell--left{grid-column:1;grid-row:1;
+    height:clamp(400px,calc(100dvh - 242px),660px)}
+  .layout>.map-wrap{grid-column:2;grid-row:1}
+  .layout>.gis-side-shell--right{grid-column:1/-1;grid-row:2}
+  .layout[data-left-panel="closed"]>.map-wrap{grid-column:2;grid-row:1}
+  .layout>.gis-side-shell--left>.left{max-height:100%;height:100%}
+  .layout[data-right-panel="closed"]>.gis-side-shell--right{height:45px}
+  .gis-side-shell--right>.right{max-height:none}
+  .gis-panel-toggle--right{left:8px}
+}
+@media(max-width:680px){
+  .layout{
+    display:grid;grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto auto auto;
+    grid-template-areas:none
+  }
+  .layout>.gis-side-shell--left{grid-column:1;grid-row:1;height:auto}
+  .layout>.map-wrap{grid-column:1;grid-row:2}
+  .layout>.gis-side-shell--right{grid-column:1;grid-row:3}
+  .layout[data-left-panel="closed"]>.map-wrap{grid-column:1;grid-row:2}
+  .layout[data-left-panel="closed"]>.gis-side-shell--left{height:45px}
+  .layout[data-right-panel="closed"]>.gis-side-shell--right{height:45px}
+  .layout>.gis-side-shell--left>.left{max-height:none;height:auto}
+  .gis-panel-toggle--left{right:10px}
+  .gis-panel-toggle--right{left:10px}
+}

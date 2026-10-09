@@ -6,7 +6,7 @@
   <title>HINANEX | GIS / Map</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/current_theme.css?v=gis-map-space-20261009-v3">
+  <link rel="stylesheet" href="css/current_theme.css?v=gis-panel-rails-20261009-v4">
 </head>
 <body>
 <header class="header">
@@ -21,14 +21,19 @@
     <button id="uiTabScenario" class="gis-view-tab" type="button" role="tab" aria-selected="false"
       aria-controls="gisLayout" tabindex="-1">シナリオ探索</button>
   </div>
-  <div class="gis-panel-controls" role="group" aria-label="地図の表示領域">
-    <button id="toggleLeftPanel" class="gis-panel-toggle" type="button" aria-controls="gisLeftPanel" aria-expanded="true">左メニューを閉じる</button>
-    <button id="toggleRightPanel" class="gis-panel-toggle" type="button" aria-controls="details" aria-expanded="true">右詳細を閉じる</button>
-  </div>
+
   <p class="gis-view-caption">同じ地図とデータを使って情報を確認します。<span>災害の時間経過予測ではありません。</span></p>
 </nav>
 
 <div class="layout" id="gisLayout" data-ui-mode="normal" data-left-panel="open" data-right-panel="open" role="tabpanel" aria-labelledby="uiTabNormal">
+  <div class="gis-side-shell gis-side-shell--left">
+  <button id="toggleLeftPanel" class="gis-panel-toggle gis-panel-toggle--left" type="button"
+    aria-controls="gisLeftPanel" aria-expanded="true" aria-label="左メニューを閉じる" title="左メニューを閉じる">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+      <rect x="2.5" y="4" width="19" height="16" rx="3"></rect><path d="M9 4v16"></path>
+    </svg>
+  </button>
   <aside class="left" id="gisLeftPanel" aria-label="GISの地域・探索・データ操作">
     <section class="sidebar-section sidebar-section--region" aria-labelledby="sidebarRegionTitle">
       <p class="sidebar-eyebrow">01 / AREA</p>
@@ -143,6 +148,7 @@
       </details>
     </section>
   </aside>
+  </div>
 
   <main class="map-wrap">
     <div id="map"></div>
@@ -201,6 +207,14 @@
     <div class="map-badge">GIS / RegionExport</div>
   </main>
 
+  <div class="gis-side-shell gis-side-shell--right">
+  <button id="toggleRightPanel" class="gis-panel-toggle gis-panel-toggle--right" type="button"
+    aria-controls="details" aria-expanded="true" aria-label="右詳細を閉じる" title="右詳細を閉じる">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+      <rect x="2.5" y="4" width="19" height="16" rx="3"></rect><path d="M15 4v16"></path>
+    </svg>
+  </button>
   <aside class="right" id="details">
     <div class="empty">
       <div class="empty-icon">⌖</div>
@@ -208,6 +222,7 @@
       <p>地域を選ぶとDのRegionExportを探索し、座標を持つ避難所を描画します。<br>地図上の任意地点をクリックすると公的洪水参照レイヤーの情報を確認できます。</p>
     </div>
   </aside>
+  </div>
 </div>
 
 <footer>
@@ -220,7 +235,7 @@
 <script src="js/d_region_adapter.js"></script>
 <script src="js/facility_list.js"></script>
 <!-- Keep discovery and map on one release key: prevents mixed browser cache versions. -->
-<script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v13"></script>
-<script src="js/map.js?v=gsi-z10-neighbors-20261009-v13"></script>
+<script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v14"></script>
+<script src="js/map.js?v=gsi-z10-neighbors-20261009-v14"></script>
 </body>
 </html>

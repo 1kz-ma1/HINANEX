@@ -142,9 +142,12 @@ for (const [side, buttonId] of [
     const collapsed = gisLayout.getAttribute(stateAttribute) !== "closed";
     gisLayout.setAttribute(stateAttribute, collapsed ? "closed" : "open");
     button.setAttribute("aria-expanded", String(!collapsed));
-    button.textContent = side === "left"
+    // Preserve the inline SVG: updating textContent would destroy the icon.
+    const label = side === "left"
       ? (collapsed ? "左メニューを開く" : "左メニューを閉じる")
       : (collapsed ? "右詳細を開く" : "右詳細を閉じる");
+    button.setAttribute("aria-label", label);
+    button.setAttribute("title", label);
     // Leaflet needs a viewport recalculation after its parent grid changes.
     // Explicit pan:false avoids repositioning the user-selected center.
     // No setView, fitBounds, region switch or C/D fetch is performed here.
@@ -336,7 +339,7 @@ function updateMapOriginAction(message, picking = false) {
 // A cached single-tile script may expose the old API without throwing during
 // <script> evaluation. Fail CLOSED with actionable feedback instead of
 // crashing the map when the newer controller calls missing functions.
-const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v13";
+const REQUIRED_DISCOVERY_VERSION = "gsi-z10-neighbors-20261009-v14";
 function compatibleDiscoveryEngine() {
   const engine = window.HINANEX_FLOOD_DISCOVERY;
   return engine && engine.apiVersion === REQUIRED_DISCOVERY_VERSION &&
