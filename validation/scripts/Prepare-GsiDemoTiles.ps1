@@ -41,6 +41,12 @@ if ($IncludeNeighbors) {
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $runner = Join-Path $PSScriptRoot 'Run-GsiFloodLocalAcceptance.ps1'
 
+# Validate unsafe option combinations BEFORE -NeighborsOnly revalidates files.
+if ($OnlyUnpublished -and
+    (-not $IncludeNeighbors -or -not $PublishPreview -or $NeighborsOnly)) {
+    throw 'OnlyUnpublished requires -IncludeNeighbors and -PublishPreview and cannot combine with -NeighborsOnly.'
+}
+
 if ($NeighborsOnly) {
     if (-not $IncludeNeighbors -or -not $PublishPreview) {
         throw 'NeighborsOnly requires -IncludeNeighbors and -PublishPreview.'
@@ -100,9 +106,6 @@ if ($NeighborsOnly) {
 # Unlike -NeighborsOnly this mode proves EACH already-published tile using the
 # independent C proof ledger before skipping it. No published tile is replaced.
 if ($OnlyUnpublished) {
-    if (-not $IncludeNeighbors -or -not $PublishPreview -or $NeighborsOnly) {
-        throw 'OnlyUnpublished requires -IncludeNeighbors and -PublishPreview and cannot combine with -NeighborsOnly.'
-    }
     $ledger = Join-Path $repo 'validation\validation\gsi_geographic_proof_ledger.py'
     if (-not (Test-Path -LiteralPath $ledger -PathType Leaf)) {
         throw 'Independent C geographic proof ledger missing; refusing partial resume.'
