@@ -219,6 +219,7 @@ function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = nul
     "originStatus", "floodDiscoveryResults", "mapOriginShortcut", "mapOriginShortcutStatus",
     "referenceMapSummary", "referenceMapCoverage", "referenceMapCount",
     "focusReferenceTiles", "toggleDMarkers", "facilityDisplayMode", "facilityDisplayModeDescription",
+    "mapDDecisionFilter", "mapDDecisionFilterStatus",
     "coordinateSearchForm", "coordinateSearchInput", "coordinateSearchButton",
     "coordinateSearchHelp", "coordinateSearchStatus", "externalFloodTileNotice",
     "gisLayout", "uiTabNormal", "uiTabScenario", "scenarioIntro",
