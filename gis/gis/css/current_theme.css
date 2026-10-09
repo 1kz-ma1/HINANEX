@@ -403,6 +403,7 @@ footer{height:36px;background:#091825;color:var(--muted);border-top:1px solid va
     height:clamp(400px,calc(100dvh - 242px),660px)}
   .layout>.map-wrap{grid-column:2;grid-row:1}
   .layout>.gis-side-shell--right{grid-column:1/-1;grid-row:2}
+  .layout[data-left-panel="closed"]>.map-wrap{grid-column:2;grid-row:1}
   .layout>.gis-side-shell--left>.left{max-height:100%;height:100%}
   .layout[data-right-panel="closed"]>.gis-side-shell--right{height:45px}
   .gis-side-shell--right>.right{max-height:none}
@@ -417,6 +418,7 @@ footer{height:36px;background:#091825;color:var(--muted);border-top:1px solid va
   .layout>.gis-side-shell--left{grid-column:1;grid-row:1;height:auto}
   .layout>.map-wrap{grid-column:1;grid-row:2}
   .layout>.gis-side-shell--right{grid-column:1;grid-row:3}
+  .layout[data-left-panel="closed"]>.map-wrap{grid-column:1;grid-row:2}
   .layout[data-left-panel="closed"]>.gis-side-shell--left{height:45px}
   .layout[data-right-panel="closed"]>.gis-side-shell--right{height:45px}
   .layout>.gis-side-shell--left>.left{max-height:none;height:auto}
