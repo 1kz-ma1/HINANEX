@@ -82,6 +82,7 @@ function makeLeafletStub() {
   const panes = {};
   const groups = [];
   const markers = [];
+  const tiles = [];
 
   const map = {
     handlers: {},
@@ -118,12 +119,14 @@ function makeLeafletStub() {
   }
 
   function tileLayer() {
-    return {
+    const layer = {
       handlers: {},
       addTo(target) { target.addLayer(this); return this; },
       setOpacity(value) { this.opacity = value; return this; },
       on(name, fn) { this.handlers[name] = fn; return this; }
     };
+    tiles.push(layer);
+    return layer;
   }
 
   function bounds(points) {
@@ -162,7 +165,8 @@ function makeLeafletStub() {
     __map: map,
     __groups: groups,
     __markers: markers,
-    __panes: panes
+    __panes: panes,
+    __tiles: tiles
   };
 }
 
@@ -935,6 +939,18 @@ nagoya.scenarios = [{
   // Exact same coordinates were used to calculate the D display centroid.
   assert.ok(Math.abs(clusterCase.L.__groups[1].items[0].latlng[0] - 35.7001) < 0.00000001);
   assert.ok(Math.abs(clusterCase.L.__groups[1].items[0].latlng[1] - 139.8801) < 0.00000001);
+
+  // External flood raster availability is separate from certified GSI
+  // skhb01 shelter reference coverage. Tileerror does not prove HTTP404,
+  // zero inundation, missing shelters or lack of D RegionExport.
+  clusterCase.L.__tiles[1].handlers.tileerror({
+    tile: { src: "https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/10/909/403.png" }
+  });
+  assert.match(clusterCase.elements.status.textContent, /外部タイルの一部/);
+  assert.match(clusterCase.elements.status.textContent, /公的洪水ラスタ/);
+  assert.match(clusterCase.elements.status.textContent, /浸水の有無・安全性は判定できません/);
+  assert.doesNotMatch(clusterCase.elements.status.textContent, /Dデータは利用可能|浸水なし|安全な避難先/);
+  assert.equal(clusterCase.elements.recordCount.textContent, 3);
 
   // A wrong tile file on the correct static path is NOT a permitted fallback.
   const substituted = makeContext({
