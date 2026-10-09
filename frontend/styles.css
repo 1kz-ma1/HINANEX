@@ -1810,3 +1810,40 @@ body {
   .scenario-facts { grid-template-columns: minmax(0, 1fr); gap: 3px; }
   .scenario-facts dt:not(:first-child) { margin-top: 10px; }
 }
+
+/* Analytics remains a standalone page: keep a clear, always-available
+   route to the GIS map without embedding it or changing its state. */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(7, 19, 30, 0.96);
+  backdrop-filter: blur(12px);
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.map-back-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 9px 14px;
+  border: 1px solid rgba(78, 215, 220, 0.45);
+  border-radius: 11px;
+  background: var(--cyan-soft);
+  color: var(--cyan);
+  text-decoration: none;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 750;
+}
+.map-back-link:hover { background: rgba(78, 215, 220, 0.2); }
+.map-back-link:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+@media (max-width: 620px) {
+  .header-actions { gap: 8px; }
+  .map-back-link { min-height: 44px; padding: 9px 11px; font-size: 11px; }
+}
