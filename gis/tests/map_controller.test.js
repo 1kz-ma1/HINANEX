@@ -1250,6 +1250,13 @@ nagoya.scenarios = [{
     "mapToolScene", "mapToolScenario", "mapToolMarks", "mapToolHazards"];
   const nodes = Object.fromEntries(uiIds.map(id => {
     const node = makeElement(id);
+    // Browser EventTarget allows multiple handlers; the legacy simple stub
+    // overwrites by name, so wrap listeners for the facade integration test.
+    const callbacks = {};
+    node.addEventListener = function(name, callback) {
+      (callbacks[name] ||= []).push(callback);
+      this.listeners[name] = event => callbacks[name].forEach(fn => fn(event));
+    };
     node.dispatchEvent = function(event) {
       this.listeners[event.type]?.({ target: this });
       return true;
