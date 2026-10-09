@@ -123,3 +123,8 @@ footer{height:36px;display:flex;justify-content:space-between;align-items:center
    Unlike the small purple GSI source references, counts are literal D rows. */
 .d-facility-cluster{display:flex;align-items:center;justify-content:center;width:42px;height:42px;box-sizing:border-box;border:3px solid #fff;border-radius:50%;background:#076c50;box-shadow:0 0 0 3px #0e8b68,0 3px 12px rgba(12,42,33,.25);color:#fff;font-weight:800;font-size:14px;font-variant-numeric:tabular-nums;cursor:zoom-in}
 .d-facility-cluster:hover{background:#075d46}
+
+/* This independent raster health notice survives subsequent D source status updates.
+   Missing provider tiles never imply safe/unflooded geography. */
+.external-flood-tile-notice{margin:5px 0 12px;padding:9px 10px;border-left:3px solid #b67500;background:#fff5e4;color:#724700;font-size:11px;line-height:1.6;overflow-wrap:anywhere}
+.external-flood-tile-notice[hidden]{display:none}
