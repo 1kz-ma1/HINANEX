@@ -41,7 +41,9 @@ map.createPane("referenceOriginPane");
 map.getPane("referenceOriginPane").style.zIndex = 730;
 
 const baseMap = L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png", {
-  minZoom: 5,
+  // The overview minimum is set on the map itself based on its viewport.
+  // Allow low-zoom GSI tiles so zooming out does not leave a blank basemap.
+  minZoom: 2,
   maxZoom: 18,
   maxNativeZoom: 18,
   attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>'
@@ -61,6 +63,34 @@ const shelterGroup = L.layerGroup().addTo(map);
 const referenceFootprintGroup = L.layerGroup().addTo(map);
 const referenceSiteGroup = L.layerGroup().addTo(map);
 L.control.scale({ imperial: false, position: "bottomleft" }).addTo(map);
+
+// Navigation-only overview: this rectangle approximates the visible Japanese
+// archipelago from the southwest islands through Hokkaido. It is NOT a
+// jurisdiction border, official hazard extent, data coverage or safety area.
+// The outermost remote islands outside this frame are not all included.
+const JAPAN_OVERVIEW_BOUNDS = L.latLngBounds([
+  [24.0, 122.5],
+  [45.8, 146.5]
+]);
+const OVERVIEW_TILE_MIN_ZOOM = 2;
+const OVERVIEW_MAX_MIN_ZOOM = 6;
+const OVERVIEW_VIEWPORT_PADDING = [32, 32];
+
+function updateJapanOverviewMinimumZoom() {
+  // getBoundsZoom returns the largest zoom level that fits the overview
+  // bounds within the current map size. Recompute when a resize changes
+  // that fit, instead of hard-coding desktop/mobile zoom levels.
+  const fittedZoom = map.getBoundsZoom(
+    JAPAN_OVERVIEW_BOUNDS, false, OVERVIEW_VIEWPORT_PADDING
+  );
+  if (!Number.isFinite(fittedZoom)) return;
+  map.setMinZoom(Math.max(
+    OVERVIEW_TILE_MIN_ZOOM,
+    Math.min(OVERVIEW_MAX_MIN_ZOOM, Math.floor(fittedZoom))
+  ));
+}
+updateJapanOverviewMinimumZoom();
+map.on("resize", updateJapanOverviewMinimumZoom);
 
 const regionSelect = document.getElementById("region");
 const requestedRegionCode = new URL(window.location.href).searchParams.get("region");
