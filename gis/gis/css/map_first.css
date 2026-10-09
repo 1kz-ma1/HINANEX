@@ -170,8 +170,8 @@ footer{display:none}
   .map-tool-arrow{font-size:10px}
   .map-tool-panel{width:min(330px,calc(100vw - 20px));max-height:min(67dvh,480px);padding:13px}
   .map-tool--scene .map-tool-panel{left:0;right:auto}
-  .map-tool--scenario .map-tool-panel{left:-60px}
-  .map-tool--marks .map-tool-panel,.map-tool--hazards .map-tool-panel{right:0;left:auto}
+  .map-tool--scenario .map-tool-panel{left:-76px}
+  .map-tool--marks .map-tool-panel{left:auto;right:-76px}\n  .map-tool--hazards .map-tool-panel{right:0;left:auto}
   .layout>.gis-side-shell--left{top:67px;left:8px;width:calc(100% - 16px);height:min(60%,460px)}
   .layout[data-left-panel="closed"]>.gis-side-shell--left{width:46px;height:46px}
   .layout>.gis-side-shell--right{width:100%;max-width:none;height:min(52%,400px);border-radius:17px 17px 0 0}
@@ -194,4 +194,14 @@ footer{display:none}
 @media(max-width:680px){
   .map-wrap .leaflet-top.leaflet-left{top:65px;right:8px}
   .map-raster-banner{left:62px;top:66px;max-width:calc(100% - 119px);font-size:10px}
+}
+
+/* Leave the locate control accessible above an open details bottom sheet. */
+.layout[data-right-panel="open"] .map-locate-button{
+  bottom:calc(min(50%,350px) + 14px);
+}
+@media(max-width:680px){
+  .layout[data-right-panel="open"] .map-locate-button{
+    bottom:calc(min(52%,400px) + 14px);
+  }
 }
