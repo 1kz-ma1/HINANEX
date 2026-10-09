@@ -45,8 +45,10 @@
   document.addEventListener("click", event => {
     const target = event.target;
     const inOpenMenu = toolMenus.some(menu => menu.open && menu.contains(target));
-    const inLeft = isPanelOpen("left") && leftPanel.contains(target);
-    const inRight = isPanelOpen("right") && rightPanel.contains(target);
+    const inLeft = isPanelOpen("left") &&
+      (leftPanel.contains(target) || id("toggleLeftPanel").contains(target));
+    const inRight = isPanelOpen("right") &&
+      (rightPanel.contains(target) || id("toggleRightPanel").contains(target));
     const inReference = !referenceSummary.hidden && referenceDisclosure.open &&
       referenceSummary.contains(target);
     if (inOpenMenu || inLeft || inRight || inReference) return;
