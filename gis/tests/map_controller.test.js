@@ -331,6 +331,8 @@ nagoya.scenarios = [{
   assert.equal(fileCase.elements.toggleRightPanel.getAttribute("aria-expanded"), "false");
   fileCase.elements.toggleLeftPanel.listeners.click();
   fileCase.elements.toggleRightPanel.listeners.click();
+  // Exclude the initial map-first setup from the legacy four-toggle invariant.
+  fileCase.L.__map.invalidateCalls = [];
   // Collapse controls remain visible in the header even with both panels closed.
   // It is only a viewport size notification; never move the map or refetch.
   const boundsBeforeCollapse = fileMap.lastBounds;
