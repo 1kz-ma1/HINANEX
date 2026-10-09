@@ -87,6 +87,16 @@ function makeLeafletStub() {
   const map = {
     handlers: {},
     zoom: 13,
+    overviewFitZoom: 4,
+    getBoundsZoom(bounds, inside, padding) {
+      this.overviewFitArgs = { bounds, inside, padding };
+      return this.overviewFitZoom;
+    },
+    setMinZoom(value) {
+      this.minZoom = value;
+      this.minZoomCalls = [...(this.minZoomCalls || []), value];
+      return this;
+    },
     setView(latlng, zoom) { this.lastView = { latlng, zoom }; this.zoom = zoom; return this; },
     getZoom() { return this.zoom; },
     project(latlng, zoom) {
@@ -574,7 +584,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "map-first-20261009-v2");
+  assert.equal(mapAsset[1], "japan-overview-20261009-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -1416,4 +1426,51 @@ nagoya.scenarios = [{
   assert.doesNotMatch(header, /<iframe|<dialog|onclick=/i);
   assert.match(styles, /\.header-evidence-link:focus-visible/);
   assert.match(styles, /@media\(max-width:680px\)[\s\S]*?\.header-evidence-link\{min-height:44px/);
+}
+
+// Navigation-only minimum zoom must keep the Japanese archipelago overview
+// on-screen, without changing the selected region or guessing data locations.
+{
+  const { L, elements } = makeContext({
+    protocol: "http:",
+    fetchImpl: async () => ({ ok: false, status: 404, json: async () => ({}) })
+  });
+  const map = L.__map;
+  assert.deepEqual(Array.from(map.overviewFitArgs.bounds.points, item => [...item]), [
+    [24.0, 122.5], [45.8, 146.5]
+  ]);
+  assert.equal(map.overviewFitArgs.inside, false);
+  assert.deepEqual(Array.from(map.overviewFitArgs.padding), [32, 32]);
+  assert.equal(map.minZoom, 4, "minimum is derived from overview fit, not a hard-coded world view");
+  assert.equal(map.zoom, 13, "initial city zoom remains unchanged");
+  assert.equal(map.lastView.zoom, 13);
+  assert.equal(elements.region.value, "13123", "municipality selection is unchanged");
+  assert.equal(L.__tiles.length >= 2, true);
+  assert.equal(mapCode.includes('minZoom: 2,'), true,
+    "basemap tile range must allow the computed small-screen overview level");
+
+  // Emulate rotating from short landscape to tall portrait and very large
+  // desktops, without changing the user's map center/zoom when not needed.
+  map.overviewFitZoom = 3;
+  map.handlers.resize();
+  assert.equal(map.minZoom, 3);
+  map.overviewFitZoom = 5;
+  map.handlers.resize();
+  assert.equal(map.minZoom, 5);
+  map.overviewFitZoom = 11;
+  map.handlers.resize();
+  assert.equal(map.minZoom, 6, "limit min-zoom escalation on very large canvases");
+  map.overviewFitZoom = 1;
+  map.handlers.resize();
+  assert.equal(map.minZoom, 2, "respect actual raster/basemap tile lower bound");
+  const callsBeforeInvalid = map.minZoomCalls.length;
+  map.overviewFitZoom = Number.NaN;
+  map.handlers.resize();
+  assert.equal(map.minZoomCalls.length, callsBeforeInvalid,
+    "invalid viewport size must not override the previous minimum");
+  assert.equal(map.zoom, 13, "resizing does not reset current detailed view");
+
+  // Leaflet handles +/- zoom, wheel and touch pinch using the same minZoom.
+  assert.match(mapCode, /map\.setMinZoom\(/);
+  assert.doesNotMatch(mapCode, /map\.setView\(\[[^\]]*\],\s*[345]\)/);
 }
