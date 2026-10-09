@@ -454,6 +454,7 @@ footer{display:none}
 .map-decision-legend{display:grid;gap:6px}
 .map-decision-legend>span{display:flex;align-items:start;gap:7px}
 .map-decision-dot{width:13px;height:13px;flex:0 0 13px;border:2px solid #fff;border-radius:50%;margin-top:2px;box-shadow:0 0 0 1px rgba(255,255,255,.45)}
-.map-decision-dot.d-status-classified{background:#176b9e}
+.map-decision-dot.d-status-candidate{background:#176b9e}
+.map-decision-dot.d-status-excluded{background:#64748b}
 .map-decision-dot.d-status-unknown{background:#c18a32}
 .map-decision-dot.d-status-gsi{background:#7439aa}
