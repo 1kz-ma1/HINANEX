@@ -430,3 +430,95 @@ footer{height:36px;background:#091825;color:var(--muted);border-top:1px solid va
    Use previously unused desktop viewport headroom for the map, without
    sacrificing the existing top/bottom frame or forcing document scrolling
    at common laptop viewport heights. Mobile map sizing remains unchanged. */
+
+/* Map-first facility controls: closed is a single 50px building-icon
+   affordance. Native details/summary preserves existing select/form state,
+   keyboard operation, and avoids an extra JS-driven overlay lifecycle. */
+.origin-map-action{
+  box-sizing:border-box;
+  padding:0;
+  top:92px;
+  max-height:min(68%,560px);
+  width:min(270px,calc(100% - 24px));
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
+.origin-map-action:not([open]){
+  width:52px;
+  height:52px;
+  max-height:52px;
+  border-radius:50%;
+  overflow:hidden;
+}
+.origin-map-toggle{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  box-sizing:border-box;
+  min-height:45px;
+  padding:10px 12px;
+  gap:10px;
+  list-style:none;
+  cursor:pointer;
+  color:var(--text);
+  font-size:12px;
+  font-weight:750;
+}
+.origin-map-toggle::-webkit-details-marker{display:none}
+.origin-map-toggle::marker{content:""}
+.origin-map-toggle:focus-visible{
+  outline:3px solid var(--cyan);
+  outline-offset:-4px;
+  border-radius:inherit;
+}
+.origin-map-action:not([open]) .origin-map-toggle{
+  display:grid;
+  place-items:center;
+  padding:0;
+  width:50px;
+  min-height:50px;
+  color:var(--cyan);
+}
+.origin-map-icon{display:block;width:25px;height:25px;flex:none}
+.origin-map-action[open] .origin-map-icon{display:none}
+.origin-map-action:not([open]) .origin-map-toggle-label,
+.origin-map-action:not([open]) .origin-map-close{display:none}
+.origin-map-action[open] .origin-map-toggle{
+  border-bottom:1px solid var(--line);
+}
+.origin-map-close{
+  display:grid;
+  place-items:center;
+  width:27px;
+  height:27px;
+  border:1px solid var(--line-strong);
+  border-radius:7px;
+  font-size:22px;
+  line-height:1;
+  color:var(--cyan);
+}
+.origin-map-action-body{
+  padding:10px 11px 12px;
+  min-width:0;
+}
+.origin-map-action[open]{z-index:1100}
+@media(max-width:680px){
+  .origin-map-action{
+    top:82px;
+    left:10px;
+    max-height:52px;
+  }
+  .origin-map-action[open]{
+    top:auto;
+    bottom:12px;
+    left:10px;
+    width:calc(100% - 20px);
+    max-height:min(72%,500px);
+    border-radius:16px;
+  }
+  .origin-map-action[open] .origin-map-toggle{
+    min-height:50px;
+    padding:12px 16px;
+  }
+  .origin-map-action-body{padding:12px 15px 16px}
+}
