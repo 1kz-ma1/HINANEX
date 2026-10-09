@@ -129,6 +129,29 @@ for (const [mode, tab] of Object.entries(viewTabs)) {
 }
 setUiMode("normal");
 
+// Independent panel visibility is presentation state, not a data or
+// selection change. Controls stay outside the shrinking columns so either
+// side can always be reopened, including when both sides are hidden.
+for (const [side, buttonId] of [
+  ["left", "toggleLeftPanel"],
+  ["right", "toggleRightPanel"]
+]) {
+  const button = document.getElementById(buttonId);
+  const stateAttribute = "data-" + side + "-panel";
+  button.addEventListener("click", () => {
+    const collapsed = gisLayout.getAttribute(stateAttribute) !== "closed";
+    gisLayout.setAttribute(stateAttribute, collapsed ? "closed" : "open");
+    button.setAttribute("aria-expanded", String(!collapsed));
+    button.textContent = side === "left"
+      ? (collapsed ? "左メニューを開く" : "左メニューを閉じる")
+      : (collapsed ? "右詳細を開く" : "右詳細を閉じる");
+    // Leaflet needs a viewport recalculation after its parent grid changes.
+    // Explicit pan:false avoids repositioning the user-selected center.
+    // No setView, fitBounds, region switch or C/D fetch is performed here.
+    map.invalidateSize({ pan: false, animate: false });
+  });
+}
+
 function currentRegion() {
   return REGION_CONFIGS[selectedRegionCode];
 }
