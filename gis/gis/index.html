@@ -6,7 +6,7 @@
   <title>HINANEX | GIS / Map</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/current_theme.css?v=gis-height-20261009-v5">
+  <link rel="stylesheet" href="css/current_theme.css?v=gis-facility-drawer-20261009-v6">
 </head>
 <body>
 <header class="header">
@@ -152,7 +152,16 @@
 
   <main class="map-wrap">
     <div id="map"></div>
-    <div class="origin-map-action" aria-label="地点探索・表示切替">
+    <details class="origin-map-action" id="mapFacilityControls">
+      <summary class="origin-map-toggle" aria-label="地図に表示する施設と地点探索の設定を開閉" title="地図に表示する施設の設定">
+        <svg class="origin-map-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M3 21h18M5 21V7l8-4v18M13 21V10l6-2v13M8 10h1M8 14h1M8 18h1M16 13h1M16 17h1"></path>
+        </svg>
+        <span class="origin-map-toggle-label" aria-hidden="true">施設表示・地点探索</span>
+        <span class="origin-map-close" aria-hidden="true">×</span>
+      </summary>
+      <div class="origin-map-action-body">
       <label for="facilityDisplayMode" class="display-mode-label">地図に表示する施設</label>
       <select id="facilityDisplayMode" aria-label="表示する施設データ">
         <option value="region">地域のD施設</option>
@@ -172,7 +181,8 @@
       </form>
       <button id="mapOriginShortcut" type="button">地図をクリックして探索</button>
       <p id="mapOriginShortcutStatus" role="status" aria-live="polite">ボタンを押してから地図をクリック</p>
-    </div>
+      </div>
+    </details>
     <section id="referenceMapSummary" class="reference-map-summary" aria-label="GSI公式掲載情報の可視化" hidden>
       <strong>GSI公式掲載地点（参考）</strong>
       <div class="reference-map-metrics"><span id="referenceMapCoverage">未探索</span><span id="referenceMapCount">—</span></div>
