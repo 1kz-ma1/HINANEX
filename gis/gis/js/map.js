@@ -715,7 +715,9 @@ function renderShelterSummary(summary, sourceLabel) {
   );
 
   showDatasetOverview(summary, sourceLabel);
-  fitCurrentRegion();
+  // A delayed D JSON response must not pan back to the municipality after
+  // the user has explicitly selected a different origin for GSI discovery.
+  if (displayMode === "region") fitCurrentRegion();
 }
 
 function parseRegionExport(payload, sourceLabel) {
