@@ -112,3 +112,8 @@ footer{height:36px;display:flex;justify-content:space-between;align-items:center
 .origin-map-action .coordinate-search-form #coordinateSearchInput[aria-invalid="true"]~*{color:#a82424}
 .origin-map-action .coordinate-search-form:has(#coordinateSearchInput[aria-invalid="true"]) #coordinateSearchStatus{color:#a82424}
 @media(max-width:680px){.origin-map-action{max-height:52%;overflow-y:auto}}
+
+/* A comparison with no coordinate-backed D records must not offer a
+   misleading "show both" focus action. The GSI summary itself is hidden
+   via the native [hidden] attribute in the region-only display scope. */
+.reference-map-actions button:disabled{opacity:.52;cursor:not-allowed;background:#f3f0f5}
