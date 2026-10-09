@@ -84,7 +84,7 @@ class GeographicProofLedgerTests(unittest.TestCase):
         self.assertEqual(tile["status"], "MISSING_PUBLICATION")
         r = self.report("35.7,139.9")
         self.assertEqual(r["origin_checks"][0]["status"], "ORIGIN_UNVERIFIED")
-        self.assertTrue(all("no designated" not in s.lower() for s in r["limitations"]))
+        self.assertTrue(any("not evidence that there are no designated sites" in s for s in r["limitations"]))
 
     def test_missing_raw_or_c_proof_not_accepted(self):
         self.archive_file.unlink()
