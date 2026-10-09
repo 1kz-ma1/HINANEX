@@ -89,6 +89,46 @@ let displayMode = "region";
 
 const externalTileWarnings = new Set();
 
+// View tabs change presentation only. They must not reinitialize Leaflet,
+// select a different region, refetch D/GSI, or alter GPS/origin/map state.
+const viewTabs = {
+  normal: document.getElementById("uiTabNormal"),
+  scenario: document.getElementById("uiTabScenario")
+};
+const gisLayout = document.getElementById("gisLayout");
+const scenarioIntro = document.getElementById("scenarioIntro");
+let uiMode = "normal";
+
+function setUiMode(mode, focusTab = false) {
+  if (!Object.prototype.hasOwnProperty.call(viewTabs, mode)) return;
+  uiMode = mode;
+  gisLayout.setAttribute("data-ui-mode", mode);
+  gisLayout.setAttribute("aria-labelledby", viewTabs[mode].id);
+  scenarioIntro.hidden = mode !== "scenario";
+  for (const [key, tab] of Object.entries(viewTabs)) {
+    const selected = key === mode;
+    tab.setAttribute("aria-selected", String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+  }
+  if (focusTab && typeof viewTabs[mode].focus === "function") viewTabs[mode].focus();
+}
+
+for (const [mode, tab] of Object.entries(viewTabs)) {
+  tab.addEventListener("click", () => setUiMode(mode));
+  tab.addEventListener("keydown", event => {
+    const keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
+    if (!keys.includes(event.key)) return;
+    event.preventDefault();
+    const next = event.key === "Home" ? "normal" :
+      event.key === "End" ? "scenario" :
+      event.key === "ArrowRight"
+        ? (uiMode === "normal" ? "scenario" : "normal")
+        : (uiMode === "scenario" ? "normal" : "scenario");
+    setUiMode(next, true);
+  });
+}
+setUiMode("normal");
+
 function currentRegion() {
   return REGION_CONFIGS[selectedRegionCode];
 }
