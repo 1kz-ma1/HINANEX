@@ -59,7 +59,8 @@ function record(id, name, latitude, longitude, detailUrl = null) {
 function makeElement(id) {
   return {
     id,
-    value: id === "region" ? "13123" : id === "floodOpacity" ? "58" : "",
+    value: id === "region" ? "13123" : id === "floodOpacity" ? "58" :
+      id === "mapDDecisionFilter" ? "all" : "",
     checked: true,
     disabled: false,
     hidden: true,
@@ -609,7 +610,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "guided-tour-loading-fix-20261010-v2");
+  assert.equal(mapAsset[1], "d-decision-filter-20261010-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -844,7 +845,7 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="uiTabScenario"[^>]*role="tab"/);
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
   assert.match(pageSource, /current_theme[.]css[?]v=gis-facility-drawer-20261009-v6/);
-  assert.match(pageSource, /map_first[.]css[?]v=evidence-sheet-20261010-v1/);
+  assert.match(pageSource, /map_first[.]css[?]v=d-decision-filter-20261010-v1/);
   assert.match(pageSource, /id="toggleLeftPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="toggleRightPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="gisLeftPanel"/);
@@ -1865,7 +1866,7 @@ nagoya.scenarios = [{
   assert.match(page, /id="mapShareURL"[^>]*readonly value="https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
   assert.match(page, /id="mapAudienceIntro"[^>]*hidden/);
   assert.match(page, /js\/audience_share[.]js[?]v=audience-share-20261010-v1/);
-  assert.match(page, /css\/map_first[.]css[?]v=evidence-sheet-20261010-v1/);
+  assert.match(page, /css\/map_first[.]css[?]v=d-decision-filter-20261010-v1/);
   assert.match(styles, /\.map-share-panel\[hidden\],\.map-audience-intro\[hidden\]\{display:none\}/);
   assert.match(shareSource, /const AUDIENCE_URL = "https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
   assert.doesNotMatch(shareSource, /geolocation|getCurrentPosition|flyTo|map\.setView|fetch\(|sendBeacon|XMLHttpRequest|<iframe/);
@@ -2196,3 +2197,140 @@ nagoya.scenarios = [{
   assert.equal(elem("mapEvidenceOpen").focused, true);
   console.log("On-map evidence statuses and menu dismissal: OK");
 }
+
+
+// GIS may DISPLAY the exact D scenario classification on a pin, but E must
+// never infer flood eligibility from raw symbols, supported_disasters or GSI.
+(async () => {
+  const marked = payload("13123", "東京都江戸川区", [
+    record("f1", "D source candidate", 35.7000, 139.8800),
+    record("f2", "D source excluded", 35.7001, 139.8801),
+    record("f3", "D source unknown", 35.7002, 139.8802)
+  ]);
+  // Synthetic assessment statuses are provided by a fixture; the map must
+  // NOT compute them. Official production exports remain all UNKNOWN.
+  marked.scenarios = [{
+    scenario_id: "flood_shelter_selection",
+    region_code: "13123",
+    status: "DEGRADED",
+    requirement_assessment: { discovery_status: "PARTIAL" },
+    facility_results: [
+      { facility_id:"f1", status:"CANDIDATE", fact:{facility_id:"f1",official_status_raw:null} },
+      { facility_id:"f2", status:"EXCLUDED", fact:{facility_id:"f2",official_status_raw:null} },
+      { facility_id:"f3", status:"UNKNOWN", fact:{facility_id:"f3",official_status_raw:"○"} }
+    ]
+  }];
+  const test = makeContext({
+    protocol: "http:",
+    fetchImpl: async url => {
+      if (String(url).endsWith("edogawa.json"))
+        return { ok:true, status:200, json:async () => marked };
+      return { ok:false, status:404 };
+    }
+  });
+  await new Promise(r => setTimeout(r, 0));
+  const markers = test.L.__groups[1], filter = test.elements.mapDDecisionFilter;
+  assert.equal(filter.value, "all");
+  assert.equal(markers.items.length, 3);
+  assert.match(markers.items[0].options.icon.html, /d-status-candidate/);
+  assert.match(markers.items[1].options.icon.html, /d-status-excluded/);
+  assert.match(markers.items[2].options.icon.html, /d-status-unknown/);
+  assert.doesNotMatch(markers.items[0].options.icon.html, /安全な避難先|開設中/);
+  assert.match(test.elements.mapDDecisionFilterStatus.textContent, /2件が分類済み／1件が未判定/);
+  const sourceCount = test.elements.recordCount.textContent;
+  const originView = test.L.__map.lastView;
+  filter.value = "classified";
+  filter.listeners.change({target:filter});
+  assert.equal(markers.items.length, 2);
+  assert.ok(markers.items.every(m => /d-status-(candidate|excluded)/.test(m.options.icon.html)));
+  assert.equal(test.elements.recordCount.textContent, sourceCount, "filter cannot alter D dataset count");
+  assert.strictEqual(test.L.__map.lastView, originView, "filter cannot recenter user's map");
+  filter.value = "unclassified";
+  filter.listeners.change({target:filter});
+  assert.equal(markers.items.length, 1);
+  assert.match(markers.items[0].options.icon.html, /d-status-unknown/);
+  markers.items[0].handlers.click({});
+  assert.match(test.elements.details.innerHTML, /洪水対応分類/);
+  assert.match(test.elements.details.innerHTML, /未判定/);
+  filter.value = "all";
+  filter.listeners.change({target:filter});
+  assert.equal(markers.items.length, 3);
+
+  test.L.__map.zoom = 9;
+  test.L.__map.handlers.zoomend();
+  assert.equal(markers.items.length, 1, "mixed statuses may visually cluster at low zoom");
+  assert.match(markers.items[0].options.icon.html, /d-status-mixed/);
+  assert.match(markers.items[0].options.icon.html, /分類済み2件・未判定1件/);
+  filter.value = "classified";
+  filter.listeners.change({target:filter});
+  assert.equal(markers.items.length, 1);
+  assert.match(markers.items[0].options.icon.html, /d-status-classified/);
+  filter.value = "unclassified";
+  filter.listeners.change({target:filter});
+  assert.equal(markers.items.length, 1);
+  assert.match(markers.items[0].options.icon.html, /d-status-unknown/);
+
+  // Existing real-source-shaped fixture has no accepted per-site Scenario.
+  // No data -> UNKNOWN, not a positive candidate nor a zero-site claim.
+  const noDecision = makeContext({
+    protocol:"http:",
+    fetchImpl: async url => String(url).endsWith("edogawa.json")
+      ? {ok:true, status:200, json:async () => edogawa}
+      : {ok:false,status:404}
+  });
+  await new Promise(r => setTimeout(r, 0));
+  noDecision.elements.mapDDecisionFilter.value = "classified";
+  noDecision.elements.mapDDecisionFilter.listeners.change({});
+  assert.equal(noDecision.L.__groups[1].items.length, 0);
+  assert.match(noDecision.elements.mapDDecisionFilterStatus.textContent, /この出典には判定済み施設がありません/);
+  assert.match(noDecision.elements.mapDDecisionFilterStatus.textContent, /避難施設が存在しないという意味ではありません/);
+  assert.equal(noDecision.elements.recordCount.textContent, 2);
+  assert.equal(noDecision.L.__groups[3].items.length, 0, "no GSI marks may be fabricated");
+
+  // Auto-discovered D from a different region obeys the same filter but is
+  // still NOT turned into GSI's independently verified purple markers.
+  const other = payload("15100","新潟県新潟市",[
+    record("n1","Niigata classified",37.9,139.02),
+    record("n2","Niigata unknown",37.9001,139.0201)
+  ]);
+  other.scenarios = [{
+    scenario_id:"flood_shelter_selection",region_code:"15100",status:"DEGRADED",
+    facility_results:[
+      {facility_id:"n1",status:"EXCLUDED",fact:{facility_id:"n1"}},
+      {facility_id:"n2",status:"UNKNOWN",fact:{facility_id:"n2"}}
+    ]
+  }];
+  const moving = makeContext({
+    protocol:"http:",
+    fetchImpl: async url => String(url).endsWith("edogawa.json")
+      ? {ok:true,status:200,json:async () => edogawa}
+      : String(url).endsWith("niigata.json")
+        ? {ok:true,status:200,json:async () => other}
+        : {ok:false,status:404}
+  });
+  await new Promise(r => setTimeout(r, 0));
+  moving.L.__map.zoom = 13;
+  moving.L.__map.viewportLimits = {south:37.75,north:38.2,west:138.9,east:139.25};
+  moving.L.__map.handlers.moveend();
+  await new Promise(r => setTimeout(r, 155));
+  assert.equal(moving.L.__groups[4].items.length, 2);
+  moving.elements.mapDDecisionFilter.value = "classified";
+  moving.elements.mapDDecisionFilter.listeners.change({});
+  assert.equal(moving.L.__groups[4].items.length, 1);
+  assert.match(moving.L.__groups[4].items[0].options.icon.html, /d-status-excluded/);
+  assert.match(moving.elements.mapViewportDStatus.textContent, /絞込中/);
+  assert.equal(moving.L.__groups[3].items.length, 0);
+
+  const page = fs.readFileSync(path.resolve(__dirname,"../gis/index.html"),"utf8");
+  const css = fs.readFileSync(path.resolve(__dirname,"../gis/css/map_first.css"),"utf8");
+  assert.match(page,/id="mapDDecisionFilter"/);
+  assert.match(page,/value="classified"/);
+  assert.match(page,/value="unclassified"/);
+  assert.match(page,/d-decision-filter-20261010-v1/);
+  assert.match(css,/\.shelter-icon\.d-status-unknown/);
+  assert.match(css,/\.d-facility-cluster\.d-status-mixed/);
+  console.log("D flood assessment display-only filter and legend: OK");
+})().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});
