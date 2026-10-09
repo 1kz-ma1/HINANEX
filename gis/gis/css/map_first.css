@@ -179,3 +179,19 @@ footer{display:none}
   .reference-map-summary{max-width:min(250px,calc(100% - 85px));max-height:32%;left:8px;bottom:12px}
   .bottom-nav-entry{font-size:10px}
 }
+
+/* Keep Leaflet zoom buttons clear of the four top tools and the left rail. */
+.map-wrap .leaflet-top.leaflet-left{left:auto;right:12px;top:70px}
+.map-wrap .leaflet-top.leaflet-left .leaflet-control{margin-left:0;margin-right:0}
+.map-raster-banner{
+  position:absolute;z-index:1390;left:70px;top:78px;
+  max-width:min(380px,calc(100% - 140px));box-sizing:border-box;
+  margin:0;padding:9px 12px;background:#34291a;color:#f7d5a7;
+  border:1px solid #ab8151;border-radius:9px;font-size:11px;line-height:1.55;
+  box-shadow:0 6px 18px rgba(0,0,0,.3);
+}
+.map-raster-banner[hidden]{display:none}
+@media(max-width:680px){
+  .map-wrap .leaflet-top.leaflet-left{top:65px;right:8px}
+  .map-raster-banner{left:62px;top:66px;max-width:calc(100% - 119px);font-size:10px}
+}
