@@ -7,7 +7,38 @@
   const referenceDisclosure = id("referenceMapSummaryDisclosure");
   const referenceSummary = id("referenceMapSummary");
   const leftPanel = id("gisLeftPanel"), rightPanel = id("details");
+  const settingsPanel = id("mapSettingsPanel"), settingsToggle = id("mapSettingsToggle");
   const dismissedMapClicks = new WeakSet();
+  const gestureAPI = window.HINANEX_MAP_GESTURES;
+  function syncGestureControls(settings) {
+    id("mapWheelSensitivity").value = String(settings.sensitivity);
+    id("mapWheelSensitivityValue").textContent = settings.sensitivity + "倍";
+    id("mapZoomStyle").value = settings.style;
+  }
+  if (gestureAPI) syncGestureControls(gestureAPI.getSettings());
+  id("mapWheelSensitivity").addEventListener("input", event => {
+    if (!gestureAPI) return;
+    syncGestureControls(gestureAPI.setSettings({ sensitivity: event.target.value }));
+  });
+  id("mapZoomStyle").addEventListener("change", event => {
+    if (!gestureAPI) return;
+    syncGestureControls(gestureAPI.setSettings({ style: event.target.value }));
+  });
+  id("mapGestureReset").addEventListener("click", () => {
+    if (gestureAPI) syncGestureControls(gestureAPI.resetSettings());
+  });
+  function setSettingsOpen(open) {
+    settingsPanel.hidden = !open;
+    settingsToggle.setAttribute("aria-expanded", String(open));
+    settingsToggle.setAttribute("aria-label", open ? "地図の操作設定を閉じる" : "地図の操作設定を開く");
+  }
+  settingsToggle.addEventListener("click", () => {
+    if (settingsPanel.hidden) {
+      closeOtherSurfaces(settingsPanel);
+      setSettingsOpen(true);
+    } else setSettingsOpen(false);
+  });
+  id("mapSettingsClose").addEventListener("click", () => setSettingsOpen(false));
 
   function isPanelOpen(side) {
     return layout.getAttribute("data-" + side + "-panel") === "open";
@@ -24,6 +55,7 @@
     if (except !== leftPanel) closePanel("left");
     if (except !== rightPanel) closePanel("right");
     if (except !== referenceDisclosure) referenceDisclosure.open = false;
+    if (except !== settingsPanel) setSettingsOpen(false);
   }
   for (const menu of toolMenus) {
     menu.addEventListener("toggle", () => {
@@ -51,9 +83,12 @@
       (rightPanel.contains(target) || id("toggleRightPanel").contains(target));
     const inReference = !referenceSummary.hidden && referenceDisclosure.open &&
       referenceSummary.contains(target);
-    if (inOpenMenu || inLeft || inRight || inReference) return;
+    const inSettings = !settingsPanel.hidden &&
+      (settingsPanel.contains(target) || settingsToggle.contains(target));
+    if (inOpenMenu || inLeft || inRight || inReference || inSettings) return;
     const wasOpen = toolMenus.some(menu => menu.open) ||
-      isPanelOpen("left") || isPanelOpen("right") || referenceDisclosure.open;
+      isPanelOpen("left") || isPanelOpen("right") || referenceDisclosure.open ||
+      !settingsPanel.hidden;
     if (!wasOpen) return;
     if (event && typeof event === "object") dismissedMapClicks.add(event);
     closeOtherSurfaces();
@@ -61,7 +96,8 @@
   document.addEventListener("keydown", event => {
     if (event.key !== "Escape") return;
     const wasOpen = toolMenus.some(menu => menu.open) ||
-      isPanelOpen("left") || isPanelOpen("right") || referenceDisclosure.open;
+      isPanelOpen("left") || isPanelOpen("right") || referenceDisclosure.open ||
+      !settingsPanel.hidden;
     if (!wasOpen) return;
     event.preventDefault();
     closeOtherSurfaces();
