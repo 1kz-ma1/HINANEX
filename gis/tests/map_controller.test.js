@@ -598,6 +598,13 @@ nagoya.scenarios = [{
   assert.equal(httpCase.elements.mappedCount.textContent, 0);
   assert.equal(httpCase.elements.missingCoordinateCount.textContent, 2);
   assert.equal(httpCase.elements.mapUnavailable.hidden, false);
+  httpCase.elements.facilityDisplayMode.value = "both";
+  httpCase.elements.facilityDisplayMode.listeners.change({ target: httpCase.elements.facilityDisplayMode });
+  assert.equal(httpCase.elements.focusReferenceTiles.disabled, true);
+  assert.match(httpCase.elements.facilityDisplayModeDescription.textContent, /座標欠損/);
+  httpCase.elements.facilityDisplayMode.value = "region";
+  httpCase.elements.facilityDisplayMode.listeners.change({ target: httpCase.elements.facilityDisplayMode });
+
   assert.match(httpCase.elements.mapUnavailableMessage.textContent, /位置を推測しません/);
   assert.equal(httpCase.elements.facilityListPanel.hidden, false);
   assert.equal(httpCase.elements.mapUnavailable.className, "map-unavailable has-facility-list");
@@ -704,11 +711,24 @@ nagoya.scenarios = [{
   assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[1]), false);
   assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[3]), true);
   assert.equal(acceptedCase.L.__map.lastBounds.points.length, 2); // origin + one vetted GSI site
+  assert.equal(acceptedCase.elements.referenceMapSummary.hidden, false);
+  assert.equal(acceptedCase.elements.focusReferenceTiles.disabled, false);
+  assert.match(acceptedCase.elements.focusReferenceTiles.textContent, /選択地点と5件/);
   acceptedCase.elements.toggleDMarkers.listeners.click(); // explicitly compare
   assert.equal(acceptedCase.elements.facilityDisplayMode.value, "both");
   assert.equal(acceptedCase.elements.shelter.checked, true);
   assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[1]), true);
   assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[3]), true);
+  assert.equal(acceptedCase.elements.referenceMapSummary.hidden, false);
+  assert.equal(acceptedCase.elements.focusReferenceTiles.disabled, false);
+  assert.match(acceptedCase.elements.focusReferenceTiles.textContent, /緑と紫を一緒に見る/);
+  const originalFocus = acceptedCase.L.__map.lastBounds;
+  acceptedCase.elements.focusReferenceTiles.listeners.click();
+  assert.notStrictEqual(acceptedCase.L.__map.lastBounds, originalFocus);
+  assert.equal(acceptedCase.L.__map.lastBounds.points.length, 4, 
+    "comparison fits clicked origin + certified GSI pin + both D coordinates");
+  assert.equal(acceptedCase.L.__map.lastBounds.points[0][0], 35.7);
+  assert.equal(acceptedCase.L.__map.lastBounds.points[0][1], 139.88);
   assert.match(acceptedCase.elements.toggleDMarkers.textContent, /周辺/);
   acceptedCase.elements.toggleDMarkers.listeners.click();
   assert.equal(acceptedCase.elements.facilityDisplayMode.value, "nearby");
@@ -718,10 +738,17 @@ nagoya.scenarios = [{
   acceptedCase.elements.facilityDisplayMode.listeners.change({ target: acceptedCase.elements.facilityDisplayMode });
   assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[1]), true);
   assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[3]), false);
+  assert.equal(acceptedCase.elements.referenceMapSummary.hidden, true,
+    "D-only must not display an unrelated GSI summary or legend");
+  assert.equal(acceptedCase.L.__groups[3].items.length, 1,
+    "C accepted source remains cached but not visible");
   acceptedCase.elements.facilityDisplayMode.value = "nearby";
   acceptedCase.elements.facilityDisplayMode.listeners.change({ target: acceptedCase.elements.facilityDisplayMode });
   assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[1]), false);
   assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[3]), true);
+  assert.equal(acceptedCase.elements.referenceMapSummary.hidden, false);
+  assert.equal(acceptedCase.elements.referenceMapCoverage.textContent.includes("1/9"), true,
+    "cached accepted source restored without confusing D as GSI");
   acceptedCase.elements.focusReferenceTiles.listeners.click();
   assert.ok(acceptedCase.L.__map.lastBounds?.points?.length);
   assert.equal(acceptedCase.L.__map.lastBounds.points.length, 2);
@@ -787,6 +814,22 @@ nagoya.scenarios = [{
   assert.equal(multiCase.L.__groups[2].items.length, 2);
   assert.equal(multiCase.L.__groups[3].items.length, 2);
   assert.match(multiCase.elements.referenceMapCoverage.textContent, /2\/9/);
+  multiCase.elements.facilityDisplayMode.value = "both";
+  multiCase.elements.facilityDisplayMode.listeners.change({ target: multiCase.elements.facilityDisplayMode });
+  assert.equal(multiCase.elements.referenceMapSummary.hidden, false);
+  assert.equal(multiCase.elements.focusReferenceTiles.disabled, false);
+  multiCase.elements.focusReferenceTiles.listeners.click();
+  assert.equal(multiCase.L.__map.lastBounds.points.length, 5,
+    "2 independently accepted GSI pins + origin + 2 D coordinates");
+  assert.equal(multiCase.L.__map.lastBounds.points.some(p => p[1] === 140.1), true,
+    "distant accepted GSI source is included in comparison viewport");
+  multiCase.elements.facilityDisplayMode.value = "region";
+  multiCase.elements.facilityDisplayMode.listeners.change({ target: multiCase.elements.facilityDisplayMode });
+  assert.equal(multiCase.elements.referenceMapSummary.hidden, true);
+  multiCase.elements.facilityDisplayMode.value = "nearby";
+  multiCase.elements.facilityDisplayMode.listeners.change({ target: multiCase.elements.facilityDisplayMode });
+  assert.equal(multiCase.elements.referenceMapSummary.hidden, false);
+
   assert.equal(multiCase.elements.facilityDisplayMode.value, "nearby");
   assert.equal(multiCase.L.__map.hasLayer(multiCase.L.__groups[1]), false);
   assert.equal(multiCase.L.__map.hasLayer(multiCase.L.__groups[3]), true);
