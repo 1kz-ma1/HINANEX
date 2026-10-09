@@ -2106,7 +2106,7 @@ nagoya.scenarios = [{
   assert.match(html, /id="mapEvidenceOpen"[^>]*aria-controls="mapEvidencePanel"/);
   assert.match(html, /id="mapEvidencePanel"[^>]*hidden/);
   assert.match(html, /js\/evidence_sheet[.]js[?]v=evidence-sheet-20261010-v1/);
-  assert.match(html, /css\/map_first[.]css[?]v=evidence-sheet-20261010-v1/);
+  assert.match(html, /css\/map_first[.]css[?]v=d-decision-filter-20261010-v1/);
   assert.match(html, /D施設とGSI公式掲載地点は別情報源/);
   assert.match(style, /\.map-evidence-panel\[hidden\]\{display:none\}/);
   assert.doesNotMatch(source, /fetch\(|getCurrentPosition|geolocation|setView\(|flyTo|sendBeacon/);
