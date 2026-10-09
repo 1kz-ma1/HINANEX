@@ -122,15 +122,23 @@ function makeLeafletStub() {
     const value = {
       items: [],
       addTo(target) { target.addLayer(this); return this; },
-      addLayer(layer) { this.items.push(layer); return this; },
+      addLayer(layer) {
+        if (!this.items.includes(layer)) this.items.push(layer);
+        return this;
+      },
+      removeLayer(layer) {
+        this.items = this.items.filter(item => item !== layer);
+        return this;
+      },
       clearLayers() { this.items = []; return this; }
     };
     groups.push(value);
     return value;
   }
 
-  function tileLayer() {
+  function tileLayer(_url, options) {
     const layer = {
+      options,
       handlers: {},
       addTo(target) { target.addLayer(this); return this; },
       setOpacity(value) { this.opacity = value; return this; },
@@ -584,7 +592,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "japan-overview-20261009-v1");
+  assert.equal(mapAsset[1], "map-perf-20261009-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -1112,11 +1120,29 @@ nagoya.scenarios = [{
   assert.equal(clusterCase.elements.mappedCount.textContent, 3);
   assert.equal(clusterCase.L.__groups[1].items.length, 3,
     "zoom 13 keeps all precise D source markers");
+  const at13 = [...clusterCase.L.__groups[1].items];
+  const afterFirstRender = clusterCase.L.__markers.length;
+  clusterCase.L.__map.zoom = 14;
+  clusterCase.L.__map.handlers.zoomend();
+  assert.deepEqual(clusterCase.L.__groups[1].items, at13,
+    "zoom 13 to 14 must reuse individual marker objects");
+  assert.equal(clusterCase.L.__markers.length, afterFirstRender,
+    "no additional DOM markers created for unchanged membership");
   clusterCase.L.__map.zoom = 9;
   clusterCase.L.__map.handlers.zoomend();
   assert.equal(clusterCase.L.__groups[1].items.length, 1,
     "zoomed out actual nearby D source coordinates aggregate into a single visual circle");
   const oneCluster = clusterCase.L.__groups[1].items[0];
+  const afterClusterBuild = clusterCase.L.__markers.length;
+  clusterCase.L.__map.zoom = 10;
+  clusterCase.L.__map.handlers.zoomend();
+  assert.strictEqual(clusterCase.L.__groups[1].items[0], oneCluster,
+    "low-zoom visual cluster remains the same marker across identical membership");
+  assert.equal(clusterCase.L.__markers.length, afterClusterBuild,
+    "same visual group never regenerates an icon");
+  clusterCase.L.__map.zoom = 9;
+  clusterCase.L.__map.handlers.zoomend();
+  assert.strictEqual(clusterCase.L.__groups[1].items[0], oneCluster);
   assert.match(oneCluster.options.icon.html, /d-facility-cluster/);
   assert.match(oneCluster.options.icon.html, />3<\/div>/);
   assert.match(oneCluster.options.icon.html, /安全性未判定/);
@@ -1473,4 +1499,25 @@ nagoya.scenarios = [{
   // Leaflet handles +/- zoom, wheel and touch pinch using the same minZoom.
   assert.match(mapCode, /map\.setMinZoom\(/);
   assert.doesNotMatch(mapCode, /map\.setView\(\[[^\]]*\],\s*[345]\)/);
+}
+
+// Tile scheduling and opt-in diagnostics: do not silently disable the official
+// flood raster or infer that a missing tile means safe/no inundation.
+{
+  const { L } = makeContext({
+    protocol: "http:",
+    fetchImpl: async () => ({ ok: false, status: 404, json: async () => ({}) })
+  });
+  for (const tile of L.__tiles.slice(0, 2)) {
+    assert.equal(tile.options.keepBuffer, 3);
+    assert.equal(tile.options.updateWhenZooming, false);
+  }
+  assert.equal(L.__tiles[0].options.minZoom, 2);
+  assert.equal(L.__tiles[1].options.minZoom, 2);
+  assert.equal(L.__map.getZoom(), 13);
+  assert.equal(L.__map.minZoom, 4, "Japan overview minimum zoom unchanged");
+  assert.match(mapCode, /new URL\(window\.location\.href\)\.searchParams\.get\("debugMapPerf"\) === "1"/);
+  assert.match(mapCode, /\[HINANEX map perf\] tile batch/);
+  assert.match(mapCode, /\[HINANEX map perf\] D markers/);
+  assert.doesNotMatch(mapCode, /zoomSnap\s*:/, "fractional zoom tuning is intentionally deferred");
 }
