@@ -538,6 +538,16 @@ function setReferenceOrigin(latitude, longitude) {
   }).addTo(map);
   document.getElementById("originStatus").textContent =
     `選択した地点：${latitude.toFixed(5)}, ${longitude.toFixed(5)}（正確な座標は端末内だけで使用。タイルIDは配信サーバへ送信）`;
+  // An explicit origin change supersedes the old right-hand raster-click or
+  // facility detail. Neither the clicked point nor source tile proves risk.
+  detail("選択した地点（公式掲載情報の探索起点）", [
+    ["緯度・経度", latitude.toFixed(5) + ", " + longitude.toFixed(5)],
+    ["表示内容", "GSIの検証済み公式掲載地点を参考探索"],
+    ["照合結果", "地図の紫マーカー・左欄・検証済み範囲を確認"]
+  ], "地点指定", {
+    badgeClass: "reference",
+    note: "この地点の浸水リスク・避難の安全性・開設状況・経路は評価していません。未検証タイルは掲載施設が存在しないことを意味しません。"
+  });
   updateMapOriginAction("選択地点の公式参考情報を照合しています…");
   loadFloodReferenceCatalog();
 }
@@ -937,7 +947,22 @@ document.getElementById("useGps").addEventListener("click", () => {
 
 document.getElementById("resetView").addEventListener("click", fitCurrentRegion);
 document.getElementById("autoLoad").addEventListener("click", tryAutoLoad);
-regionSelect.addEventListener("change", event => selectRegion(event.target.value));
+regionSelect.addEventListener("change", event => {
+  selectRegion(event.target.value);
+  // Keep the deep-link's municipality consistent with the visible dropdown.
+  // Only explicit region changes update the URL; map/GPS/coordinate queries
+  // remain private and must never be serialized to a query parameter.
+  if (window.location.protocol !== "file:" &&
+      typeof window.history?.replaceState === "function") {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("region", selectedRegionCode);
+      window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    } catch (_) {
+      // Unsupported browser history must not stop the D/GSI region selection.
+    }
+  }
+});
 
 document.getElementById("regionExportFile").addEventListener("change", async event => {
   const [file] = event.target.files || [];
