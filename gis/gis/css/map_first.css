@@ -443,3 +443,17 @@ footer{display:none}
 @media(max-width:680px){
   .map-evidence-panel{right:8px;bottom:70px;width:calc(100% - 16px);max-height:min(69%,510px)}
 }
+
+/* D flood Scenario display classifications are not safety or opening status. */
+.shelter-icon.d-status-unknown{background:#c18a32;box-shadow:0 2px 6px #775d39}
+.shelter-icon.d-status-candidate{background:#176b9e}
+.shelter-icon.d-status-excluded{background:#64748b}
+.d-facility-cluster.d-status-unknown{background:#946823;box-shadow:0 0 0 3px #c18a32,0 3px 12px rgba(20,23,28,.3)}
+.d-facility-cluster.d-status-classified{background:#176b9e;box-shadow:0 0 0 3px #398fba,0 3px 12px rgba(20,23,28,.3)}
+.d-facility-cluster.d-status-mixed{background:#64748b;box-shadow:0 0 0 3px #8997a8,0 3px 12px rgba(20,23,28,.3)}
+.map-decision-legend{display:grid;gap:6px}
+.map-decision-legend>span{display:flex;align-items:start;gap:7px}
+.map-decision-dot{width:13px;height:13px;flex:0 0 13px;border:2px solid #fff;border-radius:50%;margin-top:2px;box-shadow:0 0 0 1px rgba(255,255,255,.45)}
+.map-decision-dot.d-status-classified{background:#176b9e}
+.map-decision-dot.d-status-unknown{background:#c18a32}
+.map-decision-dot.d-status-gsi{background:#7439aa}
