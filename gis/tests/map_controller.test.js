@@ -153,7 +153,7 @@ function makeLeafletStub() {
   }
 
   return {
-    map: () => map,
+    map: (_id, options) => { map.options = options; return map; },
     tileLayer,
     layerGroup: group,
     control: { scale: () => ({ addTo: () => ({}) }) },
@@ -592,7 +592,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "map-perf-20261009-v1");
+  assert.equal(mapAsset[1], "map-zoom-step-20261009-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -1122,12 +1122,20 @@ nagoya.scenarios = [{
     "zoom 13 keeps all precise D source markers");
   const at13 = [...clusterCase.L.__groups[1].items];
   const afterFirstRender = clusterCase.L.__markers.length;
+  clusterCase.L.__map.zoom = 13.5;
+  clusterCase.L.__map.handlers.zoomend();
+  assert.deepEqual(clusterCase.L.__groups[1].items, at13,
+    "fractional zoom 13.5 reuses unchanged individual D markers");
   clusterCase.L.__map.zoom = 14;
   clusterCase.L.__map.handlers.zoomend();
   assert.deepEqual(clusterCase.L.__groups[1].items, at13,
     "zoom 13 to 14 must reuse individual marker objects");
   assert.equal(clusterCase.L.__markers.length, afterFirstRender,
     "no additional DOM markers created for unchanged membership");
+  clusterCase.L.__map.zoom = 9.5;
+  clusterCase.L.__map.handlers.zoomend();
+  assert.equal(clusterCase.L.__groups[1].items.length, 1,
+    "fractional zoom 9.5 preserves visual clustering of true D coordinates");
   clusterCase.L.__map.zoom = 9;
   clusterCase.L.__map.handlers.zoomend();
   assert.equal(clusterCase.L.__groups[1].items.length, 1,
@@ -1519,5 +1527,8 @@ nagoya.scenarios = [{
   assert.match(mapCode, /new URL\(window\.location\.href\)\.searchParams\.get\("debugMapPerf"\) === "1"/);
   assert.match(mapCode, /\[HINANEX map perf\] tile batch/);
   assert.match(mapCode, /\[HINANEX map perf\] D markers/);
-  assert.doesNotMatch(mapCode, /zoomSnap\s*:/, "fractional zoom tuning is intentionally deferred");
+  assert.equal(L.__map.options.zoomSnap, 0.5, "half-step visual zoom");
+  assert.equal(L.__map.options.zoomDelta, 0.5, "+/- and keyboard use half steps");
+  assert.equal(L.__map.options.wheelPxPerZoomLevel, 100, "gentler mouse wheel zoom");
+  assert.equal(L.__map.options.preferCanvas, true, "renderer is unchanged");
 }
