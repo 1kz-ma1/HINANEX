@@ -1013,6 +1013,9 @@ function drawIndividualDMarker(record, summary) {
 let visibleDMarkers = new Map();
 let visibleDMarkerSummary = null;
 let dRecordIndices = new Map();
+// Quantize display-only cluster membership, never actual map zoom or D points.
+// The same fractional wheel band should not recreate visual clusters.
+let lastDMarkerZoomBucket = null;
 function drawDClusterMarker(records) {
   const latitude = records.reduce((sum, record) => sum + record.latitude, 0) / records.length;
   const longitude = records.reduce((sum, record) => sum + record.longitude, 0) / records.length;
@@ -1049,11 +1052,26 @@ function renderDMarkers() {
     shelterGroup.clearLayers();
     visibleDMarkers.clear();
     visibleDMarkerSummary = summary;
+    lastDMarkerZoomBucket = null;
     dRecordIndices = new Map((summary?.mappableRecords || []).map((record, index) => [record, index]));
   }
-  if (!summary?.mappableRecords?.length) return;
+  if (!summary?.mappableRecords?.length) {
+    lastDMarkerZoomBucket = null;
+    return;
+  }
   const zoom = map.getZoom();
-  const batches = groupMappedDRecords(summary.mappableRecords, zoom,
+  // High detail uses source markers, always. At lower zoom levels fix the
+  // visual-only grid within each integer zoom band to avoid flickering
+  // centroid/cluster changes on every tiny fractional zoom delta.
+  const zoomBucket = zoom >= 13 ? "individual" : Math.floor(zoom);
+  if (zoomBucket === lastDMarkerZoomBucket) {
+    if (debugMapPerf) {
+      console.info("[HINANEX map perf] D grouping reused", { zoom, zoomBucket });
+    }
+    return;
+  }
+  const groupingZoom = zoom >= 13 ? zoom : zoomBucket;
+  const batches = groupMappedDRecords(summary.mappableRecords, groupingZoom,
     (coordinate, level) => map.project(coordinate, level));
   const next = new Map();
   let added = 0;
@@ -1078,9 +1096,10 @@ function renderDMarkers() {
     removed++;
   }
   visibleDMarkers = next;
+  lastDMarkerZoomBucket = zoomBucket;
   if (debugMapPerf) {
     console.info("[HINANEX map perf] D markers", {
-      zoom, visible: next.size, added, removed,
+      zoom, zoomBucket, visible: next.size, added, removed,
       durationMs: Math.round(perfTime() - startedAt)
     });
   }
