@@ -1782,3 +1782,31 @@ body {
   .scenario-metrics { grid-template-columns: 1fr; }
   .scenario-facts { grid-template-columns: minmax(70px, 110px) minmax(0, 1fr); }
 }
+
+/* Flood Scenario UI states and compact progressive disclosure. */
+.scenario-feedback {
+  min-width: 0;
+  padding: 20px 22px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--cyan);
+  background: var(--surface, rgba(255, 255, 255, 0.04));
+}
+.scenario-feedback--error,
+.scenario-feedback--unsupported { border-left-color: var(--muted); }
+.scenario-feedback p { margin-bottom: 0; color: var(--muted); line-height: 1.65; }
+.scenario-facility { min-width: 0; }
+.scenario-facility h3 { overflow-wrap: anywhere; }
+.scenario-trace { min-width: 0; border-top: 1px solid var(--line); padding-top: 12px; }
+.scenario-trace summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
+.scenario-trace summary:focus-visible { outline: 2px solid var(--cyan); outline-offset: 4px; }
+.scenario-trace a { overflow-wrap: anywhere; }
+.scenario-pagination > span { overflow-wrap: anywhere; }
+@media (max-width: 620px) {
+  .scenario-feedback, .scenario-facility, .scenario-alert { padding: 16px; }
+  .scenario-pagination { justify-content: center; }
+  .scenario-pagination > span { order: -1; width: 100%; text-align: center; }
+  .scenario-pagination .source-button { flex: 1 1 120px; }
+  .scenario-facts { grid-template-columns: minmax(0, 1fr); gap: 3px; }
+  .scenario-facts dt:not(:first-child) { margin-top: 10px; }
+}
