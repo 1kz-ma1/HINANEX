@@ -106,6 +106,7 @@ test("Scenario Summary keeps D status and all three D counts without record aggr
   assert.equal(view.statusCode, "UNKNOWN");
   assert.equal(view.statusLabel, "判断不能");
   assert.equal(view.discoveryStatusCode, "AVAILABLE");
+  assert.equal(view.discoveryStatusLabel, "公式raw情報を取得済み");
   assert.equal(view.recordCount, 99);
   assert.equal(view.directlyJoinedCount, 7);
   assert.equal(view.rawValueCount, 0);
@@ -115,6 +116,19 @@ test("Scenario Summary keeps D status and all three D counts without record aggr
   assert.equal("unknownCount" in view, false);
   assert.equal(view.assessmentReason, "Dが公開したScenario-local assessment理由");
   assert.deepEqual(view.reasons, ["Dが公開した全体理由"]);
+});
+
+test("FULL and DEGRADED describe D coverage, not the presence of candidates", () => {
+  const payload = withScenario();
+
+  payload.scenarios[0].status = "FULL";
+  payload.scenarios[0].facility_results.forEach((item) => {
+    item.status = "EXCLUDED";
+  });
+  assert.equal(buildFloodScenarioViewModel(payload).statusLabel, "全施設を判定可能");
+
+  payload.scenarios[0].status = "DEGRADED";
+  assert.equal(buildFloodScenarioViewModel(payload).statusLabel, "一部施設を判定可能");
 });
 
 test("CANDIDATE, EXCLUDED, UNKNOWN are distinct D statuses with safe Japanese labels", () => {

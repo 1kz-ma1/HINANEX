@@ -615,7 +615,7 @@ function renderFloodScenario(scenario, context = {}) {
           summaryMetric("対象施設（D出力）", `${scenario.recordCount}件`),
           summaryMetric("同じ公式Sourceで照合（D出力）", `${scenario.directlyJoinedCount}件`),
           summaryMetric("公式raw値あり（D出力）", `${scenario.rawValueCount}件`),
-          summaryMetric("公式情報の取得状態", scenario.discoveryStatusLabel),
+          summaryMetric("公式raw情報の取得状態", scenario.discoveryStatusLabel),
         ],
       }),
       element("p", {

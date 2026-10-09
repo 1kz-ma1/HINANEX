@@ -25,8 +25,8 @@ const DISCOVERY_STATUSES = new Set([
 ]);
 
 const SCENARIO_STATUS_META = Object.freeze({
-  FULL: { label: "候補探索結果あり", tone: "candidate" },
-  DEGRADED: { label: "一部制約あり", tone: "degraded" },
+  FULL: { label: "全施設を判定可能", tone: "candidate" },
+  DEGRADED: { label: "一部施設を判定可能", tone: "degraded" },
   BLOCKED: { label: "処理上の前提不足", tone: "blocked" },
   UNKNOWN: { label: "判断不能", tone: "unknown" },
   NOT_APPLICABLE: { label: "対象外", tone: "not-applicable" },
@@ -54,7 +54,7 @@ const FACILITY_STATUS_META = Object.freeze({
 });
 
 const DISCOVERY_LABELS = Object.freeze({
-  AVAILABLE: "公式情報を取得済み",
+  AVAILABLE: "公式raw情報を取得済み",
   PARTIAL: "一部取得",
   NOT_MACHINE_READABLE: "機械判読できない",
   ACCESS_RESTRICTED: "取得制限あり",
