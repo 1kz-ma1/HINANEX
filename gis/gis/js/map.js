@@ -383,10 +383,15 @@ function detail(title, rows, type, options = {}) {
   }
 }
 
-function shelterIcon() {
+function shelterIcon(decision = "UNKNOWN") {
+  const safeClass = decision === "CANDIDATE" ? "d-status-candidate" :
+    decision === "EXCLUDED" ? "d-status-excluded" : "d-status-unknown";
   return L.divIcon({
     className: "",
-    html: '<div class="shelter-icon"><span>⌂</span></div>',
+    html: '<div class="shelter-icon ' + safeClass + '" aria-label="洪水対応分類：' +
+      (decision === "CANDIDATE" ? "候補として分類済み（安全性未判定）" :
+        decision === "EXCLUDED" ? "対象外として分類済み（危険性未判定）" :
+        "未判定（安全性未判定）") + '"><span>⌂</span></div>',
     iconSize: [30, 30],
     iconAnchor: [15, 29]
   });
@@ -994,14 +999,45 @@ function groupMappedDRecords(records, zoom, project) {
   return [...cells.values()];
 }
 
+// A D Scenario's exact-ID facility status is NOT an actual safety rating.
+function dFloodDecision(summary, record) {
+  const status = summary?.floodScenario?.byId.get(record.id)?.status;
+  return status === "CANDIDATE" || status === "EXCLUDED" ? status : "UNKNOWN";
+}
+function dRecordVisible(summary, record) {
+  const filter = document.getElementById("mapDDecisionFilter").value;
+  const status = dFloodDecision(summary, record);
+  return filter === "classified" ? status !== "UNKNOWN" :
+    filter === "unclassified" ? status === "UNKNOWN" : true;
+}
+function updateDDecisionFilterStatus(summary) {
+  const el = document.getElementById("mapDDecisionFilterStatus");
+  const records = summary?.mappableRecords || [];
+  const classified = records.filter(item => dFloodDecision(summary, item) !== "UNKNOWN").length;
+  const unknown = records.length - classified;
+  const filter = document.getElementById("mapDDecisionFilter").value;
+  const shown = filter === "classified" ? classified :
+    filter === "unclassified" ? unknown : records.length;
+  el.textContent = !summary ? "選択地域の施設データ未読込。0件と断定できません。" :
+    "選択地域の座標付き施設：" + classified + "件が分類済み／" +
+    unknown + "件が未判定。現在 " + shown + "件を表示対象。" +
+    (filter === "classified" && !classified
+      ? " この出典には判定済み施設がありません。避難施設が存在しないという意味ではありません。"
+      : "") +
+    " 座標なし施設は別途一覧で確認してください。";
+}
 function drawIndividualDMarker(record, summary) {
-    return L.marker([record.latitude, record.longitude], { icon: shelterIcon(), pane: "shelterPane" })
+    const decision = dFloodDecision(summary, record);
+    return L.marker([record.latitude, record.longitude], { icon: shelterIcon(decision), pane: "shelterPane" })
       .on("click", event => {
         L.DomEvent.stopPropagation(event);
         detail(
           record.name,
           [
             ["ID", record.id],
+            ["洪水対応分類", decision === "UNKNOWN" ? "未判定（UNKNOWN）" :
+              decision === "CANDIDATE" ? "候補として分類済み（CANDIDATE）" :
+              "対象外として分類済み（EXCLUDED）"],
             ["種別", facilityTypeLabel(record.facility_type)],
             ["住所", displayValue(record.address)],
             ["行政区域", displayValue(record.administrative_area)],
@@ -1043,7 +1079,13 @@ let dRecordIndices = new Map();
 // Quantize display-only cluster membership, never actual map zoom or D points.
 // The same fractional wheel band should not recreate visual clusters.
 let lastDMarkerZoomBucket = null;
-function drawDClusterMarker(records, regionLabel = currentRegion().label) {
+function drawDClusterMarker(records, regionLabel = currentRegion().label,
+                            summary = currentShelterSummary) {
+  const states = records.map(record => dFloodDecision(summary, record));
+  const classified = states.filter(s => s !== "UNKNOWN").length;
+  const unknown = states.length - classified;
+  const className = unknown === states.length ? "d-status-unknown" :
+    classified === states.length ? "d-status-classified" : "d-status-mixed";
   const latitude = records.reduce((sum, record) => sum + record.latitude, 0) / records.length;
   const longitude = records.reduce((sum, record) => sum + record.longitude, 0) / records.length;
   const count = records.length;
@@ -1052,8 +1094,9 @@ function drawDClusterMarker(records, regionLabel = currentRegion().label) {
     title: "近接するD施設" + count + "件（地図表示用の集合、優先順位ではありません）",
     icon: L.divIcon({
       className: "",
-      html: '<div class="d-facility-cluster" aria-label="近接するD施設' +
-        count + '件を地図表示用にまとめています。安全性未判定">' +
+      html: '<div class="d-facility-cluster ' + className +
+        '" aria-label="近接するD施設' + count + '件。洪水対応分類済み' + classified +
+        '件・未判定' + unknown + '件。地図表示用の集合、安全性未判定">' +
         count.toLocaleString("ja-JP") + '</div>',
       iconSize: [42, 42],
       iconAnchor: [21, 21]
@@ -1063,7 +1106,8 @@ function drawDClusterMarker(records, regionLabel = currentRegion().label) {
     detail("D施設の表示上の集合（" + count + "件）", [
       ["件数", count + "件（地図上の重なりを軽減するための表示件数）"],
       ["対象", regionLabel + "のD RegionExport"],
-      ["表示位置", "含まれる施設座標の平均値（実在する施設位置ではありません）"]
+      ["表示位置", "含まれる施設座標の平均値（実在する施設位置ではありません）"],
+      ["洪水対応分類", "分類済み " + classified + "件／未判定 " + unknown + "件"]
     ], "地図表示用クラスタ", {
       note: "この円の中心は避難場所ではありません。クリックで拡大すると個別施設の元データを確認できます。安全性・開設状況・経路・優先順位は未判定です。"
     });
@@ -1082,10 +1126,12 @@ function renderDMarkers() {
     lastDMarkerZoomBucket = null;
     dRecordIndices = new Map((summary?.mappableRecords || []).map((record, index) => [record, index]));
   }
+  updateDDecisionFilterStatus(summary);
   if (!summary?.mappableRecords?.length) {
     lastDMarkerZoomBucket = null;
     return;
   }
+  const visibleRecords = summary.mappableRecords.filter(record => dRecordVisible(summary, record));
   const zoom = map.getZoom();
   // High detail uses source markers, always. At lower zoom levels fix the
   // visual-only grid within each integer zoom band to avoid flickering
@@ -1098,7 +1144,7 @@ function renderDMarkers() {
     return;
   }
   const groupingZoom = zoom >= 13 ? zoom : zoomBucket;
-  const batches = groupMappedDRecords(summary.mappableRecords, groupingZoom,
+  const batches = groupMappedDRecords(visibleRecords, groupingZoom,
     (coordinate, level) => map.project(coordinate, level));
   const next = new Map();
   let added = 0;
@@ -1111,7 +1157,7 @@ function renderDMarkers() {
     if (!marker) {
       marker = records.length === 1
         ? drawIndividualDMarker(records[0], summary)
-        : drawDClusterMarker(records);
+        : drawDClusterMarker(records, currentRegion().label, summary);
       shelterGroup.addLayer(marker);
       added++;
     }
@@ -1170,7 +1216,8 @@ function renderViewportD() {
       ? currentShelterSummary : item?.summary;
     if (!summary) continue;
     const visible = summary.mappableRecords.filter(record =>
-      bounds.contains([record.latitude, record.longitude]));
+      bounds.contains([record.latitude, record.longitude]) &&
+      dRecordVisible(summary, record));
     if (visible.length) counts.push(config.label + " " + visible.length + "件");
     activeTotal += visible.length;
     // The selected municipality already owns its marker layer; avoid
@@ -1186,7 +1233,7 @@ function renderViewportD() {
       if (!marker) {
         marker = records.length === 1
           ? drawIndividualDMarker(records[0], summary)
-          : drawDClusterMarker(records, config.label);
+          : drawDClusterMarker(records, config.label, summary);
         viewportDGroup.addLayer(marker);
       }
       next.set(key, marker);
@@ -1201,6 +1248,9 @@ function renderViewportD() {
   badge.textContent = activeTotal
     ? "表示範囲のD施設：" + counts.join(" / ") + "（開設・安全性未判定）"
     : "表示範囲：確認済み座標のD施設は未表示（未収録・未取得を含む）";
+  if (document.getElementById("mapDDecisionFilter").value !== "all") {
+    badge.textContent += "｜洪水対応分類で絞込中（非表示＝施設なしではありません）";
+  }
   if (loading) badge.textContent += "｜他地域のDデータ確認中";
   if (failures) badge.textContent += "｜未取得 " + failures + "地域";
   // A second official GSI legend has priority on small screens.
@@ -1512,6 +1562,13 @@ bindToggle("basemap", baseMap);
 bindToggle("officialFlood", officialFloodLayer);
 document.getElementById("boundary").addEventListener("change", applyDisplayMode);
 document.getElementById("shelter").addEventListener("change", applyDisplayMode);
+document.getElementById("mapDDecisionFilter").addEventListener("change", () => {
+  // Zoom-band reuse is only valid for the same selected classification filter.
+  // Keep source data, viewport bounds and GSI layers exactly as they were.
+  lastDMarkerZoomBucket = null;
+  renderDMarkers();
+  if (viewportTriggered) renderViewportD();
+});
 document.getElementById("facilityDisplayMode").addEventListener("change", event => {
   setDisplayMode(event.target.value);
   if (displayMode === "nearby") focusReferenceCandidates();
