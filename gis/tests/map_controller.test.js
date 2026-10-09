@@ -286,8 +286,8 @@ nagoya.scenarios = [{
   // Their method signatures differ: report a module/version mismatch instead
   // of throwing TypeError on initial region selection or on map click.
   const pageHtml = fs.readFileSync(path.resolve(__dirname, "../gis/index.html"), "utf8");
-  const discoveryAsset = pageHtml.match(/js\\/flood_discovery\\.js\\?v=([\\w-]+)/);
-  const mapAsset = pageHtml.match(/js\\/map\\.js\\?v=([\\w-]+)/);
+  const discoveryAsset = pageHtml.match(new RegExp("js/flood_discovery[.]js[?]v=([A-Za-z0-9_-]+)"));
+  const mapAsset = pageHtml.match(new RegExp("js/map[.]js[?]v=([A-Za-z0-9_-]+)"));
   assert.ok(discoveryAsset, "flood_discovery.js needs a versioned URL");
   assert.ok(mapAsset, "map.js needs a versioned URL");
   assert.equal(discoveryAsset[1], mapAsset[1], "map and discovery assets share a release version");
