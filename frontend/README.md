@@ -105,3 +105,12 @@ D `RegionExport.scenarios[]` に `scenario_id=flood_shelter_selection` がある
 新規テスト: `tests/flood-scenario-view-model.test.js`。新モデルは `src/flood-scenario-view-model.js` で、Dの評価ロジックを再実装しません。
 
 **統合状況**: #106でD/C/B/EのFlood Scenario統合版をmainへ反映済み。#110でContract不整合のfail-closed guardを追加済み。新潟ODSの公式記号意味の確定は[Issue #48](https://github.com/1kz-ma1/HINANEX/issues/48)で引き続き確認します。
+
+## 2026-10-09 独立した地図・分析画面間の導線
+
+- GISヘッダーの **「分析・根拠 ↗」** は独立したB分析ページ（`/frontend/`）を新規タブで開く。埋め込み表示・固定×オーバーレイは実装しない。
+- B分析画面のヘッダーには **「← 地図へ戻る」** を常時表示し、同じタブから `/gis/gis/?region=<選択地域コード>` へリンクする。
+- GISに戻るリンク先は3つの地域ボタンを切り替えるたびに更新。読込中は選択地域を使用し、合成データを実在する地図として見せず、デモ中は明示的に選択されている地域にリンクする。
+- 分析ページ内でスクロールしてもヘッダーが使えるようsticky表示。モバイル44pxタップ領域・キーボードフォーカスに対応。
+- 元のGISタブは引き続き存在するが、別タブ間の自動フォーカス移動やタブ自動クローズは実装しない。ブラウザの戻る履歴や `window.opener` に依存しない。
+- UI導線のみでD RegionExport/GISの判定・公式データの意味は変更しない。実ブラウザでの見え方は別途確認。

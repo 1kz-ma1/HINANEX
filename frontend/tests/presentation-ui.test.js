@@ -76,3 +76,20 @@ test("洪水Scenarioのモバイル表示とキーボード操作が破綻しな
   assert.match(css, /\.scenario-pagination > span \{ order: -1/);
   assert.match(css, /\.scenario-facts \{ grid-template-columns: minmax\(0, 1fr\)/);
 });
+
+test("分析・根拠のヘッダーに地域連動の地図へ戻る導線がある", async () => {
+  const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  const app = await readFile(new URL("../src/app.js", import.meta.url), "utf8");
+  const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+  const header = html.slice(html.indexOf('<header class="site-header">'), html.indexOf("</header>"));
+
+  assert.match(header, /id="mapBackLink" class="map-back-link" href="\/gis\/gis\/\?region=13123"/);
+  assert.match(header, /← 地図へ戻る<\/a>/);
+  assert.equal((html.match(/id="mapBackLink"/g) ?? []).length, 1);
+  assert.doesNotMatch(header, /target="_blank"|<iframe|<dialog/);
+  assert.match(app, /const mapBackLink = document\.querySelector\("#mapBackLink"\)/);
+  assert.match(app, /mapBackLink\.href = buildGisRegionUrl\(regionCode \?\? regionSelect\.value\)/);
+  assert.match(css, /\.site-header\s*\{\s*position: sticky;\s*top: 0;/);
+  assert.match(css, /\.map-back-link:focus-visible/);
+  assert.match(css, /\.map-back-link\s*\{[^}]*min-height: 44px;/);
+});
