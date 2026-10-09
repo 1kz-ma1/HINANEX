@@ -44,8 +44,8 @@ if ($NeighborsOnly) {
     if (-not $IncludeNeighbors -or -not $PublishPreview) {
         throw 'NeighborsOnly requires -IncludeNeighbors and -PublishPreview.'
     }
-    # An already published, previously independently audited origin is a
-    # prerequisite. Never treat file existence or JSON metadata alone as proof.
+    # Mere JSON file existence never bypasses C acceptance. The published file
+    # must equal archived audit output by SHA and re-pass independent checks.
     $originUrl = "https://cyberjapandata.gsi.go.jp/xyz/skhb01/10/$x/$y.geojson"
     $originOutput = Join-Path $repo ('pipeline\data\output\gsi_verified_tiles\' +
         $RegionCode + '\10-' + $x + '-' + $y + '.json')
@@ -57,92 +57,42 @@ if ($NeighborsOnly) {
         [string]$published.source_status -cne 'C_ACCEPTED' -or
         [string]$published.https_provenance_status -cne 'MATCH' -or
         [string]$published.region_code -cne $RegionCode -or
-        [string]$published.source_raw_sha256 -notmatch '^[0-9a-fA-F]{64}
-if (-not (Test-Path -LiteralPath $runner)) { throw 'Verification runner missing.' }
-$runId = (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssZ') + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8)
-$archiveDir = Join-Path $repo ('pipeline\data\raw\gsi-demo-runs\' + $runId)
-New-Item -ItemType Directory -Force -Path $archiveDir -ErrorAction Stop | Out-Null
-Write-Host "Coarse GSI tile URLs will be requested; no exact GPS coordinate is sent."
-Write-Host "Origin tile: $z/$x/$y; tiles $($tiles.Count); archives $archiveDir"
-$verified = 0
-$unverified = 0
-foreach ($tile in $tiles) {
-    $tx = [int]$tile.X
-    $ty = [int]$tile.Y
-    $url = "https://cyberjapandata.gsi.go.jp/xyz/skhb01/$z/$tx/$ty.geojson"
-    $raw = Join-Path $archiveDir ("10-" + $tx + "-" + $ty + ".geojson")
-    try {
-        Invoke-WebRequest -Uri $url -OutFile $raw -UseBasicParsing -TimeoutSec 45 -ErrorAction Stop | Out-Null
-        if ((Get-Item -LiteralPath $raw).Length -eq 0) { throw 'Official response was empty.' }
-        $hash = (Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash
-        & $runner -ArchivePath $raw -SourceUrl $url -ExpectedSha256 $hash -RegionCode $RegionCode -PythonExe $PythonExe -PublishPreview:$PublishPreview
-        $verified += 1
-        Write-Host "VERIFIED tile: $z/$tx/$ty"
-    }
-    catch {
-        $unverified += 1
-        # The error might have occurred AFTER C HTTPS MATCH and all Node tests,
-        # e.g. the opt-in static publication step. Do not relabel that audit as
-        # failed or claim that the official source was unverified.
-        Write-Warning ("TILE PIPELINE INCOMPLETE " + $z + "/" + $tx + "/" + $ty +
-            " (validation OR publication; inspect the preserved audit folder): " +
-            $_.Exception.Message)
-        if ($tile.Origin) {
-            throw 'Origin tile pipeline did not complete. Preserve its audit evidence and inspect the original error.'
-        }
-    }
-}
-Write-Host "Result: verified $verified tile(s); unverified $unverified tile(s)."
-Write-Host "No evacuation safety, current opening, municipal coverage or nationwide completeness claim."
-if (-not $PublishPreview) {
-    Write-Host 'GIS unchanged. Use -PublishPreview explicitly in an isolated preview worktree.'
-}
- -or
-        @($published.sites).Count -eq 0 -or
+        [string]$published.source_raw_sha256 -notmatch '^[0-9a-fA-F]{64}$' -or
+        @($published.sites).Count -lt 1 -or
         [string]$published.sites[0].source_url -cne $originUrl) {
-        throw 'Origin publication contract is not valid; cannot skip independent C checks.'
+        throw 'Origin publication contract is invalid; refuse neighbor-only run.'
     }
     $publishedDigest = (Get-FileHash -LiteralPath $originOutput -Algorithm SHA256).Hash
     $evidenceRoot = Join-Path $repo 'pipeline\data\verified\gsi-acceptance-runs'
     $rawRoot = Join-Path $repo 'pipeline\data\raw\gsi-demo-runs'
     if (-not (Test-Path -LiteralPath $evidenceRoot -PathType Container) -or
         -not (Test-Path -LiteralPath $rawRoot -PathType Container)) {
-        throw 'Local C evidence or original raw archives are missing; cannot skip origin.'
+        throw 'Original archived raw data and C audit evidence are required.'
     }
-    $matchingEvidence = @(Get-ChildItem -LiteralPath $evidenceRoot -Directory |
+    $evidence = @(Get-ChildItem -LiteralPath $evidenceRoot -Directory |
         Where-Object {
-            $candidate = Join-Path $_.FullName 'gsi_flood_site_catalog.json'
-            (Test-Path -LiteralPath $candidate -PathType Leaf) -and
-            ((Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash -eq $publishedDigest)
+            $p = Join-Path $_.FullName 'gsi_flood_site_catalog.json'
+            (Test-Path -LiteralPath $p -PathType Leaf) -and
+            ((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash -eq $publishedDigest)
         })
-    if ($matchingEvidence.Count -ne 1) {
-        throw 'Expected exactly one saved C/D evidence catalog matching the published origin.'
+    if ($evidence.Count -ne 1) {
+        throw 'No unique original C/D audit catalog matches published origin SHA256.'
     }
-    $matchingArchives = @(Get-ChildItem -LiteralPath $rawRoot -Recurse -File -Filter ("10-" + $x + "-" + $y + ".geojson") |
-        Where-Object { (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash -eq
-            [string]$published.source_raw_sha256 })
-    if ($matchingArchives.Count -lt 1) {
-        throw 'No archived GSI raw bytes match the published C-audited origin digest.'
+    $archives = @(Get-ChildItem -LiteralPath $rawRoot -Recurse -File -Filter ("10-" + $x + "-" + $y + ".geojson") |
+        Where-Object {
+            (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash -eq
+                [string]$published.source_raw_sha256
+        })
+    if ($archives.Count -lt 1) {
+        throw 'No matching original GSI raw bytes found; refuse neighbor-only run.'
     }
-    $python = (Resolve-Path -LiteralPath $PythonExe).Path
-    $verify = Join-Path $repo 'validation\validation\verify_gsi_catalog_acceptance.py'
-    $originEvidence = $matchingEvidence[0].FullName
-    $verifyArgs = @(
-        $verify, '--region', $RegionCode,
-        '--raw', $matchingArchives[0].FullName,
-        '--records', (Join-Path $originEvidence 'gsi_records.json'),
-        '--c-acceptance', (Join-Path $originEvidence 'c_raw_acceptance.json'),
-        '--provenance', (Join-Path $originEvidence 'c_https_provenance.json'),
-        '--catalog', $originOutput,
-        '--source-url', $originUrl
-    )
-    & $python @verifyArgs
-    if ($LASTEXITCODE -ne 0) {
-        throw 'C independent proof / published origin revalidation failed; neighbor seeding stopped.'
+    $recovery = Join-Path $PSScriptRoot 'Publish-VerifiedGsiEvidence.ps1'
+    & $recovery -EvidenceDirectory $evidence[0].FullName -ArchivePath $archives[0].FullName -SourceUrl $originUrl -RegionCode $RegionCode -PythonExe $PythonExe
+    if (-not $?) {
+        throw 'Read-only C proof revalidation failed for the published origin.'
     }
     $tiles = @($tiles | Where-Object { -not $_.Origin })
-    Write-Host "Verified published origin $z/$x/$y against saved C HTTPS MATCH + source bytes."
-    Write-Host 'Continuing with neighbor tiles only; origin publication will not be overwritten.'
+    Write-Host "Published origin $z/$x/$y independently revalidated; now fetching neighbors only."
 }
 
 if (-not (Test-Path -LiteralPath $runner)) { throw 'Verification runner missing.' }
