@@ -592,7 +592,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "gesture-settings-20261009-v4");
+  assert.equal(mapAsset[1], "cluster-stable-20261009-v5");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -1132,6 +1132,10 @@ nagoya.scenarios = [{
     "zoom 13 to 14 must reuse individual marker objects");
   assert.equal(clusterCase.L.__markers.length, afterFirstRender,
     "no additional DOM markers created for unchanged membership");
+  clusterCase.L.__map.zoom = 15.75;
+  clusterCase.L.__map.handlers.zoomend();
+  assert.deepEqual(clusterCase.L.__groups[1].items, at13,
+    "source D markers stay reusable at every fractional high-detail zoom");
   clusterCase.L.__map.zoom = 9.5;
   clusterCase.L.__map.handlers.zoomend();
   assert.equal(clusterCase.L.__groups[1].items.length, 1,
@@ -1142,8 +1146,21 @@ nagoya.scenarios = [{
     "zoomed out actual nearby D source coordinates aggregate into a single visual circle");
   const oneCluster = clusterCase.L.__groups[1].items[0];
   const afterClusterBuild = clusterCase.L.__markers.length;
+  const originalProject = clusterCase.L.__map.project;
+  let projectionCalls = 0;
+  clusterCase.L.__map.project = function(...args) {
+    projectionCalls++;
+    return originalProject.apply(this, args);
+  };
+  clusterCase.L.__map.zoom = 9.75;
+  clusterCase.L.__map.handlers.zoomend();
+  assert.equal(projectionCalls, 0,
+    "same fractional zoom band reuses the previous visual D grouping");
+  assert.strictEqual(clusterCase.L.__groups[1].items[0], oneCluster);
   clusterCase.L.__map.zoom = 10;
   clusterCase.L.__map.handlers.zoomend();
+  assert.ok(projectionCalls > 0,
+    "crossing an integer zoom band recalculates the D cluster grid");
   assert.strictEqual(clusterCase.L.__groups[1].items[0], oneCluster,
     "low-zoom visual cluster remains the same marker across identical membership");
   assert.equal(clusterCase.L.__markers.length, afterClusterBuild,
@@ -1676,4 +1693,13 @@ nagoya.scenarios = [{
   assert.equal(blocked.L.__map.options.zoomSnap, 0);
   assert.equal(blocked.context.window.HINANEX_MAP_GESTURES.setSettings({ sensitivity: 1.75 }).sensitivity, 1.75);
   assert.equal(blocked.L.__map.options.wheelPxPerZoomLevel, 57);
+}
+
+// Fractional zoom optimizes only visual cluster presentation, not source
+// coordinates, hazard semantics or the minimum overview zoom.
+{
+  assert.match(mapCode, /const zoomBucket = zoom >= 13 \? "individual" : Math\.floor\(zoom\)/);
+  assert.match(mapCode, /const groupingZoom = zoom >= 13 \? zoom : zoomBucket/);
+  assert.match(mapCode, /lastDMarkerZoomBucket = null;/);
+  assert.match(mapCode, /\[HINANEX map perf\] D grouping reused/);
 }
