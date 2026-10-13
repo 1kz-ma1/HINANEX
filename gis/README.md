@@ -294,3 +294,11 @@ GISで観客が自分のスマホで参考情報を探索できるURL/QR共有�
 - この自動比較は、発表者が実際に90秒で地図操作・説明を行ったことの受入証拠ではない。10月22日の7分プレゼンの時間計測は引き続き人手で行う。
 
 Eテスト：`node gis/tests/guided_tour_compare.test.js`。従来の必須 `gis/tests/map_controller.test.js` にも読み込みを組み込み、外部ネットワーク・モック施設位置の新規生成なしで初期/単独/連続/中断/再実行/未取得を回帰検証する。追加の実ブラウザ・データ3地域確認は、独立したEのプレビュー検証で実施する。
+
+
+### 自動検証記録（2026-10-13）
+
+- **PASS**：E独立必須CI [#38359064636](https://github.com/1kz-ma1/HINANEX/actions/runs/38359064636)（Eコントローラー＋6ケースのガイド操作単体回帰、D/C/Bを含む既存必須テスト）。
+- **PASS**：共有CI [#38359081214](https://github.com/1kz-ma1/HINANEX/actions/runs/38359081214) でRender相当の**一時**3自治体D出力を生成。未マージのE表示JS/CSS/HTMLだけを別ブランチから一時配布物へ重ね、実Chromiumで3個別パターン・連続比較・停止後再生・モバイル幅、既存E GIS、B/C証拠表示と発表画面切替を操作。ログ `E_THREE_REGION_GUIDED_PLAYBACK_CHROMIUM_PASS`。ステージング本体は変更していない。
+- **証跡**：GitHubの非公開Actions artifact `render-equivalent-predeploy-case-audit-UNAPPROVED-38359081214`、ID `11793604366`、ZIP SHA256 `71e580ea0fb8acad3777d29fbbc85116eadbb68fc29c48ac99793b3e2c6891e1`、失効 **2026-10-20 06:52 UTC**。元D RegionExport全体は成果物に公開していない。
+- **未受入**：実機Edge/iOS Safari/VoiceOver、現在の公式洪水タイル配信、C/D原資料に基づく災害時安全性、最終統合・発表90秒の人手リハーサル、Issue #89正式承認。CI成功は本番安全性や公開済みを意味しない。
