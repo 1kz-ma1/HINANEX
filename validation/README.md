@@ -114,3 +114,5 @@ python validation/validation/validate_edogawa_official_archive.py --archive-dir 
 - 固定の152件/111件の件数で合否を決めません。更新で実データ件数が増減することを許容し、変更は別の原本差分監査で人間に提示します。ただし構造や必要施設行が変わった場合は、それ自体を人間の再調査対象としてfail-closedにします。
 - 出力状態 ORIGINAL_CONTENT_STRUCTURE_CHECKED_HUMAN_REVIEW_REQUIRED は「中身が期待する形式と最低限の文脈だった」ことのみ。取得先の真正性、公式更新日・適用時期、別ソースのD施設IDとの同一性、洪水適合性は**証明しません**。承認ペアは0のまま。
 - 実サーバーへの外部通信はオフラインCIには組み込まず、合成テストでHTTP 200の誤コンテンツ・CSV偽装・ソース表欠落・旧新校舎混同を検出します。
+
+- このC Content Preflightは、2校のレビュー資料生成（build_edogawa_identity_review_packet.py）からも**必須ゲートとして自動実行**します。HTTP 200の偽装エラーページや原本の構造不一致が残る場合、レビュー資料の出力自体を中止します。
