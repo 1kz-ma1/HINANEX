@@ -52,6 +52,36 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Checkout pinned C independent map audit
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 8f69d28ff32f97bfbd731664190168f2f111f95f
+          path: c-independent
+          persist-credentials: false
+
+      - name: Install pinned PDF inspector
+        run: python -m pip install 'pymupdf==1.26.4'
+
+      - name: C independently inspect PDF bytes, container creation date, raster/text
+        id: c_audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          zip -j -q "$RUNNER_TEMP/map-2019-for-C.zip" "$RUNNER_TEMP/edogawa-2019-map-alternate-UNREVIEWED/"*
+          python c-independent/validation/validation/audit_edogawa_2019_map_copy.py \
+            --archive-zip "$RUNNER_TEMP/map-2019-for-C.zip" \
+            --report "$RUNNER_TEMP/C_2019_map_ALTERNATE_UNAPPROVED.json"
+
+      - name: Save C independent report without approval
+        if: ${{ steps.c_audit.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: edogawa-2019-map-C-audit-UNAPPROVED-${{ github.run_id }}
+          path: ${{ runner.temp }}/C_2019_map_ALTERNATE_UNAPPROVED.json
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Record scope and absence of as-of approval
         if: always()
         run: |
@@ -59,6 +89,7 @@ jobs:
             echo "### 2019 Edogawa map on Tokyo official school website"
             echo "A source capture: ${{ steps.fetch.outcome }}"
             echo "A original SHA verification: ${{ steps.a_verify.outcome }}"
+            echo "C independent PDF container/bytes: ${{ steps.c_audit.outcome }}"
             echo "2019 issuance *printed on map*; publication/bytes available in Oct 2019: **NOT VERIFIED**."
             echo "2019 facility identity and flood eligibility: **NOT VERIFIED**."
             echo "Separate independent C visual/source/version inspection is still required."
