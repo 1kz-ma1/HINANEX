@@ -125,6 +125,16 @@ class CThreeSourceTests(unittest.TestCase):
         with self.assertRaisesRegex(ThreeSourceAuditFailure, "prematurely"):
             self.run_validated(sample)
 
+    def test_discrepancy_flags_cannot_be_misrepresented(self):
+        sample = list(inputs())
+        matrix = copy.deepcopy(sample[-1])
+        matrix["water_rows"][0]["gsi_review_leads"][0]["documentary_discrepancy_flags"] = [
+            "ADDRESS_NORMALIZATION_DIFFERS_REVIEW"
+        ]
+        sample[-1] = matrix
+        with self.assertRaisesRegex(ThreeSourceAuditFailure, "Discrepancy flags"):
+            self.run_validated(sample)
+
     def test_relabeling_source_origin_rejected(self):
         sample = list(inputs())
         matrix = copy.deepcopy(sample[-1])
