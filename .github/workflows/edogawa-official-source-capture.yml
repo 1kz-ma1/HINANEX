@@ -939,6 +939,14 @@ jobs:
           print("PRESENTER_B_C_OFFLINE_HANDOFF_CONTRACT_PASS; no safety approval")
           PY
 
+      - name: Checkout pinned E guided three-pattern UI separately
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 6b5ae58244fb1f37a478bf1c5149ea39554306eb
+          path: e-guided-comparison
+          persist-credentials: false
+
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
@@ -962,6 +970,29 @@ jobs:
           test -f "$RUNNER_TEMP/hinanex-render-predeploy-dist/pipeline/data/output/edogawa.json"
           test -f "$RUNNER_TEMP/hinanex-render-predeploy-dist/pipeline/data/output/niigata.json"
           test -f "$RUNNER_TEMP/hinanex-render-predeploy-dist/pipeline/data/output/nagoya.json"
+
+      - name: Compose exact E guided-demo overlay into temporary read-only integration candidate
+        id: guided_overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f e-guided-comparison/gis/gis/js/guided_tour.js
+          test -f e-guided-comparison/gis/gis/index.html
+          test -f e-guided-comparison/gis/gis/css/map_first.css
+          # E-only PR #180 is not deployed. Keep the REAL D output produced by
+          # deploy/build_staging.py, replacing only these 3 E display assets
+          # in the disposable composite preview. Never upload D JSON.
+          cp e-guided-comparison/gis/gis/js/guided_tour.js \
+            "$RUNNER_TEMP/hinanex-render-predeploy-dist/gis/gis/js/guided_tour.js"
+          cp e-guided-comparison/gis/gis/index.html \
+            "$RUNNER_TEMP/hinanex-render-predeploy-dist/gis/gis/index.html"
+          cp e-guided-comparison/gis/gis/css/map_first.css \
+            "$RUNNER_TEMP/hinanex-render-predeploy-dist/gis/gis/css/map_first.css"
+          node --check e-guided-comparison/gis/gis/js/guided_tour.js
+          node --check e-guided-comparison/gis/tests/guided_tour_compare_browser_smoke.cjs
+          node --test e-guided-comparison/gis/tests/guided_tour_compare.test.js
+          echo 'GUIDED_TOUR_E_PR180_TEMPORARY_COMPOSITE_ONLY; Render staging not modified.'
+
 
       - name: Checkout pinned C producer separately
         uses: actions/checkout@v4
@@ -1052,6 +1083,11 @@ jobs:
               "$RUNNER_TEMP/render-predeploy-gis-screens"
           HINANEX_TEST_LEAFLET_DIST="$PWD/b-render-candidate/frontend/node_modules/leaflet/dist" \
           NODE_PATH="$PWD/b-render-candidate/frontend/node_modules" \
+            node e-guided-comparison/gis/tests/guided_tour_compare_browser_smoke.cjs \
+              "$RUNNER_TEMP/hinanex-render-predeploy-dist" \
+              "$RUNNER_TEMP/render-predeploy-guided-comparison-screens"
+          HINANEX_TEST_LEAFLET_DIST="$PWD/b-render-candidate/frontend/node_modules/leaflet/dist" \
+          NODE_PATH="$PWD/b-render-candidate/frontend/node_modules" \
             node b-presenter-console/frontend/scripts/20261022-presentation-handoff-browser-smoke.cjs \
               "$RUNNER_TEMP/presentation-handoff" \
               "$RUNNER_TEMP/render-predeploy-presenter-handoff-screens"
@@ -1066,6 +1102,7 @@ jobs:
             ${{ runner.temp }}/render-predeploy-browser-screens/
             ${{ runner.temp }}/render-predeploy-three-region-screens/
             ${{ runner.temp }}/render-predeploy-gis-screens/
+            ${{ runner.temp }}/render-predeploy-guided-comparison-screens/
             ${{ runner.temp }}/render-predeploy-presenter-handoff-screens/
           retention-days: 7
           if-no-files-found: warn
@@ -1082,6 +1119,7 @@ jobs:
             echo 'New E real Leaflet GIS: cluster, 3-region D, Nagoya list, GPS denial/manual flow (Chromium): ${{ steps.predeploy_browser.outcome }}'
             echo 'B scene 1:25 → unchanged C T0 and 2:25 → actual GIS loopback browser handoff: ${{ steps.predeploy_browser.outcome }}'
             echo '420-second spoken rehearsal, real Edge/mobile and external GSI/C/D approvals remain NOT TESTED.'
+            echo 'E guided-demo PR180 3 regions individually/sequentially with real D: ${{ steps.predeploy_browser.outcome }} (composite only)'
             echo 'E test scope only; real GSI tile network, actual Edge/iOS/VoiceOver and human E/C/D acceptance remain untested.'
             echo 'No PR merge, new Render service, release, trigger-deploy or staging URL modification.'
             echo 'D 3 exported regions are transient CI files; they are NOT archived, approved or promoted.'
