@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 1kz-ma1/HINANEX
-          ref: 7719e4620c4066c1868d10337d9b4b1f3cc45941
+          ref: 6665eaa5594d2ba1ee5ac94ec30c9390d6e58e89
           path: b-rehearsal
           persist-credentials: false
 
