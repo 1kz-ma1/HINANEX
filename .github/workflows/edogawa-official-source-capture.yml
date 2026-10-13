@@ -1,0 +1,86 @@
+name: Edogawa official-source evidence capture
+
+"on":
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - ".github/workflows/edogawa-official-source-capture.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    # Independent investigation. Does not deploy or classify any shelter.
+    name: Archive and inspect original HTTPS responses (never C approval)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout pinned C verifier (unmerged evidence tooling)
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 346c6cba83c3b892c47a04eef0afc277c800d1e5
+          persist-credentials: false
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Explain evidence and approval boundary
+        shell: bash
+        run: |
+          echo "Source collector revision: $(git rev-parse HEAD)"
+          echo "Evidence is UNREVIEWED even if every check succeeds."
+          echo "No verified pairs, no flood suitability decision, no writes to main or Render."
+          echo "Archives are GitHub Actions artifacts, not Git commits."
+
+      - name: Fetch all seven allowlisted official HTTPS originals
+        id: capture
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/hinanex-edogawa"
+          python validation/validation/archive_edogawa_official_sources.py \
+            --out-dir "${RUNNER_TEMP}/hinanex-edogawa/raw-unreviewed"
+
+      - name: Recheck stored bytes and manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python validation/validation/archive_edogawa_official_sources.py \
+            --verify-dir "${RUNNER_TEMP}/hinanex-edogawa/raw-unreviewed"
+
+      - name: Check that HTTP 200 content is the intended source shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          python validation/validation/validate_edogawa_official_archive.py \
+            --archive-dir "${RUNNER_TEMP}/hinanex-edogawa/raw-unreviewed" \
+            --report "${RUNNER_TEMP}/hinanex-edogawa/content_preflight_unreviewed.json"
+
+      - name: Attach original responses for independent C review
+        if: ${{ always() && steps.capture.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: edogawa-original-bytes-UNREVIEWED-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/hinanex-edogawa/raw-unreviewed/
+            ${{ runner.temp }}/hinanex-edogawa/content_preflight_unreviewed.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Record outcome, not approval
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### 江戸川区公式原本取得（独立調査用）"
+            echo "取得処理: ${{ steps.capture.outcome }}"
+            echo "原本バイトのGit保管や避難適合性の自動分類は行いません。"
+            echo "C正式承認ペア数: **0**"
+            echo "新規洪水 CANDIDATE/EXCLUDED: **0**"
+            echo "資料の対象時期と施設同一性、洪水単独指定の意味は担当者が別途審査します。"
+          } >> "${GITHUB_STEP_SUMMARY}"
