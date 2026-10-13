@@ -1,5 +1,6 @@
 """Offline synthetic C tests: review packet must never approve disaster decisions."""
 from datetime import datetime, timezone
+import json
 import hashlib
 from pathlib import Path
 import tempfile
@@ -10,23 +11,24 @@ from build_edogawa_identity_review_packet import (
     ReviewPacketFailure, build_packet,
 )
 from verify_edogawa_water_join import PRIORITY_SCHOOL_REFERENCES
+from test_edogawa_official_archive_content import water_page, location_csv
 
 
 def make_fixture(directory, omit_institution_phone=False):
     def fetch(url):
         if url == SOURCES["municipal_locations"][1]:
-            raw = b"synthetic location bytes"
+            raw, content_type = location_csv(), "text/csv"
         elif url == SOURCES["water_facilities"][1]:
-            raw = b"synthetic water table bytes"
+            raw, content_type = water_page(), "text/html"
         else:
-            content = " 葛西工科高校 関東第一高校 " + " ".join(
+            content = " 葛西工科高校 関東第一高校 下小岩小学校 " + " ".join(
                 x["water_address"] + " " + x["water_phone"]
                 for x in PRIORITY_SCHOOL_REFERENCES
             )
             if omit_institution_phone and "kanto-ichiko.ac.jp" in url:
                 content = content.replace(PRIORITY_SCHOOL_REFERENCES[1]["water_phone"], "")
-            raw = ("<html><body>" + content + "</body></html>").encode("utf-8")
-        return raw, url, {"content_type": "text/html"}
+            raw, content_type = ("<html><body>" + content + "</body></html>").encode("utf-8"), "text/html"
+        return raw, url, {"content_type": content_type}
 
     out = Path(directory) / "archive"
     manifest = capture(
@@ -78,6 +80,8 @@ class HumanReviewPacketTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             directory, audit = make_fixture(temp)
             packet = build_packet(directory, audit)
+            self.assertEqual(packet["original_content_preflight_status"],
+                             "ORIGINAL_CONTENT_STRUCTURE_CHECKED_HUMAN_REVIEW_REQUIRED")
             self.assertEqual(packet["status"], "REVIEW_PACKET_PREPARED_NOT_APPROVED")
             self.assertFalse(packet["c_human_reviewer_signed_off"])
             self.assertEqual(packet["approved_cross_source_pairs"], 0)
@@ -139,6 +143,24 @@ class HumanReviewPacketTests(unittest.TestCase):
             old = audit["priority_identity_leads"][2]
             old["new_water_address_raw"] = old["water_address_raw"]
             with self.assertRaisesRegex(ReviewPacketFailure, "separation"):
+                build_packet(directory, audit)
+
+    def test_html_error_page_blocks_review_even_when_digest_matches(self):
+        with tempfile.TemporaryDirectory() as temp:
+            directory, audit = make_fixture(temp)
+            # Create a distinct archive with an HTTP-200 school error page and
+            # correctly matching manifest hashes: SHA integrity alone must fail.
+            old_manifest = directory / "snapshot_manifest.json"
+            manifest = json.loads(old_manifest.read_text(encoding="utf-8"))
+            institution_key = "kanto_ichiko_school_overview"
+            item = next(x for x in manifest["source_items"]
+                        if x["source_key"] == institution_key)
+            raw = b"<html><body>HTTP 200 temporary error</body></html>"
+            (directory / item["archive_filename"]).write_bytes(raw)
+            item["byte_size"] = len(raw)
+            item["sha256"] = hashlib.sha256(raw).hexdigest()
+            old_manifest.write_text(json.dumps(manifest), encoding="utf-8")
+            with self.assertRaisesRegex(ReviewPacketFailure, "preflight failed"):
                 build_packet(directory, audit)
 
     def test_unsupported_manifest_source_fails_closed(self):
