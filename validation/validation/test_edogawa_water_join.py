@@ -29,7 +29,8 @@ def fixture():
     facility_id = "edogawa-" + hashlib.sha256(key.encode()).hexdigest()[:16]
     record = {"id": facility_id, "name": location_name,
               "latitude": 35.7, "longitude": 139.88, "address": None,
-              "supported_disasters": None, "facility_type": "shelter"}
+              "supported_disasters": None, "facility_type": "shelter",
+              "detail_url": "https://example.invalid/icon"}
     export = {"region": {"code": "13123"}, "meta": {"schema_version": "0.9"},
               "datasets": [{"requirement_code": "shelter_location",
                             "records": [record]}]}
