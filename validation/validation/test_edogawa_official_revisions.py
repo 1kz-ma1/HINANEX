@@ -75,6 +75,27 @@ class EdogawaRevisionDiffTests(unittest.TestCase):
             self.assertTrue(result["water_rows"]["whitespace_normalized_rows_equal"])
             self.assertEqual(result["water_rows"]["added_rows"], [])
 
+
+    def test_municipal_table_reordering_not_mistaken_for_attribute_drift(self):
+        original = html()
+        second = ("<tr><td>109</td><td>私立 関東一高等学校</td>"
+                  "<td>松島2丁目10番11号</td><td>03-3653-1541</td>"
+                  "<td>3階以上</td></tr>").encode("utf-8")
+        baseline = original.replace(b"</table>", second + b"</table>")
+        # Move original school row after the new second row.
+        start = baseline.index(b"<tr><td>108")
+        end = baseline.index(b"</tr>", start) + len(b"</tr>")
+        original_first_row = baseline[start:end]
+        latest = baseline[:start] + second + original_first_row + baseline[end + len(second):]
+        with tempfile.TemporaryDirectory() as tmp:
+            _old, old_csv, archive = fixture(tmp, water=latest)
+            result = compare(baseline, old_csv, archive)
+            self.assertTrue(result["water_bytes_changed"])
+            self.assertTrue(result["water_rows"]["whitespace_normalized_rows_equal"])
+            self.assertTrue(result["priority_school_rows"]["whitespace_normalized_rows_equal"])
+            self.assertEqual(result["status"],
+                             "SOURCE_BYTES_DIFFER_STRUCTURE_SAME_REVIEW_REQUIRED")
+
     def test_changed_usable_floor_is_explicit_material_drift(self):
         with tempfile.TemporaryDirectory() as tmp:
             old_water, old_csv, archive = fixture(
