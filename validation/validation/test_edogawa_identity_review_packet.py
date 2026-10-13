@@ -106,7 +106,11 @@ class HumanReviewPacketTests(unittest.TestCase):
             self.assertEqual(len(packet["archived_source_sha256"]), len(SOURCES))
             for item in packet["priority_cases"]:
                 self.assertTrue(item["city_directory"]["raw_address_text_present"])
+                self.assertTrue(item["city_directory"]["row_scoped_observation"]["same_row_phone_text_matches_water"])
+                self.assertFalse(item["city_directory"]["row_scoped_observation"]["match_d_location_identity_approved"])
                 self.assertTrue(item["institution_page"]["raw_phone_text_present"])
+                self.assertIsNotNone(item["institution_page"]["phone_nearby_original_text_excerpt"])
+                self.assertFalse(item["institution_page"]["address_format_equivalence_reviewed"])
                 self.assertEqual(item["flood_only_eligibility"], "UNKNOWN")
                 self.assertEqual(item["cross_source_same_physical_facility"], "UNREVIEWED")
                 self.assertFalse(item["c_human_reviewer_signed_off"])
