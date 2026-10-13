@@ -41,7 +41,7 @@ class CandidateLedgerTests(unittest.TestCase):
         self.assertEqual(old["catalogue_updated_date"], "2018-03-30")
         self.assertFalse(old["source_2019_temporal_continuity_verified"])
         self.assertIn("http://", old["raw_url_catalogued"])
-        self.assertIn("catalog", old["catalogue_url"])
+        self.assertIn("spec.api.metro.tokyo.lg.jp", old["catalogue_url"])
 
 
 if __name__ == "__main__":
