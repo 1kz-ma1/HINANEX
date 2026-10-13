@@ -880,7 +880,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 1kz-ma1/HINANEX
-          ref: 33ddd703ce0d66c71fe1537e6d31c235bb7c32df
+          ref: 3a44bc83d2cad4ed97ccea25f9ec4ada51c4840a
           path: b-render-candidate
           persist-credentials: false
 
