@@ -23,7 +23,7 @@ import json
 from pathlib import Path
 import re
 import unicodedata
-from collections import Counter
+from collections import Counter, defaultdict
 
 WATER_URL = ("https://www.city.edogawa.tokyo.jp/e007/bosaianzen/"
              "bosai/kanrenmap/hazardmap/ikinaihinan.html")
@@ -228,6 +228,39 @@ PRIORITY_SCHOOL_REFERENCES = (
 )
 
 
+def duplicate_municipal_detail_urls(source_rows, d_records):
+    """A source homepage URL is NOT a facility ID, even if official.
+
+    Report all nonblank original municipality CSV URL collisions. This is a
+    generic data-quality observation, not an automatic join or site verdict.
+    Source and D records must match by the existing positional CSV-to-D audit.
+    """
+    by_url = defaultdict(list)
+    for source, normalized in zip(source_rows, d_records):
+        raw_url = (source.get("URL") or "").strip() or None
+        require(normalized.get("detail_url") == raw_url,
+                "D link differs from original municipal URL")
+        if raw_url:
+            by_url[raw_url].append(normalized)
+    collisions = []
+    for url, records in sorted(by_url.items()):
+        if len(records) < 2:
+            continue
+        collisions.append({
+            "original_municipality_url": url,
+            "source_url_not_facility_key": True,
+            "record_count": len(records),
+            "D_facility_ids": [x["id"] for x in records],
+            "D_facility_names": [x["name"] for x in records],
+            "distinct_original_coordinates": len({
+                (x["latitude"], x["longitude"]) for x in records
+            }),
+            "independent_cross_source_identity_approved": False,
+            "flood_specific_eligibility": "UNKNOWN",
+        })
+    return collisions
+
+
 def review_priority_identity_leads(water, location_raw_rows, records):
     """Validate snapshot/ID/source-URL claims; DO NOT approve cross-source join.
 
@@ -416,7 +449,10 @@ def audit(html: bytes, csv_raw: bytes, export_raw: bytes, ledger_raw: bytes):
         status_counts[category] += 1
         raw_floor_counts[hint["official_usable_floor_raw"]] += 1
 
+    shared_url_groups = duplicate_municipal_detail_urls(source_rows, records)
     return {
+        "source_detail_url_collision_groups": shared_url_groups,
+        "source_detail_url_collision_group_count": len(shared_url_groups),
         "audit_status": "SOURCE_SNAPSHOT_CONSISTENCY_CHECKED_NOT_FACILITY_IDENTITY_ACCEPTED",
         "region_code": "13123",
         "source_sha256": {
