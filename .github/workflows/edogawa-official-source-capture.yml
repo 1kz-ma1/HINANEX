@@ -389,3 +389,51 @@ jobs:
             echo "No flood-only designation, safe route, opening or exclusion inference."
             echo "C human-approved site pairs: 0 / new flood CANDIDATE/EXCLUDED: 0."
           } >> "$GITHUB_STEP_SUMMARY"
+
+  water-site-revisions:
+    name: Archive 2026 external/inland water standby PDF versions (UNAPPROVED)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout pinned A municipal flood-version collector
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: d88e75afb61acf0a2905da679823332aae39668f
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Reject forged source revisions and premature approvals
+        shell: bash
+        run: python -m unittest discover -s data-research/tests -p 'test_archive_edogawa_2026_water_site_revisions.py' -v
+
+      - name: Capture new 2026 external/inland disaster-plan and historical school reuse originals
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python data-research/tools/archive_edogawa_2026_water_site_revisions.py \\
+            --out-dir "$RUNNER_TEMP/edogawa-2026-flood-site-UNAPPROVED"
+          python data-research/tools/archive_edogawa_2026_water_site_revisions.py \\
+            --verify-dir "$RUNNER_TEMP/edogawa-2026-flood-site-UNAPPROVED"
+
+      - name: Upload standalone non-approved source revisions
+        if: steps.source.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: edogawa-2026-external-inland-water-originals-UNAPPROVED-${{ github.run_id }}
+          path: ${{ runner.temp }}/edogawa-2026-flood-site-UNAPPROVED/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Record no-site-approval boundary
+        if: always()
+        shell: bash
+        run: |
+          echo '2026 flood-plan site-version source capture: ${{ steps.source.outcome }}' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Original source bytes and as-of dates are not human C approval or real-time site opening.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Old/new Shimokamata must remain physically distinct; 0 C pairs/0 new flood statuses.' >> "$GITHUB_STEP_SUMMARY"
