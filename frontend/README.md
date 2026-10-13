@@ -114,3 +114,18 @@ D `RegionExport.scenarios[]` に `scenario_id=flood_shelter_selection` がある
 - 分析ページ内でスクロールしてもヘッダーが使えるようsticky表示。モバイル44pxタップ領域・キーボードフォーカスに対応。
 - 元のGISタブは引き続き存在するが、別タブ間の自動フォーカス移動やタブ自動クローズは実装しない。ブラウザの戻る履歴や `window.opener` に依存しない。
 - UI導線のみでD RegionExport/GISの判定・公式データの意味は変更しない。実ブラウザでの見え方は別途確認。
+
+
+## 2026-10-13 独立した根拠検証事例ページ（B / Issue #157）
+
+\`/frontend/evidence-case.html\` から、旧下鎌田小学校の**公表資料の時点差**を3状態で閲覧できるUIを追加。地域分析トップの「出典の時点差を検証する事例を見る」から移動する。既存の D RegionExport、Flood Scenario、E GIS マップ、施設ピン、推薦ロジックとは**独立した教育用ページ**であり、実際の避難先を探す用途ではない。
+
+- \`frontend/mock/shimokamata-evidence-ui-preview.json\` は画面をすぐ確認できる**B手製のUIプレビュー用サンプル**。C PR #136の公開用JSON契約に記載された公表済み公式資料4件の固定SHA256と文章を写し、\`C_PUBLIC_EDUCATIONAL_CASE_STUDY_V1\` の形で検証する。**Cジェネレータを実際に実行して得た最新出力ではなく、新規に公式原本の再照合・現況調査を実施していない。** 画面でも「表示確認用サンプル」と常時表示。
+- Cが生成した公開用JSONは、ページの「C公開用JSONを選択」からローカルファイルを手動読込できる。ファイルの内容は外部サーバーへアップロードしない。読込時はJSON形式、契約バージョン、公開用途フラグ、資料4件のURI/原本SHA/対象日/本文、表示3状態の順序と固定文、旧新校舎の別住所、UNKNOWNを全部検証。改変・未対応・不審なデータは**fail-closed**で拒否し、前に表示していた事例を消す。
+- 表示用情報は原文・ファイル名・SHAなどの**非公開の行政回答**を含まず、独立した市の公開原本4件の出典情報だけ。原本の再取得や行政の本人確認をBでは実行しない。公式URLリンクはあらかじめ決められたHTTPS元データだけで、DOMへは\`textContent\`を使用し、HTMLを入力から解釈しない。
+- 表示3状態は \`DOCUMENTARY_FACT\`、\`SOURCE_VERSION_RECONCILIATION\`、\`CURRENT_OPERATIONS_UNKNOWN\`。最後は目立つUNKNOWNであり、**「安全/危険」「開設中/閉鎖」「利用可/不可」へ変換しない**。外水/内水と旧/新敷地、行政上の掲載と実際の開設は別物。
+- 実装：\`src/evidence-case-view-model.js\`（C Consumer guard）、\`src/evidence-case-page.js\`（DOM描画、参照原本一覧、JSONファイル読み込み）、\`evidence-case.css\`（独立スタイル）。\`tests/evidence-case-view-model.test.js\`（不正な安全フラグ、URL/SHA/資料時点改変、個人情報漏洩、旧新学校住所統合などの否認）。
+- ビルドとテスト：\`cd frontend && npm test && npm run lint && npm run build\`。CI required \`test\` が成功しても、実ブラウザのレスポンシブ・C実出力の手動投入、スクリーンリーダー、ステージングの動作確認は別途必要。
+
+**前提**：C provider Draft PR #136、公式原本のA PR #133、捕捉CI PR #139、B/E引継ぎ Issue #157。これらは統合前の作業で、プレビューは暫定。C生成JSONの安定供給経路が確立するまで自動取得・本番配信は導入しない。公開原本の利用/転載条件は別途確認する。HINANEXの「実災害の過去再現と成功/失敗3パターン」の精度実証とは別の補足デモ。
+
