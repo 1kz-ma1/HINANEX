@@ -783,3 +783,90 @@ jobs:
             echo 'This is local static-page browser smoke, NOT Render staging deployment or real-time shelter evaluation.'
             echo 'Unreviewed and undecided: C human source interpretation, building access, hazard designation and live opening.'
           } >> "$GITHUB_STEP_SUMMARY"
+
+  b-educational-webkit-a11y:
+    name: WebKit and Chromium WCAG educational C case audit (NO SHELTER)
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout pinned C educational case generator
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 3e8cb82f51ddea4bf88dd12eb6221af0c06232a6
+          persist-credentials: false
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build source-only public C case from UNSENT packet (no private replies)
+        id: c_json
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/authorities-not-contacted"
+          python validation/validation/build_shimokamata_evidence_demo.py \
+            --packet validation/reviews/2026-10-13-old-shimokamata-inquiry-packet.json \
+            --original-dir "$RUNNER_TEMP/authorities-not-contacted" \
+            --out "$RUNNER_TEMP/C_webkit_public_educational.json"
+
+      - name: Checkout pinned B page and accessibility test
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 004ea47689939ec43af0014254fd6385b82a4f3b
+          path: b-webkit
+          persist-credentials: false
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install test-only Playwright browsers and axe
+        shell: bash
+        working-directory: b-webkit/frontend
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-package-lock 'playwright@1.56.1' '@axe-core/playwright@4.10.2'
+          npx playwright install --with-deps webkit chromium
+
+      - name: Run actual C evidence accessibility on Playwright WebKit and Chromium
+        id: a11y
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8765 --bind 127.0.0.1 --directory b-webkit \
+            > "$RUNNER_TEMP/b-webkit-static-server.log" 2>&1 &
+          webserver_pid=$!
+          trap 'kill "$webserver_pid" 2>/dev/null || true' EXIT
+          for retry in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:8765/frontend/evidence-case.html >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --silent --fail http://127.0.0.1:8765/frontend/evidence-case.html >/dev/null
+          node b-webkit/frontend/scripts/evidence-case-webkit-a11y-smoke.mjs \
+            "$RUNNER_TEMP/C_webkit_public_educational.json" \
+            "$RUNNER_TEMP/b-webkit-a11y-screens"
+
+      - name: Archive educational-only WebKit and Chromium screenshots and WCAG manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b-educational-webkit-a11y-public-only-UNAPPROVED-${{ github.run_id }}
+          path: ${{ runner.temp }}/b-webkit-a11y-screens/
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Summarize WebKit and keyboard test boundary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '### WebKit/Chromium educational evidence accessibility'
+            echo 'Actual C public evidence JSON and automated accessibility checks: ${{ steps.a11y.outcome }}'
+            echo 'Linux Playwright WebKit != real iOS Safari or VoiceOver; axe != full human WCAG conformance.'
+            echo 'No municipal official replies, opening state changes, live shelter GIS or Render deployment.'
+          } >> "$GITHUB_STEP_SUMMARY"
