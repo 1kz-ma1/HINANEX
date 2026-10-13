@@ -35,17 +35,33 @@ test("read-only evidence/safety distinctions are explicit",()=>{
     assert.ok(!source.includes("安全な避難先を推薦できます"));
 });
 
-test("external links are pinned HTTPS and cannot inherit opener",()=>{
+test("presenter C/GIS links allow only exact local bundle paths, loopback, or pinned HTTPS",()=>{
     const links=agenda.flatMap(s=>s.links);
     assert.ok(links.length>2);
+    const expectedC="./03_C_20261022_offline_evidence.html";
+    const expectedGIS="http://127.0.0.1:8000/gis/gis/?region=13123";
+    assert.equal(agenda.find(s=>s.id==="evidence").links.filter(l=>l.url===expectedC).length,1);
+    assert.equal(agenda.find(s=>s.id==="map").links.filter(l=>l.url===expectedGIS).length,1);
     for(const link of links){
         assert.ok(link.label);
+        if(link.url.startsWith("./")){
+            assert.equal(link.url,expectedC,"no arbitrary relative file or directory traversal");
+            continue;
+        }
         const url=new URL(link.url);
-        assert.equal(url.protocol,"https:");
-        assert.ok(["github.com","hinanex-staging.onrender.com"].includes(url.hostname));
+        if(url.protocol==="http:"){
+            assert.equal(link.url,expectedGIS,"only the explicit local demonstration URL");
+            assert.equal(url.hostname,"127.0.0.1");
+            assert.equal(url.port,"8000");
+        }else{
+            assert.equal(url.protocol,"https:");
+            assert.ok(["github.com","hinanex-staging.onrender.com"].includes(url.hostname));
+        }
     }
     assert.ok(source.includes('a.rel="noopener noreferrer"'));
     assert.ok(source.includes("ステージング（未検証）"));
+    assert.ok(source.includes("配布ZIP内でのみ"));
+    assert.ok(source.includes("事前にlocalhost:8000"));
 });
 
 class FakeElement{
