@@ -694,3 +694,92 @@ jobs:
             echo 'No living shelter/route, original re-download, D replay or currently-open site classification.'
             echo 'No municipality human C review, D flood promotion or frontend deployment.'
           } >> "$GITHUB_STEP_SUMMARY"
+
+  b-educational-chromium-smoke:
+    name: Chromium actual C-JSON source evidence UI desktop/mobile (NO SHELTER)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout pinned C public educational-only producer
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 3e8cb82f51ddea4bf88dd12eb6221af0c06232a6
+          persist-credentials: false
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Produce ACTUAL C source-cited educational JSON from unsent template
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/authority-replies-empty"
+          python validation/validation/build_shimokamata_evidence_demo.py \
+            --packet validation/reviews/2026-10-13-old-shimokamata-inquiry-packet.json \
+            --original-dir "$RUNNER_TEMP/authority-replies-empty" \
+            --out "$RUNNER_TEMP/C_public_educational_case.json"
+
+      - name: Checkout pinned B source-only page and browser smoke
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: a369126d64fca9c418bcbbf136adaf9007160c08
+          path: b-browser
+          persist-credentials: false
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright Chromium for isolated runner only
+        shell: bash
+        working-directory: b-browser/frontend
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-package-lock 'playwright@1.56.1'
+          npx playwright install --with-deps chromium
+
+      - name: Browser smoke: actual C JSON, 1365px desktop/390px mobile, fail-closed
+        id: smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8765 --bind 127.0.0.1 --directory b-browser \
+            > "$RUNNER_TEMP/b-static-server.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:8765/frontend/evidence-case.html >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:8765/frontend/evidence-case.html >/dev/null
+          node b-browser/frontend/scripts/evidence-case-browser-smoke.mjs \
+            "$RUNNER_TEMP/C_public_educational_case.json" \
+            "$RUNNER_TEMP/evidence-browser-public-screens"
+
+      - name: Archive public-only browser screenshots without deploying UI
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b-educational-chromium-public-screenshots-UNAPPROVED-${{ github.run_id }}
+          path: ${{ runner.temp }}/evidence-browser-public-screens/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Summarize browser-only educational acceptance
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '### B educational evidence browser smoke'
+            echo 'Actual pinned C-generated public evidence JSON displayed: ${{ steps.smoke.outcome }}'
+            echo 'Checks: Chromium desktop/mobile, three states, official links, keyboard focus, overflow, invalid source clearing, explicit preview reset.'
+            echo 'This is local static-page browser smoke, NOT Render staging deployment or real-time shelter evaluation.'
+            echo 'Unreviewed and undecided: C human source interpretation, building access, hazard designation and live opening.'
+          } >> "$GITHUB_STEP_SUMMARY"
