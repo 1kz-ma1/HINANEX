@@ -221,7 +221,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 1kz-ma1/HINANEX
-          ref: 5a0f79c767b343af49dd8680dc4a6ccbabe7ecd7
+          ref: c5e2a17dcc3e512cef3f4f6431a24caf032224ea
           path: c-current
           persist-credentials: false
 
@@ -259,7 +259,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 1kz-ma1/HINANEX
-          ref: e40db5a9c1961dc5e08d43e4de070df0f8deb323
+          ref: 7c905935aa7e3929791a4bd0e7650cf988453c48
           path: a-three-source
           persist-credentials: false
 
