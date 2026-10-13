@@ -116,3 +116,14 @@ python validation/validation/validate_edogawa_official_archive.py --archive-dir 
 - 実サーバーへの外部通信はオフラインCIには組み込まず、合成テストでHTTP 200の誤コンテンツ・CSV偽装・ソース表欠落・旧新校舎混同を検出します。
 
 - このC Content Preflightは、2校のレビュー資料生成（build_edogawa_identity_review_packet.py）からも**必須ゲートとして自動実行**します。HTTP 200の偽装エラーページや原本の構造不一致が残る場合、レビュー資料の出力自体を中止します。
+
+
+### 2026-10-13 C human-review hardening: one school directory row per case
+
+After verifying all seven official raw bytes and exact A/current D/C digests, the review generator requires the municipality secondary-school directory to contain exactly ONE matching institution row with source headings 施設名称/所在地/電話番号. It compares municipality directory name/address/phone *from that same row* with the water source, rather than accepting strings scattered anywhere on a page. A duplicate or missing institution row stops the review packet (fail-closed). A phone belonging to another school does NOT count.
+
+For institution-operated pages, the packet retains a short original text excerpt around the contact phone, including the address spelling. For school names/addresses written with abbreviations, hyphens, or Japanese numerals, the packet retains the difference and marks address-format equivalence **NOT REVIEWED**. No text excerpt or same-row municipality corroboration certifies a shared D coordinate or flood-only suitability. Latest official original source bytes remain outside Git.
+
+Independent decision memo: validation/reviews/2026-10-13-edogawa-site-identity-and-flood-semantics-gates.md. It explicitly separates official source validity, physical school identity, water-standby vs flood-only semantics and real-time opening. The supplementary official guidance pages are linked but **not yet preserved in the seven-source original-byte archive**. Do not grant disaster eligibility from the memo.
+
+Expected C output state stays REVIEW_PACKET_PREPARED_NOT_APPROVED, cross-source approved pairs 0, CANDIDATE/EXCLUDED added 0. This is a review-quality improvement, not human signoff.
