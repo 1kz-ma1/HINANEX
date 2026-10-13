@@ -624,3 +624,73 @@ jobs:
             echo "Council approval does NOT prove demolition start/finish."
             echo "C human site pairing 0; D flood status changes 0."
           } >> "$GITHUB_STEP_SUMMARY"
+
+  c-to-b-educational-evidence:
+    name: Verify C public Edogawa evidence JSON with B consumer (NO SHELTER)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout pinned C evidence-only source and unsent intake packet
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 3e8cb82f51ddea4bf88dd12eb6221af0c06232a6
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build actual C-public evidence case from UNSENT official-reply packet
+        id: c_case
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/empty-authority-originals"
+          python validation/validation/build_shimokamata_evidence_demo.py \
+            --packet validation/reviews/2026-10-13-old-shimokamata-inquiry-packet.json \
+            --original-dir "$RUNNER_TEMP/empty-authority-originals" \
+            --out "$RUNNER_TEMP/C_shimokamata_public_EVIDENCE_ONLY.json"
+
+      - name: Checkout pinned B educational-only consumer in independent path
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: c15dd60da7aa5757f0fbba513c659b40beac7966
+          path: b-educational-consumer
+          persist-credentials: false
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Independently verify actual C JSON against B fixed original contracts
+        shell: bash
+        working-directory: b-educational-consumer/frontend
+        run: |
+          set -euo pipefail
+          node scripts/check-c-evidence-case.js "$RUNNER_TEMP/C_shimokamata_public_EVIDENCE_ONLY.json"
+          node --test tests/evidence-case-view-model.test.js tests/evidence-case-cli.test.js
+
+      - name: Upload actual C-generated public-only educational case separately
+        if: steps.c_case.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: c-to-b-public-educational-shimokamata-UNAPPROVED-${{ github.run_id }}
+          path: ${{ runner.temp }}/C_shimokamata_public_EVIDENCE_ONLY.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Record educational only boundary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '### Actual C-to-B source-provenance educational contract'
+            echo 'C original-reply packet: NOT_CONTACTED / raw original directory empty.'
+            echo 'C source output status: ${{ steps.c_case.outcome }}'
+            echo 'No living shelter/route, original re-download, D replay or currently-open site classification.'
+            echo 'No municipality human C review, D flood promotion or frontend deployment.'
+          } >> "$GITHUB_STEP_SUMMARY"
