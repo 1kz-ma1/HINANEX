@@ -67,7 +67,7 @@ try {
       "Default preview does not have exactly 3 states"
     );
     await assert(
-      (await page.locator("#caseSourceStatus").textContent()).includes("表示確認用サンプル"),
+      (await page.locator("#caseSourceStatus").textContent()).includes("画面確認用サンプル"),
       "B authored preview is not visibly labelled"
     );
     await assert(
