@@ -61,6 +61,19 @@ def put_response(folder, data, role="disaster_plan", channel="email"):
 
 
 class OriginalAuthorityResponseTests(unittest.TestCase):
+    def test_repository_unsent_inquiry_template_is_valid(self):
+        template_path = Path(__file__).resolve().parents[1] / "reviews" / (
+            "2026-10-13-old-shimokamata-inquiry-packet.json"
+        )
+        with TemporaryDirectory() as tmp:
+            stored = json.loads(template_path.read_text(encoding="utf-8"))
+            result = evaluate(stored, Path(tmp))
+            self.assertEqual(
+                result["status"], "C_AWAITING_AUTHORITY_CONFIRMATION_NO_SITE_DECISION"
+            )
+            self.assertTrue(all(x == "NOT_CONTACTED" for x in result["office_states"].values()))
+            self.assertEqual(result["archived_original_receipts"], [])
+
     def test_absent_response_does_not_assert_status(self):
         with TemporaryDirectory() as tmp:
             r = evaluate(template(), Path(tmp))
