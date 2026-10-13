@@ -140,8 +140,20 @@ def audit(zip_path: Path) -> dict:
             else:
                 if not re.search(rb"<(?:!doctype\s+html|html)(?:\s|>)", data[:8192], re.I):
                     raise AuditError("not an HTML original")
+                match = re.search(
+                    rb"charset\s*=\s*['\"]?\s*([A-Za-z0-9_-]+)",
+                    data[:8192], re.I
+                )
+                declared = match.group(1).decode("ascii").lower() if match else "utf-8"
+                codec = {
+                    "utf-8": "utf-8", "utf8": "utf-8",
+                    "shift_jis": "cp932", "shift-jis": "cp932",
+                    "windows-31j": "cp932", "cp932": "cp932",
+                }.get(declared)
+                if codec is None:
+                    raise AuditError("unknown HTML encoding: " + declared)
                 reader = TableReader()
-                reader.feed(data.decode("utf-8", errors="replace"))
+                reader.feed(data.decode(codec, errors="strict"))
                 if sid in BULLETINS:
                     policy = BULLETINS[sid]
                     if (row.get("claimed_published_at_jst") != policy["published_at"]
