@@ -86,6 +86,16 @@ class OfficialArchiveTests(unittest.TestCase):
                 capture(out, fetch=self.sample_fetch)
             self.assertEqual((out / "old.txt").read_text(), "old original")
 
+    def test_cross_publisher_allowlisted_redirect_never_archives(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "snapshot"
+            def fetch(url):
+                raw, _, headers = self.sample_fetch(url)
+                return raw, "https://www.metro.ed.jp/valid-but-wrong-source", headers
+            with self.assertRaisesRegex(SnapshotFailure, "another publisher"):
+                capture(out, fetch=fetch)
+            self.assertFalse(out.exists())
+
     def test_oversized_download_cannot_be_accepted(self):
         with tempfile.TemporaryDirectory() as temp:
             target = Path(temp) / "snapshot"
