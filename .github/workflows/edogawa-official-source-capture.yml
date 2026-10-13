@@ -221,7 +221,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 1kz-ma1/HINANEX
-          ref: e4ba6f98efcf1927b34e4f24ac05807a56a59a18
+          ref: 5a0f79c767b343af49dd8680dc4a6ccbabe7ecd7
           path: c-current
           persist-credentials: false
 
@@ -249,8 +249,49 @@ jobs:
             --c-source-audit "$RUNNER_TEMP/hinanex-gsi-C-input/C_independent_current_D_source_consistency.json" \
             --out "$RUNNER_TEMP/hinanex-gsi-UNREVIEWED/C_gsi_source_to_D_leads_UNAPPROVED.json"
 
+      - name: Download exact municipal-water original bytes from this capture run
+        uses: actions/download-artifact@v4
+        with:
+          name: edogawa-original-bytes-UNREVIEWED-${{ github.run_id }}
+          path: ${{ runner.temp }}/hinanex-water-raw-input
+
+      - name: Checkout pinned A three-source proposal generator
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: e40db5a9c1961dc5e08d43e4de070df0f8deb323
+          path: a-three-source
+          persist-credentials: false
+
+      - name: Generate A three-original-review-lead matrix without spatial autojoin
+        id: three_a
+        shell: bash
+        run: |
+          set -euo pipefail
+          python a-three-source/data-research/tools/edogawa_three_source_review.py \
+            --water-html "$RUNNER_TEMP/hinanex-water-raw-input/raw-unreviewed/water_facilities.html" \
+            --a-water-ledger "$RUNNER_TEMP/hinanex-gsi-C-input/A_current_D_unapproved.json" \
+            --a-gsi-report "$RUNNER_TEMP/hinanex-gsi-UNREVIEWED/gsi_edogawa_review_UNREVIEWED.json" \
+            --current-d "$RUNNER_TEMP/hinanex-gsi-D-input/edogawa_current_D_UNREVIEWED.json" \
+            --out "$RUNNER_TEMP/hinanex-gsi-UNREVIEWED/A_water_GSI_D_matrix_UNAPPROVED.json"
+
+      - name: Independently recalculate and verify all three-source A review leads using C
+        id: three_c
+        shell: bash
+        run: |
+          set -euo pipefail
+          python c-current/validation/validation/verify_edogawa_three_source_review.py \
+            --water-html "$RUNNER_TEMP/hinanex-water-raw-input/raw-unreviewed/water_facilities.html" \
+            --gsi-national "$RUNNER_TEMP/hinanex-gsi-UNREVIEWED/gsi_national_original_UNREVIEWED.csv" \
+            --a-water-ledger "$RUNNER_TEMP/hinanex-gsi-C-input/A_current_D_unapproved.json" \
+            --a-gsi-report "$RUNNER_TEMP/hinanex-gsi-UNREVIEWED/gsi_edogawa_review_UNREVIEWED.json" \
+            --current-d "$RUNNER_TEMP/hinanex-gsi-D-input/edogawa_current_D_UNREVIEWED.json" \
+            --c-source-audit "$RUNNER_TEMP/hinanex-gsi-C-input/C_independent_current_D_source_consistency.json" \
+            --a-matrix "$RUNNER_TEMP/hinanex-gsi-UNREVIEWED/A_water_GSI_D_matrix_UNAPPROVED.json" \
+            --out "$RUNNER_TEMP/hinanex-gsi-UNREVIEWED/C_three_source_raw_audit_UNAPPROVED.json"
+
       - name: Archive original GSI CSV plus only research leads, no hazard promotion
-        if: steps.c_crosscheck.outcome == 'success'
+        if: steps.three_c.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: gsi-national-edogawa-evidence-UNREVIEWED-${{ github.run_id }}
