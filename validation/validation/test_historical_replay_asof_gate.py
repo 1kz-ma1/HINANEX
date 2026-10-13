@@ -142,6 +142,28 @@ class HistoricalInputGateTests(unittest.TestCase):
         with self.assertRaisesRegex(ReplayInputError, "missing provenance dependency"):
             preflight(case, reviews)
 
+    def test_real_cautionary_candidate_fixture_blocks_every_input(self):
+        root = Path(__file__).resolve().parents[1] / "fixtures"
+        case = json.loads((root / "historical_2019_edogawa_case_UNAPPROVED.json").read_text(encoding="utf-8"))
+        reviews = json.loads((root / "historical_2019_edogawa_c_reviews_EMPTY.json").read_text(encoding="utf-8"))
+        report = preflight(case, reviews)
+        self.assertEqual(report["status"], "BLOCKED")
+        self.assertEqual(report["safe_input_source_ids"], [])
+        self.assertEqual(statuses(report)["tokyo-20191013-report49"]["status"], "TRUTH_QUARANTINED")
+        for sid in ["jma-20191011-t19", "edogawa-201905-water-hazard-map"]:
+            self.assertIn("PUBLICATION_INSTANT_UNKNOWN", statuses(report)[sid]["reasons"])
+            self.assertIn("INDEPENDENT_C_REVIEW_MISSING", statuses(report)[sid]["reasons"])
+            self.assertIn("ORIGINAL_DIGEST_NOT_ESTABLISHED", statuses(report)[sid]["reasons"])
+
+    def test_context_dependency_cannot_launder_input(self):
+        case, reviews = sample()
+        case["sources"].append({"source_id": "unreviewed-context", "role": "CONTEXT",
+                                "archive_sha256": SHA2, "depends_on": []})
+        case["sources"][0]["depends_on"] = ["unreviewed-context"]
+        result = preflight(case, reviews)
+        self.assertIn("DEPENDENCY_NOT_APPROVED_INPUT", statuses(result)["bulletin"]["reasons"])
+        self.assertEqual(result["safe_input_source_ids"], [])
+
     def test_cli_exit_blocked_and_output_report(self):
         case, reviews = sample()
         reviews["approved_input_sources"] = []
