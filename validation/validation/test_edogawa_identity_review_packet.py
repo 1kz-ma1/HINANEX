@@ -110,6 +110,17 @@ class HumanReviewPacketTests(unittest.TestCase):
             self.assertNotEqual(old["former_address"], old["current_address"])
             self.assertTrue(old["shared_website_url_is_not_facility_identity"])
 
+    def test_same_source_row_required_for_city_phone(self):
+        with tempfile.TemporaryDirectory() as temp:
+            directory, audit = make_fixture(temp, city_bad_row_phone=True)
+            packet = build_packet(directory, audit)
+            city = packet["priority_cases"][1]["city_directory"]
+            self.assertFalse(city["raw_phone_text_present"])
+            self.assertEqual(city["row_scoped_observation"]["school_phone_raw"],
+                             "03-0000-0000")
+            self.assertFalse(city["row_scoped_observation"]["match_d_location_identity_approved"])
+            self.assertEqual(packet["approved_cross_source_pairs"], 0)
+
     def test_missing_official_phone_text_is_review_flag_not_approval(self):
         with tempfile.TemporaryDirectory() as temp:
             directory, audit = make_fixture(temp, omit_institution_phone=True)
