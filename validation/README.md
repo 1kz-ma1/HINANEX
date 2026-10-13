@@ -65,3 +65,20 @@ python -m unittest discover -s validation/validation -p "test_edogawa*.py" -v
 「--verify-dir」はネットワーク不要で、7件の取得元URL・最終URLの発行元ホスト・全ファイル名・生バイト長・SHA256・必須フラグ・UTC取得時刻・余計なファイルの混入をfail-closedで検査します。結果が ARCHIVE_BYTES_CONSISTENT_REVIEW_REQUIRED なら**保存済みデータとそのManifestが整合**しただけです。原本発行元の真正性、Manifest自体の第三者改ざん、原本の現行性、施設の同一性、洪水適合性は証明できません。
 
 **独立性の限界:** RawとManifestを一緒に差し替えられると内部SHA256は一致し得ます。CはGit管理外の信頼できる別経路にManifest/SHA256を控え、公式本文の取得日と情報対象時期（旧下小岩の2023年選挙情報など）を独立に確認してください。人間のCレビュー承認false、承認ペア0、洪水分類追加0は変更しません。実ネットワークの収集は通常のオフラインCIに含めません。
+
+
+### 江戸川区の学校2件：Cのレビュー用資料生成（2026-10-13）
+
+原本取得と保存後のSHA256検証が成功し、同じ市公式HTML・位置CSVを使ったC独立監査が完了した場合のみ、葛西工科高校・関東第一高校について人間の照合確認用JSONを生成できます。
+
+~~~powershell
+python validation/validation/archive_edogawa_official_sources.py --verify-dir "C:\HINANEX-evidence\official-20261013"
+python validation/validation/verify_edogawa_water_join.py --water-html "C:\HINANEX-evidence\official-20261013\water_facilities.html" --location-csv "C:\HINANEX-evidence\official-20261013\municipal_locations.csv" --region-export "C:\HINANEX-evidence\edogawa-current.json" --a-ledger "C:\HINANEX-evidence\edogawa-current-a-ledger.json" --report "C:\HINANEX-evidence\c_audit_current.json"
+python validation/validation/build_edogawa_identity_review_packet.py --archive-dir "C:\HINANEX-evidence\official-20261013" --c-audit "C:\HINANEX-evidence\c_audit_current.json" --output "C:\HINANEX-evidence\c_priority_review_packet.json"
+~~~
+
+- **Important**: 上記のD出力・A台帳は、採取した公式位置CSV・HTMLと同一版を使って再生成すること。2026-09-27の歴史的 edogawa.json や旧A台帳を現在のデータと混在させない。元の正式コマンドは各担当仕様を優先してください。
+- build_edogawa_identity_review_packet.py は先に7件すべてのRaw+Manifestを再検証。C監査JSONに含まれる市の水害施設HTMLと位置CSVのSHA256が、公式アーカイブと一致しない場合は **fail-closed** にし、新しい版でD/A/Cの再監査を要求します。
+- 出力は市の学校一覧と学校運営者ページの**住所・電話番号文字列の存在有無**、取得バイトSHA256、公式水害一覧・Dレコードの引用元ID、Cの確認事項を併記します。文字列が存在しても同一施設の承認にはなりません。欠落しても避難施設ではないという判定にはなりません。
+- 旧下小岩・現下小岩の異なる物理施設、共有される学校Web URL、旧校舎の大規模水害時の非使用条件を別枠で保持します。資料の更新日・情報の対象時点も人間が独立に確認してください。
+- 出力ファイルはGit外に作成。C本人の署名・正式な施設ペア承認は**未実施**、洪水単独適合判定は**UNKNOWN**。2校のレビュー用資料生成と自治体の洪水適合指定は完全に別工程です。
