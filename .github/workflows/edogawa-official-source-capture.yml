@@ -884,6 +884,14 @@ jobs:
           path: b-render-candidate
           persist-credentials: false
 
+      - name: Checkout pinned E-only GIS browser verification in independent path
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 66407b43db75df3648514f1cc51650518b7b5fcb
+          path: e-gis-acceptance
+          persist-credentials: false
+
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
@@ -946,7 +954,7 @@ jobs:
         working-directory: b-render-candidate/frontend
         run: |
           set -euo pipefail
-          npm install --no-save --no-package-lock 'playwright@1.56.1'
+          npm install --no-save --no-package-lock 'playwright@1.56.1' 'leaflet@1.9.4'
           npx playwright install --with-deps chromium
 
       - name: Smoke test the ACTUAL packaged Render-equivalent static website
@@ -972,6 +980,12 @@ jobs:
           node b-render-candidate/frontend/scripts/three-region-demo-browser-smoke.mjs \
             "$RUNNER_TEMP/hinanex-render-predeploy-dist" \
             "$RUNNER_TEMP/render-predeploy-three-region-screens"
+          node --check e-gis-acceptance/gis/tests/demo_20261022_browser_smoke.js
+          HINANEX_TEST_LEAFLET_DIST="$PWD/b-render-candidate/frontend/node_modules/leaflet/dist" \
+          NODE_PATH="$PWD/b-render-candidate/frontend/node_modules" \
+            node e-gis-acceptance/gis/tests/demo_20261022_browser_smoke.js \
+              "$RUNNER_TEMP/hinanex-render-predeploy-dist" \
+              "$RUNNER_TEMP/render-predeploy-gis-screens"
 
       - name: Archive only public screen evidence and bundle verification metadata
         if: always()
@@ -982,6 +996,7 @@ jobs:
             ${{ runner.temp }}/C_B_render_predeploy_public_manifest.json
             ${{ runner.temp }}/render-predeploy-browser-screens/
             ${{ runner.temp }}/render-predeploy-three-region-screens/
+            ${{ runner.temp }}/render-predeploy-gis-screens/
           retention-days: 7
           if-no-files-found: warn
 
@@ -994,6 +1009,8 @@ jobs:
             echo 'Actual 3-region D pipeline and deploy/build_staging.py: ${{ steps.render_bundle.outcome }}'
             echo 'Read-only bundle and source-contract audit: ${{ steps.bundle_contract.outcome }}'
             echo 'Actual C/B education and 3-region B browser+GIS route only (Chromium): ${{ steps.predeploy_browser.outcome }}'
+            echo 'New E real Leaflet GIS: cluster, 3-region D, Nagoya list, GPS denial/manual flow (Chromium): ${{ steps.predeploy_browser.outcome }}'
+            echo 'E test scope only; real GSI tile network, actual Edge/iOS/VoiceOver and human E/C/D acceptance remain untested.'
             echo 'No PR merge, new Render service, release, trigger-deploy or staging URL modification.'
             echo 'D 3 exported regions are transient CI files; they are NOT archived, approved or promoted.'
           } >> "$GITHUB_STEP_SUMMARY"
