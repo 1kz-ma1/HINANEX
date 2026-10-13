@@ -67,7 +67,7 @@
     } else if (result?.state === "unlocated" && total !== null) {
       summaries.set(step.code, "取得 " + total + "件｜元座標あり 0件｜位置未確認");
       get("mapTourSourceStatus").textContent = summaries.get(step.code) +
-        "。位置は推測しません。地図は前の位置のままです。元データの施設一覧を参照してください。";
+        "。座標確認済み 0件。位置は推測しません。地図は前の位置のままです。元データの施設一覧を参照してください。";
     } else {
       summaries.set(step.code, "データ未取得・未確認（施設なしとは断定できません）");
       get("mapTourSourceStatus").textContent = summaries.get(step.code) +
