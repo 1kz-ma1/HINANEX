@@ -310,3 +310,82 @@ jobs:
             echo "Municipality flood-only designation does not certify today\x27s opening, safe routes or an Edogawa water-standby site join."
             echo "Human C-approved links: 0 / new flood CANDIDATE/EXCLUDED: 0."
           } >> "$GITHUB_STEP_SUMMARY"
+
+  campus-history:
+    name: Archive school campus history and independent C review (NO APPROVAL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout pinned A campus source-archive code
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: b471e84049f2274667fef60e48a6f92869dc6877
+          persist-credentials: false
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run independent A source-capture negative tests
+        shell: bash
+        run: |
+          python -m unittest discover -s data-research/tests -p "test_archive_edogawa_campus_history.py" -v
+
+      - name: Capture version-pinned official school relocation and historical originals
+        id: a_history
+        shell: bash
+        run: |
+          set -euo pipefail
+          python data-research/tools/archive_edogawa_campus_history.py \
+            --out-dir "$RUNNER_TEMP/edogawa-campus-UNAPPROVED"
+          python data-research/tools/archive_edogawa_campus_history.py \
+            --verify-dir "$RUNNER_TEMP/edogawa-campus-UNAPPROVED"
+
+      - name: Checkout pinned C independent school-history review code
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 44911bae66927df0cee4443614435066170f60d6
+          path: c-campus-review
+          persist-credentials: false
+
+      - name: Run C historical-source independent negative tests
+        shell: bash
+        run: |
+          python -m unittest discover -s c-campus-review/validation/validation -p "test_edogawa_campus_history.py" -v
+
+      - name: Independently verify A raw archive and make unapproved C campus-era packet
+        id: c_review
+        shell: bash
+        run: |
+          set -euo pipefail
+          python c-campus-review/validation/validation/verify_edogawa_campus_history.py \
+            --archive-dir "$RUNNER_TEMP/edogawa-campus-UNAPPROVED" \
+            --report "$RUNNER_TEMP/c-campus-timeline-review-UNAPPROVED.json"
+
+      - name: Upload separate school-history originals and human-review candidate packet
+        if: steps.c_review.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: edogawa-campus-history-A-C-UNAPPROVED-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/edogawa-campus-UNAPPROVED/
+            ${{ runner.temp }}/c-campus-timeline-review-UNAPPROVED.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Record school-era evidence and remaining review limitations
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### School relocation/merger original archive"
+            echo "A original-byte archive result: ${{ steps.a_history.outcome }}"
+            echo "C independent source-integrity result: ${{ steps.c_review.outcome }}"
+            echo "Historical PDF signatures are NOT manual verification of the PDF pages."
+            echo "No school campus/effective-date C human signoff, no D site join."
+            echo "No flood-only designation, safe route, opening or exclusion inference."
+            echo "C human-approved site pairs: 0 / new flood CANDIDATE/EXCLUDED: 0."
+          } >> "$GITHUB_STEP_SUMMARY"
