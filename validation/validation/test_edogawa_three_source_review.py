@@ -60,6 +60,8 @@ def inputs():
             "a_d_name_hint_ids": ["d-one"],
             "gsi_review_lead_count": 1,
             "gsi_review_leads": [{
+                "documentary_discrepancy_flags": [],
+                "distance_threshold_is_not_eligibility_or_identity_gate": True,
                 "gsi_common_id_raw": "GSI-test-1",
                 "gsi_national_source_line": 2,
                 "gsi_name_raw": GSI["施設・場所名"], "gsi_address_raw": GSI["住所"],
