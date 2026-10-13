@@ -320,7 +320,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 1kz-ma1/HINANEX
-          ref: b471e84049f2274667fef60e48a6f92869dc6877
+          ref: 20114b273465622a5b541ef917f16cb6f30c3add
           persist-credentials: false
 
       - name: Python 3.12
@@ -347,7 +347,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 1kz-ma1/HINANEX
-          ref: 44911bae66927df0cee4443614435066170f60d6
+          ref: ff0a41d60e8432586f727bd61ac1bf31f8866d86
           path: c-campus-review
           persist-credentials: false
 
