@@ -23,6 +23,9 @@ from archive_edogawa_official_sources import (
     SOURCES, SnapshotFailure, verify_snapshot,
 )
 from verify_edogawa_water_join import PRIORITY_SCHOOL_REFERENCES
+from validate_edogawa_official_archive import (
+    ContentPreflightFailure, validate,
+)
 
 AUDIT_STATUS = "SOURCE_SNAPSHOT_CONSISTENCY_CHECKED_NOT_FACILITY_IDENTITY_ACCEPTED"
 REVIEW_ONLY = "DOCUMENTARY_PRESENCE_CHECK_NOT_IDENTITY_ACCEPTANCE"
@@ -88,9 +91,11 @@ def _assert_safe_audit(audit, manifest):
 def build_packet(archive_dir, c_audit):
     archive_dir = Path(archive_dir)
     try:
-        verify_snapshot(archive_dir)
-    except (SnapshotFailure, OSError) as exc:
-        raise ReviewPacketFailure("Archive byte integrity gate failed: " + str(exc)) from exc
+        content_preflight = validate(archive_dir)
+    except (ContentPreflightFailure, OSError) as exc:
+        raise ReviewPacketFailure(
+            "Archive content/integrity preflight failed: " + str(exc)
+        ) from exc
     manifest = json.loads((archive_dir / "snapshot_manifest.json").read_text("utf-8"))
     _assert_safe_audit(c_audit, manifest)
     leads = c_audit.get("priority_identity_leads")
@@ -172,6 +177,7 @@ def build_packet(archive_dir, c_audit):
 
     return {
         "status": "REVIEW_PACKET_PREPARED_NOT_APPROVED",
+        "original_content_preflight_status": content_preflight["status"],
         "archive_captured_at_utc": manifest["captured_at_utc"],
         "archived_source_sha256": {
             key: by_key[key]["sha256"] for key in SOURCES
