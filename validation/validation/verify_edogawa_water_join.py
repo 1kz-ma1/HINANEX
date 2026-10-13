@@ -195,6 +195,135 @@ def normalize_a_ledger(a, hashes, csv_columns, by_id):
     return rows
 
 
+
+
+# Manual reference observations from the saved official water list and institution
+# sites (2026-10-13). These are review prompts, NEVER an identity certificate.
+# No live institution-site HTML is fetched or archived by this checker.
+PRIORITY_SCHOOL_REFERENCES = (
+    {
+        "official_number": "108",
+        "water_name": "都立 葛西工高等学校",
+        "location_name": "都立葛西工科高校",
+        "water_address": "一之江7丁目68番1号",
+        "water_phone": "03-3653-4111",
+        "water_floor_raw": "2階以上",
+        "expected_location_id": "edogawa-d79a702373c6add7",
+        "location_url": "https://www.metro.ed.jp/kasaikoka-h/",
+        "institution_authority_url": "https://www.metro.ed.jp/kasaikoka-h/access/access.html",
+        "city_directory_url": "https://www.city.edogawa.tokyo.jp/e004/kuseijoho/gaiyo/shisetsuguide/bunya/gakko/toritsushiritsu.html",
+    },
+    {
+        "official_number": "109",
+        "water_name": "私立 関東一高等学校",
+        "location_name": "関東第一高校",
+        "water_address": "松島2丁目10番11号",
+        "water_phone": "03-3653-1541",
+        "water_floor_raw": "3階以上",
+        "expected_location_id": "edogawa-fbe048a8e7100768",
+        "location_url": "http://www.kanto-ichiko.ac.jp/",
+        "institution_authority_url": "https://www.kanto-ichiko.ac.jp/about/outline/",
+        "city_directory_url": "https://www.city.edogawa.tokyo.jp/e004/kuseijoho/gaiyo/shisetsuguide/bunya/gakko/toritsushiritsu.html",
+    },
+)
+
+
+def review_priority_identity_leads(water, location_raw_rows, records):
+    """Validate snapshot/ID/source-URL claims; DO NOT approve cross-source join.
+
+    Municipality water-standby and D location are different datasets without
+    a common authoritative ID. The institution pages cited in the returned
+    results must still be independently archived and checked by C.
+    """
+    results = []
+    for reference in PRIORITY_SCHOOL_REFERENCES:
+        official = [w for w in water
+                    if w["official_number_raw"] == reference["official_number"]]
+        if not official:
+            continue  # Synthetic fixture / incomplete municipality snapshot.
+        require(len(official) == 1, "Priority official row duplicated")
+        w = official[0]
+        for field, expected in (
+            ("official_name_raw", reference["water_name"]),
+            ("official_address_raw", reference["water_address"]),
+            ("official_phone_raw", reference["water_phone"]),
+            ("official_usable_floor_raw", reference["water_floor_raw"]),
+        ):
+            require(w[field] == expected,
+                    "Priority official water row source changed: " + field)
+        found = [r for r in records if r.get("name") == reference["location_name"]]
+        source = [r for r in location_raw_rows
+                  if r.get("名称") == reference["location_name"]]
+        require(len(found) == len(source) == 1,
+                "Priority D/CSV institution name missing or ambiguous")
+        d, raw = found[0], source[0]
+        require(d.get("id") == reference["expected_location_id"],
+                "Priority D facility ID changed; manual re-review required")
+        require(d.get("detail_url") == raw.get("URL") == reference["location_url"],
+                "Priority official institution URL differs from location source")
+        # Verify only an explicit source URL, never a geographic coordinate or
+        # facility-name guess. Official site content not fetched here.
+        results.append({
+            "water_number": reference["official_number"],
+            "water_name_raw": w["official_name_raw"],
+            "water_address_raw": w["official_address_raw"],
+            "water_floor_raw": w["official_usable_floor_raw"],
+            "d_location_id": d["id"],
+            "d_location_name_raw": d["name"],
+            "d_original_csv_url": raw["URL"],
+            "institution_authority_url": reference["institution_authority_url"],
+            "city_directory_url": reference["city_directory_url"],
+            "documentary_state": "CORROBORATION_LEAD_NOT_INDEPENDENTLY_ACCEPTED",
+            "approved_cross_source_pair": False,
+            "flood_specific_eligibility": "UNKNOWN",
+        })
+
+    old_water = [w for w in water if w["official_name_raw"] == "旧下小岩小学校"]
+    current_water = [w for w in water if w["official_name_raw"] == "下小岩小学校"]
+    if old_water:
+        require(len(old_water) == len(current_water) == 1,
+                "Old/current Shimo-Koiwa water rows ambiguous")
+        old, current = old_water[0], current_water[0]
+        require(old["official_address_raw"] == "南小岩7丁目8番1号" and
+                current["official_address_raw"] == "南小岩5丁目5番1号" and
+                old["official_usable_floor_raw"] == "大規模水害では使用不可",
+                "Old/current school official addresses or conditions changed")
+        former = [r for r in records if
+                  r.get("name") == "旧下小岩小学校（体育館のみ使用）"]
+        active = [r for r in records if r.get("name") == "下小岩小学校"]
+        require(len(former) == len(active) == 1,
+                "Old/current D schools must be distinguishable")
+        f, a = former[0], active[0]
+        require(f["id"] != a["id"] and
+                (f["latitude"], f["longitude"]) !=
+                (a["latitude"], a["longitude"]),
+                "Old/current D facility IDs or coordinates collapsed")
+        raw_former = [r for r in location_raw_rows
+                      if r.get("名称") == f["name"]]
+        raw_active = [r for r in location_raw_rows
+                      if r.get("名称") == a["name"]]
+        require(len(raw_former) == len(raw_active) == 1,
+                "Old/current official location rows absent")
+        require(raw_former[0]["URL"] == f.get("detail_url") and
+                raw_active[0]["URL"] == a.get("detail_url"),
+                "Old/current D URLs differ from municipality raw rows")
+        results.append({
+            "water_number": old["official_number_raw"],
+            "water_name_raw": old["official_name_raw"],
+            "water_address_raw": old["official_address_raw"],
+            "old_water_floor_raw": old["official_usable_floor_raw"],
+            "new_water_address_raw": current["official_address_raw"],
+            "old_d_location_id": f["id"],
+            "new_d_location_id": a["id"],
+            "same_school_site_url_in_raw": bool(
+                f.get("detail_url") and f["detail_url"] == a.get("detail_url")),
+            "shared_school_site_url_is_not_a_facility_identity_key": True,
+            "documentary_state": "DISTINCT_ADDRESSES_OLD_SITE_REVIEW_REQUIRED",
+            "approved_cross_source_pair": False,
+            "flood_specific_eligibility": "UNKNOWN",
+        })
+    return results
+
 def audit(html: bytes, csv_raw: bytes, export_raw: bytes, ledger_raw: bytes):
     municipality_rows, table_count = water_rows(html)
     source_rows = list(csv.DictReader(io.StringIO(csv_raw.decode("cp932"), newline="")))
@@ -296,6 +425,7 @@ def audit(html: bytes, csv_raw: bytes, export_raw: bytes, ledger_raw: bytes):
             "old_d_region_export": sha(export_raw),
             "a_proposal_ledger": sha(ledger_raw)
         },
+        "priority_identity_leads": review_priority_identity_leads(municipality_rows, source_rows, records),
         "water_rows": len(municipality_rows),
         "water_tables": table_count,
         "location_rows": len(source_rows),
