@@ -870,3 +870,126 @@ jobs:
             echo 'Linux Playwright WebKit != real iOS Safari or VoiceOver; axe != full human WCAG conformance.'
             echo 'No municipal official replies, opening state changes, live shelter GIS or Render deployment.'
           } >> "$GITHUB_STEP_SUMMARY"
+
+  b-render-predeploy-actual-bundle:
+    name: Render-equivalent actual 3-region build and C/B browser predeploy gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout pinned B role candidate with original deploy builder
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 33ddd703ce0d66c71fe1537e6d31c235bb7c32df
+          path: b-render-candidate
+          persist-credentials: false
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install exact D pipeline requirements for Render-equivalent build
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -r b-render-candidate/pipeline/requirements.txt
+
+      - name: Re-run real three-region D workflows and publish temporary static bundle
+        id: render_bundle
+        shell: bash
+        working-directory: b-render-candidate
+        run: |
+          set -euo pipefail
+          python deploy/build_staging.py --output "$RUNNER_TEMP/hinanex-render-predeploy-dist"
+          test -f "$RUNNER_TEMP/hinanex-render-predeploy-dist/frontend/evidence-case.html"
+          test -f "$RUNNER_TEMP/hinanex-render-predeploy-dist/gis/gis/index.html"
+          test -f "$RUNNER_TEMP/hinanex-render-predeploy-dist/pipeline/data/output/edogawa.json"
+          test -f "$RUNNER_TEMP/hinanex-render-predeploy-dist/pipeline/data/output/niigata.json"
+          test -f "$RUNNER_TEMP/hinanex-render-predeploy-dist/pipeline/data/output/nagoya.json"
+
+      - name: Checkout pinned C producer separately
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 3e8cb82f51ddea4bf88dd12eb6221af0c06232a6
+          path: c-public-educational
+          persist-credentials: false
+
+      - name: Generate actual C educational public JSON with UNSENT municipal inquiry
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/authority-originals-none"
+          python c-public-educational/validation/validation/build_shimokamata_evidence_demo.py \
+            --packet c-public-educational/validation/reviews/2026-10-13-old-shimokamata-inquiry-packet.json \
+            --original-dir "$RUNNER_TEMP/authority-originals-none" \
+            --out "$RUNNER_TEMP/C_public_predeploy_case.json"
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Assert bundled B/C consumer and all 3 D regions remain available
+        id: bundle_contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node b-render-candidate/frontend/scripts/check-render-evidence-bundle.mjs \
+            "$RUNNER_TEMP/hinanex-render-predeploy-dist" \
+            "$RUNNER_TEMP/C_public_predeploy_case.json" \
+            > "$RUNNER_TEMP/C_B_render_predeploy_public_manifest.json"
+
+      - name: Install test-only Chromium for the candidate static bundle
+        shell: bash
+        working-directory: b-render-candidate/frontend
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-package-lock 'playwright@1.56.1'
+          npx playwright install --with-deps chromium
+
+      - name: Smoke test the ACTUAL packaged Render-equivalent static website
+        id: predeploy_browser
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8765 --bind 127.0.0.1 \
+            --directory "$RUNNER_TEMP/hinanex-render-predeploy-dist" \
+            > "$RUNNER_TEMP/predeploy-render-static-server.log" 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for retry in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8765/frontend/evidence-case.html >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:8765/ >/dev/null
+          curl --fail --silent http://127.0.0.1:8765/gis/gis/ >/dev/null
+          curl --fail --silent http://127.0.0.1:8765/pipeline/data/output/edogawa.json >/dev/null
+          node b-render-candidate/frontend/scripts/evidence-case-browser-smoke.mjs \
+            "$RUNNER_TEMP/C_public_predeploy_case.json" \
+            "$RUNNER_TEMP/render-predeploy-browser-screens"
+
+      - name: Archive only public screen evidence and bundle verification metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-equivalent-predeploy-case-audit-UNAPPROVED-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/C_B_render_predeploy_public_manifest.json
+            ${{ runner.temp }}/render-predeploy-browser-screens/
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Reinforce that preview bundle was NOT deployed
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '### Render-equivalent **local CI bundle**, not Render staging'
+            echo 'Actual 3-region D pipeline and deploy/build_staging.py: ${{ steps.render_bundle.outcome }}'
+            echo 'Read-only bundle and source-contract audit: ${{ steps.bundle_contract.outcome }}'
+            echo 'Actual bundled Chromium desktop/mobile: ${{ steps.predeploy_browser.outcome }}'
+            echo 'No PR merge, new Render service, release, trigger-deploy or staging URL modification.'
+            echo 'D 3 exported regions are transient CI files; they are NOT archived, approved or promoted.'
+          } >> "$GITHUB_STEP_SUMMARY"
