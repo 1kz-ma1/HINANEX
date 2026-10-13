@@ -546,3 +546,81 @@ jobs:
             echo "Contract award does not certify demolition completed or current opening."
             echo "C signed campus pairs: 0; new flood CANDIDATE/EXCLUDED: 0."
           } >> "$GITHUB_STEP_SUMMARY"
+
+  council-vote-original:
+    name: Archive official 2026 council vote result (NO SITE APPROVAL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout pinned A official council vote original collector
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 8074479eae0d57718a663610f0dd9d2dd7ff414f
+          persist-credentials: false
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Reject fake bill votes and premature status promotion
+        shell: bash
+        run: python -m unittest discover -s data-research/tests -p 'test_archive_edogawa_council_vote.py' -v
+
+      - name: Save official council vote HTML original and source SHA256
+        id: a_archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          python data-research/tools/archive_edogawa_council_vote.py \
+            --out-dir "$RUNNER_TEMP/edogawa-council-vote-UNAPPROVED"
+          python data-research/tools/archive_edogawa_council_vote.py \
+            --verify-dir "$RUNNER_TEMP/edogawa-council-vote-UNAPPROVED"
+
+      - name: Checkout pinned C independent council vote verifier
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 4767821e598e7bc5c5707be20bd48356b9b78b33
+          path: c-council-vote
+          persist-credentials: false
+
+      - name: Run C negative vote attribution and SHA256 tests
+        shell: bash
+        run: |
+          python -m unittest discover \
+            -s c-council-vote/validation/validation \
+            -p 'test_edogawa_council_vote.py' -v
+
+      - name: Independently inspect original council vote and bill number
+        id: c_verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          python c-council-vote/validation/validation/verify_edogawa_council_vote.py \
+            --archive-dir "$RUNNER_TEMP/edogawa-council-vote-UNAPPROVED" \
+            --out "$RUNNER_TEMP/C_council_vote_independent_UNAPPROVED.json"
+
+      - name: Upload source HTML and independent C proof (not demolition progress)
+        if: steps.c_verification.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: edogawa-council-vote-64-source-UNAPPROVED-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/edogawa-council-vote-UNAPPROVED/
+            ${{ runner.temp }}/C_council_vote_independent_UNAPPROVED.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Report strict distinction between council vote and actual use
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### Edogawa Council bill #64 independent voting result"
+            echo "A original vote HTML: ${{ steps.a_archive.outcome }}"
+            echo "C original-row verification: ${{ steps.c_verification.outcome }}"
+            echo "Council approval does NOT prove demolition start/finish."
+            echo "C human site pairing 0; D flood status changes 0."
+          } >> "$GITHUB_STEP_SUMMARY"
