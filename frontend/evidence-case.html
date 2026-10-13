@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="HINANEXが江戸川区の公式資料の時点差を検証する教育・発表用事例。避難先の推薦ではありません。" />
+    <title>HINANEX | 根拠をたどる検証事例</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./evidence-case.css" />
+  </head>
+  <body>
+    <div class="page-shell evidence-page">
+      <header class="site-header">
+        <a class="brand" href="./" aria-label="HINANEXの地域分析に戻る">
+          <span class="brand-mark" aria-hidden="true"><span></span></span>
+          <span>HINANEX</span>
+        </a>
+        <div class="header-actions">
+          <span class="header-label">検証事例 / Evidence</span>
+          <a class="map-back-link" href="./">← 地域分析へ戻る</a>
+        </div>
+      </header>
+
+      <main>
+        <section class="evidence-hero" aria-labelledby="caseTitle">
+          <p class="eyebrow">PUBLIC EVIDENCE CASE / SOURCE PROVENANCE</p>
+          <h1 id="caseTitle">「資料に載っている」と、<br />「今使える」は違う。</h1>
+          <p class="hero-copy">
+            旧下鎌田小学校の公表資料をもとに、確認できた記録、資料の時点差、
+            現在も分からないことを区別するデモです。
+          </p>
+          <p class="evidence-warning" role="note">
+            <strong>発表・教育用の事例です。</strong>
+            実際の避難先・安全性・開設状況を判定するものではありません。
+            災害発生時は自治体の最新の公式案内に従ってください。
+          </p>
+        </section>
+
+        <section class="evidence-loader" aria-labelledby="caseSourceTitle">
+          <div>
+            <p class="eyebrow">DATA SOURCE</p>
+            <h2 id="caseSourceTitle">表示する根拠データ</h2>
+            <p id="caseSourceStatus" class="case-source-status" aria-live="polite">
+              表示確認用サンプルを読み込んでいます。
+            </p>
+            <p class="case-source-help">
+              最初は画面確認用の参考データを表示します。Cが生成した
+              <code>C_PUBLIC_EDUCATIONAL_CASE_STUDY_V1</code> JSONを選ぶと、
+              同じ安全制約の下で表示内容を検査・切替できます。
+              ブラウザでの形式検証は自治体資料の最新確認を意味しません。
+            </p>
+          </div>
+          <div class="case-source-actions">
+            <label for="caseFile" class="source-button source-button--primary">C公開用JSONを選択</label>
+            <input id="caseFile" class="source-file-input" type="file" accept=".json,application/json" />
+            <button type="button" id="loadCasePreview" class="source-button">表示サンプルに戻す</button>
+          </div>
+        </section>
+
+        <div id="caseError" class="case-error" role="alert" hidden>
+          <strong>表示できませんでした</strong>
+          <p id="caseErrorText"></p>
+          <p>避難所の判定には使えないため、以前のデータも表示しません。原本・契約版を確認してください。</p>
+        </div>
+
+        <div id="caseContent" hidden>
+          <section class="case-context" aria-labelledby="caseContextTitle">
+            <div class="case-context-head">
+              <div>
+                <p class="eyebrow">CASE 01 / EDOGAWA</p>
+                <h2 id="caseContextTitle">旧下鎌田小学校</h2>
+              </div>
+              <span class="case-unknown" aria-label="現在の運用状況は不明">現況 UNKNOWN</span>
+            </div>
+            <dl id="caseAddresses" class="case-addresses"></dl>
+            <p class="case-scope">旧・新校舎の敷地同一性は正式承認されていません。自治体の2026年版資料と現行学校住所の表記差もそのまま示しています。</p>
+          </section>
+
+          <section class="case-story" aria-labelledby="caseStoryTitle">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">EVIDENCE → REVIEW → UNKNOWN</p>
+                <h2 id="caseStoryTitle">判断までの3つの状態</h2>
+              </div>
+            </div>
+            <ol id="caseStages" class="case-steps"></ol>
+          </section>
+
+          <section class="case-documents" aria-labelledby="caseDocumentsTitle">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">OFFICIAL DOCUMENTS / AS-OF DATES</p>
+                <h2 id="caseDocumentsTitle">参照した公式資料</h2>
+              </div>
+            </div>
+            <p class="case-scope">以下は以前にA/Cが原本確認した公表資料の版です。この画面でPDF・HTMLの内容を再検証したものではありません。</p>
+            <ul id="caseSources" class="case-source-list"></ul>
+          </section>
+
+          <section class="case-conclusion" aria-labelledby="caseConclusionTitle">
+            <p class="eyebrow">WHY UNKNOWN MATTERS</p>
+            <h2 id="caseConclusionTitle">根拠が増えても、推測で埋めない。</h2>
+            <p>
+              2026年4月1日時点の待避施設一覧と、その後の解体工事契約の議決は
+              両立し得る記録です。現在の建物の状態、使用制限、待避施設指定、
+              災害当日の開設については、自治体の追加確認が必要です。
+            </p>
+            <strong>現在の開設状態：UNKNOWN（未確認）</strong>
+            <p class="case-scope">この事例は過去災害の予測成功例・失敗例でも、避難シミュレーションの精度評価でもありません。</p>
+          </section>
+        </div>
+      </main>
+      <footer class="site-footer">
+        <p>HINANEX Evidence Case：公的資料の記録と現在の運用判断を分けて表示します。防災上の安全性を保証しません。</p>
+      </footer>
+    </div>
+    <noscript>表示にはJavaScriptが必要です。実際の避難先を探す用途には使えません。</noscript>
+    <script type="module" src="./src/evidence-case-page.js"></script>
+  </body>
+</html>
