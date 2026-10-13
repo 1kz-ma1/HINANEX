@@ -15,6 +15,8 @@ from __future__ import annotations
 import argparse
 from html.parser import HTMLParser
 import json
+import hashlib
+import math
 from pathlib import Path
 import re
 import unicodedata
@@ -140,7 +142,52 @@ def _assert_safe_audit(audit, manifest):
             )
 
 
-def build_packet(archive_dir, c_audit):
+
+
+def _validated_d_coordinates(export_raw, c_audit):
+    """Expose official-CSV-derived D coordinates without cross-source approval."""
+    hashes = c_audit.get("source_sha256", {})
+    actual = hashlib.sha256(export_raw).hexdigest()
+    if actual != hashes.get("old_d_region_export"):
+        raise ReviewPacketFailure("D export SHA256 differs from C source audit")
+    try:
+        doc = json.loads(export_raw)
+        if str(doc["region"]["code"]) != "13123":
+            raise ValueError("wrong D region")
+        datasets = [x for x in doc["datasets"]
+                    if x["requirement_code"] == "shelter_location"]
+        if len(datasets) != 1:
+            raise ValueError("D shelter_location missing/duplicated")
+        records = datasets[0]["records"]
+        indexed = {x["id"]: x for x in records}
+        if not records or len(indexed) != len(records):
+            raise ValueError("D location IDs empty/duplicated")
+        scenarios = doc["scenarios"]
+        if len(scenarios) != 1 or scenarios[0]["scenario_id"] != "flood_shelter_selection":
+            raise ValueError("Current D flood Scenario required")
+        items = scenarios[0]["facility_results"]
+        if (len(items) != len(records) or
+                {x["facility_id"] for x in items} != set(indexed) or
+                any(x["status"] != "UNKNOWN" or
+                    x["fact"]["join_status"] != "UNVERIFIED" or
+                    x["fact"]["official_status_raw"] is not None
+                    for x in items)):
+            raise ValueError("Unreviewed D Scenario promoted or mismatched")
+        for record in records:
+            lat, lon = record["latitude"], record["longitude"]
+            if (type(lat) not in (int, float) or
+                    type(lon) not in (int, float) or
+                    not math.isfinite(lat) or not math.isfinite(lon) or
+                    not -90 <= lat <= 90 or not -180 <= lon <= 180):
+                raise ValueError("Invalid original D coordinates")
+        return indexed, actual
+    except (ValueError, TypeError, KeyError, AttributeError) as exc:
+        raise ReviewPacketFailure(
+            "Current D export not suitable for independent physical site review"
+        ) from exc
+
+
+def build_packet(archive_dir, c_audit, d_export_raw=None):
     archive_dir = Path(archive_dir)
     try:
         content_preflight = validate(archive_dir)
@@ -157,6 +204,10 @@ def build_packet(archive_dir, c_audit):
     if len(indexed) != 2:
         raise ReviewPacketFailure("Expected exactly two unique priority institution leads")
     by_key = {x["source_key"]: x for x in manifest["source_items"]}
+    d_locations, d_sha256 = (
+        _validated_d_coordinates(d_export_raw, c_audit)
+        if d_export_raw is not None else (None, None)
+    )
 
     city_name = "municipal_school_list"
     city_raw = (archive_dir / SOURCES[city_name][0]).read_bytes()
@@ -188,6 +239,24 @@ def build_packet(archive_dir, c_audit):
             city_raw, reference["location_name"],
             reference["water_address"], reference["water_phone"],
         )
+        if d_locations is not None:
+            record = d_locations.get(loc_id)
+            if (record is None or record.get("name") != lead["d_location_name_raw"]
+                    or record.get("detail_url") != lead["d_original_csv_url"]):
+                raise ReviewPacketFailure("D facility identity/URL differs from C audit")
+            d_context = {
+                "d_export_sha256": d_sha256,
+                "latitude_from_official_location_csv": record["latitude"],
+                "longitude_from_official_location_csv": record["longitude"],
+                "municipal_address_in_location_csv": record.get("address"),
+                "physical_same_campus_accepted": False,
+                "coordinate_to_premises_independent_review_required": True,
+            }
+        else:
+            d_context = {
+                "status": "CURRENT_D_NOT_SUPPLIED",
+                "coordinate_to_premises_independent_review_required": True,
+            }
         cases.append({
             "water_number": reference["official_number"],
             "water_facility_name_raw": lead["water_name_raw"],
@@ -197,6 +266,7 @@ def build_packet(archive_dir, c_audit):
             "d_location_id": loc_id,
             "d_location_name_raw": lead["d_location_name_raw"],
             "d_source_detail_url": lead["d_original_csv_url"],
+            "d_official_location_coordinate_context": d_context,
             "city_directory": {
                 "source_key": city_name,
                 "source_sha256": by_key[city_name]["sha256"],
@@ -267,13 +337,17 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--archive-dir", required=True, type=Path)
     parser.add_argument("--c-audit", required=True, type=Path)
+    parser.add_argument("--d-export", type=Path, default=None)
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
     if args.output.exists():
         parser.exit(2, "Refusing to overwrite existing review packet\n")
     try:
         audit = json.loads(args.c_audit.read_text(encoding="utf-8"))
-        packet = build_packet(args.archive_dir, audit)
+        packet = build_packet(
+            args.archive_dir, audit,
+            args.d_export.read_bytes() if args.d_export is not None else None,
+        )
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(
             json.dumps(packet, ensure_ascii=False, indent=2) + "\n",
