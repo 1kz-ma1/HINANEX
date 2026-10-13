@@ -124,6 +124,16 @@ jobs:
             --a-ledger "$RUNNER_TEMP/hinanex-edogawa/a-c-current-UNREVIEWED/A_current_D_unapproved.json" \
             --report "$RUNNER_TEMP/hinanex-edogawa/a-c-current-UNREVIEWED/C_independent_current_D_source_consistency.json"
 
+      - name: Generate human-review packet for two schools from the same pinned sources
+        id: c_packet
+        shell: bash
+        run: |
+          set -euo pipefail
+          python validation/validation/build_edogawa_identity_review_packet.py \
+            --archive-dir "$RUNNER_TEMP/hinanex-edogawa/raw-unreviewed" \
+            --c-audit "$RUNNER_TEMP/hinanex-edogawa/a-c-current-UNREVIEWED/C_independent_current_D_source_consistency.json" \
+            --output "$RUNNER_TEMP/hinanex-edogawa/a-c-current-UNREVIEWED/C_two_school_human_review_UNAPPROVED.json"
+
       - name: Upload exact-current A-D-C trace bundle (NO C human approval)
         if: steps.c_audit.outcome == 'success'
         uses: actions/upload-artifact@v4
