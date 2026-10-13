@@ -129,3 +129,15 @@ D `RegionExport.scenarios[]` に `scenario_id=flood_shelter_selection` がある
 
 **前提**：C provider Draft PR #136、公式原本のA PR #133、捕捉CI PR #139、B/E引継ぎ Issue #157。これらは統合前の作業で、プレビューは暫定。C生成JSONの安定供給経路が確立するまで自動取得・本番配信は導入しない。公開原本の利用/転載条件は別途確認する。HINANEXの「実災害の過去再現と成功/失敗3パターン」の精度実証とは別の補足デモ。
 
+
+## 2026-10-13 Chromium実ブラウザでのC→B教育用Evidence表示検証
+
+**静的サイトにおける実ブラウザ確認済み**。B用テスト `scripts/evidence-case-browser-smoke.mjs` は、C PR #136の生成コードから作った本物の公開用3状態JSONを読み込み、Chromiumのデスクトップ1365×900・モバイル390×844において、3状態・4原本HTTPSリンク・キーボードフォーカス・横はみ出し・不正JSONの拒否と旧画面クリア・明示的プレビュー復帰をチェックする。
+
+- C→Bブラウザ用ジョブは共通Draft PR #139の `.github/workflows/edogawa-official-source-capture.yml` の `b-educational-chromium-smoke` に分離配置。Bは`frontend/**`のみを変更。
+- 実施済みRunner: https://github.com/1kz-ma1/HINANEX/actions/runs/38349656269 、**Chromium browser smoke SUCCESS**。画像4枚（PC/スマホ正常・不正JSON表示）、`browser_smoke_manifest.json` はGitHub Actionsの7日間保持の非公開アーティファクト #11790550681 に保存。スクリーンショットは旧校舎の行政回答原文を含まない**公表資料の表示結果**のみ。
+- 画面初期化直後の表示状態を待たずに期待値を確認していたテスト不備と、プレビューメッセージ文字列の誤記を修正した後に、ブラウザ検証を通過。前段の失敗を無視／skipして成功扱いにしたものではない。
+- ブラウザテストはCIでの**静的ページ動作確認**であり、Render stagingのデプロイ済みURL、実機iOS Safari、音声読み上げ実機、通信断・非同期大量アクセスの実環境テストを保証しない。
+- 検証対象は出典時点の教育用ケース。**避難先候補や実際の建物の利用可否・開設状態を示すものではない**。C人間承認0件・新規D洪水評価0件。`main`及びRenderは引き続き変更しない。
+
+手元の実行にはテスト専用Playwrightのインストールが必要。実際のC公開用JSONをローカルに配置し、リポジトリルートで `python -m http.server 8765 --bind 127.0.0.1` を起動したうえで `node frontend/scripts/evidence-case-browser-smoke.mjs /path/to/C_public_educational_case.json /tmp/screenshots` を実行する。通常の静的画面にPlaywrightを追加配布しない。
