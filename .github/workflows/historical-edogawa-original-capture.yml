@@ -55,7 +55,7 @@ jobs:
           name: edogawa-2019-originals-UNREVIEWED-${{ github.run_id }}
           path: ${{ runner.temp }}/hinanex-historical-UNREVIEWED/
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14
 
       - name: Checkout pinned C independent auditor (unmerged review)
         uses: actions/checkout@v4
@@ -82,7 +82,7 @@ jobs:
           name: edogawa-2019-C-checks-UNAPPROVED-${{ github.run_id }}
           path: ${{ runner.temp }}/C_historical_edogawa_UNAPPROVED.json
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14
 
       - name: Human-review status summary
         if: always()
@@ -93,7 +93,7 @@ jobs:
             echo "A capture: ${{ steps.capture.outcome }}"
             echo "A SHA verification: ${{ steps.verify.outcome }}"
             echo "C independent byte and HTML row check: ${{ steps.c_audit.outcome }}"
-            echo "Originals: private 7-day GitHub Actions artifact, never committed."
+            echo "Originals: private 14-day GitHub Actions artifact, never committed."
             echo "**A original-byte capture is NOT independent C acceptance.**"
             echo "**2019 as-of availability approval: 0 / Facility identity approved: 0 / Prediction accuracy: not evaluated.**"
             echo "The currently served original document may have been updated after the disaster."
