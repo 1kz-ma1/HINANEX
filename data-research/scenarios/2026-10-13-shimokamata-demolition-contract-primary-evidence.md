@@ -39,3 +39,18 @@ https://www.gikai.city.edogawa.tokyo.jp/voices/GikaiDoc/attach/Gk/Gk2792_gian64.
 - 情報更新日と今日の開設状況は別管理し、回答を得るまで「現在利用可能」とも「利用不可」とも判断しない。
 
 **No new D records / changes. No human C physical site signoff. 0 flood CANDIDATE/EXCLUDED, D 152 UNKNOWN, main/Render unchanged.**
+
+
+## 追加検証: 2026-07-01議決の議会公式HTML原本も確保（2026-10-13 UTC）
+
+上記の「議決結果HTMLの生バイトはまだアーカイブされていない」という状態を**解消した**。議案書PDFとは独立した区議会結果一覧の正式公開原本を保存し、議案第64号という固有行から議決日・可決・全会一致を取得。
+
+- Official source https://www.gikai.city.edogawa.tokyo.jp/g07_giketsu.asp?BUNRUI=&EXP=AND&KAIGI=2026%2F06%2F12%2C2026%2F07%2F01%2C152&KEKKA=&KENSU=100&KWORD1=&KWORD2=&NENFROM=&NENTO=&SMODE=2&Sflg=2
+- Original HTML **72,282 bytes, SHA256 83e6d3bac16705d3a842b7129883f8151e40426abd9f2e40c123ff220ec8ab20**. Captured UTC **2026-10-13T03:17:28.565659+00:00**; HTTP Last-Modified header absent (NOT evidence of unknown publication date).
+- Archived original HTTPS response+SHA256 manifest by A script data-research/tools/archive_edogawa_council_vote.py. Exact bill row bounded between #64 and #65: **議案第64号 / 旧下鎌田小学校校舎等解体工事請負契約 / 令和8年7月1日 / 可決 / 全会一致**. Earlier/later bills cannot substitute their votes.
+- Independent C source re-read checks both the A source/original digest and exact outcome in validation/validation/verify_edogawa_council_vote.py, plus malformed/tampered/false-approval negative tests in both A/C dirs.
+- Real GitHub network run https://github.com/1kz-ma1/HINANEX/actions/runs/38340990844 succeeded on the standalone council-vote original capture job. Private **UNAPPROVED artifact #11786970901** expires 2026-10-20, ZIP SHA256 **77aa79ac16559fb58512d5f7b9d24d8a0866989a8d7ba64c90c6cbca04eb6175**. Downloaded raw, A manifest and C audit SHA256 independently rechecked and **all 3 agree**.
+- This independently establishes the *council's vote* (now supported by original bytes). It does **not** supply municipal contract commencement date, on-site demolition progress, actual old-gym existence, 2026-10-13 flood standby designation validity, or current opening. Preserve those as UNKNOWN. No previous archived original overwritten.
+- Additional public searching on 2026-10-13 surfaced no independently confirmed current building accessibility/closure source for the former campus; **search absence is not evidence of continued opening or closure**. Before a hazard status changes, request dated authoritative records from Edogawa disaster management and construction/property offices.
+
+**The A area still generates 0 approved physical site links and 0 flood classifications. This is an evidence provenance enhancement only.**
