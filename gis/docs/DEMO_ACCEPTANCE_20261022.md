@@ -64,10 +64,11 @@ E所有の `gis/tests/demo_20261022_browser_smoke.js` は、Renderと同じ `dep
 - **GPSは許可せず**拒否時メッセージから手入力 `35.70, 140.10` で地点指定を続行できること。実GPSの収集はしない
 - 背景地図と洪水ラスタ画像はCIのみネットワーク遮断する。配信失敗を浸水なしと表示しないこと。外部タイルの実配信可否・GSI施設の実照合は**別の受入**とする
 
-実施コマンド（GitHub ActionsはPlaywrightを一時インストールしたB側node_modulesを`NODE_PATH`で使い、Eのブラウザテストを独立実行）：
+実施コマンド（GitHub ActionsはPlaywrightとLeaflet 1.9.4を一時インストールし、`NODE_PATH`と`HINANEX_TEST_LEAFLET_DIST`で実Leaflet資産を使い、Eのブラウザテストを独立実行）：
 
 ```sh
 node --check e-gis-acceptance/gis/tests/demo_20261022_browser_smoke.js
+HINANEX_TEST_LEAFLET_DIST="$PWD/b-render-candidate/frontend/node_modules/leaflet/dist" \\
 NODE_PATH="$PWD/b-render-candidate/frontend/node_modules" \\
   node e-gis-acceptance/gis/tests/demo_20261022_browser_smoke.js \\
   "$RUNNER_TEMP/hinanex-render-predeploy-dist" \\
