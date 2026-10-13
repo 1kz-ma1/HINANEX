@@ -16,6 +16,7 @@ const requiredFiles = [
   "src/evidence-case-view-model.js",
   "src/evidence-case-page.js",
   "scripts/check-c-evidence-case.js",
+  "scripts/evidence-case-browser-smoke.mjs",
   "mock/shimokamata-evidence-ui-preview.json",
 ];
 
