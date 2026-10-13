@@ -1,0 +1,97 @@
+name: Edogawa historical school directory as-of temporal quarantine (UNAPPROVED)
+
+"on":
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - ".github/workflows/edogawa-historical-school-directory-gate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  historical-school-gate:
+    name: Independently quarantine 2019 school roster candidate dates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout pinned A candidate ledger (not main)
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: f1261dd0e2f5206b26d01e4ecdbea5bbfc46457c
+          path: a-research
+          persist-credentials: false
+
+      - name: Checkout pinned C source chronology validator
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: bfcc86c14e3e0c92858931b1a1dd009bb1eb3b1e
+          path: c-independent
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: A fixture completeness and no-approval tests
+        run: python -m unittest discover -s a-research/data-research/tests -p "test_edogawa_historical_school_roster_candidates.py" -v
+
+      - name: C independent time-window regression tests
+        run: python -m unittest discover -s c-independent/validation/validation -p "test_historical_school_directory_gate.py" -v
+
+      - name: Review actual A candidate ledger with C fixed source policy
+        id: c_gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          python c-independent/validation/validation/historical_school_directory_gate.py \
+            --ledger a-research/data-research/scenarios/2019-typhoon19-edogawa-school-roster-candidate-ledger.json \
+            --out "$RUNNER_TEMP/edogawa-C-school-directory-2019-BLOCKED.json"
+          code=$?
+          set -e
+          if [ "$code" -ne 2 ]; then
+            echo "C school directory was unexpectedly accepted or malformed (exit $code)"
+            exit 1
+          fi
+          python - "$RUNNER_TEMP/edogawa-C-school-directory-2019-BLOCKED.json" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1],encoding="utf-8"))
+          assert d["status"]=="BLOCKED_ALL__NO_2019_ASOF_INPUT_APPROVED"
+          assert d["candidates_checked"]==4
+          assert d["eligible_historical_input_source_ids"]==[]
+          rows={x["source_id"]:x for x in d["decisions"]}
+          assert rows["tokyo-2017-junior-high-open-data"]["temporal_evidence_state"].startswith("PRIOR_PERIOD")
+          assert rows["tokyo-2018-school-directory-print"]["temporal_evidence_state"].startswith("PRIOR_PERIOD")
+          assert rows["tokyo-2019-school-directory-print"]["temporal_evidence_state"].startswith("WINDOW_SPANS")
+          assert rows["edogawa-2019-nov-school-placement"]["temporal_evidence_state"].startswith("AFTER_ASOF")
+          assert all(x["replay_input_state"]=="BLOCKED" for x in rows.values())
+          assert d["approved_facility_identity_pairs"] == 0
+          print("C_SOURCE_WINDOWS_CORRECTLY_QUARANTINED__ALL_FOUR_BLOCKED")
+          PY
+
+      - name: Archive C report, not school/shelter runtime data
+        if: ${{ steps.c_gate.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: edogawa-2019-school-directory-C-BLOCKED-${{ github.run_id }}
+          path: ${{ runner.temp }}/edogawa-C-school-directory-2019-BLOCKED.json
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Explain what was and was not validated
+        if: always()
+        run: |
+          {
+            echo "### Historical school roster preflight"
+            echo "- C date-window gate: ${{ steps.c_gate.outcome }}"
+            echo "- Original school directory source bytes in 2019: **NOT PINNED / NOT APPROVED**."
+            echo "- 2019 October publication month spans disaster date: blocked."
+            echo "- Older 2017/2018 school lists lack 2019 change/identity verification: blocked."
+            echo "- Post-event 2019 November reference remains quarantined."
+            echo "- 0 verified site IDs; 0 real T1 predictive matches; no GIS or runtime mutation."
+          } >> "$GITHUB_STEP_SUMMARY"
