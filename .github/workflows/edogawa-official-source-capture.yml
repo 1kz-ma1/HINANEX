@@ -61,6 +61,37 @@ jobs:
             --archive-dir "${RUNNER_TEMP}/hinanex-edogawa/raw-unreviewed" \
             --report "${RUNNER_TEMP}/hinanex-edogawa/content_preflight_unreviewed.json"
 
+      - name: Checkout pinned current-D Edogawa replay code
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 71afebdbf6fe58222af696f760d7f0beda25832f
+          path: d-current
+          persist-credentials: false
+
+      - name: Install current D pipeline dependencies
+        shell: bash
+        run: python -m pip install -r d-current/pipeline/requirements.txt
+
+      - name: Replay current D Edogawa RegionExport from exact captured original bytes
+        id: d_replay
+        working-directory: d-current/pipeline
+        shell: bash
+        run: |
+          set -euo pipefail
+          python run_edogawa_evidence_slice.py \
+            --archive-dir "$RUNNER_TEMP/hinanex-edogawa/raw-unreviewed" \
+            --output-dir "$RUNNER_TEMP/hinanex-edogawa/d-current-UNREVIEWED"
+
+      - name: Attach isolated current D RegionExport (UNREVIEWED)
+        if: steps.d_replay.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: edogawa-current-D-UNREVIEWED-${{ github.run_id }}
+          path: ${{ runner.temp }}/hinanex-edogawa/d-current-UNREVIEWED/
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Attach original responses for independent C review
         if: ${{ always() && steps.capture.outcome == 'success' }}
         uses: actions/upload-artifact@v4
