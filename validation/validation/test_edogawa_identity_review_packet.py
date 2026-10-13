@@ -91,6 +91,39 @@ def make_fixture(directory, omit_institution_phone=False, city_bad_row_phone=Fal
     return out, audit
 
 
+
+
+def make_current_d_bytes(audit):
+    rows = [
+        {
+            "id": x["expected_location_id"],
+            "name": x["location_name"],
+            "detail_url": x["location_url"],
+            "address": None,
+            "latitude": 35.7 + i * .01,
+            "longitude": 139.8 + i * .01,
+        }
+        for i, x in enumerate(PRIORITY_SCHOOL_REFERENCES)
+    ]
+    dataset = {
+        "region": {"code": "13123"},
+        "datasets": [{"requirement_code": "shelter_location", "records": rows}],
+        "scenarios": [{
+            "scenario_id": "flood_shelter_selection",
+            "facility_results": [
+                {
+                    "facility_id": item["id"],
+                    "status": "UNKNOWN",
+                    "fact": {"join_status": "UNVERIFIED", "official_status_raw": None},
+                } for item in rows
+            ],
+        }],
+    }
+    raw = json.dumps(dataset, ensure_ascii=False).encode("utf-8")
+    audit["source_sha256"]["old_d_region_export"] = hashlib.sha256(raw).hexdigest()
+    return raw
+
+
 class HumanReviewPacketTests(unittest.TestCase):
     def test_packet_contains_two_unapproved_cases_and_old_current_caution(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -117,6 +150,38 @@ class HumanReviewPacketTests(unittest.TestCase):
             old = packet["former_current_shimokoiwa_distinct_site_caution"]
             self.assertNotEqual(old["former_address"], old["current_address"])
             self.assertTrue(old["shared_website_url_is_not_facility_identity"])
+
+    def test_coordinates_are_bound_to_the_exact_c_audited_d_file(self):
+        with tempfile.TemporaryDirectory() as temp:
+            directory, audit = make_fixture(temp)
+            raw = make_current_d_bytes(audit)
+            packet = build_packet(directory, audit, raw)
+            for i, entry in enumerate(packet["priority_cases"]):
+                d = entry["d_official_location_coordinate_context"]
+                self.assertAlmostEqual(
+                    d["latitude_from_official_location_csv"], 35.7 + .01 * i
+                )
+                self.assertIsNone(d["municipal_address_in_location_csv"])
+                self.assertTrue(d["coordinate_to_premises_independent_review_required"])
+                self.assertFalse(d["physical_same_campus_accepted"])
+            self.assertEqual(packet["approved_cross_source_pairs"], 0)
+
+    def test_stale_d_file_sha_cannot_be_substituted(self):
+        with tempfile.TemporaryDirectory() as temp:
+            directory, audit = make_fixture(temp)
+            raw = make_current_d_bytes(audit)
+            with self.assertRaisesRegex(ReviewPacketFailure, "SHA256 differs"):
+                build_packet(directory, audit, raw + b" ")
+
+    def test_upgraded_d_scenario_is_rejected_as_an_identity_review_input(self):
+        with tempfile.TemporaryDirectory() as temp:
+            directory, audit = make_fixture(temp)
+            doc = json.loads(make_current_d_bytes(audit))
+            doc["scenarios"][0]["facility_results"][0]["status"] = "CANDIDATE"
+            changed = json.dumps(doc, ensure_ascii=False).encode("utf-8")
+            audit["source_sha256"]["old_d_region_export"] = hashlib.sha256(changed).hexdigest()
+            with self.assertRaisesRegex(ReviewPacketFailure, "not suitable"):
+                build_packet(directory, audit, changed)
 
     def test_same_source_row_required_for_city_phone(self):
         with tempfile.TemporaryDirectory() as temp:
