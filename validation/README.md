@@ -44,3 +44,9 @@ cd C:\HINANEX
 [独立監査の報告](reviews/2026-10-10-edogawa-water-join-snapshot-audit.md) および Draft [PR #136](https://github.com/1kz-ma1/HINANEX/pull/136) を参照。水害待避施設HTML・位置CSV・歴史的D RegionExport・Aの未承認候補台帳を突き合わせ、施設ID/座標/元URL/原文階数の一致を検査する。旧・現下小岩小学校では、2023年選挙資料と2025年学校移転・水害資料で、同じ名前が異なる住所を指している履歴を区別する。**同じ学校URLが複数の位置施設レコードにあっても施設同一性の確定キーに使わない。** 
 
 専用合成テスト：`python -m unittest discover -s validation/validation -p "test_edogawa*py" -v`。実データに対するC最終承認・洪水単独の適合判定は引き続き別ゲート。前提A PR #133、D #135とIssue #134/#137を確認する。
+
+
+### 公式HTML/CSV原本の取得とSHA256（C作業環境で別途実行）
+`python validation/validation/archive_edogawa_official_sources.py --out-dir "C:\HINANEX-evidence\official-20261013"` で、江戸川区の公式水害・位置・学校・移転資料と学校運営者の2ページをHTTPSで保存し、HTTPメタデータと生バイトのSHA256を記録できる。**取得日時とページの更新日・情報対象日を区別する**。2023年選挙資料を2025年の学校現所在地の根拠へ転用しない。
+
+このコマンドはCIでは**合成テストのみ**を行い、実際のネットワーク取得は実行しない。収集したファイルはGitに追加せず、独立したC担当者がソース版、施設IDと物理施設の対応、水害待避施設／洪水単独の意味を審査する。収集完了だけでは避難適合性はUNKNOWNのまま。
