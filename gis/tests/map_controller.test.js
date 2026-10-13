@@ -2034,8 +2034,8 @@ nagoya.scenarios = [{
   const css = fs.readFileSync(path.resolve(__dirname, "../gis/css/map_first.css"), "utf8");
   assert.match(html, /id="mapTourPanel"[^>]*hidden/);
   assert.match(html, /id="mapTourOpen"[^>]*aria-controls="mapTourPanel"/);
-  assert.match(html, /js\/guided_tour[.]js[?]v=guided-tour-loading-fix-20261010-v2/);
-  assert.match(html, /災害の時間変化や避難ルートの予測ではありません/);
+  assert.match(html, /js\/guided_tour[.]js[?]v=guided-tour-three-region-comparison-20261013-v1/);
+  assert.match(html, /災害予測や避難推奨ではありません/);
   assert.match(viewSource, /mapTourPause/);
   assert.match(viewSource, /prefers-reduced-motion: reduce/);
   assert.match(viewSource, /pointerdown", "wheel", "touchstart"/);
@@ -2335,3 +2335,7 @@ nagoya.scenarios = [{
   console.error(error);
   process.exitCode = 1;
 });
+
+// Run the new data-safe three-case playback comparison checks in the existing
+// required GIS controller CI job without modifying shared workflow ownership.
+require("./guided_tour_compare.test.js");
