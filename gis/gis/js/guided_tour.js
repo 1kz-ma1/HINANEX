@@ -71,7 +71,7 @@
     } else {
       summaries.set(step.code, "データ未取得・未確認（施設なしとは断定できません）");
       get("mapTourSourceStatus").textContent = summaries.get(step.code) +
-        "。施設が存在しないという意味ではありません。";
+        "。この地域のRegionExportを取得・確認できませんでした。施設が存在しないという意味ではありません。";
     }
     updateComparison();
   }
