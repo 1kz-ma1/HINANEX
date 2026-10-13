@@ -98,3 +98,19 @@ python validation/validation/compare_edogawa_official_revisions.py --baseline-wa
 - HTMLの改行や空白だけの差異は、SHA256では変化として記録しながら、構造化内容の比較時だけ空白正規化して区別します。
 - 新しい原本と古いD/A/C成果物を混在させない。新旧版に実質差分がある場合は、最新版に合わせA・D生成とC監査をやり直してからレビュー資料を生成します。
 - 履歴基準HTMLの真正性・取得日、最新原本の適用時期、公式の洪水適合指定、施設の開設・安全性は差分比較だけでは証明できません。**承認ペアと新規洪水適合判定はゼロのまま**です。
+
+
+### HTTP 200の誤コンテンツを拒否するC原本検査（2026-10-13）
+
+公式7件のHTTPS取得後、SHA256整合だけでなく「URLは200を返したが中身はエラーページ」という事故を除外するため、次の **C Content Preflight** を必ず実施します。
+
+~~~powershell
+python validation/validation/archive_edogawa_official_sources.py --verify-dir "C:\HINANEX-evidence\official-20261013"
+python validation/validation/validate_edogawa_official_archive.py --archive-dir "C:\HINANEX-evidence\official-20261013" --report "C:\HINANEX-evidence\c_content_preflight.json"
+~~~
+
+- 元位置CSVがCP932で読めること、オリジナルの6列見出しと各行・数値座標が正常なことを確認。HTTP 200でもHTMLがCSVのふりをしていた場合、Content-Typeや列構造で拒否します。
+- 水害施設一覧の正式表見出し・原文の施設データ・#108/#109の施設行・旧/現下小岩の別の所在地があることを確認。学校一覧・移転発表・学校運営者のページには各対象施設名などの基本文脈があることを確認します。
+- 固定の152件/111件の件数で合否を決めません。更新で実データ件数が増減することを許容し、変更は別の原本差分監査で人間に提示します。ただし構造や必要施設行が変わった場合は、それ自体を人間の再調査対象としてfail-closedにします。
+- 出力状態 ORIGINAL_CONTENT_STRUCTURE_CHECKED_HUMAN_REVIEW_REQUIRED は「中身が期待する形式と最低限の文脈だった」ことのみ。取得先の真正性、公式更新日・適用時期、別ソースのD施設IDとの同一性、洪水適合性は**証明しません**。承認ペアは0のまま。
+- 実サーバーへの外部通信はオフラインCIには組み込まず、合成テストでHTTP 200の誤コンテンツ・CSV偽装・ソース表欠落・旧新校舎混同を検出します。
