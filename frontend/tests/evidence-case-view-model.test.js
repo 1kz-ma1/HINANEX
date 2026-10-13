@@ -127,6 +127,8 @@ test("page is isolated from RegionExport and GIS navigation and has source-only 
   const index = await readFile(new URL("../index.html", import.meta.url), "utf8");
   assert.match(html, /発表・教育用の事例です/);
   assert.match(html, /id="caseFile"/);
+  assert.match(html, /id="chooseCaseFile"/);
+  assert.match(source, /chooseFileButton.addEventListener\("click", \(\) => inputs.click\(\)\)/);
   assert.match(html, /id="caseStages"/);
   assert.match(html, /id="caseSources"/);
   assert.match(html, /id="caseError"/);
