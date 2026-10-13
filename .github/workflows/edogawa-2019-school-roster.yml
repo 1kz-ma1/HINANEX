@@ -1,0 +1,75 @@
+name: Edogawa 2019 school operational roster original-byte extraction (UNREVIEWED)
+
+"on":
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - ".github/workflows/edogawa-2019-school-roster.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  source-roster:
+    name: Extract reported 65 operational units and 66 detail rows
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact feature PR SHA
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run deterministic A synthetic tests
+        run: python -m unittest discover -s data-research/tests -p "test_extract_edogawa_2019_school_roster.py" -v
+
+      - name: Install pinned PDF parser for official original
+        run: python -m pip install "pymupdf==1.26.4"
+
+      - name: Download previously archived official Edogawa source originals
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 38340567068
+          github-token: ${{ github.token }}
+          name: edogawa-2019-originals-UNREVIEWED-38340567068
+          path: ${{ runner.temp }}/originals-UNREVIEWED
+
+      - name: Extract and verify A operational groups from pinned original
+        id: a_extract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python data-research/tools/extract_edogawa_2019_school_roster.py \
+            --source-pdf "$RUNNER_TEMP/originals-UNREVIEWED/edogawa-school-ops-review.pdf" \
+            --out "$RUNNER_TEMP/edogawa-2019-operational-roster-UNREVIEWED.json"
+
+      - name: Store only derived evidence for C independent review
+        if: ${{ steps.a_extract.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: edogawa-2019-school-operational-roster-UNREVIEWED-${{ github.run_id }}
+          path: ${{ runner.temp }}/edogawa-2019-operational-roster-UNREVIEWED.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Report evidence boundary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### 2019 Edogawa school shelter retrospective report"
+            echo "- A extraction: ${{ steps.a_extract.outcome }}"
+            echo "- Input = PINNED 2020 post-event municipal PDF original, not 2019 as-of."
+            echo "- Operational source numbered groups: 65 (42 elementary,21 junior-high,2 other)."
+            echo "- Occupancy detail lines: 66 (junior-high group 2 has two rows)."
+            echo "- Total reported evacuees: 26,761; NOT 2019 hazard prediction."
+            echo "- Physical facility IDs: 0 approved / C independent check: NOT RUN."
+            echo "- Strict source sha256, missing/duplicate/detail arithmetic fail closed."
+          } >> "$GITHUB_STEP_SUMMARY"
