@@ -127,3 +127,12 @@ For institution-operated pages, the packet retains a short original text excerpt
 Independent decision memo: validation/reviews/2026-10-13-edogawa-site-identity-and-flood-semantics-gates.md. It explicitly separates official source validity, physical school identity, water-standby vs flood-only semantics and real-time opening. The supplementary official guidance pages are linked but **not yet preserved in the seven-source original-byte archive**. Do not grant disaster eligibility from the memo.
 
 Expected C output state stays REVIEW_PACKET_PREPARED_NOT_APPROVED, cross-source approved pairs 0, CANDIDATE/EXCLUDED added 0. This is a review-quality improvement, not human signoff.
+
+
+### Optional current-D official location coordinate evidence for C reviewer
+
+If the A/current-D/C runner has generated a current Edogawa RegionExport, pass the exact file to the two-school C review generator:
+
+    python validation/validation/build_edogawa_identity_review_packet.py --archive-dir "C:\HINANEX-evidence\official-20261013" --c-audit "C:\HINANEX-evidence\c_audit_current.json" --d-export "C:\HINANEX-evidence\edogawa_current_D_UNREVIEWED.json" --output "C:\HINANEX-evidence\c_priority_review_packet.json"
+
+The generator rehashes those EXACT D input bytes against the D input SHA256 already independently recorded in the C source audit (currently stored under the legacy audit field name old_d_region_export). It requires the full current Scenario with all items UNKNOWN/UNVERIFIED, rechecks two priority institution D ID/name/source URLs, and adds source CSV-derived latitude/longitude to each human-review case. No guessed physical address is inserted: D CSV address remains null; the coordinate-to-campus association is explicitly **NOT YET VERIFIED**. Replacing D with a historic snapshot, a stale/altered D file, duplicate IDs or already-promoted flood result fails closed. When D is omitted, the review packet explicitly states CURRENT_D_NOT_SUPPLIED rather than pretending location coordinates were checked.
