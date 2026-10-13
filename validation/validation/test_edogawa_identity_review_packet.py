@@ -14,10 +14,22 @@ from verify_edogawa_water_join import PRIORITY_SCHOOL_REFERENCES
 from test_edogawa_official_archive_content import water_page, location_csv
 
 
-def make_fixture(directory, omit_institution_phone=False):
+def make_fixture(directory, omit_institution_phone=False, city_bad_row_phone=False):
     def fetch(url):
         if url == SOURCES["municipal_locations"][1]:
             raw, content_type = location_csv(), "text/csv"
+        elif url == SOURCES["municipal_school_list"][1]:
+            header = "<tr><th>施設名称</th><th>所在地</th><th>電話番号</th></tr>"
+            rows = []
+            for x in PRIORITY_SCHOOL_REFERENCES:
+                phone = "03-0000-0000" if city_bad_row_phone and x["official_number"] == "109" else x["water_phone"]
+                rows.append("<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(
+                    x["location_name"], x["water_address"], phone))
+            if city_bad_row_phone:
+                rows.append("<tr><td>別の学校</td><td>別の住所</td><td>03-3653-1541</td></tr>")
+            raw = ("<html><body><table>" + header + "".join(rows) +
+                   "</table></body></html>").encode("utf-8")
+            content_type = "text/html"
         elif url == SOURCES["water_facilities"][1]:
             raw, content_type = water_page(), "text/html"
         else:
