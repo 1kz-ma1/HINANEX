@@ -8,7 +8,7 @@
   const steps = [
     {
       code: "13123", title: "江戸川区｜元座標がある施設",
-      description: "元データの座標付き施設に近づきます。表示した施設は推薦・開設確認済みの避難先ではありません。"
+      description: "元データの座標付き施設に近づきます（推奨施設ではありません）。開設状況・安全性は未確認です。"
     },
     {
       code: "15100", title: "新潟市｜別の地域の実データ",
@@ -63,11 +63,11 @@
       summaries.set(step.code, "取得 " + total + "件｜元座標あり " + mapped +
         "件｜座標未確認 " + (total - mapped) + "件");
       get("mapTourSourceStatus").textContent = summaries.get(step.code) +
-        "。取得した施設データの内訳であり、網羅数・安全性・開設状況は未確認です。";
+        "。元データの座標あり。取得した施設データの内訳であり、網羅数・安全性・開設状況は未確認です。";
     } else if (result?.state === "unlocated" && total !== null) {
       summaries.set(step.code, "取得 " + total + "件｜元座標あり 0件｜位置未確認");
       get("mapTourSourceStatus").textContent = summaries.get(step.code) +
-        "。位置を推測しません。地図は前の位置のままです。元データの施設一覧を参照してください。";
+        "。位置は推測しません。地図は前の位置のままです。元データの施設一覧を参照してください。";
     } else {
       summaries.set(step.code, "データ未取得・未確認（施設なしとは断定できません）");
       get("mapTourSourceStatus").textContent = summaries.get(step.code) +
