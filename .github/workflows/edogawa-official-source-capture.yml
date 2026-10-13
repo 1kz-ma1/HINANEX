@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 1kz-ma1/HINANEX
-          ref: 682e635930c5968e29ae7eafe1e322f2b4dcc7a4
+          ref: 326845e43658a863cc9f5ede63737f4920cbe90a
           persist-credentials: false
 
       - name: Python 3.12
@@ -132,6 +132,7 @@ jobs:
           python validation/validation/build_edogawa_identity_review_packet.py \
             --archive-dir "$RUNNER_TEMP/hinanex-edogawa/raw-unreviewed" \
             --c-audit "$RUNNER_TEMP/hinanex-edogawa/a-c-current-UNREVIEWED/C_independent_current_D_source_consistency.json" \
+            --d-export "$RUNNER_TEMP/hinanex-edogawa/d-current-UNREVIEWED/edogawa_current_D_UNREVIEWED.json" \
             --output "$RUNNER_TEMP/hinanex-edogawa/a-c-current-UNREVIEWED/C_two_school_human_review_UNAPPROVED.json"
 
       - name: Upload exact-current A-D-C trace bundle (NO C human approval)
