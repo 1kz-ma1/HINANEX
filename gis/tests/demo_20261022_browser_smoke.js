@@ -217,7 +217,7 @@ async function screenshot(page, name) {
     // Explicit negative case: D HTTP unavailable must remain an unknown
     // source state, not a synthetic fallback or a zero-facility claim.
     const offlinePage = await context.newPage();
-    const blockedD = /\\/pipeline\\/data\\/output\\/(?:edogawa|niigata|nagoya)\\.json(?:\\?.*)?$/;
+    const blockedD = new RegExp("/pipeline/data/output/(?:edogawa|niigata|nagoya)[.]json(?:[?].*)?$");
     await offlinePage.route(blockedD, route => route.fulfill({
       status: 503, body: "E_TEST_ONLY_D_REGIONEXPORT_UNAVAILABLE",
     }));
