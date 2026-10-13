@@ -1,0 +1,66 @@
+name: 2019 Edogawa alternate map official-school original (UNREVIEWED)
+
+"on":
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - ".github/workflows/edogawa-2019-map-alternate-capture.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    name: Archive Edogawa 2019 map alternate copy (NO AS-OF APPROVAL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PR revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run A PDF archival regression tests
+        run: python -m unittest discover -s data-research/tests -p "test_archive_edogawa_2019_map_copy.py" -v
+
+      - name: Fetch exactly one official Tokyo-school map PDF
+        id: fetch
+        run: |
+          set -euo pipefail
+          python data-research/tools/archive_edogawa_2019_map_copy.py \
+            --out-dir "$RUNNER_TEMP/edogawa-2019-map-alternate-UNREVIEWED"
+
+      - name: Independently re-read A archive bytes, validate SHA256
+        id: a_verify
+        run: |
+          set -euo pipefail
+          python data-research/tools/archive_edogawa_2019_map_copy.py \
+            --verify-dir "$RUNNER_TEMP/edogawa-2019-map-alternate-UNREVIEWED"
+
+      - name: Upload private short-lived original (not git)
+        if: ${{ always() && steps.fetch.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: edogawa-2019-map-alternate-UNREVIEWED-${{ github.run_id }}
+          path: ${{ runner.temp }}/edogawa-2019-map-alternate-UNREVIEWED/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Record scope and absence of as-of approval
+        if: always()
+        run: |
+          {
+            echo "### 2019 Edogawa map on Tokyo official school website"
+            echo "A source capture: ${{ steps.fetch.outcome }}"
+            echo "A original SHA verification: ${{ steps.a_verify.outcome }}"
+            echo "2019 issuance *printed on map*; publication/bytes available in Oct 2019: **NOT VERIFIED**."
+            echo "2019 facility identity and flood eligibility: **NOT VERIFIED**."
+            echo "Separate independent C visual/source/version inspection is still required."
+            echo "Raw artifact is NOT committed to Git, NOT deployed to Render."
+          } >> "$GITHUB_STEP_SUMMARY"
