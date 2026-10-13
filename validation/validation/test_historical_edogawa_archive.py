@@ -114,6 +114,34 @@ class IndependentAuditTests(unittest.TestCase):
         with self.assertRaisesRegex(AuditError, "missing or duplicated"):
             audit(self.zip_file)
 
+    def test_shift_jis_mobile_official_bulletin(self):
+        sid = "tokyo-20191013-report49"
+        key = sid + ".html"
+        text = self.sources[key].decode("utf-8").replace(
+            "<head>", "<head><meta charset='Shift_JIS'>")
+        raw = text.encode("cp932")
+        self.sources[key] = raw
+        for row in self.rows:
+            if row["source_id"] == sid:
+                row["bytes"] = len(raw)
+                row["sha256"] = hashlib.sha256(raw).hexdigest()
+        self.pack()
+        data = audit(self.zip_file)
+        observed = {e["source_id"]: e["reported_observation"]["opened_site_count"]
+                    for e in data["tokyo_bulletins"]}
+        self.assertEqual(observed[sid], 98)
+
+    def test_unsupported_declared_encoding_is_rejected(self):
+        sid = "tokyo-20191012-report23"
+        key = sid + ".html"
+        raw = self.sources[key].replace(b"<head>", b"<head><meta charset='made-up-codec'>")
+        self.sources[key] = raw
+        self.rows[0]["bytes"] = len(raw)
+        self.rows[0]["sha256"] = hashlib.sha256(raw).hexdigest()
+        self.pack()
+        with self.assertRaisesRegex(AuditError, "unknown HTML encoding"):
+            audit(self.zip_file)
+
     def test_reject_pdf_masked_as_html(self):
         self.sources["edogawa-school-ops-review.pdf"] = b"<html>not pdf</html>"
         raw = self.sources["edogawa-school-ops-review.pdf"]
