@@ -33,3 +33,23 @@
 - [ ] データの存在・形式・更新版・実際に江戸川区の何施設が掲載されているかは**未確認**として記録。件数や個別施設一致を作らない。
 
 **当段階の正式な施設ペア承認0件、新規洪水CANDIDATE/EXCLUDED0件。** Aの調査記録であり、D/B/Eの利用条件・UI・Contractには影響させない。
+
+
+## 2026-10-13 official GSI national emergency evacuation CSV actually acquired
+
+**Supersedes the earlier GSI "not retrieved" statements above.** The GSI nationwide DESIGNATED EMERGENCY EVACUATION PLACES CSV (not designated shelters) is https://hinanmap.gsi.go.jp/hinanjocp/defaultFtpData/csv/mergeFromCity_2.csv . The URL was identified in an open-source client but the actual file was successfully retrieved directly from this GSI HTTPS host and checked against the official published national CSV schema.
+
+GitHub-hosted read-only A evidence run https://github.com/1kz-ma1/HINANEX/actions/runs/38335153343 succeeded. Original national CSV bytes: **17,001,696**, SHA256 **e75b3e94c65dd2d348572ea6f9288fef920bb8ee4b7d1d607d51202f6abed16c**. Received 2026-10-13T02:04:41Z. HTTP Last-Modified Tue 06 Oct 2026 (transport metadata, NOT legal designation date). UNREVIEWED private artifact #11784940180 expires 2026-10-20. Nothing committed to Git.
+
+Independent offline CSV parse confirms **115,872 nationwide entries**, **111 rows whose original municipality field is exactly 東京都江戸川区** and **111/111 source row-level equality** against A-generated extraction. All 111 GSI Edogawa rows have original earthquake field **地震=1** and original **洪水 field blank**. Other hazard columns are blank in these rows. This is a source-specific observation; GSI warns of incomplete/outdated/suppressed public registrations. A blank GSI flood column does NOT establish a site's unsafety, an EXCLUDED classification, or any result for the separate Edogawa emergency water-standby dataset.
+
+Four raw GSI review leads, not cross-source matches:
+
+| National GSI ID (not D ID) | GSI name | GSI address | GSI raw flood / earthquake |
+| --- | --- | --- | --- |
+| E1312300003201 | 都立葛西工科高校 | 東京都江戸川区一之江7-68-1 | blank / 1 |
+| E1312300028201 | 私立関東第一高校 | 東京都江戸川区松島2-10-11 | blank / 1 |
+| E1312300088202 | 下小岩小 | 東京都江戸川区南小岩5-5-1 | blank / 1 |
+| E1312300089201 | 旧下小岩小 | 東京都江戸川区南小岩7-8-1 | blank / 1 |
+
+Two Shimo-Koiwa physical locations receive different GSI IDs. Neither GSI ID nor name/location similarity automatically maps to the D municipality ID or a flood decision. A-only retrieval code data-research/tools/retrieve_gsi_edogawa_official.py and synthetic negative tests data-research/tests/test_retrieve_gsi_edogawa_official.py accompany this report; all outputs keep human approval 0 and flood changes 0. Independent human C coordinates-to-campus verification, D/C legal flood-only scope, opening and staging acceptance remain unresolved. No main or Render mutation.
