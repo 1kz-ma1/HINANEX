@@ -17,10 +17,17 @@ const item = (part) => resolve(root, part);
 async function required(path) {
   const file = item(path);
   if (!file.startsWith(root + sep)) throw new Error("Invalid static path: " + path);
-  if (!(await stat(file)).isFile()) {
-    throw new Error("Missing public staging file: " + path);
+  try {
+    if (!(await stat(file)).isFile()) {
+      throw new Error("Missing public staging file: " + path);
+    }
+    return await readFile(file, "utf8");
+  } catch (error) {
+    if (error?.code === "ENOENT" || error?.code === "ENOTDIR") {
+      throw new Error("Missing public staging file: " + path);
+    }
+    throw error;
   }
-  return readFile(file, "utf8");
 }
 function check(ok, error) {
   if (!ok) throw new Error(error);
