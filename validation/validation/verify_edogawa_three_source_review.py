@@ -180,6 +180,17 @@ def audit(water_html, gsi_national, a_water_bytes, a_gsi_bytes,
                         and dist["distance_m_not_identity"] ==
                         geo_m(g["緯度"], g["経度"], record["latitude"], record["longitude"]),
                         "A GSI-to-D source distance altered")
+            flags = []
+            if not same_name:
+                flags.append("NAME_NORMALIZATION_DIFFERS_REVIEW")
+            if not same_address:
+                flags.append("ADDRESS_NORMALIZATION_DIFFERS_REVIEW")
+            if any(distance["distance_m_not_identity"] > 100
+                   for distance in distances):
+                flags.append("GSI_VS_D_REPRESENTATIVE_POINT_OVER_100M_REVIEW")
+            require(candidate.get("documentary_discrepancy_flags") == flags
+                    and candidate.get("distance_threshold_is_not_eligibility_or_identity_gate") is True,
+                    "Discrepancy flags missing/altered in A matrix")
             usage[gid] += 1
         counts[str(len(expected))] += 1
         observed.append({
