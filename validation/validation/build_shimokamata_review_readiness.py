@@ -112,7 +112,8 @@ def make_matrix(packet, original_dir):
         "old_site_open_now": "UNKNOWN",
         "same_physical_old_new_campus_approved": False,
         "new_D_flood_candidate_or_excluded": 0,
-        "existing_edogawa_152_flood_scenario_unchanged": True,
+        "D_region_export_read_or_mutated": False,
+        "D_existing_152_scenario_statuses_not_reverified_by_this_tool": True,
     }
 
 
