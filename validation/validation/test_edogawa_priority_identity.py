@@ -10,6 +10,7 @@ from verify_edogawa_water_join import (
     AuditFailure,
     PRIORITY_SCHOOL_REFERENCES,
     review_priority_identity_leads,
+    duplicate_municipal_detail_urls,
 )
 
 
@@ -139,6 +140,37 @@ class PriorityDocumentaryReviewTests(unittest.TestCase):
         f[2][3]["detail_url"] = "https://other.invalid/"
         with self.assertRaisesRegex(AuditFailure, "URLs differ"):
             run(f)
+
+    def test_generic_collision_detector_reports_shared_official_url(self):
+        official, source, locations = fixture()
+        collisions = duplicate_municipal_detail_urls(source, locations)
+        self.assertEqual(len(collisions), 1)
+        group = collisions[0]
+        self.assertEqual(group["record_count"], 2)
+        self.assertEqual(group["distinct_original_coordinates"], 2)
+        self.assertTrue(group["source_url_not_facility_key"])
+        self.assertFalse(group["independent_cross_source_identity_approved"])
+        self.assertEqual(group["flood_specific_eligibility"], "UNKNOWN")
+        self.assertEqual(set(group["D_facility_names"]), {
+            "下小岩小学校", "旧下小岩小学校（体育館のみ使用）",
+        })
+        self.assertEqual(set(group["D_facility_ids"]), {
+            "edogawa-63e5f1484966fd39",
+            "edogawa-f967bd79a9960d9e",
+        })
+
+    def test_any_mutated_d_homepage_url_fails_original_source_trace(self):
+        _, source, locations = fixture()
+        locations[0]["detail_url"] = "https://fake.example.net/"
+        with self.assertRaisesRegex(AuditFailure, "D link differs"):
+            duplicate_municipal_detail_urls(source, locations)
+
+    def test_distinct_homepages_produce_no_collision(self):
+        _, source, locations = fixture()
+        for i in range(len(source)):
+            source[i]["URL"] = "https://school.invalid/" + str(i)
+            locations[i]["detail_url"] = source[i]["URL"]
+        self.assertEqual(duplicate_municipal_detail_urls(source, locations), [])
 
     def test_non_priority_fixture_is_unaffected(self):
         self.assertEqual(run([[], [], []]), [])
