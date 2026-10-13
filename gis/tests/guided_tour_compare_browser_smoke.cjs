@@ -114,7 +114,8 @@ mkdirSync(out, { recursive: true });
     await page.locator("#mapTourClose").click();
     assert.equal(await page.locator("#mapTourPanel").isVisible(), false);
 
-    const mobile = await ctx.newPage({viewport:{width:390,height:844}});
+    const mobile = await ctx.newPage();
+    await mobile.setViewportSize({width:390,height:844});
     await mobile.goto("http://127.0.0.1:8765/gis/gis/?region=13123",
       {waitUntil:"domcontentloaded"});
     await mobile.locator("#mapToolScene > summary").click();
