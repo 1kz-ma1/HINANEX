@@ -136,3 +136,20 @@ If the A/current-D/C runner has generated a current Edogawa RegionExport, pass t
     python validation/validation/build_edogawa_identity_review_packet.py --archive-dir "C:\HINANEX-evidence\official-20261013" --c-audit "C:\HINANEX-evidence\c_audit_current.json" --d-export "C:\HINANEX-evidence\edogawa_current_D_UNREVIEWED.json" --output "C:\HINANEX-evidence\c_priority_review_packet.json"
 
 The generator rehashes those EXACT D input bytes against the D input SHA256 already independently recorded in the C source audit (currently stored under the legacy audit field name old_d_region_export). It requires the full current Scenario with all items UNKNOWN/UNVERIFIED, rechecks two priority institution D ID/name/source URLs, and adds source CSV-derived latitude/longitude to each human-review case. No guessed physical address is inserted: D CSV address remains null; the coordinate-to-campus association is explicitly **NOT YET VERIFIED**. Replacing D with a historic snapshot, a stale/altered D file, duplicate IDs or already-promoted flood result fails closed. When D is omitted, the review packet explicitly states CURRENT_D_NOT_SUPPLIED rather than pretending location coordinates were checked.
+
+
+### Current status (2026-10-13): municipality operational guidance original-byte archive captured
+
+The earlier statement that the two weather/water-evacuation guidance pages were not yet archived is now superseded. They are stored **separately** from the seven school/facility originals.
+
+~~~powershell
+python validation/validation/archive_edogawa_guidance.py --out-dir "C:\HINANEX-evidence\guidance-20261013"
+python validation/validation/archive_edogawa_guidance.py --verify-dir "C:\HINANEX-evidence\guidance-20261013"
+~~~
+
+Github Actions successfully ran this in the isolated evidence-capture workflow #38334363280 with two official source original bytes, HTTP metadata and SHA256 manifest in a 7-day UNREVIEWED artifact. The archive checks official domain, final HTTPS origin, bounded nonempty response bytes, municipal page context words and manifest/file digest consistency. It does **not** convert facility listing, weather response plans or an historical update date into flood-only designation or live opening.
+
+- Water evacuation guidance raw SHA256 abd5824e1595df5388d5b6cbb06a54a2fbef68463d663e9c769f29aa071e3ba0
+- Weather evacuation response plan raw SHA256 11205472c5feb45e10180319a32d9dd13f80d292ab8f86d18e534df1dbea4e53
+- Independent GSI nationally consistent evacuation data with hazard-specific columns is under **A-only initial investigation**, not yet source-captured/accepted for Edogawa: see data-research/scenarios/2026-10-13-gsi-emergency-evacuation-data-investigation.md.
+- C independent human site-identity approval: 0; D/C formally approved flood-only semantics: 0; new flood classifications: 0. No stage/live deployment changes.
