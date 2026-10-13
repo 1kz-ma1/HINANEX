@@ -17,6 +17,7 @@ def valid_source(key):
     if kind == "pdf":
         return b"%PDF-1.7\n" + b"% dummy document body\n" * 12 + b"%%EOF\n"
     return ("<html><body><article>" + " 。 ".join(markers) +
+            " 江戸川区教育委員会公式情報 " * 8 +
             "</article></body></html>").encode("utf-8")
 
 
