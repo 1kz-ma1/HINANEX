@@ -943,7 +943,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 1kz-ma1/HINANEX
-          ref: 1128bf2ea97a28b8b7449c5ed08e249beb853538
+          ref: ae75005ac9e151e3b03ac50b17bf77a12afcad03
           path: e-guided-comparison
           persist-credentials: false
 
