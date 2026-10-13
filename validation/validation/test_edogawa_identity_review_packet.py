@@ -14,7 +14,7 @@ from verify_edogawa_water_join import PRIORITY_SCHOOL_REFERENCES
 from test_edogawa_official_archive_content import water_page, location_csv
 
 
-def make_fixture(directory, omit_institution_phone=False, city_bad_row_phone=False):
+def make_fixture(directory, omit_institution_phone=False, city_bad_row_phone=False, city_duplicate_school=False):
     def fetch(url):
         if url == SOURCES["municipal_locations"][1]:
             raw, content_type = location_csv(), "text/csv"
@@ -27,6 +27,10 @@ def make_fixture(directory, omit_institution_phone=False, city_bad_row_phone=Fal
                     x["location_name"], x["water_address"], phone))
             if city_bad_row_phone:
                 rows.append("<tr><td>別の学校</td><td>別の住所</td><td>03-3653-1541</td></tr>")
+            if city_duplicate_school:
+                sample = PRIORITY_SCHOOL_REFERENCES[0]
+                rows.append("<tr><td>{}</td><td>{}</td><td>{}</td></tr>".format(
+                    sample["location_name"], sample["water_address"], sample["water_phone"]))
             raw = ("<html><body><table>" + header + "".join(rows) +
                    "</table></body></html>").encode("utf-8")
             content_type = "text/html"
@@ -120,6 +124,12 @@ class HumanReviewPacketTests(unittest.TestCase):
                              "03-0000-0000")
             self.assertFalse(city["row_scoped_observation"]["match_d_location_identity_approved"])
             self.assertEqual(packet["approved_cross_source_pairs"], 0)
+
+    def test_duplicate_school_directory_row_requires_independent_review(self):
+        with tempfile.TemporaryDirectory() as temp:
+            directory, audit = make_fixture(temp, city_duplicate_school=True)
+            with self.assertRaisesRegex(ReviewPacketFailure, "absent or ambiguous"):
+                build_packet(directory, audit)
 
     def test_missing_official_phone_text_is_review_flag_not_approval(self):
         with tempfile.TemporaryDirectory() as temp:
