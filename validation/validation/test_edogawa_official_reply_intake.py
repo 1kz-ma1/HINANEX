@@ -148,6 +148,14 @@ class OriginalAuthorityResponseTests(unittest.TestCase):
             with self.assertRaisesRegex(ReplyIntakeFailure, "path may not traverse"):
                 evaluate(data, Path(tmp))
 
+    def test_one_archived_reply_must_not_count_for_both_offices(self):
+        with TemporaryDirectory() as tmp:
+            data = template()
+            put_response(Path(tmp), data, role="disaster_plan")
+            put_response(Path(tmp), data, role="property_use")
+            with self.assertRaisesRegex(ReplyIntakeFailure, "cannot substitute"):
+                evaluate(data, Path(tmp))
+
     def test_duplicate_agency_rejected(self):
         with TemporaryDirectory() as tmp:
             data = template()
