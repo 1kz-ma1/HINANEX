@@ -22,7 +22,7 @@ import unicodedata
 from archive_edogawa_official_sources import (
     SOURCES, SnapshotFailure, verify_snapshot,
 )
-from verify_edogawa_water_join import PRIORITY_SCHOOL_REFERENCES
+from verify_edogawa_water_join import PRIORITY_SCHOOL_REFERENCES, SourceTables
 from validate_edogawa_official_archive import (
     ContentPreflightFailure, validate,
 )
@@ -66,6 +66,58 @@ def _normalize(value):
     return re.sub(r"[\s\u3000]+", "", text)
 
 
+
+
+def _city_school_row(raw, expected_name, water_address, water_phone):
+    """Require one city's school-directory *row*, not unrelated page strings.
+
+    Presence checks only compare source-text values within that exact row.
+    They do NOT link it automatically to a D coordinate or a water facility.
+    """
+    parser = SourceTables()
+    parser.feed(raw.decode("utf-8-sig"))
+    expected_header = ("施設名称", "所在地", "電話番号")
+    rows = [
+        cells
+        for table in parser.tables
+        if table and tuple(table[0]) == expected_header
+        for cells in table[1:]
+        if len(cells) == 3 and _normalize(cells[0]) == _normalize(expected_name)
+    ]
+    if len(rows) != 1:
+        raise ReviewPacketFailure(
+            "Municipal school directory row absent or ambiguous: " + expected_name
+        )
+    name, address, phone = rows[0]
+    return {
+        "school_name_raw": name,
+        "school_address_raw": address,
+        "school_phone_raw": phone,
+        "same_row_address_text_matches_water": (
+            _normalize(address) == _normalize(water_address)
+        ),
+        "same_row_phone_text_matches_water": (
+            _normalize(phone) == _normalize(water_phone)
+        ),
+        "match_d_location_identity_approved": False,
+    }
+
+
+def _phone_context_excerpt(raw, phone):
+    """Keep a small raw-text local excerpt for *human* address review only.
+
+    This never normalizes Japanese numerals/hyphens into an identity verdict.
+    """
+    parser = DocumentText()
+    parser.feed(raw.decode("utf-8-sig"))
+    visible = " ".join(parser.parts)
+    normalized = unicodedata.normalize("NFKC", visible)
+    start = normalized.find(phone)
+    if start < 0:
+        return None
+    return normalized[max(0, start - 75):start + len(phone) + 35].strip()
+
+
 def _assert_safe_audit(audit, manifest):
     if not isinstance(audit, dict) or audit.get("audit_status") != AUDIT_STATUS:
         raise ReviewPacketFailure("C audit missing or not a snapshot consistency audit")
@@ -107,7 +159,7 @@ def build_packet(archive_dir, c_audit):
     by_key = {x["source_key"]: x for x in manifest["source_items"]}
 
     city_name = "municipal_school_list"
-    city_text = _visible_text((archive_dir / SOURCES[city_name][0]).read_bytes())
+    city_raw = (archive_dir / SOURCES[city_name][0]).read_bytes()
     cases = []
     for reference in PRIORITY_SCHOOL_REFERENCES:
         loc_id = reference["expected_location_id"]
@@ -128,9 +180,14 @@ def build_packet(archive_dir, c_audit):
         page_key = ("tokyo_kasaikoka_school_access" if
                     reference["official_number"] == "108" else
                     "kanto_ichiko_school_overview")
-        text = _visible_text((archive_dir / SOURCES[page_key][0]).read_bytes())
+        school_raw = (archive_dir / SOURCES[page_key][0]).read_bytes()
+        text = _visible_text(school_raw)
         address = _normalize(reference["water_address"])
         phone = _normalize(reference["water_phone"])
+        directory_row = _city_school_row(
+            city_raw, reference["location_name"],
+            reference["water_address"], reference["water_phone"],
+        )
         cases.append({
             "water_number": reference["official_number"],
             "water_facility_name_raw": lead["water_name_raw"],
@@ -143,14 +200,19 @@ def build_packet(archive_dir, c_audit):
             "city_directory": {
                 "source_key": city_name,
                 "source_sha256": by_key[city_name]["sha256"],
-                "raw_address_text_present": address in city_text,
-                "raw_phone_text_present": phone in city_text,
+                "raw_address_text_present": directory_row["same_row_address_text_matches_water"],
+                "raw_phone_text_present": directory_row["same_row_phone_text_matches_water"],
+                "row_scoped_observation": directory_row,
             },
             "institution_page": {
                 "source_key": page_key,
                 "source_sha256": by_key[page_key]["sha256"],
                 "raw_address_text_present": address in text,
                 "raw_phone_text_present": phone in text,
+                "phone_nearby_original_text_excerpt": _phone_context_excerpt(
+                    school_raw, reference["water_phone"]
+                ),
+                "address_format_equivalence_reviewed": False,
             },
             "automated_result": REVIEW_ONLY,
             "cross_source_same_physical_facility": "UNREVIEWED",
@@ -158,6 +220,7 @@ def build_packet(archive_dir, c_audit):
             "flood_only_eligibility": "UNKNOWN",
             "required_human_review": [
                 "Check names, aliases, addresses, source versions and actual campus",
+                "Municipal directory name, address and phone must be from the SAME exact table row",
                 "Independently associate exact D CSV record/coordinates with campus",
                 "Review missing text as formatting/change; present text alone proves no identity",
                 "Confirm official facility and document context dates",
