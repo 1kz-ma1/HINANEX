@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 1kz-ma1/HINANEX
-          ref: 326845e43658a863cc9f5ede63737f4920cbe90a
+          ref: 88e9ae81810244ef4bf100c7d0bd670c626b9f92
           persist-credentials: false
 
       - name: Python 3.12
@@ -60,6 +60,25 @@ jobs:
           python validation/validation/validate_edogawa_official_archive.py \
             --archive-dir "${RUNNER_TEMP}/hinanex-edogawa/raw-unreviewed" \
             --report "${RUNNER_TEMP}/hinanex-edogawa/content_preflight_unreviewed.json"
+
+      - name: Capture two separate Edogawa flood-guidance official originals
+        id: guidance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python validation/validation/archive_edogawa_guidance.py \
+            --out-dir "${RUNNER_TEMP}/hinanex-edogawa/guidance-UNREVIEWED"
+          python validation/validation/archive_edogawa_guidance.py \
+            --verify-dir "${RUNNER_TEMP}/hinanex-edogawa/guidance-UNREVIEWED"
+
+      - name: Attach water-evacuation guidance evidence (not eligibility)
+        if: steps.guidance.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: edogawa-water-guidance-UNREVIEWED-${{ github.run_id }}
+          path: ${{ runner.temp }}/hinanex-edogawa/guidance-UNREVIEWED/
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Checkout pinned current-D Edogawa replay code
         uses: actions/checkout@v4
