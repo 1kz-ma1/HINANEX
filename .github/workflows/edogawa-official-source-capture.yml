@@ -880,7 +880,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 1kz-ma1/HINANEX
-          ref: 3a44bc83d2cad4ed97ccea25f9ec4ada51c4840a
+          ref: d7b5ff4e76fd40da1b39297a8bedc197a4e29ee0
           path: b-render-candidate
           persist-credentials: false
 
@@ -969,6 +969,9 @@ jobs:
           node b-render-candidate/frontend/scripts/evidence-case-browser-smoke.mjs \
             "$RUNNER_TEMP/C_public_predeploy_case.json" \
             "$RUNNER_TEMP/render-predeploy-browser-screens"
+          node b-render-candidate/frontend/scripts/three-region-demo-browser-smoke.mjs \
+            "$RUNNER_TEMP/hinanex-render-predeploy-dist" \
+            "$RUNNER_TEMP/render-predeploy-three-region-screens"
 
       - name: Archive only public screen evidence and bundle verification metadata
         if: always()
@@ -978,6 +981,7 @@ jobs:
           path: |
             ${{ runner.temp }}/C_B_render_predeploy_public_manifest.json
             ${{ runner.temp }}/render-predeploy-browser-screens/
+            ${{ runner.temp }}/render-predeploy-three-region-screens/
           retention-days: 7
           if-no-files-found: warn
 
@@ -989,7 +993,7 @@ jobs:
             echo '### Render-equivalent **local CI bundle**, not Render staging'
             echo 'Actual 3-region D pipeline and deploy/build_staging.py: ${{ steps.render_bundle.outcome }}'
             echo 'Read-only bundle and source-contract audit: ${{ steps.bundle_contract.outcome }}'
-            echo 'Actual bundled Chromium desktop/mobile: ${{ steps.predeploy_browser.outcome }}'
+            echo 'Actual C/B education and 3-region B browser+GIS route only (Chromium): ${{ steps.predeploy_browser.outcome }}'
             echo 'No PR merge, new Render service, release, trigger-deploy or staging URL modification.'
             echo 'D 3 exported regions are transient CI files; they are NOT archived, approved or promoted.'
           } >> "$GITHUB_STEP_SUMMARY"
