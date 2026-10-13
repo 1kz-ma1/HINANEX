@@ -110,6 +110,8 @@ def capture(out_dir: Path, fetch=official_fetch, now=None):
         ensure_trusted_url(url)
         raw, final_url, headers = fetch(url)
         ensure_trusted_url(final_url)
+        if urlsplit(final_url).hostname != urlsplit(url).hostname:
+            raise SnapshotFailure("Source redirected to another publisher host: " + name)
         if not isinstance(raw, bytes) or not raw or len(raw) > MAX_RAW_BYTES:
             raise SnapshotFailure(f"Source has no acceptable response bytes: {name}")
         if not isinstance(headers, dict):
