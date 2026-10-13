@@ -11,6 +11,11 @@ const requiredFiles = [
   "src/display-labels.js",
   "src/presentation-view-model.js",
   "mock/region-export.json",
+  "evidence-case.html",
+  "evidence-case.css",
+  "src/evidence-case-view-model.js",
+  "src/evidence-case-page.js",
+  "mock/shimokamata-evidence-ui-preview.json",
 ];
 
 await Promise.all(requiredFiles.map((path) => access(new URL(`../${path}`, import.meta.url))));
@@ -46,4 +51,19 @@ for (const marker of requiredMarkers) {
 }
 
 JSON.parse(await readFile(new URL("../mock/region-export.json", import.meta.url), "utf8"));
+const evidencePage = await readFile(new URL("../evidence-case.html", import.meta.url), "utf8");
+for (const marker of [
+  'id="caseFile"', 'id="caseStages"', 'id="caseSources"',
+  'id="caseError"', 'id="caseContent"', 'id="caseAddresses"',
+  'src="./src/evidence-case-page.js"', 'href="./evidence-case.css"',
+]) {
+  if (!evidencePage.includes(marker)) {
+    throw new Error("教育・根拠事例ページの必須DOMがありません: " + marker);
+  }
+}
+if (!index.includes('href="./evidence-case.html"')) {
+  throw new Error("地域分析から教育用根拠事例へのリンクがありません");
+}
+JSON.parse(await readFile(new URL("../mock/shimokamata-evidence-ui-preview.json", import.meta.url), "utf8"));
+
 console.log("Static build check passed.");
