@@ -726,7 +726,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 1kz-ma1/HINANEX
-          ref: a369126d64fca9c418bcbbf136adaf9007160c08
+          ref: d824f303c19c3b3c6b25d38e6d9d1da995ae9231
           path: b-browser
           persist-credentials: false
 
