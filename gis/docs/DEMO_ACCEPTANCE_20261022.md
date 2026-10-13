@@ -50,3 +50,28 @@
 - [ ] mainへの統合判断（**Merge Captainのみ**）
 
 **判定基準**：Eの表示受入はPhase 1全体の最終安全判断ではない。C独立監査、Dの契約適合、利用者の防災判断への使い方、配信・運用責任を混同しない。
+
+## 2026-10-13 Eの実D配布候補ブラウザ検証（実行準備）
+
+E所有の `gis/tests/demo_20261022_browser_smoke.js` は、Renderと同じ `deploy/build_staging.py` で生成された一時配布物を127.0.0.1:8765で配信し、CI専用ChromiumでEの操作を検査する。Bの配布候補内の`gis/**`はmainと同じ実装であることを前提に使用し、Eのテストコードのみ別worktreeで取り込む。main・Renderへ自動デプロイしない。
+
+検証項目：
+
+- Eの既存 `d_region_adapter.js` が受理した実D RegionExport 3地域を表示し、取得件数・元座標件数・欠損件数が画面と一致すること
+- 江戸川区はLeafletの実際のズームアウト操作でDクラスタを生成すること。集約点は施設位置や安全ランクとみなさないこと
+- 名古屋市はDの座標付き行がゼロの場合だけ施設一覧へ切り替えること。検索・ページ表示を確認し、座標を作らないこと
+- 地域切替でURLの `region` を保持すること
+- **GPSは許可せず**拒否時メッセージから手入力 `35.70, 140.10` で地点指定を続行できること。実GPSの収集はしない
+- 背景地図と洪水ラスタ画像はCIのみネットワーク遮断する。配信失敗を浸水なしと表示しないこと。外部タイルの実配信可否・GSI施設の実照合は**別の受入**とする
+
+実施コマンド（GitHub ActionsはPlaywrightを一時インストールしたB側node_modulesを`NODE_PATH`で使い、Eのブラウザテストを独立実行）：
+
+```sh
+node --check e-gis-acceptance/gis/tests/demo_20261022_browser_smoke.js
+NODE_PATH="$PWD/b-render-candidate/frontend/node_modules" \\
+  node e-gis-acceptance/gis/tests/demo_20261022_browser_smoke.js \\
+  "$RUNNER_TEMP/hinanex-render-predeploy-dist" \\
+  "$RUNNER_TEMP/render-predeploy-gis-screens"
+```
+
+**結果欄：** 統合CIが終了して実ログ・manifestを確認するまでは NOT RUN。PASSした場合も対象は自動ブラウザE表示のみ。実Edge/iPhone/Safari、公式洪水タイル、現地承認、GPS許可、90秒の人手通し操作、C/D人手承認、#89統合受入は未確認。
