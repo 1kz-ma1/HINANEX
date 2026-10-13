@@ -141,3 +141,13 @@ D `RegionExport.scenarios[]` に `scenario_id=flood_shelter_selection` がある
 - 検証対象は出典時点の教育用ケース。**避難先候補や実際の建物の利用可否・開設状態を示すものではない**。C人間承認0件・新規D洪水評価0件。`main`及びRenderは引き続き変更しない。
 
 手元の実行にはテスト専用Playwrightのインストールが必要。実際のC公開用JSONをローカルに配置し、リポジトリルートで `python -m http.server 8765 --bind 127.0.0.1` を起動したうえで `node frontend/scripts/evidence-case-browser-smoke.mjs /path/to/C_public_educational_case.json /tmp/screenshots` を実行する。通常の静的画面にPlaywrightを追加配布しない。
+
+## 2026-10-13 WebKit・Chromium自動アクセシビリティ受入（C実出力）
+
+Cの `C_PUBLIC_EDUCATIONAL_CASE_STUDY_V1` 実生成JSON（行政回答は両部署未連絡・原本ファイルなし）を使い、Linux上のPlaywright **WebKit / Chromium** の各 **デスクトップ1365×900 / モバイル390×844** で検証するCIを実装。`scripts/evidence-case-webkit-a11y-smoke.mjs` はB専用テストであり、製品版の依存にはPlaywright/axeを追加しない。
+
+- 検査内容：3状態・4公表原本と `UNKNOWN` 表示、JSONのキーボード対応選択、Tab順（表示ボタン→プレビュー復帰、オフスクリーンの`input[type=file]`は `tabindex=-1`）、フォーカス枠、横はみ出し、axeによる WCAG 2.0/2.1 A/AA 対象ルール、不正な `OPEN` / 秘密文字列入りJSONの拒否と過去表示の消去・`role=alert`。
+- GitHub Actions [#38350554576](https://github.com/1kz-ma1/HINANEX/actions/runs/38350554576) **全ジョブ成功**。WebKit / Chromium × PC / スマホ **4環境ともaxe自動検査違反0件**、4画像と検査結果JSONを個別のUNAPPROVEDアーティファクト #11790832612（ZIP SHA256 `507ab9a6095b7f4b56242157c818abf8acaa7a18e490fcfdc1d93b765861899c`、2026-10-20期限）に保管。
+- 画像と出力Manifestを確認。モバイル横はみ出しなし、資料の時点付き3状態と `UNKNOWN` が見える。コントラストを含むaxe自動監査に加え、手動の文意・安全性審査は別。
+- **非保証**：Playwright WebKit (Ubuntu) はApple実機 iOS Safari/VoiceOverではない。axeのA/AAルール0件は全WCAG適合や障害当事者ユーザーテストの代替ではない。Render stagingへのデプロイ、実際の災害時開設、施設同一性のC人的承認を一切行わない。
+- 独立の共通Draft PR #139 `b-educational-webkit-a11y` ジョブで実行。B変更はすべて`frontend/**`、main/Renderへの変更・マージなし。人間のMerge CaptainがC依存先・ステージング・実機支援技術テストを承認するまでこのPRはDraft。
