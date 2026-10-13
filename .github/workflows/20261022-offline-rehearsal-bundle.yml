@@ -1,0 +1,157 @@
+name: 2026-10-22 offline 7-minute HINANEX rehearsal + C source evidence
+
+"on":
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - ".github/workflows/20261022-offline-rehearsal-bundle.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  prepare-offline-rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    name: Reproduce 7min timer + independent C 60sec evidence
+    steps:
+      - name: Checkout pinned B seven-minute presenter UI
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 7719e4620c4066c1868d10337d9b4b1f3cc45941
+          path: b-rehearsal
+          persist-credentials: false
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run B timing, real KeyboardEvent semantics, and T0/T1/T2 safety tests
+        run: node --test b-rehearsal/frontend/tests/20261022-rehearsal.test.js
+
+      - name: Retrieve exact prior four-source C independent evidence bundle
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 38352174169
+          github-token: ${{ github.token }}
+          name: HINANEX-20261022-C-T0-UNAPPROVED-38352174169
+          path: ${{ runner.temp }}/audited-C-evidence
+
+      - name: Assemble offline speaking/demo files, without modifying C provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/offline-rehearsal"
+          cp b-rehearsal/frontend/docs/20261022-seven-minute-rehearsal.html \
+             "$RUNNER_TEMP/offline-rehearsal/01_20261022_seven_minute_rehearsal.html"
+          cp b-rehearsal/frontend/docs/20261022-seven-minute-rehearsal.md \
+             "$RUNNER_TEMP/offline-rehearsal/02_20261022_rehearsal_runbook.md"
+          cp "$RUNNER_TEMP/audited-C-evidence/C_20261022_offline_evidence.html" \
+             "$RUNNER_TEMP/offline-rehearsal/03_C_20261022_offline_evidence.html"
+          cp "$RUNNER_TEMP/audited-C-evidence/C_20261022_60sec_guide.md" \
+             "$RUNNER_TEMP/offline-rehearsal/04_C_20261022_60sec_guide.md"
+          cp "$RUNNER_TEMP/audited-C-evidence/C_20261022_evidence_manifest.json" \
+             "$RUNNER_TEMP/offline-rehearsal/05_C_20261022_evidence_manifest.json"
+          cat > "$RUNNER_TEMP/offline-rehearsal/README_START_HERE.txt" <<'TXT'
+          HINANEX 2026-10-22 INTERNAL SEVEN-MINUTE REHEARSAL
+          -------------------------------------------------
+          1) Open 01_20261022_seven_minute_rehearsal.html locally in Edge.
+          2) Open 03_C_20261022_offline_evidence.html in a separate browser window.
+          3) Keep 02_20261022_rehearsal_runbook.md and 04_C...guide.md at hand.
+          4) GIS 90s live stage requires a separately validated local HTTP/GIS
+             environment. This bundle is NOT an offline GIS emulator or fake map.
+          5) 05_C_20261022_evidence_manifest.json contains prior C evidence:
+             65 groups / 66 detail rows / 26,761 reported school evacuees,
+             205 regular + 11 night, zero approved Oct 2019 actual shelter
+             buildings, T1 NOT_EVALUABLE and T2 NOT_RUN.
+          6) #89 baseline, human C approvals, actual source revision histories
+             and final browser/GIS user acceptance remain open.
+          Reference: https://github.com/1kz-ma1/HINANEX/issues/89
+          TXT
+
+      - name: Verify exact safe artifact contents and time budget
+        id: verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - "$RUNNER_TEMP/offline-rehearsal" <<'PY'
+          import json, pathlib, re, sys, hashlib
+          p=pathlib.Path(sys.argv[1])
+          expected={
+            "README_START_HERE.txt",
+            "01_20261022_seven_minute_rehearsal.html",
+            "02_20261022_rehearsal_runbook.md",
+            "03_C_20261022_offline_evidence.html",
+            "04_C_20261022_60sec_guide.md",
+            "05_C_20261022_evidence_manifest.json",
+          }
+          assert {x.name for x in p.iterdir()}==expected
+          doc=(p/"01_20261022_seven_minute_rehearsal.html").read_text(encoding="utf-8")
+          agenda=json.loads(re.search(r'<script id="agenda" type="application/json">([\s\S]*?)</script>',doc).group(1))
+          assert len(agenda)==7 and sum(s["seconds"] for s in agenda)==420
+          assert next(s for s in agenda if s["id"]=="evidence")["seconds"]==60
+          assert next(s for s in agenda if s["id"]=="map")["seconds"]==90
+          m=json.loads((p/"05_C_20261022_evidence_manifest.json").read_text(encoding="utf-8"))
+          assert m["foundation_89_acceptance"]=="NOT_SIGNED_OFF_BY_THIS_REPORT"
+          assert m["school_operational_groups"]==65 and m["school_occupancy_detail_rows"]==66
+          assert m["approved_actual_building_pairs"]==0
+          assert m["t1_opening_prediction_accuracy"]=="NOT_EVALUABLE"
+          assert m["t2_hazard_prediction_accuracy"]=="NOT_RUN"
+          assert m["prediction_denominator"] is None
+          assert "T0" in (p/"03_C_20261022_offline_evidence.html").read_text(encoding="utf-8")
+          print("OFFLINE_B_REHEARSAL_AND_PINNED_C_EVIDENCE_SAFE")
+          for f in sorted(p.iterdir()):
+            print(f.name, f.stat().st_size, hashlib.sha256(f.read_bytes()).hexdigest())
+          PY
+
+      - name: Headless real-Chromium screenshot and JS DOM smoke
+        id: chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          chrome="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$chrome" ]; then
+            echo "No real Chromium/Google Chrome on runner; real-browser visual smoke NOT TESTED"
+            exit 1
+          fi
+          target="$(realpath "$RUNNER_TEMP/offline-rehearsal/01_20261022_seven_minute_rehearsal.html")"
+          timeout 40s "$chrome" --headless=new --no-sandbox --disable-dev-shm-usage \
+            --disable-gpu --hide-scrollbars --window-size=1365,940 \
+            --virtual-time-budget=2000 \
+            --screenshot="$RUNNER_TEMP/offline-rehearsal/06_real_chromium_rehearsal_screenshot.png" \
+            "file://$target"
+          python - "$RUNNER_TEMP/offline-rehearsal/06_real_chromium_rehearsal_screenshot.png" <<'PY'
+          import pathlib,struct,sys
+          p=pathlib.Path(sys.argv[1]); b=p.read_bytes()
+          assert b[:8]==b"\x89PNG\r\n\x1a\n" and len(b)>10000
+          w,h=struct.unpack(">II",b[16:24])
+          assert w>=1200 and h>=750,(w,h)
+          print(f"REAL_CHROMIUM_SCREENSHOT_OK {w}x{h}, {len(b)} bytes")
+          PY
+
+      - name: Upload offline presenter bundle and verified Chromium screenshot (14 days)
+        if: ${{ steps.verify.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: HINANEX-20261022-SEVEN-MINUTE-REHEARSAL-${{ github.run_id }}
+          path: ${{ runner.temp }}/offline-rehearsal/
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Explicit remaining manual acceptances
+        if: always()
+        run: |
+          {
+            echo "### 7-minute rehearsal preparation"
+            echo "- Seven-scene offline presenter timing/safety check: ${{ steps.verify.outcome }}"
+            echo "- Actual Chromium static screenshot: ${{ steps.chrome.outcome }}"
+            echo "- Source: prior separately audited C T0 artefact from run #38352174169."
+            echo "- 60-second C T0 excerpt + 90-second E GIS stage = planned, **not performed on presenter PC**."
+            echo "- 2019 event shelter building links 0 approved; T1 NOT_EVALUABLE, T2 NOT_RUN."
+            echo "- The GIS stage, 3-region D live JSON, GSI/flood tiles, staging Render, and full #89 remain **NOT TESTED** by this runner."
+            echo "- Merge Captain review required; do not call this a public-safety recommendation."
+          } >> "$GITHUB_STEP_SUMMARY"
