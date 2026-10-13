@@ -53,3 +53,21 @@ Four raw GSI review leads, not cross-source matches:
 | E1312300089201 | 旧下小岩小 | 東京都江戸川区南小岩7-8-1 | blank / 1 |
 
 Two Shimo-Koiwa physical locations receive different GSI IDs. Neither GSI ID nor name/location similarity automatically maps to the D municipality ID or a flood decision. A-only retrieval code data-research/tools/retrieve_gsi_edogawa_official.py and synthetic negative tests data-research/tests/test_retrieve_gsi_edogawa_official.py accompany this report; all outputs keep human approval 0 and flood changes 0. Independent human C coordinates-to-campus verification, D/C legal flood-only scope, opening and staging acceptance remain unresolved. No main or Render mutation.
+
+
+## 2026-10-13 three-source municipality water/GSI/current-D review leads (no acceptance)
+
+A implemented data-research/tools/edogawa_three_source_review.py. It combines source-pinned current A water ledger, original-water HTML, A's GSI nationwide-source extraction, and the exact same newly generated D Edogawa RegionExport. The name/address matching keys are explicitly disclosed (NFKC, school abbreviations, municipality prefix and chome/ban/go normalization). **Proximity alone is NEVER used to create a candidate**, and even an exact name+address lead is not a certified site match.
+
+Real original-byte runner https://github.com/1kz-ma1/HINANEX/actions/runs/38336678109 **SUCCESS**. Source revisions: GSI national original SHA256 e75b3e94c65dd2d348572ea6f9288fef920bb8ee4b7d1d607d51202f6abed16c; official water HTML SHA256 96001e1a22cdc19580f0c4483e01f2f2e1e6d8b2c595ee5d751f24bf836d4deb; current D derived from official city CSV SHA256 64b1c02377ac6caa2cf58faaf45e34ed76d01b7230c9c4d4590432864700d7ea.
+
+For 111 water source rows, exactly one unique GSI common-ID REVIEW LEAD was found per row (111 different GSI IDs, no missing or multiply proposed ID): **100 cases name+address, 9 address-only, 2 name-only**. C's independently implemented name/address comparison plus original-byte GSI reparse of all national rows confirmed 111/111. **These numbers measure technical review coverage, NOT verified facility pairs.**
+
+A records discrepancy flags:
+- Name normalization difference: 9 (generally official schools' alias differences).
+- Address normalization difference: 2: 三葛西小学校 (water HTML has irregular 北葛西4丁目番2番19号, GSI 北葛西4-2-19); 下鎌田小学校 (water 東瑞江3丁目11番1号, GSI 瑞江4-19-10).
+- GSI/D source representative point separation over 100m: 3: 平井南小学校 429.34m, 瑞江小学校 106.80m, 下鎌田小学校 189.03m. **100m is a discretionary review flag threshold, not eligibility or identity evidence.**
+
+Additional municipality school renovation/relocation documentation indicates time/old-school-campus identification may explain some source drift, but independent source originals and site version approvals are not yet complete. See C dated review validation/reviews/2026-10-13-edogawa-three-source-reconciliation-priority.md. Old/current 下小岩 are separate on both water and GSI evidence and must never be collapsed by a shared school website URL.
+
+A review JSON SHA256 **b186f7557912a23af1af2b84252dec7ab6d3554e41c94e35e31607f35ef0b48f**, C independent review JSON SHA256 **004f31b944359d77fac46691d77ecb4706a68b03c5999a376ca3aa7ac5c49b63**. GitHub private UNREVIEWED A/GSI/C artifact ID #11785486855 (expires 2026-10-20). No source files, generated 111-row matrix or output committed. No human C approvals or D flood Scenario decisions added. main/Render unchanged.
