@@ -114,11 +114,17 @@
       runStep(index + 1);
     }, 6500);
   }
+  function markInterruptedFetch() {
+    if (state === "preparing" && sequence[index]) {
+      summaries.set(sequence[index].code, "取得中断・未確認");
+    }
+  }
   function startRun(nextCodes) {
     // Only literal, known D RegionExport cases; never take coordinates, raw
     // source URLs or custom disaster descriptions from the UI.
     if (!nextCodes.length || nextCodes.some(code => !codes.includes(code))) return;
     clearTimer();
+    markInterruptedFetch();
     playbackId++;
     if (state !== "idle") api.end(true);
     sequence = nextCodes.map(code => steps.find(step => step.code === code));
@@ -135,6 +141,7 @@
     }
     if (state !== "playing" && state !== "preparing") return;
     clearTimer();
+    markInterruptedFetch();
     playbackId++;
     api.halt();
     state = "paused";
@@ -142,6 +149,7 @@
   }
   function stop(restore = true) {
     clearTimer();
+    markInterruptedFetch();
     playbackId++;
     if (state !== "idle") api.end(restore);
     state = "idle";
@@ -175,6 +183,7 @@
   get("mapTourNext").addEventListener("click", () => {
     if (!["playing", "paused", "preparing"].includes(state) ||
         index >= sequence.length - 1) return;
+    markInterruptedFetch();
     playbackId++;
     api.halt();
     runStep(index + 1);
