@@ -9,6 +9,7 @@ name: Edogawa official-source evidence capture
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   capture:
@@ -892,6 +893,52 @@ jobs:
           path: e-gis-acceptance
           persist-credentials: false
 
+      - name: Checkout pinned B 7-minute presenter handoff browser test
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 8a5e50255e178496a84711ff98bcace9a93427b6
+          path: b-presenter-console
+          persist-credentials: false
+
+      - name: Retrieve exact previously audited C T0 offline sheet
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 38352174169
+          github-token: ${{ github.token }}
+          name: HINANEX-20261022-C-T0-UNAPPROVED-38352174169
+          path: ${{ runner.temp }}/prior-C-T0-artifact
+
+      - name: Stage the B presenter console and unmodified C offline evidence separately
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test b-presenter-console/frontend/tests/20261022-rehearsal.test.js
+          node --check b-presenter-console/frontend/scripts/20261022-presentation-handoff-browser-smoke.cjs
+          mkdir -p "$RUNNER_TEMP/presentation-handoff"
+          cp b-presenter-console/frontend/docs/20261022-seven-minute-rehearsal.html \
+            "$RUNNER_TEMP/presentation-handoff/01_20261022_seven_minute_rehearsal.html"
+          cp "$RUNNER_TEMP/prior-C-T0-artifact/C_20261022_offline_evidence.html" \
+            "$RUNNER_TEMP/presentation-handoff/03_C_20261022_offline_evidence.html"
+          cp "$RUNNER_TEMP/prior-C-T0-artifact/C_20261022_evidence_manifest.json" \
+            "$RUNNER_TEMP/presentation-handoff/05_C_20261022_evidence_manifest.json"
+          python - "$RUNNER_TEMP/presentation-handoff" <<'PY'
+          import json, pathlib, re, sys
+          root = pathlib.Path(sys.argv[1])
+          html = (root/"01_20261022_seven_minute_rehearsal.html").read_text(encoding="utf-8")
+          agenda = json.loads(re.search(r'<script id="agenda" type="application/json">([\s\S]*?)</script>',html).group(1))
+          assert len(agenda)==7 and sum(row["seconds"] for row in agenda)==420
+          assert next(row for row in agenda if row["id"]=="evidence")["seconds"]==60
+          assert next(row for row in agenda if row["id"]=="map")["seconds"]==90
+          manifest = json.loads((root/"05_C_20261022_evidence_manifest.json").read_text(encoding="utf-8"))
+          assert manifest["approved_actual_building_pairs"]==0
+          assert manifest["t1_opening_prediction_accuracy"]=="NOT_EVALUABLE"
+          assert manifest["t2_hazard_prediction_accuracy"]=="NOT_RUN"
+          assert manifest["foundation_89_acceptance"]=="NOT_SIGNED_OFF_BY_THIS_REPORT"
+          assert "T0" in (root/"03_C_20261022_offline_evidence.html").read_text(encoding="utf-8")
+          print("PRESENTER_B_C_OFFLINE_HANDOFF_CONTRACT_PASS; no safety approval")
+          PY
+
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
@@ -966,7 +1013,7 @@ jobs:
             --directory "$RUNNER_TEMP/hinanex-render-predeploy-dist" \
             > "$RUNNER_TEMP/predeploy-render-static-server.log" 2>&1 &
           pid=$!
-          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          trap 'for p in "${pid:-}" "${pid2:-}" "${pid3:-}"; do [ -z "$p" ] || kill "$p" 2>/dev/null || true; done' EXIT
           for retry in $(seq 1 30); do
             if curl --fail --silent http://127.0.0.1:8765/frontend/evidence-case.html >/dev/null; then break; fi
             sleep 1
@@ -974,6 +1021,23 @@ jobs:
           curl --fail --silent http://127.0.0.1:8765/ >/dev/null
           curl --fail --silent http://127.0.0.1:8765/gis/gis/ >/dev/null
           curl --fail --silent http://127.0.0.1:8765/pipeline/data/output/edogawa.json >/dev/null
+          # This is separate from the original Render-equivalent port 8765:
+          # C+presenter offline assets :8766 and live test-only GIS :8000.
+          python -m http.server 8766 --bind 127.0.0.1 \
+            --directory "$RUNNER_TEMP/presentation-handoff" \
+            > "$RUNNER_TEMP/presenter-handoff-server.log" 2>&1 &
+          pid2=$!
+          python -m http.server 8000 --bind 127.0.0.1 \
+            --directory "$RUNNER_TEMP/hinanex-render-predeploy-dist" \
+            > "$RUNNER_TEMP/presenter-gis-server.log" 2>&1 &
+          pid3=$!
+          for retry in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8766/01_20261022_seven_minute_rehearsal.html >/dev/null &&
+               curl --fail --silent http://127.0.0.1:8000/gis/gis/?region=13123 >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:8766/03_C_20261022_offline_evidence.html >/dev/null
+          curl --fail --silent http://127.0.0.1:8000/pipeline/data/output/edogawa.json >/dev/null
           node b-render-candidate/frontend/scripts/evidence-case-browser-smoke.mjs \
             "$RUNNER_TEMP/C_public_predeploy_case.json" \
             "$RUNNER_TEMP/render-predeploy-browser-screens"
@@ -986,6 +1050,11 @@ jobs:
             node e-gis-acceptance/gis/tests/demo_20261022_browser_smoke.js \
               "$RUNNER_TEMP/hinanex-render-predeploy-dist" \
               "$RUNNER_TEMP/render-predeploy-gis-screens"
+          HINANEX_TEST_LEAFLET_DIST="$PWD/b-render-candidate/frontend/node_modules/leaflet/dist" \
+          NODE_PATH="$PWD/b-render-candidate/frontend/node_modules" \
+            node b-presenter-console/frontend/scripts/20261022-presentation-handoff-browser-smoke.cjs \
+              "$RUNNER_TEMP/presentation-handoff" \
+              "$RUNNER_TEMP/render-predeploy-presenter-handoff-screens"
 
       - name: Archive only public screen evidence and bundle verification metadata
         if: always()
@@ -997,6 +1066,7 @@ jobs:
             ${{ runner.temp }}/render-predeploy-browser-screens/
             ${{ runner.temp }}/render-predeploy-three-region-screens/
             ${{ runner.temp }}/render-predeploy-gis-screens/
+            ${{ runner.temp }}/render-predeploy-presenter-handoff-screens/
           retention-days: 7
           if-no-files-found: warn
 
@@ -1010,6 +1080,8 @@ jobs:
             echo 'Read-only bundle and source-contract audit: ${{ steps.bundle_contract.outcome }}'
             echo 'Actual C/B education and 3-region B browser+GIS route only (Chromium): ${{ steps.predeploy_browser.outcome }}'
             echo 'New E real Leaflet GIS: cluster, 3-region D, Nagoya list, GPS denial/manual flow (Chromium): ${{ steps.predeploy_browser.outcome }}'
+            echo 'B scene 1:25 → unchanged C T0 and 2:25 → actual GIS loopback browser handoff: ${{ steps.predeploy_browser.outcome }}'
+            echo '420-second spoken rehearsal, real Edge/mobile and external GSI/C/D approvals remain NOT TESTED.'
             echo 'E test scope only; real GSI tile network, actual Edge/iOS/VoiceOver and human E/C/D acceptance remain untested.'
             echo 'No PR merge, new Render service, release, trigger-deploy or staging URL modification.'
             echo 'D 3 exported regions are transient CI files; they are NOT archived, approved or promoted.'
