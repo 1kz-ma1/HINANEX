@@ -158,3 +158,18 @@ A output: **111 water rows**; 56 normalized-name leads, 52 controlled abbreviati
 C independently used its own HTML table parser and original CP932 CSV parser to verify **111 water-table source rows** against the regenerated A entry text (source row indices, name, number, address, phone and usable-floor raw), all **152 original CSV rows** against historical D name/lat/lon, recalculated hashed ID, and unchanged municipality detail URL, plus the raw-source SHA256 pinning of the new A proposal. No phone text whitespace differences. Exactly **one** source homepage URL collision remains: old/current Shimo-Koiwa (two distinct D IDs).
 
 **Acceptance boundary:** The A generator and C verifier were reconstructed locally from the referenced PR logic, not re-executed as those original GitHub PR scripts. This report is a source consistency review, not an independent human C signature or approval. The D file predates current flood Scenario and cannot be used as current user-facing eligibility. New candidate/excluded = **0**, independently accepted cross-source physical site pairs = **0**. The current water-standby vs flood-only designation semantics still need explicit D/C review. The large new A JSON and original HTTP files remain outside Git.
+
+
+## 2026-10-13 actual A-D-C GitHub-runner acceptance of consistency (NOT physical-site approval)
+
+**The historical D-only limitation has now been removed for the technical source-consistency check.** An isolated, non-deploying GitHub-runner executed:
+1. C official 7-file HTTPS capture and content/byte preflight;
+2. D current code source-pinned Edogawa adapter/evaluation/Scenario/RegionExport from the exact CSV;
+3. A exact PR #133 name-hint ledger generator against the NEW actual D RegionExport and same raw water HTML/CSV;
+4. C exact PR #136 independent audit against all those files.
+
+GitHub run https://github.com/1kz-ma1/HINANEX/actions/runs/38332536238 **SUCCESS**. Current D RegionExport SHA256: **c09a3913052412566825fbe6df57f165c5a334b4e7d781a6051e8e12bb80ad28**. Current A unapproved ledger SHA256: **45bc77823b766d33ce6ffdb9fabfca7afb29458d4ab008fabb9e353be1982c32**. Current C audit SHA256: **becd563746bcc68900539b39d22d7f73be44b311347365d423960d87f3cad936**. Official water HTML SHA256 **96001e1a22cdc19580f0c4483e01f2f2e1e6d8b2c595ee5d751f24bf836d4deb**; official CSV SHA256 **64b1c02377ac6caa2cf58faaf45e34ed76d01b7230c9c4d4590432864700d7ea**.
+
+The C source audit returned SOURCE_SNAPSHOT_CONSISTENCY_CHECKED_NOT_FACILITY_IDENTITY_ACCEPTED, 111 municipality water facility rows, CSV→**current** D 152/152, A hints 56 aligned /52 abbreviations /3 manual, original URL collision 1 (current/old Shimo-Koiwa), 0 C human-accepted pairs, 0 new flood decisions. The existing JSON key old_d_region_export in the C audit refers to *the D export input SHA* and, in this execution, is the new current-D export, **not historical data**. The output key historical_export_missing_scenarios=false verifies current-D Scenario presence.
+
+Current-D Scenario 152/152 UNKNOWN and UNVERIFIED, candidate/excluded 0. The 152 current-D IDs and all location fields match the user's historical D output; the new Scenario is additive only. Full 3-region D workflow, human C site identification signoff, official flood-only semantics, and staging smoke remain **NOT RUN / NOT APPROVED**. No main or Render changes. Artifacts kept only outside Git / GitHub Actions (7-day retention).
