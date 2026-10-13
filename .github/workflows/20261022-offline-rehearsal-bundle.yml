@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 1kz-ma1/HINANEX
-          ref: 6665eaa5594d2ba1ee5ac94ec30c9390d6e58e89
+          ref: c32357eb330cc32037fe98dea5a9af8582ad9e9a
           path: b-rehearsal
           persist-credentials: false
 
@@ -62,13 +62,18 @@ jobs:
           1) Open 01_20261022_seven_minute_rehearsal.html locally in Edge.
           2) Open 03_C_20261022_offline_evidence.html in a separate browser window.
           3) Keep 02_20261022_rehearsal_runbook.md and 04_C...guide.md at hand.
-          4) GIS 90s live stage requires a separately validated local HTTP/GIS
+          4) The speaker console has exact scene-specific navigation links:
+             C offline evidence is the adjacent 03_C...html in this ZIP.
+             GIS is ONLY the explicit http://127.0.0.1:8000/gis/gis/?region=13123
+             local HTTP entrypoint. Start and verify a separate GIS bundle
+             there before rehearsal; no other HTTP destination is implied.
+          5) GIS 90s live stage requires a separately validated local HTTP/GIS
              environment. This bundle is NOT an offline GIS emulator or fake map.
-          5) 05_C_20261022_evidence_manifest.json contains prior C evidence:
+          6) 05_C_20261022_evidence_manifest.json contains prior C evidence:
              65 groups / 66 detail rows / 26,761 reported school evacuees,
              205 regular + 11 night, zero approved Oct 2019 actual shelter
              buildings, T1 NOT_EVALUABLE and T2 NOT_RUN.
-          6) #89 baseline, human C approvals, actual source revision histories
+          7) #89 baseline, human C approvals, actual source revision histories
              and final browser/GIS user acceptance remain open.
           Reference: https://github.com/1kz-ma1/HINANEX/issues/89
           TXT
@@ -95,6 +100,18 @@ jobs:
           assert len(agenda)==7 and sum(s["seconds"] for s in agenda)==420
           assert next(s for s in agenda if s["id"]=="evidence")["seconds"]==60
           assert next(s for s in agenda if s["id"]=="map")["seconds"]==90
+          # Rehearsal scene resources must resolve to exact, safe on-disk
+          # C evidence and explicit loopback GIS, never arbitrary file paths.
+          c_scene=next(s for s in agenda if s["id"]=="evidence")
+          g_scene=next(s for s in agenda if s["id"]=="map")
+          c_url="./03_C_20261022_offline_evidence.html"
+          gis_url="http://127.0.0.1:8000/gis/gis/?region=13123"
+          assert sum(l.get("url")==c_url for l in c_scene["links"])==1
+          assert sum(l.get("url")==gis_url for l in g_scene["links"])==1
+          assert (p / c_url[2:]).is_file(), "offline C handoff missing in ZIP"
+          assert "配布ZIP内でのみ" in doc and "事前にlocalhost:8000" in doc
+          assert "a.rel=\"noopener noreferrer\"" in doc
+          assert "T1" in (p/"03_C_20261022_offline_evidence.html").read_text(encoding="utf-8")
           m=json.loads((p/"05_C_20261022_evidence_manifest.json").read_text(encoding="utf-8"))
           assert m["foundation_89_acceptance"]=="NOT_SIGNED_OFF_BY_THIS_REPORT"
           assert m["school_operational_groups"]==65 and m["school_occupancy_detail_rows"]==66
