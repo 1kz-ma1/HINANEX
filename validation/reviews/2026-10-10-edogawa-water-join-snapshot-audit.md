@@ -121,3 +121,24 @@ python -m unittest discover -s validation/validation -p "test_edogawa*.py" -v
 **Execution limits for this turn:** Direct external DNS requests from the agent's working container failed; the HTTP archiver has **NOT** been run against live municipal/school servers. The web-text research above is independent public-page discovery but **NOT byte-for-byte original source retrieval**. Running the archive collector creates evidence files and hashes, not an attested facility identity crosswalk; human reviewer must review source page contents, chronology, original D CSV/JSON version, and formal C acceptance.
 
 Further inputs to a future approved join: archive hashes + recorded official page publication/effective dates + reviewer identity / verification date + municipality-specific definition of `水害待避施設` vs `洪水単独指定`. The C audit must never write `CANDIDATE/EXCLUDED` just because this source archive exists.
+
+
+## 2026-10-13: live original-byte capture succeeded (unreviewed)
+
+GitHub-hosted runner job #38330877147 succeeded: https://github.com/1kz-ma1/HINANEX/actions/runs/38330877147 .
+Captured 7 HTTPS official source originals at 2026-10-13T01:11:01Z, stored as a private **UNREVIEWED** Actions artifact #11781594957 (expires 2026-10-20). Original SHA256/byte length for 7/7 raw files independently agree with the manifest. Downloaded ZIP SHA256 71e265702b20ad501ffd06d0301834efd72462356694714d020064a1662c8cc3 matches the GitHub artifact digest. Contents preflight passed with two municipality tables, 111 water-site rows and 152 location CSV rows. No data files were committed.
+
+### Exact current-origin hashes and comparison
+
+- **Newly fetched official water HTML:** SHA256 96001e1a22cdc19580f0c4483e01f2f2e1e6d8b2c595ee5d751f24bf836d4deb (35,009 bytes). The older browser-saved HTML was SHA256 0d7dbf91ce630643f4868cf9d8547eb7acb4398035304d91833731956c44e772 (78,357 bytes). Whole HTML bytes **differ**, but 111/111 municipality facility rows in the two HTML tables match on number, name, address, telephone and usable-floor **with no added/removed/changed row**.
+- **Newly fetched official location CSV:** SHA256 64b1c02377ac6caa2cf58faaf45e34ed76d01b7230c9c4d4590432864700d7ea (24,777 bytes), **byte-for-byte identical** to the historical ChatGPT-provided 2025-12-11 CSV. All 152 original CSV records still agree with the **historical** 2026-09-27 D export on name, lat/lon, original URL and derived location ID. This does **not** attest the current Scenario export or cross-source pairing.
+- School source hashes: city secondary school directory d5d0034497710c77d59983001f5f0bfc62b45bce2e02d62cb397b06c13f6b74d; city primary school directory b8939ebfcd530ce34f20018461d2575bbaa3375ca5be45ec9e4c1d9dcb5e8fc1; city 2025 relocation release ea3ea43d17264d071d64ade974be2b385817e1eed62ad2ba843ae4e04a7838f6; Tokyo metropolitan high school 23cdc0d8e955cade58d64964d85e45354293c9a8b5387bfae9863db8554c6399; Kanto Ichiko official page dab8fbb7fe4d80362e26acdae9212866d108b5196324ccccacadd5665e58dc84. Full URL/HTTP response metadata and timestamp are in the artifact manifest.
+- City secondary school directory and institution-operated pages corroborate the source phone/address of priority water row #108 and #109. School-operated address strings differ in formatting: "一之江7-68-1" and "松島二丁目10番11号". These are **review leads**, not human C acceptance of D physical location IDs.
+- Latest water HTML still separates current 下小岩小学校 at 南小岩5丁目5番1号 / 2階以上 from 旧下小岩小学校 at 南小岩7丁目8番1号 / 大規模水害では使用不可. Their historical D website URL collision is **not an ID**.
+- The water HTML CMS displays updated 2025-12-19, but the raw HTTP Last-Modified header is 2026-06-02. This transport metadata is NOT a municipality source applicability date.
+
+### Remaining gate
+
+The older A proposal JSON is source-pinned to browser HTML SHA256 0d7... and **cannot** be mixed into acceptance for current original HTML SHA256 9600... . Regenerate the A candidate ledger using the new full official HTML and the byte-identical CSV, then re-run C audit and independent physical-premises reviewer. Water standby vs flood-only eligibility still needs separate written D/C semantics approval.
+
+**Technical live-original capture blocker: RESOLVED. Human C-approved pairs: 0. New flood CANDIDATE/EXCLUDED: 0. This is not an evacuation/opening/safety certificate. No main/Render modification.**
