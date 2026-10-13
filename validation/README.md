@@ -50,3 +50,18 @@ cd C:\HINANEX
 `python validation/validation/archive_edogawa_official_sources.py --out-dir "C:\HINANEX-evidence\official-20261013"` で、江戸川区の公式水害・位置・学校・移転資料と学校運営者の2ページをHTTPSで保存し、HTTPメタデータと生バイトのSHA256を記録できる。**取得日時とページの更新日・情報対象日を区別する**。2023年選挙資料を2025年の学校現所在地の根拠へ転用しない。
 
 このコマンドはCIでは**合成テストのみ**を行い、実際のネットワーク取得は実行しない。収集したファイルはGitに追加せず、独立したC担当者がソース版、施設IDと物理施設の対応、水害待避施設／洪水単独の意味を審査する。収集完了だけでは避難適合性はUNKNOWNのまま。
+
+
+### 公式原本アーカイブの保存後検証（2026-10-13 C追加）
+
+収集したデータはGit管理外で保持し、保存直後・Aへの受け渡し前・Cレビュー直前に、**同じディレクトリ内の実バイトとManifestを突き合わせ**ます。
+
+~~~powershell
+python validation/validation/archive_edogawa_official_sources.py --out-dir "C:\HINANEX-evidence\official-20261013"
+python validation/validation/archive_edogawa_official_sources.py --verify-dir "C:\HINANEX-evidence\official-20261013"
+python -m unittest discover -s validation/validation -p "test_edogawa*.py" -v
+~~~
+
+「--verify-dir」はネットワーク不要で、7件の取得元URL・最終URLの発行元ホスト・全ファイル名・生バイト長・SHA256・必須フラグ・UTC取得時刻・余計なファイルの混入をfail-closedで検査します。結果が ARCHIVE_BYTES_CONSISTENT_REVIEW_REQUIRED なら**保存済みデータとそのManifestが整合**しただけです。原本発行元の真正性、Manifest自体の第三者改ざん、原本の現行性、施設の同一性、洪水適合性は証明できません。
+
+**独立性の限界:** RawとManifestを一緒に差し替えられると内部SHA256は一致し得ます。CはGit管理外の信頼できる別経路にManifest/SHA256を控え、公式本文の取得日と情報対象時期（旧下小岩の2023年選挙情報など）を独立に確認してください。人間のCレビュー承認false、承認ペア0、洪水分類追加0は変更しません。実ネットワークの収集は通常のオフラインCIに含めません。
