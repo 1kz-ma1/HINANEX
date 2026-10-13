@@ -10,6 +10,7 @@ const error = document.getElementById("caseError");
 const errorText = document.getElementById("caseErrorText");
 const inputs = document.getElementById("caseFile");
 const previewButton = document.getElementById("loadCasePreview");
+const chooseFileButton = document.getElementById("chooseCaseFile");
 const previewPath = "./mock/shimokamata-evidence-ui-preview.json";
 let requestNumber = 0;
 
@@ -157,5 +158,6 @@ async function readChosenFile() {
 }
 
 inputs.addEventListener("change", readChosenFile);
+chooseFileButton.addEventListener("click", () => inputs.click());
 previewButton.addEventListener("click", loadPreview);
 loadPreview();
