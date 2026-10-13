@@ -1,0 +1,99 @@
+{
+  "status": "PUBLIC_EDUCATIONAL_EVIDENCE_NOT_SHELTER_GUIDANCE",
+  "presentation_only": true,
+  "current_site_safety_or_opening_claim": false,
+  "may_be_used_as_live_shelter_recommendation": false,
+  "consumer_contract": "C_PUBLIC_EDUCATIONAL_CASE_STUDY_V1",
+  "target_case": {
+    "name": "旧下鎌田小学校",
+    "site_address_raw": "東瑞江3丁目11番1号",
+    "separate_current_school_address_raw": "瑞江4丁目19番10号",
+    "new_school_plan_raw_address_2026": "瑞江4-19-1",
+    "old_new_premises_human_link_approved": false
+  },
+  "source_documents": {
+    "2025_reuse_policy_pdf": {
+      "original_url": "https://www.city.edogawa.tokyo.jp/documents/40376/0704simokamata_1.pdf",
+      "document_date_scope": "2025-04",
+      "source_type": "municipal_postclosure_policy",
+      "verified_detail": "Planned demolition of the old school buildings including gym; completion not established.",
+      "original_sha256": "a4fee786088052e1bb787f0db0473245d01cc1cae9784c80ef40b3174ed089bf",
+      "originals_checked_in_prior_separate_github_actions": true,
+      "original_bytes_reverified_by_this_public_export": false,
+      "human_C_physical_site_approval": false
+    },
+    "2026_external_internal_plan_pdf": {
+      "original_url": "https://www.city.edogawa.tokyo.jp/documents/68931/00006.pdf",
+      "document_date_scope": "2026-04-01",
+      "source_type": "dated_municipal_external_inland_water_standby_roster",
+      "verified_detail": "Old and new Shimokamata schools appear separately in external and inland water tables.",
+      "original_sha256": "92e85981c16542e3e28bd80bafc56c8a71f3ded9a8b5e67bcb53919d16e1ebcb",
+      "originals_checked_in_prior_separate_github_actions": true,
+      "original_bytes_reverified_by_this_public_export": false,
+      "human_C_physical_site_approval": false
+    },
+    "2026_demolition_bill_pdf": {
+      "original_url": "https://www.gikai.city.edogawa.tokyo.jp/voices/GikaiDoc/attach/Gk/Gk2792_gian64.pdf",
+      "document_date_scope": "2026-06-12",
+      "source_type": "municipal_assembly_contract_bill",
+      "verified_detail": "Bill #64 proposes removal of former campus buildings including the gym; not proof of works completed.",
+      "original_sha256": "aa9051ef17e94da904e7e11fa228239d59a37e3eb256b0bc44f68991e19adc71",
+      "originals_checked_in_prior_separate_github_actions": true,
+      "original_bytes_reverified_by_this_public_export": false,
+      "human_C_physical_site_approval": false
+    },
+    "2026_demolition_vote_html": {
+      "original_url": "https://www.gikai.city.edogawa.tokyo.jp/g07_giketsu.asp?BUNRUI=&EXP=AND&KAIGI=2026%2F06%2F12%2C2026%2F07%2F01%2C152&KEKKA=&KENSU=100&KWORD1=&KWORD2=&NENFROM=&NENTO=&SMODE=2&Sflg=2",
+      "document_date_scope": "2026-07-01",
+      "source_type": "municipal_council_vote_result",
+      "verified_detail": "Council bill #64 passed unanimously, not a demolition or current-opening certificate.",
+      "original_sha256": "83e6d3bac16705d3a842b7129883f8151e40426abd9f2e40c123ff220ec8ab20",
+      "originals_checked_in_prior_separate_github_actions": true,
+      "original_bytes_reverified_by_this_public_export": false,
+      "human_C_physical_site_approval": false
+    }
+  },
+  "demo_states": [
+    {
+      "key": "DOCUMENTARY_FACT",
+      "label": "公式資料で確認できること",
+      "display_state": "HISTORICAL_SOURCE_FACT",
+      "source_keys": [
+        "2025_reuse_policy_pdf",
+        "2026_external_internal_plan_pdf",
+        "2026_demolition_bill_pdf",
+        "2026_demolition_vote_html"
+      ],
+      "message": "2026年4月1日時点の区の資料では旧・新下鎌田小を別施設として掲載。同年7月に旧施設の解体工事契約議案が可決された。",
+      "document_dates_not_current_operating_dates": true
+    },
+    {
+      "key": "SOURCE_VERSION_RECONCILIATION",
+      "label": "資料間で追加確認が必要なこと",
+      "display_state": "HUMAN_SOURCE_RECONCILIATION_REQUIRED",
+      "source_keys": [
+        "2025_reuse_policy_pdf",
+        "2026_external_internal_plan_pdf",
+        "2026_demolition_bill_pdf"
+      ],
+      "message": "水害待避施設一覧と旧校舎の解体計画・契約は対象時点が異なる。新校舎の住所表記にも資料間差があるため、指定先の建物・適用時点を確認する。",
+      "not_a_proven_logical_contradiction": true
+    },
+    {
+      "key": "CURRENT_OPERATIONS_UNKNOWN",
+      "label": "現在の状態は未確認",
+      "display_state": "UNKNOWN_HUMAN_AND_LIVE_SOURCE_REQUIRED",
+      "source_keys": [
+        "2026_external_internal_plan_pdf",
+        "2026_demolition_vote_html"
+      ],
+      "message": "旧校舎・体育館の現存、工事による立入制限、外水・内水の指定継続、災害当日の開設状況は未確認。安全・危険、利用可・不可のいずれにも確定しない。",
+      "current_operational_status": "UNKNOWN"
+    }
+  ],
+  "not_reenacted_historical_disaster_or_predictive_accuracy_result": true,
+  "human_C_site_pairs_approved": 0,
+  "new_flood_candidate_or_excluded": 0,
+  "region_export_read_or_mutated": false,
+  "no_private_reply_text_or_personal_data_included": true
+}
