@@ -87,7 +87,7 @@ function mount(){
         get:(id)=>registry.get(id),
         click:(id)=>registry.get(id).listeners.click(),
         time(ms){milliseconds=ms;const old=Array.from(frames);frames.clear();for(const [,fn] of old)fn();},
-        key(k){let blocked=false;listeners.keydown({code:k,key:k,target:new FakeElement(),preventDefault(){blocked=true}});return blocked;},
+        key(k,buttonFocused=false){let blocked=false;const key=k==="KeyR"?"r":k==="Space"?" ":k;listeners.keydown({code:k,key,target:buttonFocused?new FakeButton():new FakeElement(),preventDefault(){blocked=true}});return blocked;},
     };
 }
 
@@ -137,6 +137,9 @@ test("keyboard next/back/play/reset work without claiming browser demo acceptanc
     assert.ok(a.get("scene-title").textContent.includes("完成像"));
     assert.equal(a.key("Space"),true);
     assert.equal(a.get("state").textContent,"リハーサル進行中");
-    assert.equal(a.key("KeyR"),true);
+    assert.equal(a.key("KeyR",true),true); // real key=r, code=KeyR, button still focused
     assert.equal(a.get("state").textContent,"未開始");
+    assert.equal(a.key("ArrowRight",true),true);
+    assert.ok(a.get("scene-title").textContent.includes("疑問"));
+    assert.equal(a.key("Space",true),false); // native focused button Space click must not double-toggle
 });
