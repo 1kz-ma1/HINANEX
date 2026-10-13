@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 from html import escape
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -226,6 +227,13 @@ def produce(paths: dict, out_dir: Path):
         raise EvidenceError("refuse to overwrite existing evidence deliverables")
     reports={key:read_c_report(paths[key],key) for key in ARTIFACTS}
     manifest=compose(reports["school"],reports["campus"],reports["newsletter"],reports["cross"])
+    cross_digests=reports["cross"]["input_manifest_sha256"]
+    for key, digest_key in (("school","c_ops_report"),("campus","c_campus_report"),("newsletter","c_newsletter_report")):
+        member=ARTIFACTS[key][0]
+        with zipfile.ZipFile(paths[key]) as z:
+            actual=hashlib.sha256(z.read(member)).hexdigest()
+        check(actual,cross_digests.get(digest_key),
+              "mixed independent C report version not used by prior cross-check: "+key)
     out_dir.mkdir(parents=True,exist_ok=True)
     (out_dir/"C_20261022_evidence_manifest.json").write_text(
         json.dumps(manifest,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
