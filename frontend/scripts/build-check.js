@@ -19,6 +19,7 @@ const requiredFiles = [
   "scripts/evidence-case-browser-smoke.mjs",
   "scripts/evidence-case-webkit-a11y-smoke.mjs",
   "scripts/check-render-evidence-bundle.mjs",
+  "scripts/three-region-demo-browser-smoke.mjs",
   "mock/shimokamata-evidence-ui-preview.json",
 ];
 
