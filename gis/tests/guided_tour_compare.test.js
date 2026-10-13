@@ -158,6 +158,7 @@ test("switching cases cancels delayed stale D results and marks interrupted fetc
 
 test("failed D fetch, manual pause, resume and close never infer no facilities", async () => {
   const a = mount(async () => { throw new Error("HTTP 503"); });
+  a.get("mapTourOpen").click();
   a.get("mapTourCase15100").click();
   await flush();
   assert.match(a.get("mapTourCompare15100").textContent, /未取得・未確認/);
