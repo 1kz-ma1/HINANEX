@@ -21,6 +21,7 @@ def make(root):
             kind = "pdf"
         else:
             data = ("<html><body>" + " 。 ".join(markers) +
+                    " 江戸川区教育委員会公式情報 " * 8 +
                     "</body></html>").encode("utf-8")
             kind = "html"
         (folder / filename).write_bytes(data)
@@ -140,7 +141,8 @@ class CSchoolHistoryArchiveTests(unittest.TestCase):
         with TemporaryDirectory() as root:
             folder, manifest = make(root)
             name = "school_district_2025.html"
-            raw = b"<html><body>Not the intended official school document</body></html>"
+            raw = ("<html><body>" + "Not the intended official school document " * 9 +
+                   "</body></html>").encode()
             p = folder / name
             p.write_bytes(raw)
             for item in manifest["source_items"]:
