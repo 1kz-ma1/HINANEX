@@ -183,6 +183,81 @@ async function screenshot(page, name) {
       /35\.70|公式|照合|確認|探索|取得|地点/, "Manual coordinate origin not updated");
     await screenshot(page, "gps-denied-manual-origin-desktop");
 
+    // This short guided tour is a presentation aid (~6.5s per stop), NOT
+    // the independent, human-paced 90-second GIS demonstration in E's runbook.
+    // Verify manual presenter control and the source-only no-position case.
+    await page.locator("#mapToolScenario > summary").click();
+    await page.locator("#mapToolScene > summary").click();
+    await page.locator("#mapTourOpen").click();
+    assert.equal(await page.locator("#mapTourPanel").isVisible(), true);
+    await page.locator("#mapTourStart").click();
+    await page.waitForFunction(() => document.querySelector("#mapTourProgress")
+      ?.textContent?.includes("1 / 3"));
+    await page.waitForFunction(() => document.querySelector("#mapTourSourceStatus")
+      ?.textContent?.includes("元データの座標あり"));
+    assert.match(await page.locator("#mapTourDescription").innerText(),
+      /推奨施設ではありません/);
+    await page.locator("#mapTourPause").click();
+    assert.match(await page.locator("#mapTourProgress").innerText(), /一時停止/);
+    await page.locator("#mapTourNext").click();
+    await page.waitForFunction(() => document.querySelector("#mapTourProgress")
+      ?.textContent?.includes("2 / 3"));
+    await page.locator("#mapTourNext").click();
+    await page.waitForFunction(() => document.querySelector("#mapTourProgress")
+      ?.textContent?.includes("3 / 3"));
+    await page.waitForFunction(() => document.querySelector("#mapTourSourceStatus")
+      ?.textContent?.includes("位置は推測しません"));
+    assert.match(await page.locator("#mapTourSourceStatus").innerText(),
+      /座標確認済み 0件/);
+    await screenshot(page, "presenter-short-tour-unlocated-nagoya");
+    await page.locator("#mapTourStop").click();
+    assert.equal(await page.locator("#mapTourProgress").innerText(), "開始前");
+    await page.locator("#mapTourClose").click();
+
+    // Explicit negative case: D HTTP unavailable must remain an unknown
+    // source state, not a synthetic fallback or a zero-facility claim.
+    const offlinePage = await context.newPage();
+    const blockedD = /\\/pipeline\\/data\\/output\\/(?:edogawa|niigata|nagoya)\\.json(?:\\?.*)?$/;
+    await offlinePage.route(blockedD, route => route.fulfill({
+      status: 503, body: "E_TEST_ONLY_D_REGIONEXPORT_UNAVAILABLE",
+    }));
+    await offlinePage.route("**/pipeline/data/output/gsi_verified_tiles/**",
+      route => route.fulfill({ status: 404, body: "E_TEST_NO_VERIFIED_SOURCE" }));
+    await offlinePage.route("**/pipeline/data/output/edogawa_flood_site_catalog.json",
+      route => route.fulfill({ status: 404, body: "E_TEST_NO_VERIFIED_SOURCE" }));
+    const offlineResponse = await offlinePage.goto(base + "/gis/gis/?region=13123",
+      { waitUntil: "domcontentloaded" });
+    assert.equal(offlineResponse.status(), 200);
+    await offlinePage.waitForFunction(() => document.querySelector("#datasetStatus")
+      ?.textContent?.includes("読み込めませんでした"));
+    assert.match(await offlinePage.locator("#datasetStatus").innerText(),
+      /JSONを選択|pipeline/);
+    assert.equal(await offlinePage.locator("#recordCount").innerText(), "—");
+    await offlinePage.locator("#mapToolScene > summary").click();
+    await offlinePage.locator("#mapTourOpen").click();
+    await offlinePage.locator("#mapTourStart").click();
+    await offlinePage.waitForFunction(() => document.querySelector("#mapTourSourceStatus")
+      ?.textContent?.includes("取得・確認できませんでした"));
+    assert.match(await offlinePage.locator("#mapTourSourceStatus").innerText(),
+      /施設が存在しないという意味ではありません/);
+    await screenshot(offlinePage, "missing-d-no-false-zero-tour");
+    await offlinePage.locator("#mapTourStop").click();
+
+    // Official GSI tile-derived point cannot be drawn if its C-verification
+    // export is unavailable; never invent purple reference sites.
+    await offlinePage.locator("#mapTourClose").click();
+    await offlinePage.locator("#mapToolScenario > summary").click();
+    await offlinePage.locator("#coordinateSearchInput").fill("35.70, 140.10");
+    await offlinePage.locator("#coordinateSearchButton").click();
+    await offlinePage.waitForFunction(() => document.querySelector("#mapOriginShortcutStatus")
+      ?.textContent?.includes("未検証"));
+    assert.equal(await offlinePage.locator(".reference-site-marker").count(), 0,
+      "Missing C-verified GSI export incorrectly produced a reference marker");
+    assert.match(await offlinePage.locator("#floodDiscoveryResults").innerText(),
+      /未検証|照合|確認/);
+    await screenshot(offlinePage, "missing-verified-gsi-abstain");
+    await offlinePage.close();
+
     // The external flood tile delivery being unavailable never becomes
     // a claim that no flooding exists.
     if (await page.locator("#mapRasterBanner").isVisible()) {
@@ -218,6 +293,9 @@ async function screenshot(page, name) {
         "REGION_DEEP_LINK_RETAINS_CODE",
         "GPS_DENIAL_MANUAL_COORDINATES",
         "TILE_FAILURE_NOT_FLOOD_ABSENCE",
+        "PRESENTER_SHORT_TOUR_MANUAL_PAUSE_NEXT_STOP",
+        "MISSING_D_REGION_NO_FABRICATED_ZERO",
+        "MISSING_VERIFIED_GSI_NEVER_DRAWS_REFERENCE_SITE",
       ],
       screenshots,
     };
