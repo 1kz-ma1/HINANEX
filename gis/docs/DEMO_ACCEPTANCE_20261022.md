@@ -75,4 +75,10 @@ NODE_PATH="$PWD/b-render-candidate/frontend/node_modules" \\
   "$RUNNER_TEMP/render-predeploy-gis-screens"
 ```
 
-**結果欄：** 統合CIが終了して実ログ・manifestを確認するまでは NOT RUN。PASSした場合も対象は自動ブラウザE表示のみ。実Edge/iPhone/Safari、公式洪水タイル、現地承認、GPS許可、90秒の人手通し操作、C/D人手承認、#89統合受入は未確認。
+**結果：AUTOMATED PASS（2026-10-13）** [共有GitHub Actions #38354958605](https://github.com/1kz-ma1/HINANEX/actions/runs/38354958605) の全ジョブSUCCESS。実行ログに `E_GIS_CHROMIUM_PASS: 3 real D regions, cluster, Nagoya list, GPS denied/manual recovery.` を確認。E browser test commit `3dcc6564299488e356af623f63c95ec8f3586f41` をshared workflow `3ee9bbd654abc7fe8483f0fa942b99a01df724e5` に固定。最初の #38354725984 はテストハーネスが非表示の左メニューをクリックしてFAILしたが、実際に表示されているScene地域メニューへ変更して全チェックを再実行・成功。テストをskipしていない。
+
+**監査証跡：** 非公開artifact #11792407534 `render-equivalent-predeploy-case-audit-UNAPPROVED-38354958605`、GitHub ZIP SHA256 `fa7903a32b2ee8cb5cdfe3c143381d372680846f9f46350887cba82c693ab1ed`、有効期限2026-10-20 06:08 UTC。GISはPC Chromiumで検査。スクリーンショット・manifestはartifactに記録され、実Render/RegionExport生JSONはデプロイ・公開していない。
+
+**検証範囲：** 3地域の実D件数/座標欠損のUI照合、江戸川区のクラスタ存在、名古屋市の施設一覧検索、GIS地域URL、GPS拒否から手入力の復帰、外部タイル遮断時の安全でない推論の防止。**実機での最終リハーサルや現時点の施設安全性は証明しない。**
+
+PASSした場合も対象は自動ブラウザE表示のみ。実Edge/iPhone/Safari、公式洪水タイル、現地承認、GPS許可、90秒の人手通し操作、C/D人手承認、#89統合受入は未確認。
