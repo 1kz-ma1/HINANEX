@@ -38,3 +38,24 @@ https://github.com/1kz-ma1/HINANEX/actions/runs/38340110892
 【実行禁止】この記録のみでDの座標・同一性・施設区分を補正しない。旧施設をCANDIDATE/EXCLUDEDに昇格しない。実時刻の避難先として推奨しない。
 
 **現時点の人間C承認施設ペア0件、新規洪水評価0件、現行D152件UNKNOWN、main/Render変更なし。**
+
+
+## 2026-10-13 更新: 独立した議会議決結果HTML原本のC検証完了
+
+前節の「議決結果HTMLは原本未保存」は**解消済み**。実際の議会Webサイトから独立取得した元HTML72,282バイト（SHA256 **83e6d3bac16705d3a842b7129883f8151e40426abd9f2e40c123ff220ec8ab20**）を保存し、CがA元ハッシュ・元議案第64号の区切り・2026-07-01「可決」「全会一致」を独立再計算した。
+
+- Official source: https://www.gikai.city.edogawa.tokyo.jp/g07_giketsu.asp?BUNRUI=&EXP=AND&KAIGI=2026%2F06%2F12%2C2026%2F07%2F01%2C152&KEKKA=&KENSU=100&KWORD1=&KWORD2=&NENFROM=&NENTO=&SMODE=2&Sflg=2
+- Original UTC 2026-10-13T03:17:28.565659+00:00。A議決原本アーカイバ data-research/tools/archive_edogawa_council_vote.py、C独立 verifier validation/validation/verify_edogawa_council_vote.py（上下別議案の可決誤帰属、原本SHA差し替え、虚偽の施設閉鎖・洪水評価確定を拒否する負系テスト付き）。
+- Github-hosted A/C 実原本連携 https://github.com/1kz-ma1/HINANEX/actions/runs/38340990844 、専用議決取得Job SUCCESS。非公開未承認 artifact #11786970901 / ZIP SHA256 **77aa79ac16559fb58512d5f7b9d24d8a0866989a8d7ba64c90c6cbca04eb6175**、2026-10-20期限。ZIPのHTML／A Manifest／C audit間で元SHA256の一致を独立再確認。
+- C source status= **C_COUNCIL_BILL64_VOTE_ORIGINAL_VERIFIED_NO_DEMOLITION_FINISH**。議決が可決されたことは確証されたが、実契約の締結日・実工事着手日・工事完成日は**null**、旧建物の物理的存否・アクセス・現在の水害待避施設指定は**UNKNOWN**。
+- この議決結果を2026-04の外水／内水一覧や2025後利用方針の原本と混ぜず、各ソース時点の証拠を保持する。議決成立後の施設運用情報について公表情報の探索だけで特定できない場合、**「開設中／閉鎖済み」のどちらにも推測補完しない**。
+
+### 人間Cと区の2部署へ確認する事項（連絡未実施）
+
+| 調査責任 | 求める最新の確証 | 未確認の場合 |
+|---|---|---|
+| 防災危機管理課 | 2026-10-13時点の旧下鎌田小の外水・内水待避施設登録の有効性、正式休止・取消・変更日、対象建物・使用可能階 | OPEN/CLOSEDと断定せずUNKNOWNを維持 |
+| 施設・財産活用部門 | 2026年7月議決後の契約実締結・着工・立入制限・校舎と体育館の棟別工事状況・実完了の公文書 | 解体済み・未解体・利用可能を推測しない |
+| C人間審査担当 | 当該返答書面や最新公式台帳の日時、原本URL/版/ハッシュ、施設（旧・新別）同一性、署名 | 自動C認証をしない |
+
+必要な行政回答が未取得のため、**人的承認0件、新規D判定0件、D152件UNKNOWN**。共同Contract・B/E表示・main/Renderに変更なし。
