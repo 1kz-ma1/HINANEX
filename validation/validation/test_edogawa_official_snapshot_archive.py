@@ -12,6 +12,7 @@ from archive_edogawa_official_sources import (
     SnapshotFailure,
     capture,
     ensure_trusted_url,
+    verify_snapshot,
 )
 
 
@@ -101,6 +102,95 @@ class OfficialArchiveTests(unittest.TestCase):
             self.assertFalse(manifest["human_c_reviewer_signed_off"])
             self.assertTrue(all(x["date_context_review_required"]
                                 for x in manifest["source_items"]))
+
+
+    def test_offline_integrity_verifier_never_grants_facility_approval(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "snapshot"
+            capture(out, fetch=self.sample_fetch)
+            result = verify_snapshot(out)
+            self.assertEqual(result["status"], "ARCHIVE_BYTES_CONSISTENT_REVIEW_REQUIRED")
+            self.assertEqual(result["sources_verified"], len(SOURCES))
+            self.assertGreater(result["source_bytes_verified"], 0)
+            self.assertFalse(result["human_c_reviewer_signed_off"])
+            self.assertFalse(result["publisher_authenticity_independently_attested"])
+            self.assertEqual(result["approved_cross_source_pairs"], 0)
+            self.assertEqual(result["flood_scenario_classifications_added"], 0)
+
+    def test_offline_integrity_verifier_rejects_modified_original(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "snapshot"
+            capture(out, fetch=self.sample_fetch)
+            name = SOURCES["municipal_locations"][0]
+            (out / name).write_bytes((out / name).read_bytes() + b"altered")
+            with self.assertRaisesRegex(SnapshotFailure, "bytes/digest"):
+                verify_snapshot(out)
+
+    def test_offline_integrity_verifier_rejects_missing_or_extra_file(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "snapshot"
+            capture(out, fetch=self.sample_fetch)
+            (out / SOURCES["municipal_locations"][0]).unlink()
+            with self.assertRaisesRegex(SnapshotFailure, "missing or unexpected"):
+                verify_snapshot(out)
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "snapshot"
+            capture(out, fetch=self.sample_fetch)
+            (out / "stale_page.html").write_text("unrelated")
+            with self.assertRaisesRegex(SnapshotFailure, "missing or unexpected"):
+                verify_snapshot(out)
+
+    def test_offline_integrity_verifier_rejects_forged_approval_and_wrong_url(self):
+        for field, value in (
+            ("human_c_reviewer_signed_off", True),
+            ("flood_scenario_classifications_added", 1),
+        ):
+            with self.subTest(field=field), tempfile.TemporaryDirectory() as temp:
+                out = Path(temp) / "snapshot"
+                capture(out, fetch=self.sample_fetch)
+                manifest_file = out / "snapshot_manifest.json"
+                data = json.loads(manifest_file.read_text(encoding="utf-8"))
+                data[field] = value
+                manifest_file.write_text(json.dumps(data), encoding="utf-8")
+                with self.assertRaisesRegex(SnapshotFailure, "improperly claims"):
+                    verify_snapshot(out)
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "snapshot"
+            capture(out, fetch=self.sample_fetch)
+            manifest_file = out / "snapshot_manifest.json"
+            data = json.loads(manifest_file.read_text(encoding="utf-8"))
+            data["source_items"][0]["final_url"] = "https://www.metro.ed.jp/other"
+            manifest_file.write_text(json.dumps(data), encoding="utf-8")
+            with self.assertRaisesRegex(SnapshotFailure, "another publisher"):
+                verify_snapshot(out)
+
+    def test_offline_integrity_verifier_rejects_metadata_and_duplicate_entries(self):
+        for tamper in ("date", "archive_path", "duplicate"):
+            with self.subTest(tamper=tamper), tempfile.TemporaryDirectory() as temp:
+                out = Path(temp) / "snapshot"
+                capture(out, fetch=self.sample_fetch)
+                manifest_file = out / "snapshot_manifest.json"
+                data = json.loads(manifest_file.read_text(encoding="utf-8"))
+                if tamper == "date":
+                    data["source_items"][0]["official_publication_or_effective_date"] = "2026-10-13"
+                elif tamper == "archive_path":
+                    data["source_items"][0]["archive_filename"] = "../escape"
+                else:
+                    data["source_items"][1] = data["source_items"][0]
+                manifest_file.write_text(json.dumps(data), encoding="utf-8")
+                with self.assertRaises(SnapshotFailure):
+                    verify_snapshot(out)
+
+    def test_offline_integrity_verifier_rejects_non_utc_time(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp) / "snapshot"
+            capture(out, fetch=self.sample_fetch)
+            manifest_file = out / "snapshot_manifest.json"
+            data = json.loads(manifest_file.read_text(encoding="utf-8"))
+            data["captured_at_utc"] = "2026-10-13T09:00:00+09:00"
+            manifest_file.write_text(json.dumps(data), encoding="utf-8")
+            with self.assertRaisesRegex(SnapshotFailure, "must be UTC"):
+                verify_snapshot(out)
 
 
 if __name__ == "__main__":
