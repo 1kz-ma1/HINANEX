@@ -92,6 +92,47 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Checkout pinned A research source-hint generator
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 02950c3ce0216254e3cdc3054761caf1efd434ee
+          path: a-current
+          persist-credentials: false
+
+      - name: Rebuild A unapproved candidate ledger with exact same current D and original sources
+        id: a_candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/hinanex-edogawa/a-c-current-UNREVIEWED"
+          python a-current/data-research/tools/edogawa_review_ledger.py \
+            --water-html "$RUNNER_TEMP/hinanex-edogawa/raw-unreviewed/water_facilities.html" \
+            --location-csv "$RUNNER_TEMP/hinanex-edogawa/raw-unreviewed/municipal_locations.csv" \
+            --region-export "$RUNNER_TEMP/hinanex-edogawa/d-current-UNREVIEWED/edogawa_current_D_UNREVIEWED.json" \
+            --out "$RUNNER_TEMP/hinanex-edogawa/a-c-current-UNREVIEWED/A_current_D_unapproved.json"
+
+      - name: Independently verify current A to D against exact official originals with C code
+        id: c_audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python validation/validation/verify_edogawa_water_join.py \
+            --water-html "$RUNNER_TEMP/hinanex-edogawa/raw-unreviewed/water_facilities.html" \
+            --location-csv "$RUNNER_TEMP/hinanex-edogawa/raw-unreviewed/municipal_locations.csv" \
+            --region-export "$RUNNER_TEMP/hinanex-edogawa/d-current-UNREVIEWED/edogawa_current_D_UNREVIEWED.json" \
+            --a-ledger "$RUNNER_TEMP/hinanex-edogawa/a-c-current-UNREVIEWED/A_current_D_unapproved.json" \
+            --report "$RUNNER_TEMP/hinanex-edogawa/a-c-current-UNREVIEWED/C_independent_current_D_source_consistency.json"
+
+      - name: Upload exact-current A-D-C trace bundle (NO C human approval)
+        if: steps.c_audit.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: edogawa-current-A-D-C-UNREVIEWED-${{ github.run_id }}
+          path: ${{ runner.temp }}/hinanex-edogawa/a-c-current-UNREVIEWED/
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Attach original responses for independent C review
         if: ${{ always() && steps.capture.outcome == 'success' }}
         uses: actions/upload-artifact@v4
