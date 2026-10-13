@@ -13,7 +13,6 @@ Run after archive --verify-dir and verify_edogawa_water_join.py:
 from __future__ import annotations
 
 import argparse
-import hashlib
 from html.parser import HTMLParser
 import json
 from pathlib import Path
@@ -64,10 +63,6 @@ def _normalize(value):
     return re.sub(r"[\s\u3000]+", "", text)
 
 
-def _digest(raw):
-    return hashlib.sha256(raw).hexdigest()
-
-
 def _assert_safe_audit(audit, manifest):
     if not isinstance(audit, dict) or audit.get("audit_status") != AUDIT_STATUS:
         raise ReviewPacketFailure("C audit missing or not a snapshot consistency audit")
@@ -99,7 +94,7 @@ def build_packet(archive_dir, c_audit):
     manifest = json.loads((archive_dir / "snapshot_manifest.json").read_text("utf-8"))
     _assert_safe_audit(c_audit, manifest)
     leads = c_audit.get("priority_identity_leads")
-    if not isinstance(leads, list):
+    if not isinstance(leads, list) or len(leads) != 3:
         raise ReviewPacketFailure("C audit priority identity leads missing")
     indexed = {x.get("d_location_id"): x for x in leads if x.get("d_location_id")}
     if len(indexed) != 2:
@@ -120,6 +115,7 @@ def build_packet(archive_dir, c_audit):
                 lead.get("water_number") != reference["official_number"] or
                 lead.get("water_name_raw") != reference["water_name"] or
                 lead.get("water_address_raw") != reference["water_address"] or
+                lead.get("water_floor_raw") != reference["water_floor_raw"] or
                 lead.get("d_location_name_raw") != reference["location_name"] or
                 lead.get("d_original_csv_url") != reference["location_url"]):
             raise ReviewPacketFailure("Priority lead modified or missing: " + loc_id)
@@ -168,7 +164,10 @@ def build_packet(archive_dir, c_audit):
     if (len(old) != 1 or old[0].get("approved_cross_source_pair") is not False or
             old[0].get("flood_specific_eligibility") != "UNKNOWN" or
             old[0].get("same_school_site_url_in_raw") is not True or
-            old[0].get("water_address_raw") == old[0].get("new_water_address_raw")):
+            old[0].get("old_d_location_id") == old[0].get("new_d_location_id") or
+            old[0].get("old_water_floor_raw") != "大規模水害では使用不可" or
+            old[0].get("water_address_raw") != "南小岩7丁目8番1号" or
+            old[0].get("new_water_address_raw") != "南小岩5丁目5番1号"):
         raise ReviewPacketFailure("Old/current Shimo-Koiwa site separation is not intact")
 
     return {
