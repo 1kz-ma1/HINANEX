@@ -58,6 +58,9 @@ try {
 
     const response = await page.goto(expectedUrl, { waitUntil: "networkidle" });
     await assert(response?.status() === 200, viewport.name + " UI HTTP failed");
+    await page.waitForFunction(
+      () => document.querySelector("#caseSourceStatus")?.dataset.kind === "preview"
+    );
     await assert(await visible(page.locator("#caseContent")), "Default preview did not render");
     await assert(
       await page.locator("#caseStages > li").count() === 3,
