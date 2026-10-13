@@ -121,7 +121,17 @@ def generate(water_raw, a_water_raw, gsi_report_raw, d_raw):
                     row["緯度"], row["経度"],
                     byid[ident]["latitude"], byid[ident]["longitude"]),
             } for ident in dids]
+            # These are documentary review flags, NOT evacuation-risk ratings.
+            review_flags = []
+            if not name:
+                review_flags.append("NAME_NORMALIZATION_DIFFERS_REVIEW")
+            if not addr:
+                review_flags.append("ADDRESS_NORMALIZATION_DIFFERS_REVIEW")
+            if any(point["distance_m_not_identity"] > 100 for point in spatial):
+                review_flags.append("GSI_VS_D_REPRESENTATIVE_POINT_OVER_100M_REVIEW")
             matches.append({
+                "documentary_discrepancy_flags": review_flags,
+                "distance_threshold_is_not_eligibility_or_identity_gate": True,
                 "gsi_common_id_raw": gid,
                 "gsi_national_source_line": item["original_national_csv_row"],
                 "gsi_name_raw": row["施設・場所名"],
