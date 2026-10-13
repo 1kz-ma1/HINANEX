@@ -171,3 +171,28 @@ Github Actions successfully ran this in the isolated evidence-capture workflow #
 テスト: python -m unittest discover -s validation/validation -p 'test_shimokamata_review_readiness.py' -v
 
 回答原文・個人情報を公開PR/Issue/Gitに追加しない。Cの審査準備JSONも原文本文・ファイル名を公開しない。施設同一性承認0件、新規洪水判定0件、現行Edogawa Dの152施設UNKNOWN、main/Render変更なし。
+
+
+## 2026-10-13 旧下鎌田小：公開可能な3状態 Evidenceデモ
+
+CからB/Eへ渡す公開表示用の根拠ケースを実装。行政の非公開返信原文、送信者名、メール添付ファイル名、回答SHA256を公開出力へ持ち込まない。**災害シミュレーション再現・避難先推薦ではない**。
+
+- コード：`validation/build_shimokamata_evidence_demo.py`。C原本SHA検証（`verify_edogawa_official_reply_intake.py`）、C判断準備（`build_shimokamata_review_readiness.py`）を通過した未承認結果のみ処理。
+- 合成テスト：`validation/test_shimokamata_evidence_demo.py`。未照会・片方・両方の擬似回答、資料SHA改変、誤った現況確定、個人情報/返信原文の出力混入を拒否。
+- B/E引継仕様：`reviews/2026-10-13-shimokamata-three-state-evidence-demo-contract.md`。3段階のみ：`DOCUMENTARY_FACT`／`SOURCE_VERSION_RECONCILIATION`／`CURRENT_OPERATIONS_UNKNOWN`。
+- 出力の正式な状態名：`PUBLIC_EDUCATIONAL_EVIDENCE_NOT_SHELTER_GUIDANCE`。`presentation_only=true`、`may_be_used_as_live_shelter_recommendation=false` を必須とする。旧新下鎌田の住所は別々の原文として保持。
+- 原本4件は以前のGitHub-hosted A/C検証で確認したSHA256のみを公開資料の根拠として使用。この出力ツール自体は原本の再取得・PDF本文の再審査・Dの最新状態の再検証を実施しない。`D/RegionExport`は読み込まず変更しない。
+- B/E側の地図ピン、推薦ボタン、避難経路、当日開設状態、適合性ランクに使用してはならない。B/E側の変更はそれぞれ別PRとMerge Captainによる責務・契約確認が必要。
+
+実行例（`/private/official-replies` は既存のGit管理外ディレクトリ）：
+
+```bash
+python validation/validation/build_shimokamata_evidence_demo.py \
+  --packet validation/reviews/2026-10-13-old-shimokamata-inquiry-packet.json \
+  --original-dir /private/official-replies \
+  --out /private/shimokamata-demo-EVIDENCE-ONLY.json
+python -m unittest discover -s validation/validation \
+  -p 'test_shimokamata_evidence_demo.py' -v
+```
+
+**この3状態は災害予測の成功例・失敗例・評価結果3件ではない**。公式資料の更新時点差と現在の不確実性を学ぶための事例であり、現時点の施設安全性は未承認。
