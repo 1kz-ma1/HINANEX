@@ -161,6 +161,23 @@ def preflight(case: dict, c_reviews: dict) -> dict:
         status = "PRECHECK_PASSED__NOT_FINAL_APPROVAL" if not reasons else "BLOCKED"
         output.append({"source_id": sid, "role": role, "status": status,
                        "reasons": sorted(set(reasons))})
+    # Reject any input whose upstream material is truth/context or itself blocked:
+    # a clean child cannot launder a contaminated or unapproved parent.
+    by_id = {row["source_id"]: row for row in output}
+    changed = True
+    while changed:
+        changed = False
+        for item in output:
+            if item["role"] != "INPUT":
+                continue
+            for parent in found[item["source_id"]].get("depends_on", []):
+                if found[parent]["role"] != "INPUT" or by_id[parent]["status"] != "PRECHECK_PASSED__NOT_FINAL_APPROVAL":
+                    if "DEPENDENCY_NOT_APPROVED_INPUT" not in item["reasons"]:
+                        item["reasons"].append("DEPENDENCY_NOT_APPROVED_INPUT")
+                        item["reasons"].sort()
+                        item["status"] = "BLOCKED"
+                        changed = True
+
     inputs = [row for row in output if row["role"] == "INPUT"]
     return {
         "schema_id": "hinanex.c.historical_replay_preflight_report.v0.1",
