@@ -153,3 +153,21 @@ Github Actions successfully ran this in the isolated evidence-capture workflow #
 - Weather evacuation response plan raw SHA256 11205472c5feb45e10180319a32d9dd13f80d292ab8f86d18e534df1dbea4e53
 - Independent GSI nationally consistent evacuation data with hazard-specific columns is under **A-only initial investigation**, not yet source-captured/accepted for Edogawa: see data-research/scenarios/2026-10-13-gsi-emergency-evacuation-data-investigation.md.
 - C independent human site-identity approval: 0; D/C formally approved flood-only semantics: 0; new flood classifications: 0. No stage/live deployment changes.
+
+
+## 2026-10-13 旧下鎌田小学校の行政回答後C審査ゲート
+
+
+2026-04-01の外水・内水施設一覧と2026-07-01旧校舎解体契約議決は別時点の根拠。現時点の旧体育館の存否・立入可否・指定継続・当日開設は未確認。
+
+照会票: reviews/2026-10-13-old-shimokamata-inquiry-packet.json。未送信・未回答の初期状態を保持。旧下鎌田（東瑞江3丁目11番1号）と新下鎌田（瑞江4丁目19番10号）を混合しない。
+
+回答原本受入: validation/verify_edogawa_official_reply_intake.py。Git外の秘匿場所に置いたメール・文書・電話メモのSHA256、窓口、日時、同じ原本の使い回しを検証するが、自治体担当者の真正性や内容は自動承認しない。
+
+審査準備: validation/build_shimokamata_review_readiness.py。同じ原本検証を再利用し、外水、内水、旧建物の現況、旧新敷地同一性・時点、現在開設の5ゲートを分離。回答が両部署から届いても人間Cの署名、D/C制度審査と最新開設根拠は別条件。
+
+実行例: python validation/validation/build_shimokamata_review_readiness.py --packet validation/reviews/2026-10-13-old-shimokamata-inquiry-packet.json --original-dir /private/official-replies --out /private/decision_readiness_UNAPPROVED.json
+
+テスト: python -m unittest discover -s validation/validation -p 'test_shimokamata_review_readiness.py' -v
+
+回答原文・個人情報を公開PR/Issue/Gitに追加しない。Cの審査準備JSONも原文本文・ファイル名を公開しない。施設同一性承認0件、新規洪水判定0件、現行Edogawa Dの152施設UNKNOWN、main/Render変更なし。
