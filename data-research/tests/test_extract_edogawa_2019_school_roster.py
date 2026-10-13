@@ -29,7 +29,7 @@ def sample_words():
     for n in range(1, 22):
         if n == 2:
             y = 125.3
-            words.extend([word(320, 131.96, "2"), word(316, y, "架空中学校2"),
+            words.extend([word(305, 131.96, "2"), word(316, y, "架空中学校2"),
                           word(431, y, "3"), word(468, y, "1"),
                           word(494, y, "1"), word(509, y, "100%"),
                           word(316, 138.6, "架空中学校2【夜間】"),
