@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 1kz-ma1/HINANEX
-          ref: f1261dd0e2f5206b26d01e4ecdbea5bbfc46457c
+          ref: 6f21bcf36922ddb62531e727bfcbfe382672ba9b
           path: a-research
           persist-credentials: false
 
