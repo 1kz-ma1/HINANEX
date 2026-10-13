@@ -102,3 +102,22 @@ This is **not an unresolved same-effective-date contradiction** once the municip
 Current C audit adds `duplicate_municipal_detail_urls()`: confirm **each** original municipal CSV URL equals the matching D record's `detail_url`, then identify any *nonblank* URL shared by multiple distinct original rows/IDs. This is independent of arbitrary old/new school names; reported collisions are **not** evidence of the same physical facility. The user-uploaded 152-row CSV has **one** non-empty duplicate group, for current/old Shimo-Koiwa, and no other such group. The report includes all involved original D IDs and original distinct coordinate count, with `independent_cross_source_identity_approved = false` and `flood_specific_eligibility = UNKNOWN`. This is a source-trace check, not a valid indicator of flood suitability.
 
 **D/C policy STOP remains:** deciding whether old municipal standby use floors should be translated into `CANDIDATE` or `EXCLUDED` in a *洪水単独* scenario requires municipal hazard-specific semantics and independent human C sign-off. Do not make that decision from the provenance chronology or raw URL alone.
+
+## 2026-10-13 official-source byte-level archive collector (future human C operation)
+
+- Tool: `validation/validation/archive_edogawa_official_sources.py` (stdlib HTTPS).
+- Offline synthetic test: `validation/validation/test_edogawa_official_snapshot_archive.py`.
+- Intended inputs are the **live municipal water facility HTML and shelter location CSV**, municipal school directory, municipal elementary school directory and April 2025 school relocation release, plus the two institution-owned school pages.
+- The script contacts only a predefined set of **HTTPS allowlisted official hosts**, checks final response URL and success status, rejects blank or over-size downloads, and prepares **one per-byte SHA256 + HTTP response metadata manifest**. If any required fetch fails, no partial 'complete snapshot' manifest is written.
+- It rejects a nonempty pre-existing output directory to prevent silently overwriting an older official evidence version. Output is **outside Git**, per repo raw-source rules. HTTP `Last-Modified` is preserved as raw header, **not** treated as the official page publication/effective date.
+
+Example, run in an environment where official sites can be reached:
+
+~~~powershell
+python validation/validation/archive_edogawa_official_sources.py --out-dir "C:\HINANEX-evidence\official-20261013"
+python -m unittest discover -s validation/validation -p "test_edogawa*.py" -v
+~~~
+
+**Execution limits for this turn:** Direct external DNS requests from the agent's working container failed; the HTTP archiver has **NOT** been run against live municipal/school servers. The web-text research above is independent public-page discovery but **NOT byte-for-byte original source retrieval**. Running the archive collector creates evidence files and hashes, not an attested facility identity crosswalk; human reviewer must review source page contents, chronology, original D CSV/JSON version, and formal C acceptance.
+
+Further inputs to a future approved join: archive hashes + recorded official page publication/effective dates + reviewer identity / verification date + municipality-specific definition of `水害待避施設` vs `洪水単独指定`. The C audit must never write `CANDIDATE/EXCLUDED` just because this source archive exists.
