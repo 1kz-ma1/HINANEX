@@ -117,13 +117,16 @@ def compare(baseline_water, baseline_csv, current_archive):
     baseline_location_rows = location_rows(baseline_csv)
     current_location_rows = location_rows(latest_csv)
 
-    water_fields = list(baseline_water_rows[0])
-    if water_fields != list(current_water_rows[0]):
+    # Official table/row indices are evidence trace positions, not
+    # intrinsic facility properties. A municipality reordering the table
+    # must not be reported as a substantive change to school attributes.
+    water_fields = [
+        "official_number_raw", "official_name_raw",
+        "official_address_raw", "official_phone_raw",
+        "official_usable_floor_raw",
+    ]
+    if set(baseline_water_rows[0]) != set(current_water_rows[0]):
         raise RevisionFailure("Official water table fields changed")
-    if tuple(WATER_HEADER) != (
-        "番号", "名称", "住所", "電話番号", "使用可能階数"
-    ):
-        raise RevisionFailure("Water schema changed unexpectedly")
 
     water_diff = _compare_rows(
         baseline_water_rows, current_water_rows, water_fields
