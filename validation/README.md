@@ -82,3 +82,19 @@ python validation/validation/build_edogawa_identity_review_packet.py --archive-d
 - 出力は市の学校一覧と学校運営者ページの**住所・電話番号文字列の存在有無**、取得バイトSHA256、公式水害一覧・Dレコードの引用元ID、Cの確認事項を併記します。文字列が存在しても同一施設の承認にはなりません。欠落しても避難施設ではないという判定にはなりません。
 - 旧下小岩・現下小岩の異なる物理施設、共有される学校Web URL、旧校舎の大規模水害時の非使用条件を別枠で保持します。資料の更新日・情報の対象時点も人間が独立に確認してください。
 - 出力ファイルはGit外に作成。C本人の署名・正式な施設ペア承認は**未実施**、洪水単独適合判定は**UNKNOWN**。2校のレビュー用資料生成と自治体の洪水適合指定は完全に別工程です。
+
+
+### 再取得した公式原本の差分検証（C / 2026-10-13）
+
+7件の公式アーカイブを実際に取得できた後、ユーザーが過去に保存した **水害施設HTML / 2025年12月11日施設位置CSV** と、新しい原本の差分を独立に検査できます。
+
+~~~powershell
+python validation/validation/compare_edogawa_official_revisions.py --baseline-water-html "C:\HINANEX-evidence\old_water_saved.html" --baseline-location-csv "C:\HINANEX-evidence\20251211_hinanhokan.csv" --current-archive "C:\HINANEX-evidence\official-20261013" --report "C:\HINANEX-evidence\official_revision_diff.json"
+~~~
+
+- 7件の最新Raw/Manifestを先に再ハッシュ検証し、水害施設一覧の全フィールド（名称・住所・電話・原文使用階数等）と位置CSVの原文6列をそれぞれ比較します。順序では施設同一性を決めません。
+- 結果は3種類：BASELINE_AND_CURRENT_BYTES_EQUAL_STILL_REVIEW_REQUIRED（2原本バイト一致）、SOURCE_BYTES_DIFFER_STRUCTURE_SAME_REVIEW_REQUIRED（バイト差はあるが構造化行は同じ）、STRUCTURED_SOURCE_DRIFT_REVIEW_REQUIRED（構造化行が変更）。いずれも要レビューであり正式承認ではありません。
+- 追加・削除されたRawの行を記録し、学校2件と旧・現下小岩を優先監査対象として別表示。**原文階数・住所の差分をAIの推測や名称照合で吸収しません。**
+- HTMLの改行や空白だけの差異は、SHA256では変化として記録しながら、構造化内容の比較時だけ空白正規化して区別します。
+- 新しい原本と古いD/A/C成果物を混在させない。新旧版に実質差分がある場合は、最新版に合わせA・D生成とC監査をやり直してからレビュー資料を生成します。
+- 履歴基準HTMLの真正性・取得日、最新原本の適用時期、公式の洪水適合指定、施設の開設・安全性は差分比較だけでは証明できません。**承認ペアと新規洪水適合判定はゼロのまま**です。
