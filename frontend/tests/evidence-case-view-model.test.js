@@ -128,6 +128,7 @@ test("page is isolated from RegionExport and GIS navigation and has source-only 
   assert.match(html, /発表・教育用の事例です/);
   assert.match(html, /id="caseFile"/);
   assert.match(html, /id="chooseCaseFile"/);
+  assert.match(html, /tabindex="-1"/);
   assert.match(source, /chooseFileButton.addEventListener\("click", \(\) => inputs.click\(\)\)/);
   assert.match(html, /id="caseStages"/);
   assert.match(html, /id="caseSources"/);
