@@ -12,7 +12,6 @@ from pathlib import Path
 import re
 import unicodedata
 
-import fitz
 
 CITY = "https://www.city.edogawa.tokyo.jp"
 FILES = {
@@ -57,6 +56,7 @@ def norm(s):
 
 
 def pdf_context(key, raw):
+    import fitz  # isolated source-audit job installs PyMuPDF; core CI has no dependency
     if not raw.startswith(b"%PDF-") or b"%%EOF" not in raw[-2048:]:
         raise AuditError("Official PDF header/end missing")
     try:
