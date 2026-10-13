@@ -81,3 +81,13 @@
   .case-addresses dt:not(:first-child) { margin-top: 8px; }
   .case-step h3 { font-size: 17px; }
 }
+
+/* Keyboard focus and hit areas are explicit on the isolated case page. */
+.evidence-page .source-button { min-height: 44px; }
+.evidence-page .source-button:focus-visible,
+.evidence-page .case-source-list summary:focus-visible,
+.evidence-page .case-step-facts a:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 3px;
+}
+.evidence-page .case-source-list summary { cursor: pointer; min-height: 28px; }
