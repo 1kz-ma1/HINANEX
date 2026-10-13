@@ -416,9 +416,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python data-research/tools/archive_edogawa_2026_water_site_revisions.py \\
+          python data-research/tools/archive_edogawa_2026_water_site_revisions.py \
             --out-dir "$RUNNER_TEMP/edogawa-2026-flood-site-UNAPPROVED"
-          python data-research/tools/archive_edogawa_2026_water_site_revisions.py \\
+          python data-research/tools/archive_edogawa_2026_water_site_revisions.py \
             --verify-dir "$RUNNER_TEMP/edogawa-2026-flood-site-UNAPPROVED"
 
       - name: Upload standalone non-approved source revisions
