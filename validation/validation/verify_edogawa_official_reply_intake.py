@@ -109,6 +109,7 @@ def evaluate(packet, original_dir):
     statuses = {}
     observed = set()
     receipts = []
+    used_evidence_files = set()
     for item in records:
         must(isinstance(item, dict), "Office request must be a record")
         role = item.get("office_id")
@@ -133,6 +134,9 @@ def evaluate(packet, original_dir):
         elif state == "REPLY_ARCHIVED_UNREVIEWED":
             must(isinstance(reply, dict), "Reply requires its raw original evidence")
             name = _safe_evidence_name(reply.get("original_filename"))
+            must(name not in used_evidence_files,
+                 "One original reply cannot substitute for two responsible offices")
+            used_evidence_files.add(name)
             digest = reply.get("sha256")
             must(isinstance(digest, str) and HEX64.fullmatch(digest) is not None,
                  "Official reply evidence SHA256 required")
