@@ -17,10 +17,10 @@
 
 | 番号 | 操作と期待値 | 判定 |
 |---|---|---|
-| B1 | `/frontend/` を開き、江戸川区 `13123` を選択。Dの元Capability、Evidence、Metric `0` と `null` の区別を確認 | NOT RUN |
-| B2 | 新潟市 `15100` に切替。遅延した前地域の読込結果で上書きされないことを確認 | NOT RUN |
-| B3 | 名古屋市 `23100` に切替。取得件数は自治体全施設数と誤記せず、地理座標の欠損を架空のピンに変換しない | NOT RUN |
-| B4 | 各地域の「地図へ戻る」リンクで地域コードが保持される。Eが実際に受け取った後の地図動作はEが受入 | NOT RUN |
+| B1 | `/frontend/` を開き、江戸川区 `13123` を選択。Dの元Capability、Evidence、Metric `0` と `null` の区別を確認 | 地域・概要表示 AUTOMATED PASS / Metric・Evidence目視 NOT RUN |
+| B2 | 新潟市 `15100` に切替。遅延した前地域の読込結果で上書きされないことを確認 | 地域切替 AUTOMATED PASS / 通信競合試験 NOT RUN |
+| B3 | 名古屋市 `23100` に切替。取得件数は自治体全施設数と誤記せず、地理座標の欠損を架空のピンに変換しない | B地域切替・UNKNOWN AUTOMATED PASS / GIS座標目視 NOT RUN |
+| B4 | 各地域の「地図へ戻る」リンクで地域コードが保持される。Eが実際に受け取った後の地図動作はEが受入 | リンク・GIS HTTP応答 AUTOMATED PASS / GIS操作 NOT RUN |
 | B5 | 証拠事例 `/frontend/evidence-case.html` は別画面で、3状態・4固定出典と最後のUNKNOWN・教育用免責を表示 | AUTOMATED PASS / MANUAL NOT RUN |
 | B6 | 改変JSON（OPEN・私的情報・未知フィールド）を選ぶと旧表示を消し、明示エラーを示す | AUTOMATED PASS / MANUAL NOT RUN |
 | B7 | PC 1365×900、モバイル390×844で横スクロールやキーボード操作障害がない | AUTOMATED PASS / REAL DEVICE NOT RUN |
@@ -40,6 +40,10 @@
 - B `#164` のRender相当3地域デプロイ前ビルド: https://github.com/1kz-ma1/HINANEX/actions/runs/38351800159 （SUCCESS）
 - C実生成公開教育JSON → Bの厳格Consumer、Chromium・WebKit、axe自動検査: PR #164の記録を参照
 - CのオフラインT0証拠シート生成: https://github.com/1kz-ma1/HINANEX/actions/runs/38352174169 （SUCCESS、**B/Eの画面受入ではない**）
+
+- **2026-10-13追加実行：** [shared #139 実配布候補Chromium 3地域切替](https://github.com/1kz-ma1/HINANEX/actions/runs/38353842978) の `Render-equivalent actual 3-region build and C/B browser predeploy gate` が **SUCCESS**。ログ出力 `B real D bundle Chromium regions PASS; GIS routes only; mismatched D JSON clears stale region and recovery PASS` を確認。検証されたB実装は `d7b5ff4e76fd40da1b39297a8bedc197a4e29ee0`（shared workflow `7aca322403c7e7e75a3127cf5299518321092465`）。
+- 非公開7日間artifact: `render-equivalent-predeploy-case-audit-UNAPPROVED-38353842978` / ID `11792255842` / GitHub ZIP digest `sha256:c8db2627d5816b8a2e8e12e76ee8f7fe9fd61e651cc05219fc75da850237b614` / 失効 **2026-10-20 05:55 UTC**。3地域PC画像と監査manifest、従来のC教育画面画像を含む。実Render・データ生JSONは配布していない。
+- Bの新しいPC 1365×900ブラウザ切替は自動合格。Eの地図内部操作、Bのスマホ3地域切替、実Edge/Safari/VoiceOver、#89の受入は**未実施**。資料用Cの状態を現在の避難所開設承認に昇格させない。
 
 自動テストの緑色は**本番ステージングが更新された証明ではない**。現行Renderは`main`連動のため、Merge Captainの許可前にマージ・デプロイしない。
 
