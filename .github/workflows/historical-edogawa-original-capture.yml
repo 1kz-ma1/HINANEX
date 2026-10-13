@@ -57,6 +57,33 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Checkout pinned C independent auditor (unmerged review)
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 51e5d08cc125f3710de275b19f087f2fed917a5a
+          path: c-independent
+          persist-credentials: false
+
+      - name: Independently audit exact same original bytes and Tokyo rows
+        id: c_audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          zip -j -q "$RUNNER_TEMP/edogawa-historical-for-C.zip" "$RUNNER_TEMP/hinanex-historical-UNREVIEWED/"*
+          python c-independent/validation/validation/audit_historical_edogawa_archive.py \
+            --archive-zip "$RUNNER_TEMP/edogawa-historical-for-C.zip" \
+            --report "$RUNNER_TEMP/C_historical_edogawa_UNAPPROVED.json"
+
+      - name: Upload C independent checks report (NO HISTORICAL ACCEPTANCE)
+        if: ${{ steps.c_audit.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: edogawa-2019-C-checks-UNAPPROVED-${{ github.run_id }}
+          path: ${{ runner.temp }}/C_historical_edogawa_UNAPPROVED.json
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Human-review status summary
         if: always()
         shell: bash
@@ -65,6 +92,7 @@ jobs:
             echo "### 2019江戸川区 Historical Replay 原本候補"
             echo "A capture: ${{ steps.capture.outcome }}"
             echo "A SHA verification: ${{ steps.verify.outcome }}"
+            echo "C independent byte and HTML row check: ${{ steps.c_audit.outcome }}"
             echo "Originals: private 7-day GitHub Actions artifact, never committed."
             echo "**A original-byte capture is NOT independent C acceptance.**"
             echo "**2019 as-of availability approval: 0 / Facility identity approved: 0 / Prediction accuracy: not evaluated.**"
