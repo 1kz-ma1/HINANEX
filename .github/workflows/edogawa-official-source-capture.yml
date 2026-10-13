@@ -186,3 +186,53 @@ jobs:
             echo "新規洪水 CANDIDATE/EXCLUDED: **0**"
             echo "資料の対象時期と施設同一性、洪水単独指定の意味は担当者が別途審査します。"
           } >> "${GITHUB_STEP_SUMMARY}"
+
+  gsi-edogawa:
+    name: Investigate official nationwide GSI CSV for Edogawa (NO APPROVAL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout pinned A GSI research code
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 1818f32353fbdde102fa217b383bbb97fe31be67
+          persist-credentials: false
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run A-only GSI offline negative tests
+        shell: bash
+        run: python -m unittest discover -s data-research/tests -p "test_retrieve_gsi_edogawa_official.py" -v
+
+      - name: Retrieve GSI official nationwide emergency-evacuation CSV
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python data-research/tools/retrieve_gsi_edogawa_official.py \
+            --out-dir "$RUNNER_TEMP/hinanex-gsi-UNREVIEWED"
+
+      - name: Archive original GSI CSV plus only research leads, no hazard promotion
+        if: steps.source.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: gsi-national-edogawa-evidence-UNREVIEWED-${{ github.run_id }}
+          path: ${{ runner.temp }}/hinanex-gsi-UNREVIEWED/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Record provenance and unresolved meaning
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### GSI nation-wide designated-emergency-evacuation data (A-only)"
+            echo "GSI retrieval outcome: ${{ steps.source.outcome }}"
+            echo "The source common ID is NOT an existing D facility identifier."
+            echo "Municipality flood-only designation does not certify today\x27s opening, safe routes or an Edogawa water-standby site join."
+            echo "Human C-approved links: 0 / new flood CANDIDATE/EXCLUDED: 0."
+          } >> "$GITHUB_STEP_SUMMARY"
