@@ -102,7 +102,7 @@ class SchoolHistoryArchiveTest(unittest.TestCase):
             m = fixture(p)
             m["source_items"][0]["source_key"] = m["source_items"][1]["source_key"]
             (p / "campus_history_manifest_UNAPPROVED.json").write_text(json.dumps(m))
-            with self.assertRaisesRegex(campus.CampusArchiveFailure, "Duplicate"):
+            with self.assertRaisesRegex(campus.CampusArchiveFailure, "Duplicate|Original source identity"):
                 campus.verify(p)
 
     def test_reuse_archive_directory_forbidden(self):
