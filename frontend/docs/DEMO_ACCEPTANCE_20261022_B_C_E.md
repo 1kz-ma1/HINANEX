@@ -43,6 +43,28 @@
 
 自動テストの緑色は**本番ステージングが更新された証明ではない**。現行Renderは`main`連動のため、Merge Captainの許可前にマージ・デプロイしない。
 
+## 2026-10-13 B実ブラウザ自動テストの実行境界
+
+B専用スクリプト `frontend/scripts/three-region-demo-browser-smoke.mjs` を、共有CI #139の**Render相当の一時配布物**でChromium実行する。BのGitHub required CI成功はスクリプトの構文・単体テスト確認であり、実ブラウザ検証の代用にしない。
+
+```sh
+# #139 の共有CI内。Renderデプロイなし。一時HTTPサーバーを8765で起動後に実行。
+node b-render-candidate/frontend/scripts/three-region-demo-browser-smoke.mjs \
+  "$RUNNER_TEMP/hinanex-render-predeploy-dist" \
+  "$RUNNER_TEMP/render-predeploy-three-region-screens"
+```
+
+このテストがPASSすれば、次を**自動検証としてのみ**記録可能：
+
+- 3地域の実D JSON切替、1つの選択状態、概要表示、合成mock自動fallbackなし、洪水Scenario UNKNOWNと免責
+- Bの地域コード付きGIS URLとローカル同梱E HTMLへのHTTPアクセス（**E地図の動作受入ではない**）
+- 不一致のD地域JSON投入で既存概要を消去・エラー化し、正常JSONへ復帰可能
+- PC Chromium 1365×900で横幅溢れなし、JavaScript pageerrorなし
+
+未検証として残す：B1のMetric `0/null` とEvidence全表示の目視、B2のネットワーク競合再現、B3の地図上の座標欠損処理（E領域）、Eの地図レイヤー・クラスタ・GPS拒否・90秒デモ、スマホの3地域切替、実Render、Edge実機・Safari・VoiceOver、#89の全体受入。
+
+CIのURL、最終コミット、スクリーンショットartifactと結果を**実行後**に追記する。UNKNOWNや2019年の未確定施設同一性を正式承認へ昇格させない。
+
 ## 記録欄（各項目ごとに記入）
 
 - 実施日/時刻、検証者：
