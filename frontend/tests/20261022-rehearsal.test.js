@@ -87,7 +87,7 @@ function mount(){
         get:(id)=>registry.get(id),
         click:(id)=>registry.get(id).listeners.click(),
         time(ms){milliseconds=ms;const old=Array.from(frames);frames.clear();for(const [,fn] of old)fn();},
-        key(k){let blocked=false;listeners.keydown({code:k,target:new FakeElement(),preventDefault(){blocked=true}});return blocked;},
+        key(k){let blocked=false;listeners.keydown({code:k,key:k,target:new FakeElement(),preventDefault(){blocked=true}});return blocked;},
     };
 }
 
