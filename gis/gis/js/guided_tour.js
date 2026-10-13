@@ -3,27 +3,40 @@
   const get = id => document.getElementById(id);
   const api = window.HINANEX_PRESENTATION_TOUR;
   const panel = get("mapTourPanel");
+  // Three distinct *data-display cases*, not three evacuation recommendations.
+  // Never derive safety, suitability or opening from source counts.
   const steps = [
     {
-      code: "13123", title: "江戸川区｜出典のある施設を調べる",
-      description: "最初は実際のD施設の座標付きレコード1件に近づきます（単なる表示例で、推奨施設ではありません）。安全性・開設状況は未判定です。"
+      code: "13123", title: "江戸川区｜元座標がある施設",
+      description: "元データの座標付き施設に近づきます。表示した施設は推薦・開設確認済みの避難先ではありません。"
     },
     {
-      code: "15100", title: "新潟市｜地図の移動で施設を自動表示",
-      description: "ユーザーが地域ボタンを押さなくても、閲覧範囲にある元座標付き施設を確認できます。洪水適合に関するODSの記号・階数条件はUNKNOWNです。"
+      code: "15100", title: "新潟市｜別の地域の実データ",
+      description: "新潟市の元座標付きD施設を表示します。洪水適合に関するODSの記号・階数条件は未確定（UNKNOWN）です。"
     },
     {
-      code: "23100", title: "名古屋市｜位置がないデータは地図に置かない",
-      description: "取得した施設記録があっても、元データに座標がなければ推測でピンを置きません。情報の欠損も明確に伝えます。"
+      code: "23100", title: "名古屋市｜座標がない施設一覧",
+      description: "施設記録は取得できても元座標がなければ地図へピンを置きません。地図は前の位置のままです。位置・安全性・開設状況は未確認です。"
     }
   ];
+  const codes = steps.map(item => item.code);
+  const summaries = new Map(codes.map(code => [code, "未再生"]));
   let state = "idle";
   let index = -1;
+  let sequence = [];
   let playbackId = 0;
   let timer = null;
   function clearTimer() {
     if (timer !== null) window.clearTimeout(timer);
     timer = null;
+  }
+  function updateComparison() {
+    for (const step of steps) {
+      get("mapTourCompare" + step.code).textContent = summaries.get(step.code);
+      const selected = sequence[index]?.code === step.code &&
+        (state === "preparing" || state === "playing" || state === "paused");
+      get("mapTourCase" + step.code).setAttribute("aria-pressed", String(selected));
+    }
   }
   function renderState() {
     const active = state === "playing" || state === "preparing";
@@ -31,61 +44,87 @@
     get("mapTourStart").disabled = active || suspended;
     get("mapTourPause").disabled = !(active || suspended);
     get("mapTourPause").textContent = suspended ? "再開" : "一時停止";
-    get("mapTourNext").disabled = !(active || suspended);
+    get("mapTourNext").disabled = !(active || suspended) || index >= sequence.length - 1;
     get("mapTourStop").disabled = !(active || suspended || state === "completed");
-    const current = Math.min(index + 1, steps.length);
+    const count = sequence.length || steps.length;
+    const current = Math.min(index + 1, count);
     get("mapTourProgress").textContent = state === "idle" ? "開始前" :
-      state === "completed" ? "3 / 3｜完了" :
-      state === "paused" ? current + " / 3｜一時停止" :
-      current + " / 3｜再生中";
+      state === "completed" ? count + " / " + count + "｜完了" :
+      current + " / " + count + (suspended ? "｜一時停止" :
+        state === "preparing" ? "｜取得中" : "｜再生中");
+    updateComparison();
   }
   function displayStep(step, result) {
     get("mapTourTitle").textContent = step.title;
     get("mapTourDescription").textContent = step.description;
-    get("mapTourSourceStatus").textContent =
-      result.state === "mapped"
-        ? "元データの座標あり " + result.mapped + "件（取得レコード " + result.total + "件）。表示は安全性の判定ではありません。"
-      : result.state === "unlocated"
-        ? "取得レコード " + result.total + "件、座標確認済み 0件。位置は推測しません。"
-      : result.state === "cancelled"
-        ? "デモを中断しました。"
-        : "この地域のRegionExportを取得・確認できませんでした。施設が存在しないという意味ではありません。";
+    const total = Number.isSafeInteger(result?.total) && result.total >= 0 ? result.total : null;
+    const mapped = Number.isSafeInteger(result?.mapped) && result.mapped >= 0 ? result.mapped : null;
+    if (result?.state === "mapped" && total !== null && mapped !== null && mapped <= total) {
+      summaries.set(step.code, "取得 " + total + "件｜元座標あり " + mapped +
+        "件｜座標未確認 " + (total - mapped) + "件");
+      get("mapTourSourceStatus").textContent = summaries.get(step.code) +
+        "。取得した施設データの内訳であり、網羅数・安全性・開設状況は未確認です。";
+    } else if (result?.state === "unlocated" && total !== null) {
+      summaries.set(step.code, "取得 " + total + "件｜元座標あり 0件｜位置未確認");
+      get("mapTourSourceStatus").textContent = summaries.get(step.code) +
+        "。位置を推測しません。地図は前の位置のままです。元データの施設一覧を参照してください。";
+    } else {
+      summaries.set(step.code, "データ未取得・未確認（施設なしとは断定できません）");
+      get("mapTourSourceStatus").textContent = summaries.get(step.code) +
+        "。施設が存在しないという意味ではありません。";
+    }
+    updateComparison();
   }
   async function runStep(next) {
     clearTimer();
     index = next;
-    if (next >= steps.length) {
+    if (next >= sequence.length) {
       state = "completed";
-      get("mapTourTitle").textContent = "ガイド付きデモを終了しました";
-      get("mapTourDescription").textContent = "QRから地図を触るか、分析・根拠から元データを確認できます。";
-      get("mapTourSourceStatus").textContent = "開始前の地図に戻るには「停止・元の位置へ」を押してください。";
+      get("mapTourTitle").textContent = "選択したデモを終了しました";
+      get("mapTourDescription").textContent = "下の3地域の取得結果を比較し、どれでも個別再生できます。";
+      get("mapTourSourceStatus").textContent =
+        "表示数は取得できたDデータの数です。避難先の安全性や開設状況は判定していません。";
       renderState();
       return;
     }
     state = "preparing";
     renderState();
     const nonce = ++playbackId;
-    const step = steps[index];
+    const step = sequence[index];
     get("mapTourTitle").textContent = step.title;
-    get("mapTourDescription").textContent = "確認済みの施設位置を読み込み中です。読み込みが完了すると地図が動きます…";
+    get("mapTourDescription").textContent = "元データの取得状況を確認しています…";
     get("mapTourSourceStatus").textContent = "";
+    summaries.set(step.code, "取得中（件数未確認）");
+    updateComparison();
     let result;
     try {
       const reduced = !!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
-      result = await api.focus(step.code, !reduced, index === 0);
+      result = await api.focus(step.code, !reduced, step.code === "13123");
     } catch (_) {
-      result = { state: "unavailable", mapped: 0, total: 0 };
+      result = { state: "unavailable" };
     }
+    // Changing a mode, stopping, closing or pausing makes old HTTP results
+    // ineligible to overwrite the current comparison or map description.
     if (nonce !== playbackId || state === "paused") return;
     displayStep(step, result);
     state = "playing";
     renderState();
-    // Presenter can pause/skip at any point; the last step remains visible
-    // long enough to explain why data with no coordinates has no map pin.
-    timer = window.setTimeout(() => { timer = null; runStep(index + 1); }, 6500);
+    timer = window.setTimeout(() => {
+      timer = null;
+      runStep(index + 1);
+    }, 6500);
   }
-  function begin() {
-    if (state !== "idle" && state !== "completed") return;
+  function startRun(nextCodes) {
+    // Only literal, known D RegionExport cases; never take coordinates, raw
+    // source URLs or custom disaster descriptions from the UI.
+    if (!nextCodes.length || nextCodes.some(code => !codes.includes(code))) return;
+    clearTimer();
+    playbackId++;
+    if (state !== "idle") api.end(true);
+    sequence = nextCodes.map(code => steps.find(step => step.code === code));
+    index = -1;
+    state = "idle";
+    for (const code of nextCodes) summaries.set(code, "未再生");
     api.begin();
     runStep(0);
   }
@@ -104,17 +143,18 @@
   function stop(restore = true) {
     clearTimer();
     playbackId++;
-    api.end(restore);
+    if (state !== "idle") api.end(restore);
     state = "idle";
     index = -1;
-    get("mapTourTitle").textContent = "地域を巡るデモ";
-    get("mapTourDescription").textContent = "江戸川区→新潟市→名古屋市。災害予測・避難推奨ではありません。";
+    sequence = [];
+    get("mapTourTitle").textContent = "3つの地域データを比較";
+    get("mapTourDescription").textContent =
+      "地域を選んで個別に再生、または3地域を続けて比較できます。災害予測や避難推奨ではありません。";
     get("mapTourSourceStatus").textContent = "";
     renderState();
   }
   function open() {
     if (!panel.hidden) return;
-    // This is a presenter-only control, never opened by demo=audience.
     get("mapShareClose").click();
     for (const menu of ["mapToolScene", "mapToolScenario", "mapToolMarks", "mapToolHazards"]) get(menu).open = false;
     get("mapAudienceIntro").hidden = true;
@@ -125,12 +165,17 @@
     stop(true);
     panel.hidden = true;
   }
-  get("mapTourOpen").addEventListener("click", () => { open(); });
+  get("mapTourOpen").addEventListener("click", open);
   get("mapTourClose").addEventListener("click", close);
-  get("mapTourStart").addEventListener("click", begin);
+  get("mapTourStart").addEventListener("click", () => startRun(codes));
+  for (const step of steps) {
+    get("mapTourCase" + step.code).addEventListener("click", () => startRun([step.code]));
+  }
   get("mapTourPause").addEventListener("click", pause);
   get("mapTourNext").addEventListener("click", () => {
-    if (state !== "playing" && state !== "paused" && state !== "preparing") return;
+    if (!["playing", "paused", "preparing"].includes(state) ||
+        index >= sequence.length - 1) return;
+    playbackId++;
     api.halt();
     runStep(index + 1);
   });
