@@ -421,8 +421,36 @@ jobs:
           python data-research/tools/archive_edogawa_2026_water_site_revisions.py \
             --verify-dir "$RUNNER_TEMP/edogawa-2026-flood-site-UNAPPROVED"
 
+      - name: Checkout pinned independent C 2026 flood-standby review
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 2d4a015e8691d11091a8fa257d0a0571828a627f
+          path: c-2026-source
+          persist-credentials: false
+
+      - name: Install isolated PDF page text reader for independent C original review
+        shell: bash
+        run: python -m pip install 'pymupdf>=1.26,<2'
+
+      - name: Reject changed 2026 PDF provenance and false status promotions with C
+        shell: bash
+        run: |
+          python -m unittest discover \
+            -s c-2026-source/validation/validation \
+            -p 'test_edogawa_2026_water_site_revisions.py' -v
+
+      - name: Independently inspect both dated flood-hazard pages and old-site reuse notice
+        id: c_2026
+        shell: bash
+        run: |
+          set -euo pipefail
+          python c-2026-source/validation/validation/verify_edogawa_2026_water_site_revisions.py \
+            --archive-dir "$RUNNER_TEMP/edogawa-2026-flood-site-UNAPPROVED" \
+            --report "$RUNNER_TEMP/edogawa-2026-flood-site-UNAPPROVED/C_independent_site_version_REVIEW_ONLY.json"
+
       - name: Upload standalone non-approved source revisions
-        if: steps.source.outcome == 'success'
+        if: steps.c_2026.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: edogawa-2026-external-inland-water-originals-UNAPPROVED-${{ github.run_id }}
