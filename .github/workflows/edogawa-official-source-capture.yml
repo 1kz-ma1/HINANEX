@@ -465,3 +465,84 @@ jobs:
           echo '2026 flood-plan site-version source capture: ${{ steps.source.outcome }}' >> "$GITHUB_STEP_SUMMARY"
           echo 'Original source bytes and as-of dates are not human C approval or real-time site opening.' >> "$GITHUB_STEP_SUMMARY"
           echo 'Old/new Shimokamata must remain physically distinct; 0 C pairs/0 new flood statuses.' >> "$GITHUB_STEP_SUMMARY"
+
+  old-campus-contract:
+    name: Archive independent council demolition bill and verify PDF (UNAPPROVED)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout pinned A council official original collector
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 1505b91e98ab66a308e0af731852eaaf13bb9f8a
+          persist-credentials: false
+
+      - name: Install Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Test archive tamper and unsupported approval rejection
+        shell: bash
+        run: python -m unittest discover -s data-research/tests -p 'test_archive_edogawa_demolition_contract.py' -v
+
+      - name: Fetch exact official Edogawa council bill 64 PDF and hash-verify
+        id: archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          python data-research/tools/archive_edogawa_demolition_contract.py \
+            --out-dir "$RUNNER_TEMP/council-shimokamata-UNAPPROVED"
+          python data-research/tools/archive_edogawa_demolition_contract.py \
+            --verify-dir "$RUNNER_TEMP/council-shimokamata-UNAPPROVED"
+
+      - name: Checkout pinned C independent source verification
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 5a3ebe73bec01bf8b9caa5386c3fdb387bf8cbfd
+          path: c-council-review
+          persist-credentials: false
+
+      - name: Install isolated council-PDF page text reader
+        shell: bash
+        run: python -m pip install 'pymupdf>=1.26,<2'
+
+      - name: Test C rejection of altered bills and hazard conclusions
+        shell: bash
+        run: |
+          python -m unittest discover \
+            -s c-council-review/validation/validation \
+            -p 'test_edogawa_demolition_contract.py' -v
+
+      - name: Independently audit actual council contract PDF pages and provenance
+        id: c_review
+        shell: bash
+        run: |
+          set -euo pipefail
+          python c-council-review/validation/validation/verify_edogawa_demolition_contract.py \
+            --archive-dir "$RUNNER_TEMP/council-shimokamata-UNAPPROVED" \
+            --out "$RUNNER_TEMP/council-shimokamata-UNAPPROVED/C_council_bill_UNAPPROVED.json"
+
+      - name: Save standalone raw official council PDF and C audit without deploying
+        if: steps.c_review.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: edogawa-old-campus-demolition-council-UNAPPROVED-${{ github.run_id }}
+          path: ${{ runner.temp }}/council-shimokamata-UNAPPROVED/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Document strict difference between council bill and site usage
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### Former Shimokamata municipal council source"
+            echo "Official bill archive result: ${{ steps.archive.outcome }}"
+            echo "Independent C PDF/page verification: ${{ steps.c_review.outcome }}"
+            echo "Separate council vote result page is NOT embedded within the original bill."
+            echo "Contract award does not certify demolition completed or current opening."
+            echo "C signed campus pairs: 0; new flood CANDIDATE/EXCLUDED: 0."
+          } >> "$GITHUB_STEP_SUMMARY"
