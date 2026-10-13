@@ -155,3 +155,22 @@ python data-research/tools/edogawa_review_ledger.py --water-html C:\HINANEX-evid
 この集計に合わせA補助ツールに**限定的な略称一致ヒント**を追加した（すべて`UNREVIEWED`、複数候補・住所矛盾は`CONFLICT`）。実測台帳はChatGPT作業用ファイルとしてExcel/CSV/JSONで提供したが、保存HTMLやユーザー提出ファイルの原本・生成台帳はGitリポジトリへ無断でcommitしていない。
 
 **今後の完了条件:** 最新原本の版一致確認 → Aの施設行台帳確認 → Cの施設同一性独立検証 → D/Cによる水害待避と洪水単独指定の意味論判断 → 初めてD施設Scenario結果を更新可能。名称のみでの自動確定は引き続き禁止。
+
+
+## 2026-10-13 Live original source regenerated A proposal (UNAPPROVED)
+
+**Retrieval succeeded** on GitHub-hosted read-only isolated runner via shared Draft PR #139, run https://github.com/1kz-ma1/HINANEX/actions/runs/38330877147 . Original seven official raw responses and SHA256/HTTP manifest are retained outside Git as artifact #11781594957 until 2026-10-20.
+
+Source revision evidence:
+- Live municipality water-facility HTML SHA256 **96001e1a22cdc19580f0c4483e01f2f2e1e6d8b2c595ee5d751f24bf836d4deb**
+- Live municipality original location CSV SHA256 **64b1c02377ac6caa2cf58faaf45e34ed76d01b7230c9c4d4590432864700d7ea**
+- Historical 2026-09 D RegionExport SHA256 **f285f9cadb9424a79f0107ddadccd7ba64f2b807f43fea54291d5fc99672da7a** (NOT current Scenario export)
+- Regenerated local UNREVIEWED A candidate ledger SHA256 **eac4a9f907901f8931cdf9e8f7de51fb5fa3313934c8200f0cbd4b79910749d4**
+
+The original municipality CSV is byte-identical to the archived original. The live water HTML's full byte SHA differs from the old browser-saved page, but 111/111 official water table rows are semantically the same on number, name, address, phone and usable floor.
+
+Using a local reconstruction of PR #133 A name-hint proposal generation logic (not a new GitHub checkout run), outcome is 111 rows: 56 normalized-name hints, 52 controlled-abbreviation hints, and 3 manual-review cases (旧下小岩小学校 / 都立 葛西工高等学校 / 私立 関東一高等学校). Formal matched physical-location C-approved pairs = 0. Flood CANDIDATE/EXCLUDED added = 0. Old/current Shimo-Koiwa remain distinct facilities despite sharing one website URL.
+
+**Limitations:** A local reconstruction is not evidence of running the exact PR #133 script or full A suite. Independent C locally rechecked original bytes and CSV-to-historical D row/ID/coordinate/URL consistency (152/152), but human C pairing is NOT approved. The old D export cannot replace current Scenario results. D/C must separately decide the semantics of municipality water-disaster standby vs flood-only eligibility before classifying any record. Original bytes and derived JSON are NOT committed to Git.
+
+Next gate: run PR #133 exact generator with the live archived municipal HTML and current CSV/D export, validate identical source SHA256 in C, and submit candidate documents for independent C human physical-site identification.
