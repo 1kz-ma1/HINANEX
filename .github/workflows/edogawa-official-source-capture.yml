@@ -189,6 +189,7 @@ jobs:
 
   gsi-edogawa:
     name: Investigate official nationwide GSI CSV for Edogawa (NO APPROVAL)
+    needs: capture
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -216,8 +217,40 @@ jobs:
           python data-research/tools/retrieve_gsi_edogawa_official.py \
             --out-dir "$RUNNER_TEMP/hinanex-gsi-UNREVIEWED"
 
+      - name: Checkout pinned C independent GSI verifier
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: e4ba6f98efcf1927b34e4f24ac05807a56a59a18
+          path: c-current
+          persist-credentials: false
+
+      - name: Retrieve exact current D input from the same official-source run
+        uses: actions/download-artifact@v4
+        with:
+          name: edogawa-current-D-UNREVIEWED-${{ github.run_id }}
+          path: ${{ runner.temp }}/hinanex-gsi-D-input
+
+      - name: Retrieve exact C source-to-D audit from the same official-source run
+        uses: actions/download-artifact@v4
+        with:
+          name: edogawa-current-A-D-C-UNREVIEWED-${{ github.run_id }}
+          path: ${{ runner.temp }}/hinanex-gsi-C-input
+
+      - name: Independently audit original GSI rows and current D identity leads
+        id: c_crosscheck
+        shell: bash
+        run: |
+          set -euo pipefail
+          python c-current/validation/validation/audit_gsi_edogawa_original.py \
+            --gsi-raw "$RUNNER_TEMP/hinanex-gsi-UNREVIEWED/gsi_national_original_UNREVIEWED.csv" \
+            --a-gsi-report "$RUNNER_TEMP/hinanex-gsi-UNREVIEWED/gsi_edogawa_review_UNREVIEWED.json" \
+            --current-d "$RUNNER_TEMP/hinanex-gsi-D-input/edogawa_current_D_UNREVIEWED.json" \
+            --c-source-audit "$RUNNER_TEMP/hinanex-gsi-C-input/C_independent_current_D_source_consistency.json" \
+            --out "$RUNNER_TEMP/hinanex-gsi-UNREVIEWED/C_gsi_source_to_D_leads_UNAPPROVED.json"
+
       - name: Archive original GSI CSV plus only research leads, no hazard promotion
-        if: steps.source.outcome == 'success'
+        if: steps.c_crosscheck.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: gsi-national-edogawa-evidence-UNREVIEWED-${{ github.run_id }}
