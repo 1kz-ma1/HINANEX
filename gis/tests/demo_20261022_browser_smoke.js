@@ -62,12 +62,17 @@ const waitUntilLoaded = async (page, code) => {
   return row;
 };
 async function selectRegion(page, code) {
-  const layout = page.locator("#gisLayout");
-  if (await layout.getAttribute("data-left-panel") !== "open") {
-    await page.locator("#toggleLeftPanel").click();
+  // The left-panel toggle is intentionally not visible on the map-first
+  // desktop layout. Use the VISIBLE Scene menu's quick-region selector.
+  const scene = page.locator("#mapToolScene");
+  if (!(await scene.evaluate(el => el.open))) {
+    await page.locator("#mapToolScene > summary").click();
   }
-  await page.locator("#region").selectOption(code);
-  return waitUntilLoaded(page, code);
+  await page.locator("#mapRegionQuickSelect").selectOption(code);
+  const region = await waitUntilLoaded(page, code);
+  assert.equal(await page.locator("#mapRegionQuickSelect").inputValue(), code,
+    "Scene quick-region control did not stay synchronized");
+  return region;
 }
 async function screenshot(page, name) {
   const file = name + ".png";
@@ -159,7 +164,10 @@ async function screenshot(page, name) {
 
     // User can recover from a refused GPS permission through manual coordinates.
     await selectRegion(page, "13123");
-    await page.locator("#toggleLeftPanel").click(); // close side sheet
+    // Dismiss Scene menu without changing the selected municipality.
+    if (await page.locator("#mapToolScene").evaluate(el => el.open)) {
+      await page.locator("#mapToolScene > summary").click();
+    }
     await page.locator("#mapLocateMe").click();
     await page.waitForFunction(() => {
       const el = document.querySelector("#mapGpsFeedback");
