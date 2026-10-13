@@ -45,6 +45,8 @@ class ShimokamataReadinessTests(unittest.TestCase):
             self.assertEqual(report["old_site_open_now"], "UNKNOWN")
             self.assertEqual(report["old_site_external_standby_status"], "UNKNOWN")
             self.assertFalse(report["D_export_modification_authorized"])
+            self.assertFalse(report["D_region_export_read_or_mutated"])
+            self.assertTrue(report["D_existing_152_scenario_statuses_not_reverified_by_this_tool"])
 
     def test_one_claimed_disaster_reply_does_not_satisfy_property_site_review(self):
         with TemporaryDirectory() as d:
