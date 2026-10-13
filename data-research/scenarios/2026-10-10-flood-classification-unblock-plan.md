@@ -174,3 +174,12 @@ Using a local reconstruction of PR #133 A name-hint proposal generation logic (n
 **Limitations:** A local reconstruction is not evidence of running the exact PR #133 script or full A suite. Independent C locally rechecked original bytes and CSV-to-historical D row/ID/coordinate/URL consistency (152/152), but human C pairing is NOT approved. The old D export cannot replace current Scenario results. D/C must separately decide the semantics of municipality water-disaster standby vs flood-only eligibility before classifying any record. Original bytes and derived JSON are NOT committed to Git.
 
 Next gate: run PR #133 exact generator with the live archived municipal HTML and current CSV/D export, validate identical source SHA256 in C, and submit candidate documents for independent C human physical-site identification.
+
+
+## 2026-10-13 exact A generator now rerun against CURRENT D (replaces historical D limitation)
+
+GitHub Actions run https://github.com/1kz-ma1/HINANEX/actions/runs/38332536238 **SUCCESS**: on a single isolated runner, seven official HTTPS originals were collected, source-pinned D's actual current RegionExport generated, then **the exact A PR #133 edogawa_review_ledger.py script was run** against that new D JSON and same official water HTML / position CSV. The exact C PR #136 script independently compared A, D and both raw sources and passed.
+
+Source SHA256s: official water HTML 96001e1a22cdc19580f0c4483e01f2f2e1e6d8b2c595ee5d751f24bf836d4deb; position CSV 64b1c02377ac6caa2cf58faaf45e34ed76d01b7230c9c4d4590432864700d7ea; **current D RegionExport c09a3913052412566825fbe6df57f165c5a334b4e7d781a6051e8e12bb80ad28**; new source-pinned **A candidate JSON 45bc77823b766d33ce6ffdb9fabfca7afb29458d4ab008fabb9e353be1982c32**. The former locally reconstructed A output SHA eac4... referenced earlier was bound to a historical D export, so must not replace the new audited file.
+
+A output: 111 rows, 56 normalized-name hints, 52 abbreviation hints, 3 individual manual reviews (旧下小岩小学校, 都立 葛西工高等学校, 私立 関東一高等学校). All UNREVIEWED/CONFLICT, A reviewed pairs = 0 and Scenario classifications added = 0. C source consistency succeeded for 111 water rows and 152 current D location rows, **NOT human C approval**. Cross-source physical identity and water-standby vs flood-only meaning remain unresolved. Source bytes, resulting A JSON and D RegionExport were saved only in private GitHub Actions artifacts / user handoff, not committed or deployed.
