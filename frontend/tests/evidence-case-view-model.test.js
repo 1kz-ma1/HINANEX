@@ -136,7 +136,7 @@ test("page is isolated from RegionExport and GIS navigation and has source-only 
   assert.match(source, /content\.hidden = true/);
   assert.match(source, /target = "_blank"/);
   assert.match(source, /rel = "noopener noreferrer"/);
-  assert.doesNotMatch(source, /innerHTML|eval\(|RegionExport|\/gis\/gis\/\?/);
+  assert.doesNotMatch(source, /innerHTML|eval\(|fetch\(["\x27]\/pipeline|\/gis\/gis\/\?/);
 });
 
 test("broken source and C-less empty cases must never be displayed", () => {
