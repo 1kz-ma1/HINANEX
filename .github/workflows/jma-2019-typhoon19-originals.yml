@@ -56,6 +56,36 @@ jobs:
           retention-days: 14
           if-no-files-found: error
 
+      - name: Checkout pinned independent C auditor
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 032ef428c4b018878a8e1c2bfed45e0ea271550a
+          path: c-independent
+          persist-credentials: false
+
+      - name: Install pinned PDF text reader for C
+        run: python -m pip install "pymupdf==1.26.4"
+
+      - name: C independent JMA byte, HTML, PDF text and printed-time audit
+        id: c_audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          zip -j -q "$RUNNER_TEMP/jma-2019-for-C.zip" "$RUNNER_TEMP/jma-2019-originals-UNREVIEWED/"*
+          python c-independent/validation/validation/audit_jma_2019_originals.py \
+            --archive-zip "$RUNNER_TEMP/jma-2019-for-C.zip" \
+            --report "$RUNNER_TEMP/C_jma_2019_UNAPPROVED.json"
+
+      - name: Save C independent checks as a separate short-lived artifact
+        if: ${{ steps.c_audit.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: jma-2019-C-checks-UNAPPROVED-${{ github.run_id }}
+          path: ${{ runner.temp }}/C_jma_2019_UNAPPROVED.json
+          retention-days: 14
+          if-no-files-found: error
+
       - name: Explicit unreviewed evidence summary
         if: always()
         shell: bash
@@ -64,10 +94,11 @@ jobs:
             echo "### JMA 2019 Typhoon 19 raw archive"
             echo "- A source capture: ${{ steps.originals.outcome }}"
             echo "- A SHA256 verification: ${{ steps.a_verify.outcome }}"
+            echo "- Independent C checks: ${{ steps.c_audit.outcome }}"
             echo "- Six files: three official HTML + their three attached PDFs."
             echo "- Original raw bytes: private 14-day GitHub Actions artifact; not git or Render."
             echo "- **Historical availability/2019 version: NOT APPROVED**."
-            echo "- **C independent semantic review: NOT RUN**."
+            echo "- C automated bytes/HTML/PDF printed-time checks do not constitute human historical as-of approval."
             echo "- PDF printed time != verified first publication of archived bytes."
             echo "- Prediction correctness / site opening / life safety: NOT evaluated."
           } >> "$GITHUB_STEP_SUMMARY"
