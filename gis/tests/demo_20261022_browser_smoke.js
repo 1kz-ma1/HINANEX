@@ -89,6 +89,23 @@ async function screenshot(page, name) {
     // Failures do not mean flood absence. Leaflet JS/CSS still load normally.
     await context.route(/https:\/\/(?:cyberjapandata\.gsi\.go\.jp|disaportaldata\.gsi\.go\.jp)\//,
       route => route.abort("blockedbyclient"));
+    // Use the exact pinned Leaflet 1.9.4 JS/CSS from CI-only npm assets.
+    // This avoids treating third-party CDN uptime as GIS feature validity.
+    // It is still the real Leaflet library, not a simulated DOM/map.
+    const leaflet = process.env.HINANEX_TEST_LEAFLET_DIST;
+    if (!leaflet) throw new Error("Missing HINANEX_TEST_LEAFLET_DIST (Leaflet 1.9.4 test dependency)");
+    const cdn = "https://unpkg.com/leaflet@1.9.4/dist/";
+    for (const [asset, type] of [
+      ["leaflet.js", "application/javascript"],
+      ["leaflet.css", "text/css"],
+    ]) {
+      const local = path.join(path.resolve(leaflet), asset);
+      if (!fs.statSync(local).isFile()) throw new Error("Pinned test Leaflet missing: " + asset);
+      await context.route(cdn + asset, route => route.fulfill({
+        status: 200, path: local, contentType: type,
+        headers: { "access-control-allow-origin": "*" },
+      }));
+    }
     const page = await context.newPage();
     page.setDefaultTimeout(30000);
     page.on("pageerror", e => errors.push(e.message));
