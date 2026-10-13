@@ -169,7 +169,7 @@ test("failed D fetch, manual pause, resume and close never infer no facilities",
   a.get("mapTourPause").click();
   await flush();
   assert.equal(a.get("mapTourProgress").textContent, "1 / 1｜再生中");
-  assert.equal(a.key("Escape"), false);
+  assert.equal(a.key("Escape"), true); // open presenter sheet consumes Escape
   assert.equal(a.get("mapTourPanel").hidden, true);
   assert.equal(a.timers.size, 0);
   assert.equal(a.calls.end.at(-1), true);
