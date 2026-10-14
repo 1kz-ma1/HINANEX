@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/current_theme.css?v=gis-facility-drawer-20261009-v6">
   <link rel="stylesheet" href="css/map_first.css?v=guided-tour-three-region-comparison-20261013-v1">
+  <link rel="stylesheet" href="css/evidence_replay.css?v=inline-evidence-20261014-v1">
 </head>
 <body>
 <header class="header">
@@ -229,7 +230,7 @@
       <div class="map-tour-evidence-cta" aria-label="発表向け過去災害検証デモ">
         <span>MAIN DEMO / 2019年台風19号・江戸川区</span>
         <strong>原本の照合・判断保留・誤処理の検出</strong>
-        <a id="mapHistoricalEvidenceDemo" href="../../frontend/historical-evidence-demo.html" target="_blank" rel="noopener noreferrer">▶ 3つの検証パターンを再生する ↗</a>
+        <button id="mapHistoricalEvidenceDemo" type="button" aria-controls="mapEvidenceReplayPanel" aria-expanded="false">▶ 地図上で3つの検証パターンを再生</button>
         <p>T0の照合、T1の比較不可、合成負系テストを紹介します。実災害の予測一致・不一致は未検証です。</p>
       </div>
       <p class="map-tour-legacy-label">補助：従来の3地域データ閲覧ツアー（予測・検証ケースではありません）</p>
@@ -259,6 +260,48 @@
         <button id="mapTourStop" type="button" disabled>停止・元の位置へ</button>
       </div>
       <p class="map-tour-caution">発表用の閲覧演出です。安全な避難先・現在の開設状況・災害進行を示すものではありません。手動で地図を動かすと停止できます。</p>
+    </section>
+    <section id="mapEvidenceReplayPanel" class="evidence-replay" role="dialog" aria-modal="true" aria-labelledby="replayHeading" aria-describedby="replaySafety" hidden>
+      <div class="evidence-replay__head">
+        <div><p class="replay-kicker">2019 TYPHOON 19 / EDOGAWA / EVIDENCE WALKTHROUGH</p>
+          <h2 id="replayHeading">検証の過程を、地図上で見る。</h2>
+          <p id="replaySafety">公式資料を使った<strong>説明用の再生演出</strong>です。災害の時間経過・避難先・予測のMATCH/MISMATCHを再現しません。</p>
+        </div>
+        <button id="mapEvidenceReplayClose" type="button" aria-label="検証デモを閉じる">×</button>
+      </div>
+      <div class="replay-tabs" role="group" aria-label="検証するケース">
+        <button type="button" data-evidence-case="trace" aria-pressed="false" disabled><small>CASE 01 / T0</small><strong>原本と整合</strong></button>
+        <button type="button" data-evidence-case="abstain" aria-pressed="false" disabled><small>CASE 02 / T1</small><strong>判断を保留</strong></button>
+        <button type="button" data-evidence-case="negative" aria-pressed="false" disabled><small>CASE 03 / TEST</small><strong>誤処理を拒否</strong></button>
+      </div>
+      <p id="mapEvidenceReplayStatus" class="replay-status" role="status" aria-live="polite">Cの説明用データを確認中です。</p>
+      <div id="mapEvidenceReplayContent" hidden>
+        <div class="replay-question"><div><span id="mapEvidenceReplayTrack"></span><h3 id="mapEvidenceReplayQuestion"></h3></div>
+          <p><strong id="mapEvidenceReplayCounter"></strong><span id="mapEvidenceReplayTime"></span></p></div>
+        <div class="replay-flow" role="list" aria-label="検証工程">
+          <div role="listitem" data-replay-stage="0"><small>01</small><strong>公式資料</strong><span>Source</span></div>
+          <div role="listitem" data-replay-stage="1"><small>02</small><strong>HINANEX</strong><span>Output</span></div>
+          <div role="listitem" data-replay-stage="2"><small>03</small><strong>C独立監査</strong><span>Audit</span></div>
+          <div role="listitem" data-replay-stage="3"><small>04</small><strong>検証結果</strong><span>Verdict</span></div>
+        </div>
+        <section class="replay-focus" aria-labelledby="mapEvidenceReplayStageTitle">
+          <span id="mapEvidenceReplayStageLabel"></span><h3 id="mapEvidenceReplayStageTitle"></h3>
+          <p id="mapEvidenceReplayStageText"></p>
+          <div class="replay-progress" aria-hidden="true"><span id="mapEvidenceReplayProgress"></span></div>
+        </section>
+        <div class="replay-finding"><strong id="mapEvidenceReplayFinding"></strong><p id="mapEvidenceReplayTakeaway"></p></div>
+        <div class="replay-sources"><strong>原本・独立C監査の証拠</strong><div id="mapEvidenceReplaySources"></div>
+          <p>資料の機械照合は2019年当時版の人手承認や予測精度の証明ではありません。</p>
+          <a href="../../frontend/historical-evidence-demo.html" target="_blank" rel="noopener noreferrer">詳しい検証資料を見る ↗</a>
+        </div>
+        <div class="replay-actions" role="group" aria-label="デモの再生操作">
+          <button id="mapEvidenceReplayPlay" type="button">▶ 再生・再開</button>
+          <button id="mapEvidenceReplayPause" type="button">一時停止</button>
+          <button id="mapEvidenceReplayPrev" type="button">← 前の工程</button>
+          <button id="mapEvidenceReplayNext" type="button">次の工程 →</button>
+          <button id="mapEvidenceReplayRestart" type="button">最初から</button>
+        </div>
+      </div>
     </section>
     <section id="mapSharePanel" class="map-share-panel" role="region" aria-label="観客向けHINANEX共有" hidden>
       <div class="map-share-heading">
@@ -382,6 +425,7 @@
 <script src="js/map_first_ui.js?v=map-first-20261009-v3"></script>
 <script src="js/audience_share.js?v=audience-share-20261010-v1"></script>
 <script src="js/guided_tour.js?v=guided-tour-three-region-comparison-20261013-v1"></script>
+<script src="js/evidence_replay.js?v=inline-evidence-20261014-v1"></script>
 <script src="js/evidence_sheet.js?v=evidence-sheet-20261010-v1"></script>
 </body>
 </html>
