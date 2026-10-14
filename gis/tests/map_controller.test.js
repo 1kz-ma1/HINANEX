@@ -23,8 +23,8 @@ for (const filename of ["demo_20261022_browser_smoke.js",
 }
 const actualBrowserSmoke = fs.readFileSync(
   path.join(__dirname, "demo_20261022_browser_smoke.js"), "utf8");
-assert.match(actualBrowserSmoke, /white card body must scroll within its shell/);
-assert.match(actualBrowserSmoke, /white card and presenter must not intersect/);
+assert.match(actualBrowserSmoke, /long point details must scroll in speech bubble/);
+assert.match(actualBrowserSmoke, /anchored bubble must fit mobile width/);
 assert.match(actualBrowserSmoke, /UI_TEST_ONLY/);
 
 
