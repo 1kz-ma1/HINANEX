@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="css/evidence_replay.css?v=spatial-evidence-20261014-v2">
   <link rel="stylesheet" href="css/presentation_story.css?v=presenter-55s-20261014-v1">
   <link rel="stylesheet" href="css/filter_demo.css?v=d-source-criteria-20261014-v1">
-  <link rel="stylesheet" href="css/gsi_flood_demo.css?v=verified-gsi-flood-20261014-v1">
+  <link rel="stylesheet" href="css/gsi_flood_demo.css?v=gsi-flood-fallback-20261014-v2">
 </head>
 <body>
 <header class="header">
@@ -385,6 +385,11 @@
         <button id="gsiFloodDemoClose" type="button" aria-label="洪水指定デモを閉じる">×</button>
       </div>
       <p id="gsiFloodDemoStatus" role="status" aria-live="polite">検証済みの公式データを確認しています。</p>
+      <section id="gsiFloodDemoFallback" class="gsi-demo-fallback" aria-label="公式データ未確認時の代替案" hidden>
+        <strong>公式の洪水指定は、現在の配信データでは確認できません</strong>
+        <p id="gsiFloodDemoFallbackReason">未確認の指定情報を表示しません。</p>
+        <button id="gsiFloodDemoFallbackD" type="button">D施設の属性絞り込みデモを見る（公式洪水指定ではありません） →</button>
+      </section>
       <div id="gsiFloodDemoContent" hidden>
         <div class="gsi-demo-step">
           <span id="gsiFloodDemoPhase">01 / 05</span>
@@ -599,14 +604,14 @@
 <script src="js/facility_list.js"></script>
 <!-- Discovery API remains v14; map UI-only consumer has a separate cache-busting key. -->
 <script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v14"></script>
-<script src="js/map.js?v=gsi-flood-presenter-20261014-v2"></script>
+<script src="js/map.js?v=gsi-flood-origin-20261014-v3"></script>
 <script src="js/map_first_ui.js?v=map-first-20261009-v3"></script>
 <script src="js/audience_share.js?v=audience-share-20261010-v1"></script>
 <script src="js/guided_tour.js?v=guided-tour-three-region-comparison-20261013-v1"></script>
 <script src="js/evidence_replay.js?v=spatial-evidence-20261014-v2"></script>
 <script src="js/presentation_story.js?v=presenter-55s-20261014-v1"></script>
 <script src="js/filter_demo.js?v=d-source-criteria-20261014-v1"></script>
-<script src="js/gsi_flood_demo.js?v=verified-gsi-flood-20261014-v1"></script>
+<script src="js/gsi_flood_demo.js?v=gsi-flood-fallback-20261014-v2"></script>
 <script src="js/evidence_sheet.js?v=evidence-sheet-20261010-v1"></script>
 </body>
 </html>

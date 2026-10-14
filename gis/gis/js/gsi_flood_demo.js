@@ -23,6 +23,21 @@
   ];
   function stopClock(){if(clock!==null)window.clearInterval(clock);clock=null;}
   function writeStatus(s){get("gsiFloodDemoStatus").textContent=s;}
+  function unavailable(reason) {
+    // A missing/invalid official catalog is never interpreted as "no
+    // designated sites". Offer the already working D-only presentation,
+    // clearly labeled as a different source and a different capability.
+    const messages={
+      NO_REGION_SOURCE_POINT:"選択地域の元座標を確認できません。公式掲載地点を推測せず停止しました。",
+      ORIGIN_OUTSIDE_SOURCE_TILE:"この地点を含むGSIタイルは検証・配信されていません。別地点の結果を流用しません。",
+      UNVERIFIED_SOURCE:"この地点のGSI検証済みデータを読み込めません。配信・検証状態の確認が必要です。"
+    };
+    writeStatus(messages[reason] || "GSI公式データの検証結果を確認できないため、再生を停止しました。");
+    get("gsiFloodDemoFallback").hidden=false;
+    get("gsiFloodDemoFallbackReason").textContent=
+      "洪水指定の掲載有無・現在の安全性は判断できません。"+
+      "D施設の属性絞り込みは別データで実行できます。";
+  }
   function value(v){return v==null||v===""?"未確認":String(v);}
   function render(){
     if(!data)return;
@@ -130,6 +145,7 @@
     panel.hidden=false;opener.setAttribute("aria-expanded","true");
     get("gsiFloodDemoClose").focus();
     get("gsiFloodDemoContent").hidden=true;
+    get("gsiFloodDemoFallback").hidden=true;
     stopClock();state="loading";scene=0;remaining=timings[0];elapsed=0;
     data=null;item=null;dStatus=null;restore=true;
     writeStatus("独立に検証されたGSI洪水指定データを確認しています。");
@@ -139,8 +155,7 @@
       if(result?.state!=="ready"||result.source!=="GSI_SKHB01_FLOOD"||
          result.rawDisaster1!==1||!(result.total>0)||
          !(result.shown>0)||result.shown>result.total){
-        writeStatus("現在の地図中心付近では、検証済みの洪水指定データを確認できません。"+
-          "未取得は指定場所が存在しないことを意味しません。");
+        unavailable(result?.reason);
         return;
       }
       data=result;
@@ -148,12 +163,17 @@
       play();
     }catch(error){
       if(token!==sequence||panel.hidden)return;
-      writeStatus("GSI公式データの確認に失敗したため、再生を停止しました。");
+      unavailable("UNVERIFIED_SOURCE");
       console.warn("[HINANEX] GSI flood presenter unavailable",error);
     }
   }
   opener.addEventListener("click",open);
   get("gsiFloodDemoClose").addEventListener("click",close);
+  get("gsiFloodDemoFallbackD").addEventListener("click",()=>{
+    // Hand-off is explicit user action; never pretend this is a GSI result.
+    close();
+    get("mapFilterDemoOpen").click();
+  });
   get("gsiFloodDemoPlay").addEventListener("click",play);
   get("gsiFloodDemoPause").addEventListener("click",()=>{pause();api?.halt();});
   get("gsiFloodDemoNext").addEventListener("click",()=>{pause();advance();});
