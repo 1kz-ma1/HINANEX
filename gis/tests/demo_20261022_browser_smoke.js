@@ -47,7 +47,7 @@ const waitUntilLoaded = async (page, code) => {
   await page.waitForFunction(expectedCode => {
     const chip = document.querySelector("#datasetChip");
     const select = document.querySelector("#region");
-    return select?.value === expectedCode && chip?.textContent?.includes("D出力読込済");
+    return select?.value === expectedCode && chip?.textContent?.includes("施設データ読込済");
   }, code, { timeout: 30000 });
   const row = expected.get(code);
   const count = async id => Number((await page.locator(id).innerText()).trim());
@@ -56,7 +56,7 @@ const waitUntilLoaded = async (page, code) => {
   assert.equal(await count("#missingCoordinateCount"),
     row.missing_coordinates, code + " missing coords");
   const statusText = await page.locator("#datasetStatus").innerText();
-  assert.match(statusText, /RegionExport/, code + " expected D source status");
+  assert.match(statusText, /施設データ形式/, code + " expected D source status");
   assert.equal(await page.locator("#region").inputValue(), code);
   assert.equal(row.mapped + row.missing_coordinates, row.records);
   return row;
@@ -123,6 +123,33 @@ async function screenshot(page, name) {
     await waitUntilLoaded(page, "13123");
     assert.equal(new URL(page.url()).searchParams.get("region"), "13123");
 
+    // Verify the actual map.js + map_first_ui.js white-card DOM in Chromium.
+    // Synthetic text here tests presentation only, never a source/safety fact.
+    await page.evaluate(() => window.detail("カードUI受入テスト（架空の表示用名称）", [
+      ["種別", "表示テスト"], ["住所", "実在施設の住所ではありません"],
+      ["洪水対応分類", "未判定"], ["施設ID", "UI_TEST_ONLY"],
+      ["緯度", "未確認"], ["経度", "未確認"], ["公式Source行", "trace-only"]
+    ], "D: shelter_location / raw facts", {
+      href: "https://example.test/source", note: "安全性や開設状況は未確認です。"
+    }));
+    assert.equal(await page.locator("#details").isVisible(), true);
+    assert.equal(await page.locator(".layout").getAttribute("data-right-panel"), "open");
+    const overview = await page.locator("#details").innerText();
+    assert.match(overview, /未判定/);
+    assert.match(overview, /安全性・現在の開設状況は確認できていません/);
+    assert.equal(await page.locator("#details .place-card-disclosure").count(), 2);
+    const detailFold = page.locator("#details .place-card-disclosure").first();
+    assert.equal(await detailFold.evaluate(el => el.open), false);
+    await detailFold.locator("summary").click();
+    assert.equal(await detailFold.evaluate(el => el.open), true);
+    assert.match(await detailFold.innerText(), /UI_TEST_ONLY/);
+    const link = page.locator("#details .detail-link");
+    assert.equal(await link.getAttribute("rel"), "noopener noreferrer");
+    assert.equal(await link.getAttribute("href"), "https://example.test/source");
+    await page.locator("#toggleRightPanel").click();
+    assert.equal(await page.locator("#details").isVisible(), false);
+    await screenshot(page, "white-place-card-desktop-closed");
+
     // Prove real D marker/cluster drawing, not merely an HTTP resource check.
     const clusters = page.locator(".d-facility-cluster");
     for (let attempt = 0; attempt < 7 && await clusters.count() === 0; attempt++) {
@@ -160,7 +187,11 @@ async function screenshot(page, name) {
     await page.locator("#facilityListSearch").fill("");
     await page.waitForFunction(() => document.querySelectorAll(
       "#facilityListResults .facility-list-card").length > 0);
-    assert.match(await page.locator("#facilityListPanel").innerText(), /UNKNOWN/);
+    // The source's original enum remains available only on expanded detail.
+    const firstListItem = page.locator("#facilityListResults .facility-list-card").first();
+    await firstListItem.locator("summary").click();
+    assert.match(await firstListItem.innerText(), /UNKNOWN/,
+      "raw source status must remain available in expert details");
 
     // User can recover from a refused GPS permission through manual coordinates.
     await selectRegion(page, "13123");
@@ -264,6 +295,55 @@ async function screenshot(page, name) {
       assert.match(await page.locator("#mapRasterBanner").innerText(),
         /浸水なしではありません/);
     }
+    // Mobile responsive acceptance on the fully assembled HTML/CSS/JS.
+    // Only a UI fixture is used here; no substitute GSI/D facility data.
+    for (const [width, height] of [[390, 844], [780, 800]]) {
+      const mobileCard = await context.newPage();
+      await mobileCard.setViewportSize({ width, height });
+      await mobileCard.goto(base + "/gis/gis/?region=13123",
+        { waitUntil: "domcontentloaded" });
+      await waitUntilLoaded(mobileCard, "13123");
+      await mobileCard.evaluate(() => {
+        const extra = Array.from({length:20}, (_,i) =>
+          ["確認用の詳細項目" + i, "長い詳細データ（画面表示の試験専用）"]);
+        window.detail("選択地点の情報（UI表示テスト）", [
+          ["種別", "表示テスト"], ["住所", "未確認"],
+          ["洪水対応分類", "未判定"], ...extra
+        ], "D: shelter_location / raw facts", {
+          note: "安全性と現在の開設状況は確認できていません。"
+        });
+      });
+      for (const presenterId of ["gsiFloodDemoPanel", "filterDemoPanel"]) {
+        await mobileCard.evaluate(id => {
+          document.getElementById("gsiFloodDemoPanel").hidden = id !== "gsiFloodDemoPanel";
+          document.getElementById("filterDemoPanel").hidden = id !== "filterDemoPanel";
+          document.getElementById(id === "gsiFloodDemoPanel"
+            ? "gsiFloodDemoContent" : "filterDemoContent").hidden = false;
+        }, presenterId);
+        const metrics = await mobileCard.evaluate(id => {
+          const shell = document.querySelector(".gis-side-shell--right");
+          const details = document.querySelector("#details");
+          const presenter = document.getElementById(id);
+          const a = shell.getBoundingClientRect(), b = presenter.getBoundingClientRect();
+          return {
+            card: {top:a.top,bottom:a.bottom,left:a.left,right:a.right},
+            panel: {top:b.top,bottom:b.bottom},
+            scrollable: details.scrollHeight > details.clientHeight,
+            cardOpen: shell.getClientRects().length > 0,
+          };
+        }, presenterId);
+        assert.equal(metrics.cardOpen, true);
+        assert.ok(metrics.scrollable, "white card body must scroll within its shell");
+        assert.ok(metrics.card.left >= 0 && metrics.card.right <= width,
+          "card must fit horizontally within mobile viewport");
+        assert.ok(metrics.panel.top - metrics.card.bottom >= 8,
+          "white card and presenter must not intersect: " +
+            JSON.stringify({width,height,presenterId,metrics}));
+        await screenshot(mobileCard, "white-card-" + width + "-" + presenterId);
+      }
+      await mobileCard.close();
+    }
+
     assert.deepEqual(errors, [], "GIS JS page errors");
 
     const manifest = {
