@@ -1,0 +1,71 @@
+name: Edogawa official snapshot capture (UNREVIEWED, isolated)
+
+"on":
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - ".github/workflows/edogawa-source-snapshot-minimal.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture-only:
+    name: Capture seven original sources and verify bytes (NOT APPROVAL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout immutable integrated C archive core
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 7d67540ac5db30221d995e86937cb777f08df3bb
+          persist-credentials: false
+
+      - name: Install Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Test C snapshot rejection guards offline
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s validation/validation -p 'test_edogawa_official_snapshot_archive.py' -v
+
+      - name: Capture actual original HTTPS response bytes (UNREVIEWED)
+        id: capture
+        run: |
+          set -euo pipefail
+          python validation/validation/archive_edogawa_official_sources.py \
+            --out-dir "$RUNNER_TEMP/edogawa-seven-originals-UNREVIEWED"
+
+      - name: Reverify all seven raw SHA256, URLs and manifest flags
+        id: verify
+        run: |
+          set -euo pipefail
+          python validation/validation/archive_edogawa_official_sources.py \
+            --verify-dir "$RUNNER_TEMP/edogawa-seven-originals-UNREVIEWED"
+
+      - name: Preserve private seven-day originals for independent C inspection
+        if: ${{ steps.capture.outcome == 'success' && steps.verify.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: edogawa-seven-originals-UNREVIEWED-${{ github.run_id }}
+          path: ${{ runner.temp }}/edogawa-seven-originals-UNREVIEWED/
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Explicit no-approval status
+        if: always()
+        run: |
+          {
+            echo "### Edogawa official-source snapshot — evidence only"
+            echo "- HTTPS original-byte capture: ${{ steps.capture.outcome }}"
+            echo "- Offline raw/manifest integrity recheck: ${{ steps.verify.outcome }}"
+            echo "- Files/manifest remain private, time-limited Actions artifacts, not Git or Render"
+            echo "- Source content meaning, historic version, site physical identity: **NOT APPROVED**"
+            echo "- Shelter safety/opening and flood-only eligibility: **NOT EVALUATED**"
+            echo "- Cross-source pairs approved = **0**; candidate/excluded promotions = **0**"
+            echo "- Human C review and content-shape preflight are separate jobs (issue #221)"
+          } >> "$GITHUB_STEP_SUMMARY"
