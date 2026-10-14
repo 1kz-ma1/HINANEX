@@ -458,6 +458,44 @@ function clearPendingWheel() {
   discardRetainedRaster();
   discardPredictedTiles();
 }
+// For zoom-outs, old loaded tiles do not necessarily cover newly exposed
+// geography. Limit the cosmetic shrink to coverage actually present, while
+// waiting for the full, geographically correct destination atlas.
+function oldRasterCoverage() {
+  const container = baseMap?.getContainer?.();
+  const tiles = container?.querySelectorAll?.("img.leaflet-tile-loaded");
+  if (!tiles) return null;
+  const boxes = Array.from(tiles).map(el => el.getBoundingClientRect?.())
+    .filter(rect => rect && rect.width > 0 && rect.height > 0);
+  if (!boxes.length) return {missing:true};
+  return {
+    left:Math.min(...boxes.map(r=>r.left)),
+    top:Math.min(...boxes.map(r=>r.top)),
+    right:Math.max(...boxes.map(r=>r.right)),
+    bottom:Math.max(...boxes.map(r=>r.bottom))
+  };
+}
+function coverageLimitedScale(wanted, coverage, origin, viewport) {
+  if (!(wanted < 1) || !coverage || !viewport || !origin) return wanted;
+  if (coverage.missing) return 1;
+  // This is a conservative rectangular screen-envelope bound. The loaded
+  // image grid may have internal holes; full final coverage still requires
+  // the actual destination atlas, not this rough preview limit.
+  const covers = scale =>
+    origin.x+(coverage.left-origin.x)*scale <= viewport.left+1 &&
+    origin.x+(coverage.right-origin.x)*scale >= viewport.right-1 &&
+    origin.y+(coverage.top-origin.y)*scale <= viewport.top+1 &&
+    origin.y+(coverage.bottom-origin.y)*scale >= viewport.bottom-1;
+  if (!covers(1)) return 1;
+  if (covers(wanted)) return wanted;
+  let low=wanted, high=1;
+  for(let i=0;i<14;i++){
+    const mid=(low+high)/2;
+    if(covers(mid)) high=mid; else low=mid;
+  }
+  return high;
+}
+
 function updateWheelPreview(event) {
   if (!wheelPreview) {
     discardRetainedRaster();
@@ -481,10 +519,19 @@ function updateWheelPreview(event) {
       pane.style.willChange = "scale";
     }
     if (!targets.length) return; // Unsupported CSS scale: safe native commit.
-    wheelPreview = {targets};
+    const viewport = map.getContainer()?.getBoundingClientRect?.();
+    wheelPreview = {
+      targets,
+      coverage:oldRasterCoverage(),
+      viewport,
+      origin:{x:Number(event.clientX),y:Number(event.clientY)}
+    };
   }
   const change = wheelDestinationZoom() - map.getZoom();
-  const visualScale = String(Number(Math.pow(2,change).toFixed(5)));
+  const wanted = Math.pow(2,change);
+  const displayed = coverageLimitedScale(wanted,
+    wheelPreview.coverage,wheelPreview.origin,wheelPreview.viewport);
+  const visualScale = String(Number(displayed.toFixed(5)));
   for (const {pane} of wheelPreview.targets) pane.style.scale = visualScale;
 }
 function retainUntilRasterReady(previews) {
