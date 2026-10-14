@@ -11,6 +11,10 @@ from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
 
+# Support direct execution as python deploy/build_staging.py as well as imports.
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPOSITORY_ROOT))
 from deploy.publish_gsi_staging import (GSI_DEMO_TILES, build_official_reference_tile)
 
 REQUIRED_EXPORTS = {
