@@ -17,5 +17,26 @@ The user's accepted staging screenshot has a compact white GSI popup beside a mu
 - Small-screen presenter mode gives the selected-place shell a definite capped height, clips its outer overflow and scrolls content inside. While a demo and place card are both open, the demo's scrollable height shrinks to leave a separation gap between the two surfaces (no change to playback or safety classifications).
 - Update the map asset regression to the new UI-only cache key; the discovery module's compatibility signature is unchanged.
 
+## Full-page Chromium predeploy smoke
+The existing E-only `gis/tests/demo_20261022_browser_smoke.js` now exercises
+the **assembled** GIS page with real D exports, pinned real Leaflet, and
+synthetic **UI-only** text for the selected white card. It checks the
+user-facing title/summary, visible safety warning, closed/open details,
+source-link safety attributes and dismiss control. At 390×844 and 780×800 it
+opens GSI and facility presenter DOM surfaces to inspect actual CSS geometry,
+bounded scrolling and card/presenter separation, capturing screenshots.
+The presenter DOM visibility check does **not** run either timed demo.
+
+The script's legacy expectations for the old dataset chip/status labels are
+updated, as is the separate three-region Chromium smoke. Required Node CI
+parses these scripts and statically checks their core acceptance assertions;
+**that does not count as executing Chromium**. To run end-to-end, first build
+a temporary Render-equivalent distribution with real, separately verified D
+RegionExports, serve it on port 8765, and execute the existing browser smoke
+with `NODE_PATH` and `HINANEX_TEST_LEAFLET_DIST` configured as documented
+in its header. External map/raster tiles are intentionally blocked in
+browser tests only. Do not interpret synthetic UI fixture content as
+disaster evidence, and do not deploy this PR without integration approval.
+
 ## Acceptance
 Required GIS browser-controller test checks compact vs expanded HTML, sanitized provenance and URL, no technical trace in default view, both D and GSI clicks, close button, responsive light card styling and no normal-screen internal term leakage. Manual Render Edge/mobile screenshot acceptance remains necessary; no user-uploaded photo was modified.
