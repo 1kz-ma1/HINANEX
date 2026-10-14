@@ -1475,6 +1475,97 @@ window.HINANEX_FACILITY_PRESENTER = Object.freeze({
   }
 });
 
+
+// GSI official-flood presenter: skhb01 and raw disaster1=1 are prevalidated
+// by the existing E discovery engine. This is not a D safety classification.
+let gsiPresenterSession = null;
+let gsiPresenterEpoch = 0;
+window.HINANEX_GSI_FLOOD_PRESENTER = Object.freeze({
+  async begin() {
+    if (gsiPresenterSession) return {state:"busy"};
+    const center=map.getCenter();
+    const origin=selectedOrigin || {latitude:center.lat??center[0],longitude:center.lng??center[1]};
+    const engine=compatibleDiscoveryEngine();
+    if(!engine||!engine.sourceTileKey(origin))return {state:"unavailable",reason:"origin"};
+    const token=++gsiPresenterEpoch;
+    const session={
+      token,center,zoom:map.getZoom(),mode:displayMode,
+      origin:selectedOrigin,catalog:verifiedFloodCatalog,
+      originalDetail:document.getElementById("details").innerHTML,
+      originalOriginLabel:document.getElementById("originStatus").textContent,
+      originalCoord:document.getElementById("coordinateSearchInput").value,
+      sourceCode:selectedRegionCode,
+      sites:null,discovery:null
+    };
+    gsiPresenterSession=session;
+    selectedOrigin={latitude:origin.latitude,longitude:origin.longitude};
+    setDisplayMode("nearby"); // GSI flood dataset ONLY, not D/GSI merged pins.
+    await loadFloodReferenceCatalog();
+    if(token!==gsiPresenterEpoch||gsiPresenterSession!==session)return {state:"cancelled"};
+    const d=engine.discoverReferenceTiles(verifiedFloodCatalog,selectedOrigin,selectedRegionCode);
+    if(d.status!=="REFERENCE_ONLY"||!d.total||!d.sites.length){
+      return {state:"unavailable",reason:d.status,message:d.message};
+    }
+    session.sites=d.sites;
+    session.discovery=d;
+    focusReferenceCandidates(); // only verified GSI positions + chosen source origin
+    return {
+      state:"ready", source:"GSI_SKHB01_FLOOD", rawDisaster1:1,
+      label:"洪水に対応する指定緊急避難場所（GSI skhb01）",
+      total:d.total,shown:d.sites.length,
+      verifiedTiles:d.verifiedTileCount,requestedTiles:d.requestedTileCount,
+      partial:d.partialCoverage,firstName:d.sites[0].name,
+      sourceUrl:d.sites[0].sourceUrl
+    };
+  },
+  inspect() {
+    const s=gsiPresenterSession;
+    if(!s?.discovery||s.sourceCode!==selectedRegionCode)return {state:"unavailable"};
+    const item=s.sites[0]; // existing strictly verified, non-recommended record
+    if(typeof map.flyTo==="function")
+      map.flyTo([item.latitude,item.longitude],14,{duration:1.2});
+    else map.setView([item.latitude,item.longitude],14,{animate:false});
+    const sourceUrl=safeExternalUrl(item.sourceUrl);
+    return {
+      state:"inspected",name:item.name,address:item.address,remarks:item.remarks,
+      sourceTrace:item.trace,sourceUrl,disaster1Raw:1,
+      designation:"洪水の指定緊急避難場所（公式掲載）",
+      tileCount:s.discovery.verifiedTileCount,requestedTiles:s.discovery.requestedTileCount,
+      // Source tiles do not establish a municipality or current opening status.
+      municipalityVerified:false,openingVerified:false,safeRouteVerified:false
+    };
+  },
+  compareD() {
+    const s=gsiPresenterSession;
+    if(!s?.discovery)return {state:"unavailable"};
+    const d=currentShelterSummary;
+    if(!d||d.region.code!==selectedRegionCode||!d.dataset)
+      return {state:"unavailable",reason:"D RegionExport not loaded"};
+    const mapped=d.mappableRecords.length;
+    const unclassified=d.mappableRecords.filter(r=>dFloodDecision(d,r)==="UNKNOWN").length;
+    return {state:"separate-source",source:"D RegionExport",total:d.records.length,
+      mapped,missing:d.missingCoordinateRecords.length,unclassified,
+      classified:mapped-unclassified,joinedWithGSI:false};
+  },
+  halt(){if(typeof map.stop==="function")map.stop();},
+  end(restore=true) {
+    const s=gsiPresenterSession;
+    gsiPresenterEpoch++;
+    catalogLoadSequence++; // supersede any verified-tile HTTP still pending
+    if(typeof map.stop==="function")map.stop();
+    gsiPresenterSession=null;
+    if(!s)return;
+    selectedOrigin=s.origin;
+    verifiedFloodCatalog=s.catalog;
+    document.getElementById("originStatus").textContent=s.originalOriginLabel;
+    document.getElementById("coordinateSearchInput").value=s.originalCoord;
+    document.getElementById("details").innerHTML=s.originalDetail;
+    renderReferenceDiscovery();
+    setDisplayMode(s.mode);
+    if(restore)map.setView(s.center,s.zoom,{animate:false});
+  }
+});
+
 // Presentation-only map tour API. This does not select another municipality,
 // alter Scenario contracts, imply data coverage, or infer unlocated facilities.
 // It can only focus on *actual mappable source points* from RegionExport.
