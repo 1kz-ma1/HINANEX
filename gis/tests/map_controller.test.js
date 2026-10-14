@@ -2141,7 +2141,7 @@ nagoya.scenarios = [{
       "tile grid covers the right viewport edge");
     assert.ok(Math.min(...grid.tiles.map(t=>t.top))<=0.01);
     assert.ok(Math.max(...grid.tiles.map(t=>t.top+t.size))>=767.99);
-    const zSet=new Set(grid.tiles.map(t=>Number(t.url.match(/std\\/(\\d+)\\//)[1])));
+    const zSet=new Set(grid.tiles.map(t=>Number(t.url.split("/")[5])));
     assert.equal(zSet.size,1,"only destination zoom tiles, never intermediates");
     assert.equal([...zSet][0],zoom);
     assert.ok(grid.tiles.every(t=>/^https:\/\/cyberjapandata[.]gsi[.]go[.]jp\/xyz\/std\/\d+\/\d+\/\d+[.]png$/.test(t.url)));
