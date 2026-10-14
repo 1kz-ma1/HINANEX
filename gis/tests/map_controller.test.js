@@ -738,7 +738,7 @@ nagoya.scenarios = [{
   httpCase.elements.facilityDisplayMode.value = "region";
   httpCase.elements.facilityDisplayMode.listeners.change({ target: httpCase.elements.facilityDisplayMode });
 
-  assert.match(httpCase.elements.mapUnavailableMessage.textContent, /位置を推測しません/);
+  assert.match(httpCase.elements.mapUnavailableMessage.textContent, /位置は推測しません/);
   assert.equal(httpCase.elements.facilityListPanel.hidden, false);
   assert.equal(httpCase.elements.mapUnavailable.className, "map-unavailable has-facility-list");
   assert.match(httpCase.elements.mapUnavailableTitle.textContent, /施設一覧を検索できます/);
