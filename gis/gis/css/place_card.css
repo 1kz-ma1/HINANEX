@@ -198,3 +198,78 @@
     max-height:min(43dvh,330px);padding:13px 14px;
   }
 }
+
+/* Zoom-responsive size is a *screen-space affordance*, not map-scale data.
+   Preserve readable text and tappable controls even when zoomed far out. */
+.hinanex-place-popup {
+  --place-width:216px;
+  --place-height:200px;
+  --place-title-size:15px;
+  --place-pad:11px;
+}
+.hinanex-place-popup.place-bubble--far {
+  --place-width:188px;
+  --place-height:158px;
+  --place-title-size:14px;
+  --place-pad:9px;
+}
+.hinanex-place-popup.place-bubble--near {
+  --place-width:260px;
+  --place-height:270px;
+  --place-title-size:16px;
+  --place-pad:13px;
+}
+.hinanex-place-popup.place-bubble--boundary {
+  --place-width:194px;
+  --place-height:158px;
+}
+.hinanex-place-popup.place-bubble--boundary.place-bubble--far {
+  --place-width:174px;
+  --place-height:142px;
+}
+.hinanex-place-popup.place-bubble--boundary.place-bubble--near {
+  --place-width:215px;
+  --place-height:186px;
+}
+.hinanex-place-popup .leaflet-popup-content {
+  width:min(var(--place-width),calc(100vw - 70px)) !important;
+  max-height:min(var(--place-height),46dvh);
+  padding:var(--place-pad) calc(var(--place-pad) + 2px);
+  font-size:12px;
+  line-height:1.45;
+}
+.hinanex-place-popup .detail-title {
+  font-size:var(--place-title-size);
+  line-height:1.3;
+  margin:5px 28px 8px 0;
+}
+.hinanex-place-popup .badge {font-size:10px;padding:2px 6px}
+.hinanex-place-popup .row {
+  grid-template-columns:minmax(66px,37%) minmax(0,1fr);
+  padding:5px 0;
+  gap:6px;
+}
+.hinanex-place-popup .place-card-caution {
+  margin:7px 0 0;padding:6px 8px;font-size:11px;line-height:1.45;
+}
+.hinanex-place-popup .detail-link {margin:7px 0 3px;font-size:12px}
+.hinanex-place-popup .place-card-disclosure {margin:6px 0 0}
+.hinanex-place-popup .place-card-disclosure>summary {
+  padding:8px 10px;
+  min-height:38px;
+  box-sizing:border-box;
+  display:block;
+}
+.hinanex-place-popup .place-card-extra {padding:3px 8px 9px}
+.hinanex-place-popup .place-card-disclosure .note {padding:8px;font-size:11px}
+.hinanex-place-popup .leaflet-popup-close-button {
+  width:32px !important;height:32px !important;
+  top:4px !important;right:4px !important;
+}
+@media(max-width:680px) {
+  .hinanex-place-popup .leaflet-popup-content {
+    width:min(var(--place-width),calc(100vw - 70px)) !important;
+    max-height:min(var(--place-height),37dvh);
+    padding:var(--place-pad) calc(var(--place-pad) + 2px);
+  }
+}
