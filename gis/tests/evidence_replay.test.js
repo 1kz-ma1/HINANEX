@@ -16,6 +16,8 @@ function mount(fetchImpl = async () => ({ ok: true, json: async () => structured
   const docListeners = new Map();
   const intervals = new Map();
   let intervalId = 0, tourCloses = 0, tourOpens = 0;
+  const camera = {begin:0,focus:[],halt:0,end:[]};
+  let onFocus = async () => ({state:"mapped",total:152,mapped:152});
   class Element {
     constructor(id) {
       this.id = id;
@@ -65,28 +67,41 @@ function mount(fetchImpl = async () => ({ ok: true, json: async () => structured
   const window = {
     fetch:fetchImpl,
     setInterval(fn,ms){ assert.equal(ms,1000);const n=++intervalId;intervals.set(n,fn);return n; },
-    clearInterval(n){ intervals.delete(n); }
+    clearInterval(n){ intervals.delete(n); },
+    matchMedia: () => ({matches:false}),
+    HINANEX_PRESENTATION_TOUR: {
+      begin() {camera.begin++;},
+      focus(code,animate,first) {camera.focus.push({code,animate,first});return onFocus(code);},
+      halt(){camera.halt++;},
+      end(restore){camera.end.push(restore);}
+    }
   };
   vm.runInNewContext(source,{document,window,URL,console:{error() {}}},{timeout:2000});
-  return {get,tabs,steps,document,intervals,
+  return {get,tabs,steps,document,intervals,camera,
+    setFocus(fn){onFocus=fn;},
     get tourCloses(){return tourCloses;},get tourOpens(){return tourOpens;},
     async open(){ get("mapHistoricalEvidenceDemo").click(); await flush(); await flush(); },
     tick(count=1){for(let j=0;j<count;j++){const f=intervals.values().next().value;assert.ok(f,"expected active interval");f();}},
     key(key){const fn=docListeners.get("keydown");let stopped=false;fn?.({key,shiftKey:false,preventDefault(){stopped=true;},stopImmediatePropagation(){}});return stopped;},
-    visibility(isHidden){document.hidden=isHidden;docListeners.get("visibilitychange")?.();}
+    visibility(isHidden){document.hidden=isHidden;docListeners.get("visibilitychange")?.();},
+    gesture(type="pointerdown"){get("map").events.get(type)?.({type,target:get("map")});}
   };
 }
 test("inline modal is in the real map DOM with status, controls and no navigation",()=>{
-  assert.match(html,/id="mapEvidenceReplayPanel"[^>]*role="dialog"/);
+  assert.match(html,/id="mapEvidenceReplayPanel"[^>]*role="region"/);
   assert.match(html,/id="mapHistoricalEvidenceDemo" type="button"/);
   assert.doesNotMatch(html,/id="mapHistoricalEvidenceDemo" href=/);
   for(const id of ["mapEvidenceReplayClose","mapEvidenceReplayPlay","mapEvidenceReplayPause",
-    "mapEvidenceReplayPrev","mapEvidenceReplayNext","mapEvidenceReplayRestart","mapEvidenceReplaySources"]){
+    "mapEvidenceReplayPrev","mapEvidenceReplayNext","mapEvidenceReplayRestart","mapEvidenceReplaySources",
+    "mapEvidenceReplayMapStatus","mapEvidenceReplayMapLabel"]){
     assert.ok(html.includes('id="'+id+'"'));
   }
   assert.match(css,/\.evidence-replay\[hidden\]/);
   assert.match(css,/@media\(max-width:680px\)/);
   assert.match(html,/詳しい検証資料を見る/);
+  assert.match(html,/2019年当日に使用した建物の確定数は0件/);
+  assert.match(css,/right:/);
+  assert.match(css,/\.replay-map-label/);
 });
 test("real C deck drives 15s intro + three 25s cases through four animated stages",async()=>{
   const m=mount();await m.open();
@@ -167,4 +182,48 @@ test("browser client never changes RegionExport, map view or C evidence",()=>{
   assert.match(source,/cache: "no-store"/);
   assert.match(source,/NOT_EVALUABLE/);
   assert.match(source,/SYNTHETIC_NEGATIVE_TEST_NOT_REAL_MISMATCH/);
+});
+
+test("real Edogawa D reference records move the map and show sourced coverage, not 2019 shelter locations",async()=>{
+  const m=mount();
+  await m.open();
+  assert.equal(m.camera.begin,1);
+  assert.equal(m.get("mapEvidenceReplayMapLabel").hidden,false);
+  assert.equal(m.camera.focus.length,0,"15-second intro must not imply 2019 location");
+  m.tick(15);
+  await flush();
+  assert.deepEqual(m.camera.focus.map(x => x.code),["13123"]);
+  assert.equal(m.camera.focus[0].first,false,"must NOT focus first source as an event shelter");
+  assert.match(m.get("mapEvidenceReplayMapStatus").textContent,/取得 152件／元座標あり 152件/);
+  assert.match(m.get("mapEvidenceReplayMapLabelText").textContent,/2019年当日の避難先ではありません/);
+  m.get("mapEvidenceReplayClose").click();
+  assert.equal(m.get("mapEvidenceReplayMapLabel").hidden,true);
+  assert.deepEqual(m.camera.end,[true]);
+});
+test("map motion fails closed with missing source points, never invents an evacuation-site pin",async()=>{
+  const m=mount();
+  m.setFocus(async()=>({state:"unlocated",total:35,mapped:0}));
+  await m.open();
+  m.tick(15);await flush();
+  assert.match(m.get("mapEvidenceReplayMapStatus").textContent,/確認済み座標がありません/);
+  assert.equal(m.camera.focus[0].code,"13123");
+  assert.doesNotMatch(m.get("mapEvidenceReplayMapStatus").textContent,/避難先を特定/);
+  m.tabs.abstain.click();await flush();
+  assert.match(m.get("mapEvidenceReplayMapStatus").textContent,/座標がありません/);
+  assert.match(m.get("mapEvidenceReplayStageText").textContent,/205人/);
+});
+test("manual map interaction pauses and preserves user's chosen location",async()=>{
+  const m=mount();await m.open();m.tick(15);await flush();
+  m.gesture("pointerdown");
+  assert.equal(m.intervals.size,0);
+  assert.match(m.get("mapEvidenceReplayStatus").textContent,/一時停止/);
+  m.get("mapEvidenceReplayClose").click();
+  assert.deepEqual(m.camera.end,[false],"manual gestures must not restore the presenter camera");
+});
+test("evidence fetch failure never navigates to official D point or exposes fake spatial counts",async()=>{
+  const m=mount(async()=>({ok:false,status:503}));await m.open();
+  assert.equal(m.camera.begin,0);
+  assert.equal(m.camera.focus.length,0);
+  assert.equal(m.get("mapEvidenceReplayMapLabel").hidden,true);
+  assert.equal(m.get("mapEvidenceReplayContent").hidden,true);
 });
