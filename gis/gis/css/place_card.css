@@ -83,10 +83,13 @@
   .layout>.gis-side-shell--right>.right{max-height:min(52dvh,420px)}
   .layout:has(#gsiFloodDemoPanel:not([hidden]))>.gis-side-shell--right,
   .layout:has(#filterDemoPanel:not([hidden]))>.gis-side-shell--right{
-    top:64px;left:8px;right:auto;width:min(310px,calc(100% - 16px));max-height:28%;
+    top:64px;left:8px;right:auto;width:min(310px,calc(100% - 16px));
+    height:min(28%,180px);max-height:none;overflow:hidden;
   }
   .layout:has(#gsiFloodDemoPanel:not([hidden]))>.gis-side-shell--right>.right,
-  .layout:has(#filterDemoPanel:not([hidden]))>.gis-side-shell--right>.right{max-height:27dvh}
+  .layout:has(#filterDemoPanel:not([hidden]))>.gis-side-shell--right>.right{
+    height:100%;max-height:none;overflow-y:auto;
+  }
   .layout[data-right-panel="open"] .map-locate-button{bottom:16px}
 }
 @media(max-width:530px){
@@ -94,10 +97,30 @@
   .layout:has(#gsiFloodDemoPanel:not([hidden]))>.gis-side-shell--right,
   .layout:has(#filterDemoPanel:not([hidden]))>.gis-side-shell--right{
     top:64px;left:8px;right:auto;width:min(310px,calc(100% - 16px));
-    max-height:min(22%,160px);
+    height:min(22%,160px);max-height:none;overflow:hidden;
   }
   .layout:has(#gsiFloodDemoPanel:not([hidden]))>.gis-side-shell--right>.right,
   .layout:has(#filterDemoPanel:not([hidden]))>.gis-side-shell--right>.right{
-    max-height:min(20dvh,142px);
+    height:100%;max-height:none;overflow-y:auto;
+  }
+}
+
+/* On narrow screens both selected-place and presenter panels remain operable.
+   The presenter must not cover the lower portion of the white card. These
+   limits derive from card top 64px, presenter bottom 68/69px and a 12px gap. */
+@media(max-width:800px){
+  .layout[data-right-panel="open"]:has(#gsiFloodDemoPanel:not([hidden])) #gsiFloodDemoPanel{
+    max-height:min(40%,calc(100% - 144px - min(28%,180px)));
+  }
+  .layout[data-right-panel="open"]:has(#filterDemoPanel:not([hidden])) #filterDemoPanel{
+    max-height:min(40%,calc(100% - 145px - min(28%,180px)));
+  }
+}
+@media(max-width:530px){
+  .layout[data-right-panel="open"]:has(#gsiFloodDemoPanel:not([hidden])) #gsiFloodDemoPanel{
+    max-height:min(40%,calc(100% - 144px - min(22%,160px)));
+  }
+  .layout[data-right-panel="open"]:has(#filterDemoPanel:not([hidden])) #filterDemoPanel{
+    max-height:min(40%,calc(100% - 145px - min(22%,160px)));
   }
 }
