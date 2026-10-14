@@ -98,6 +98,11 @@ function makeElement(id) {
 function makeLeafletStub() {
   const mapLayers = new Set();
   const panes = {};
+  const tilePane = {
+    style: {scale:"",transformOrigin:"",transition:"",willChange:""},
+    getBoundingClientRect() {return {left:0,top:0};}
+  };
+  panes.tilePane=tilePane;
   const mapPane = {
     style: {scale:"",transformOrigin:"",transition:"",willChange:""},
     getBoundingClientRect() { return {left:0,top:0}; }
@@ -154,7 +159,7 @@ function makeLeafletStub() {
     getMinZoom() { return this.minZoom ?? 2; },
     getMaxZoom() { return 18; },
     getContainer() { return this.container; },
-    getPanes() { return {mapPane}; },
+    getPanes() { return {mapPane,tilePane}; },
     mouseEventToContainerPoint(e) { return {x:e.clientX,y:e.clientY}; },
     setZoomAround(anchor, zoom, options) {
       this.zoomAroundCalls = [...(this.zoomAroundCalls || []), {anchor,zoom,options}];
@@ -170,7 +175,12 @@ function makeLeafletStub() {
         y: (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * world
       };
     },
-    createPane(name) { panes[name] = { style: {} }; },
+    createPane(name) {
+      panes[name] = {
+        style:{scale:"",transformOrigin:"",transition:"",willChange:""},
+        getBoundingClientRect() {return {left:0,top:0};}
+      };
+    },
     getPane(name) { return panes[name]; },
     addLayer(layer) { mapLayers.add(layer); layer._onMap = true; return this; },
     removeLayer(layer) { mapLayers.delete(layer); layer._onMap = false; return this; },
@@ -199,12 +209,32 @@ function makeLeafletStub() {
   }
 
   function tileLayer(_url, options) {
+    const parent = {
+      ghosts: [],
+      appendChild(ghost) { this.ghosts.push(ghost); ghost.parentElement=this; }
+    };
+    const node = {
+      parentElement:parent,
+      cloneNode() {
+        return {
+          style:{opacity:"",scale:"",transformOrigin:"",transition:""},
+          classList:{add(){}},querySelectorAll(){return [];},
+          setAttribute(){},removeAttribute(){},
+          getBoundingClientRect(){return {left:0,top:0};},
+          remove(){this.removed=true;}
+        };
+      }
+    };
     const layer = {
       options,
       handlers: {},
+      sourceParent: parent,
+      getContainer() { return node; },
+      isLoading() {return true;},
       addTo(target) { target.addLayer(this); return this; },
       setOpacity(value) { this.opacity = value; return this; },
-      on(name, fn) { this.handlers[name] = fn; return this; }
+      on(name, fn) { this.handlers[name] = fn; return this; },
+      off(name, fn) { if (this.handlers[name]===fn) delete this.handlers[name];return this; }
     };
     tiles.push(layer);
     return layer;
@@ -670,7 +700,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "fast-wheel-image-settle-20261015-v1");
+  assert.equal(mapAsset[1], "raster-only-hold-20261015-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -1953,6 +1983,8 @@ nagoya.scenarios = [{
    });
    const map=L.__map, handler=map.container.listeners.wheel.fn;
    const mapPane=map.getPanes().mapPane;
+   const tilePane=map.getPanes().tilePane;
+   const floodPane=map.getPane("officialFloodPane");
    assert.equal(vm.runInContext("WHEEL_GESTURE_IDLE_MS",context),70,
      "new wheel image update starts 65ms earlier than prior preview");
    assert.equal(vm.runInContext("WHEEL_PREVIEW_TRANSITION_MS",context),40);
@@ -1968,18 +2000,30 @@ nagoya.scenarios = [{
    handler(e1);handler(e2);handler(e3);
    assert.equal(e1.prevented,true);
    assert.equal(e1.stopped,true);
-   assert.ok(Number(mapPane.style.scale)>1,
-     "reuse existing rendered image immediately before Leaflet moves");
-   assert.equal(mapPane.style.transition,"scale 40ms ease-out",
+   assert.ok(Number(tilePane.style.scale)>1,
+     "reuse background raster without scaling the geographic marker pane");
+   assert.ok(Number(floodPane.style.scale)>1,
+     "official flood raster follows the same preview geometry");
+   assert.equal(mapPane.style.scale,"",
+     "mapPane must not scale pins, cluster icons and location bubbles");
+   assert.equal(tilePane.style.transition,"scale 40ms ease-out",
      "shorter preview transition must not delay visual response");
-   assert.match(mapPane.style.transformOrigin, /220px 175px/);
+   assert.match(tilePane.style.transformOrigin, /220px 175px/);
    assert.equal(map.zoom,13, "preview must not change geographic map zoom");
    assert.equal(map.zoomAroundCalls?.length || 0,0,
      "no intermediate zoom on each wheel event");
    vm.runInContext("flushSingleTargetWheel()",context);
+   assert.equal(tilePane.style.scale,"",
+     "commit restores background layer CSS preview");
+   assert.equal(floodPane.style.scale,"");
    assert.equal(mapPane.style.scale,"",
-     "commit restores original map-pane CSS preview");
-   assert.equal(mapPane.style.transformOrigin,"");
+     "marker and popup panes remain unscaled throughout wheel gesture");
+   assert.equal(L.__tiles[0].sourceParent.ghosts.length,1,
+     "a read-only copy of rendered map tiles is preserved during final loading");
+   assert.equal(L.__tiles[0].sourceParent.ghosts[0].removed,undefined);
+   assert.equal(L.__tiles[1].sourceParent.ghosts.length,1,
+     "official raster is held independently, not merged into a fake risk layer");
+   assert.equal(tilePane.style.transformOrigin,"");
    assert.equal(map.zoomAroundCalls.length,1,
      "one gesture resolves to one animated destination");
    assert.equal(map.zoomAroundCalls[0].anchor.x,220);
@@ -2007,8 +2051,9 @@ nagoya.scenarios = [{
    // Competing drag cancels pending wheel rather than restoring stale camera.
    context.window.HINANEX_MAP_GESTURES.setSettings({style:"continuous"});
    handler(event(-32));
-   assert.ok(Number(mapPane.style.scale)>1);
+   assert.ok(Number(tilePane.style.scale)>1);
    map.handlers.dragstart();
+   assert.equal(tilePane.style.scale,"");
    assert.equal(mapPane.style.scale,"");
    vm.runInContext("flushSingleTargetWheel()",context);
    assert.equal(map.zoomAroundCalls.length,2);
