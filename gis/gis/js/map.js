@@ -1016,8 +1016,8 @@ function showDatasetOverview(summary, sourceLabel) {
     "D RegionExport",
     {
       note: missing > 0
-        ? "座標欠損recordは地図に描画していません。E側で住所から座標を推測・補完していません。"
-        : "Dが正規化した座標のみを描画しています。E側で値を補完・推測していません。"
+        ? "座標を確認できない施設は地図に表示していません。住所から位置を推測していません。"
+        : "元データにある座標だけを表示しています。未確認の位置を推測していません。"
     }
   );
 }
@@ -1728,7 +1728,7 @@ function renderShelterSummary(summary, sourceLabel) {
   const listOnly = summary.records.length > 0 && summary.mappableRecords.length === 0;
   setMapAvailability(
     !listOnly && Boolean(boundaryBounds?.isValid() || shelterBounds?.isValid()),
-    `${summary.region.name} は座標付きrecordがないため、表示範囲を確定できません。E側で位置を推測しません。`
+    `${summary.region.name} は座標を確認できる施設がなく、地図上の範囲を確定できません。位置は推測しません。`
   );
   setFacilityListMode(listOnly ? summary : null);
 
@@ -1820,7 +1820,7 @@ async function tryAutoLoad() {
     updateCoverage(null);
     updateDatasetChip("未読込", "wait");
     setDatasetStatus(
-      `地域の施設データを読み込めませんでした（${error.message}）。${config.label} のJSONを選択するか、元のworktreeのpipeline/data/outputからコピーしてください。GSI公式地点探索は別データなので利用できます。`,
+      `地域の施設データを読み込めませんでした（${error.message}）。${config.label} のJSONを選択するか、提供元の施設データを読み込んでください。GSI公式地点探索は別データなので利用できます。`,
       "warning"
     );
     showRegionWaitingDetail();

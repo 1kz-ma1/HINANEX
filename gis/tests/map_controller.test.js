@@ -332,7 +332,7 @@ nagoya.scenarios = [{
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.equal(fileFetchCalls, 0);
   assert.match(fileCase.elements.datasetStatus.textContent, /file:\/\//);
-  assert.match(fileCase.elements.status.textContent, /手動読込/);
+  assert.match(fileCase.elements.status.textContent, /手動で読込/);
 
   // Two independent UI tabs operate on ONE map, never on two data pipelines.
   assert.equal(fileCase.elements.gisLayout.getAttribute("data-ui-mode"), "normal");
@@ -647,7 +647,7 @@ nagoya.scenarios = [{
     }
   });
   await new Promise(resolve => setTimeout(resolve, 0));
-  assert.match(missingDCase.elements.datasetStatus.textContent, /D RegionExportを読み込めません/);
+  assert.match(missingDCase.elements.datasetStatus.textContent, /地域の施設データを読み込めません/);
   assert.match(missingDCase.elements.datasetStatus.textContent, /GSI公式地点探索は別データ/);
   assert.equal(missingDCase.elements.mapOriginShortcut.disabled, false);
   assert.equal(missingDCase.elements.mapOriginShortcut.getAttribute("aria-pressed"), "false");
@@ -900,7 +900,7 @@ nagoya.scenarios = [{
   assert.ok(acceptedPin.options.icon.html.includes("reference-site-marker"));
   assert.match(acceptedPin.options.icon.html, /aria-label="GSI公式掲載地点・安全性未判定"/);
   assert.doesNotMatch(acceptedPin.options.icon.html, />[1-5]<|GSI公式掲載参考地点[1-5]/);
-  assert.match(acceptedPin.popupHtml, /GSI公式掲載地点（参考情報）/);
+  assert.match(acceptedPin.popupHtml, /GSI公式掲載地点（参考）/);
   assert.doesNotMatch(acceptedPin.popupHtml, /GSI公式掲載（参考\s*[0-9]|番号は|順位/);
   assert.ok(acceptedPin.popupHtml.includes("未判定"));
   assert.ok(acceptedPin.popupHtml.includes("&lt;unsafe&gt;"));
