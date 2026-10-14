@@ -50,7 +50,7 @@ mkdirSync(out, { recursive: true });
       {waitUntil:"domcontentloaded"});
     assert.equal(response.status(), 200);
     await page.waitForFunction(() => document.querySelector("#datasetChip")
-      ?.textContent?.includes("D出力読込済"));
+      ?.textContent?.includes("施設データ読込済"));
     await page.locator("#mapToolScene > summary").click();
     await page.locator("#mapTourOpen").click();
     assert.equal(await page.locator("#mapTourPanel").isVisible(), true);
