@@ -611,7 +611,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "gsi-flood-origin-20261014-v3");
+  assert.equal(mapAsset[1], "unified-place-card-20261014-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -713,7 +713,8 @@ nagoya.scenarios = [{
   assert.match(selectedCard, /class="place-card-summary"/);
   assert.match(selectedCard, /<details class="place-card-disclosure"><summary>詳しい情報を見る/);
   const topRows = selectedCard.split('<details class="place-card-disclosure">')[0];
-  assert.doesNotMatch(topRows, /施設ID|緯度|経度|source_record_trace|出典の記録位置/);
+  assert.doesNotMatch(topRows, /施設ID|緯度|経度|source_record_trace|出典の記録位置|UNKNOWN|D施設/);
+  assert.match(topRows, /未判定/);
   assert.match(selectedCard, /出典の記録位置|施設ID/);
   assert.match(httpCase.elements.details.innerHTML, /2階以上/);
   assert.match(httpCase.elements.details.innerHTML, /資料に記載された災害種別/);
@@ -925,9 +926,10 @@ nagoya.scenarios = [{
   const cardCss = fs.readFileSync(path.resolve(__dirname, "../gis/css/place_card.css"), "utf8");
   assert.match(cardCss, /top:142px;right:18px/);
   assert.match(cardCss, /place-card-disclosure/);
+  assert.match(cardCss, /max-height:min\(22%,160px\)/, "mobile demo must keep a compact selected-place card accessible");
   assert.match(cardCss, /data-right-panel="closed"/);
   assert.match(pageSource, /地域の避難施設データ/);
-  assert.doesNotMatch(pageSource, /D施設|地域D|DのUNKNOWN/);
+  assert.doesNotMatch(pageSource, /D施設|地域D|DのUNKNOWN|CURRENT D SOURCE|GIS \/ RegionExport/);
 
   assert.match(pageSource, /id="toggleLeftPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="toggleRightPanel"[^>]*aria-expanded="false"/);
