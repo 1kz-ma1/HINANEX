@@ -2,6 +2,7 @@
   "use strict";
   const get = id => document.getElementById(id);
   const panel = get("mapEvidenceReplayPanel");
+  const mapApi = window.HINANEX_PRESENTATION_TOUR;
   const opener = get("mapHistoricalEvidenceDemo");
   const tabs = Array.from(panel.querySelectorAll("[data-evidence-case]"));
   const stages = Array.from(panel.querySelectorAll("[data-replay-stage]"));
@@ -18,6 +19,73 @@
   let state = "idle";
   let interval = null;
   let generation = 0;
+  // Leaflet camera control reuses the existing source-coordinate-only GIS tour.
+  // Neither present-day D records nor a campus address are 2019 event shelter evidence.
+  let mapSession = false;
+  let mapRestore = true;
+  let mapRequest = 0;
+  let mapMovePending = false;
+  let mapReady = false;
+  function mapStatus(message) {
+    get("mapEvidenceReplayMapStatus").textContent = message;
+    get("mapEvidenceReplayMapLabelText").textContent = message;
+  }
+  function stopMapMovement() {
+    ++mapRequest;
+    if (mapSession && mapMovePending) mapApi.halt();
+    mapMovePending = false;
+  }
+  function beginMapSession() {
+    if (!mapApi || typeof mapApi.begin !== "function" ||
+      typeof mapApi.focus !== "function" || typeof mapApi.halt !== "function" ||
+      typeof mapApi.end !== "function") {
+      mapStatus("地図の案内機能を確認できません。施設位置の移動は行いません。");
+      return;
+    }
+    mapRestore = true;
+    mapApi.begin();
+    mapSession = true;
+    mapReady = false;
+    get("mapEvidenceReplayMapLabel").hidden = false;
+    mapStatus("現行D施設の元座標を確認中。2019年当日の避難先ではありません。");
+  }
+  async function focusMapContext() {
+    if (!mapSession || panel.hidden || !deck) return;
+    if (mapMovePending) stopMapMovement();
+    const token = ++mapRequest;
+    mapMovePending = true;
+    mapReady = false;
+    mapStatus("江戸川区の現行D施設を確認して地図を移動中。2019年の避難先は特定しません。");
+    let result;
+    try {
+      const reduced = !!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+      // focus() moves only to *real source coordinates* extracted from D.
+      result = await mapApi.focus("13123", !reduced, false);
+    } catch (_) {
+      result = { state: "unavailable" };
+    }
+    if (token !== mapRequest || !mapSession || panel.hidden) return;
+    mapMovePending = false;
+    if (result?.state === "mapped" && Number.isSafeInteger(result.total) &&
+      Number.isSafeInteger(result.mapped) && result.total >= result.mapped &&
+      result.mapped > 0) {
+      mapReady = true;
+      mapStatus("現行D施設：取得 " + result.total + "件／元座標あり " +
+        result.mapped + "件／位置未確認 " + (result.total - result.mapped) +
+        "件。地図マークは2019年当日の避難先ではありません。");
+    } else if (result?.state === "unlocated") {
+      mapStatus("現行D施設を取得しましたが確認済み座標がありません。地図は移動していません。");
+    } else {
+      mapStatus("現行D施設の位置を確認できず、地図移動は未実施です。未取得は施設不存在を意味しません。");
+    }
+  }
+  function endMapSession() {
+    stopMapMovement();
+    if (mapSession) mapApi.end(mapRestore);
+    mapSession = false;
+    mapReady = false;
+    get("mapEvidenceReplayMapLabel").hidden = true;
+  }
 
   function requireEvidence(data) {
     const check = (condition, reason) => {
@@ -140,6 +208,7 @@
       return;
     }
     remaining = stage < 0 ? 15 : lengths[stage];
+    if (stage === 0) void focusMapContext();
     setStatus("ケース " + (caseIndex + 1) + " の工程 " + (stage + 1) + " / 4 を説明中。");
     render();
   }
@@ -156,12 +225,17 @@
     state = "playing";
     clearClock();
     interval = window.setInterval(tick, 1000);
-    setStatus("再生中：原本 → HINANEX → C監査 → 結論。");
+    if (stage === 0 && !mapReady && !mapMovePending) void focusMapContext();
+    setStatus("再生中：現行施設の地図移動 → 原本 → HINANEX → C監査 → 結論。");
     render();
   }
   function pause() {
     if (state !== "playing") return;
     clearClock();
+    if (mapMovePending) {
+      stopMapMovement();
+      mapStatus("地図移動を一時停止。再生すると現行D施設の位置確認を再開します。");
+    }
     state = "paused";
     setStatus("一時停止中。ケースを選ぶか、再生ボタンで続けられます。");
     render();
@@ -169,16 +243,19 @@
   function selectCase(index) {
     if (!deck || index < 0 || index >= deck.cases.length) return;
     clearClock();
+    stopMapMovement();
     caseIndex = index;
     stage = 0;
     remaining = lengths[0];
     state = "paused";
-    setStatus("ケース " + (caseIndex + 1) + " を選択。表示中の工程は説明演出です。");
+    setStatus("ケース " + (caseIndex + 1) + " を選択。地図は現行D施設の参考位置です。");
     render();
+    void focusMapContext();
   }
   function restart() {
     if (!deck) return;
     clearClock();
+    stopMapMovement();
     caseIndex = 0;
     stage = -1;
     remaining = 15;
@@ -209,6 +286,7 @@
     if (panel.hidden) return;
     generation++;
     clearClock();
+    endMapSession();
     state = "idle";
     panel.hidden = true;
     opener.setAttribute("aria-expanded", "false");
@@ -227,6 +305,8 @@
     state = "loading";
     deck = null;
     get("mapEvidenceReplayContent").hidden = true;
+    get("mapEvidenceReplayMapLabel").hidden = true;
+    mapStatus("現行D施設の位置情報はまだ取得していません。");
     tabs.forEach(b => { b.disabled = true; });
     setStatus("Cが固定した説明データを取得中です。未取得を検証成功として表示しません。");
     const request = ++generation;
@@ -239,6 +319,7 @@
       deck = verified;
       tabs.forEach(b => { b.disabled = false; });
       get("mapEvidenceReplayContent").hidden = false;
+      beginMapSession();
       restart();
     } catch (error) {
       if (request !== generation || panel.hidden) return;
@@ -278,6 +359,14 @@
     }
   }, true);
   document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); });
-  get("map").addEventListener("pointerdown", () => { if (!panel.hidden) pause(); }, { passive: true });
-  get("map").addEventListener("wheel", () => { if (!panel.hidden) pause(); }, { passive: true });
+  function onManualMapGesture() {
+    if (panel.hidden) return;
+    mapRestore = false; // Do not undo the viewer's manual navigation on close.
+    pause();
+    stopMapMovement();
+    if (mapSession) mapApi.halt(); // Even a completed focus() may still be flying.
+  }
+  for (const type of ["pointerdown", "wheel", "touchstart"]) {
+    get("map").addEventListener(type, onManualMapGesture, { passive: true });
+  }
 })();

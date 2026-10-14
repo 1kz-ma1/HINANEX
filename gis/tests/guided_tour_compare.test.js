@@ -200,7 +200,7 @@ test("on-map evidence player replaces cross-tab link without altering three-regi
   assert.match(html, /地図上で3つの検証パターンを再生/);
   assert.match(html, /実災害の予測一致・不一致は未検証/);
   assert.match(html, /補助：従来の3地域データ閲覧ツアー/);
-  assert.match(html, /js\/evidence_replay[.]js[?]v=inline-evidence-20261014-v1/);
-  assert.match(html, /css\/evidence_replay[.]css[?]v=inline-evidence-20261014-v1/);
+  assert.match(html, /js\/evidence_replay[.]js[?]v=spatial-evidence-20261014-v2/);
+  assert.match(html, /css\/evidence_replay[.]css[?]v=spatial-evidence-20261014-v2/);
   assert.match(html, /id="mapTourCase23100"/);
 });
