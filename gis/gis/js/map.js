@@ -23,14 +23,15 @@ const FLOOD_REFERENCE_URL = "https://disaportaldata.gsi.go.jp/raster/01_flood_l2
 
 // Target-first wheel zoom: coalesce a short gesture into one Leaflet target
 // zoom rather than scheduling base-map image requests at passing zoom levels.
-// Native Leaflet wheel handling retains pointer anchoring, continuous zoom,
-// pinch and explicit zoom controls. The 3.75× default sensitivity is unchanged.
-// ?zoomFeel=progressive retains the old intermediate tile refresh at the same
-// speed for controlled A/B tests; previous/slow comparison modes still work.
+// Keep pinch and explicit zoom controls in Leaflet. Normal continuous wheel
+// bursts instead resolve to one camera destination/animation per gesture.
+// Sensitivity stays 3.75×. ?zoomFeel=native preserves the immediately previous
+// target-first Leaflet handler; other historical A/B modes remain available.
 const zoomFeelMode = new URL(window.location.href).searchParams.get("zoomFeel");
 const previousZoomFeel = zoomFeelMode === "previous";
 const slowZoomFeel = zoomFeelMode === "slow";
 const progressiveZoomFeel = zoomFeelMode === "progressive";
+const singleTargetWheel = !["native", "previous", "slow", "progressive"].includes(zoomFeelMode);
 // Persist only gesture preferences in this browser. Never persist map/GPS
 // coordinates, source data, or disaster/safety assessments.
 const GESTURE_PREF_KEY = "hinanex.gis.gesture.v2";
@@ -91,6 +92,60 @@ const map = L.map("map", {
   // allow a slightly larger transition before falling back to an instant jump.
   zoomAnimationThreshold: 5
 }).setView([35.704, 139.882], 13);
+
+// Leaflet's standard wheel handler may end one short scroll burst and restart
+// an animation while the user is still scrolling. Intercept only ordinary
+// wheel events at the map container's capture phase. Ctrl+wheel (pinch),
+// explicitly selected stepped zoom and A/B variants retain native behavior.
+// All camera changes use public Leaflet APIs; hazard/source data is untouched.
+const WHEEL_GESTURE_IDLE_MS = 135;
+let pendingWheelPixels = 0;
+let pendingWheelPoint = null;
+let wheelGestureTimer = null;
+function flushSingleTargetWheel() {
+  if (wheelGestureTimer !== null) {
+    clearTimeout(wheelGestureTimer);
+    wheelGestureTimer = null;
+  }
+  const pixels = pendingWheelPixels;
+  const anchor = pendingWheelPoint;
+  pendingWheelPixels = 0;
+  pendingWheelPoint = null;
+  if (!anchor || !Number.isFinite(pixels) || pixels === 0) return;
+  const pxPerLevel = map.options.wheelPxPerZoomLevel;
+  const d = Math.abs(pixels) / (pxPerLevel * 4);
+  // Leaflet's smooth, bounded wheel-delta curve, but applied once to the
+  // complete input burst (maximum <4 zoom levels, below the animation cutoff).
+  const change = Math.sign(pixels) *
+    4 * Math.log2(2 / (1 + Math.exp(-d)));
+  const currentZoom = map.getZoom();
+  const targetZoom = Math.max(map.getMinZoom(),
+    Math.min(map.getMaxZoom(), currentZoom + change));
+  if (Math.abs(targetZoom - currentZoom) < 0.001) return;
+  map.setZoomAround(anchor, targetZoom, { animate: true });
+}
+function captureSingleTargetWheel(event) {
+  if (!singleTargetWheel || gesturePrefs.style === "steps" ||
+      event.ctrlKey || event.metaKey) return;
+  // A scroll inside popup details/tool controls must stay a scroll, not zoom.
+  if (event.target?.closest?.(
+    ".leaflet-popup, .leaflet-control, .map-settings-sheet, " +
+    "input, select, textarea, [data-wheel-scroll]")) return;
+  const rawDelta = Number(event.deltaY);
+  if (!Number.isFinite(rawDelta) || rawDelta === 0) return;
+  event.preventDefault();
+  event.stopImmediatePropagation?.();
+  const scale = event.deltaMode === 1 ? 20 : event.deltaMode === 2 ? 60 : 1;
+  pendingWheelPixels += -rawDelta * scale;
+  pendingWheelPoint = map.mouseEventToContainerPoint(event);
+  if (wheelGestureTimer !== null) clearTimeout(wheelGestureTimer);
+  wheelGestureTimer = setTimeout(flushSingleTargetWheel, WHEEL_GESTURE_IDLE_MS);
+}
+if (singleTargetWheel) {
+  map.getContainer().addEventListener("wheel", captureSingleTargetWheel, {
+    capture: true, passive: false
+  });
+}
 function getGesturePrefs() {
   return { ...gesturePrefs };
 }

@@ -107,6 +107,10 @@ function makeLeafletStub() {
     handlers: {},
     zoom: 13,
     overviewFitZoom: 4,
+    container: { listeners: {},
+      addEventListener(type, fn, options) {
+        this.listeners[type] = {fn, options};
+      } },
     viewportLimits: { south: 35.65, north: 35.8, west: 139.80, east: 139.96 },
     getBounds() {
       const b = this.viewportLimits;
@@ -143,6 +147,15 @@ function makeLeafletStub() {
       return this;
     },
     getZoom() { return this.zoom; },
+    getMinZoom() { return this.minZoom ?? 2; },
+    getMaxZoom() { return 18; },
+    getContainer() { return this.container; },
+    mouseEventToContainerPoint(e) { return {x:e.clientX,y:e.clientY}; },
+    setZoomAround(anchor, zoom, options) {
+      this.zoomAroundCalls = [...(this.zoomAroundCalls || []), {anchor,zoom,options}];
+      this.zoom = zoom;
+      return this;
+    },
     project(latlng, zoom) {
       // Web Mercator world pixels, deterministic independent of viewport.
       const world = 256 * Math.pow(2, zoom);
@@ -652,7 +665,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "target-first-wheel-20261014-v1");
+  assert.equal(mapAsset[1], "single-target-wheel-20261014-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -1845,6 +1858,8 @@ nagoya.scenarios = [{
   assert.equal(L.__map.options.zoomSnap, 0);
   assert.equal(L.__map.options.wheelDebounceTime, 135,
     "batch rapid wheel input before one destination-focused zoom animation");
+  assert.equal(L.__map.container.listeners.wheel.options.capture, true);
+  assert.equal(L.__map.container.listeners.wheel.options.passive, false);
   assert.equal(L.__map.options.zoomAnimation, true);
   assert.equal(L.__map.options.zoomAnimationThreshold, 5);
   assert.equal(L.__map.options.preferCanvas, true, "renderer is unchanged");
@@ -1876,9 +1891,21 @@ nagoya.scenarios = [{
   assert.equal(progressive.L.__map.options.wheelPxPerZoomLevel, 27);
   assert.equal(progressive.L.__map.options.wheelDebounceTime, 80);
   assert.equal(progressive.L.__map.options.zoomSnap, 0);
+  assert.equal(progressive.L.__map.container.listeners.wheel, undefined,
+    "progressive A/B variant retains Leaflet native wheel handler");
   assert.equal(progressive.L.__tiles[0].options.updateWhenZooming, true);
   assert.equal(progressive.L.__tiles[1].options.updateWhenZooming, false);
   assert.equal(progressive.L.__map.getZoom(), L.__map.getZoom());
+
+  const native = makeContext({
+    protocol: "http:",
+    href: "http://test/gis/gis/?region=13123&zoomFeel=native",
+    fetchImpl: async () => ({ ok: false, status: 404, json: async () => ({}) })
+  });
+  assert.equal(native.L.__map.options.wheelPxPerZoomLevel, 27);
+  assert.equal(native.L.__map.options.wheelDebounceTime, 135);
+  assert.equal(native.L.__map.container.listeners.wheel, undefined);
+  assert.equal(native.L.__tiles[0].options.updateWhenZooming, false);
 
   const slow = makeContext({
     protocol: "http:",
@@ -1896,6 +1923,63 @@ nagoya.scenarios = [{
     "slow and responsive modes respect the same Japan min zoom");
   assert.equal(slow.L.__map.getZoom(), L.__map.getZoom());
 }
+
+
+ // Capture-phase wheel input is combined into ONE public setZoomAround call,
+ // not repeated calls per event. Non-wheel gestures and controls stay native.
+ {
+   const { L, context } = makeContext({
+     protocol: "http:",
+     fetchImpl: async () => ({ok:false,status:404,json:async()=>({})})
+   });
+   const map=L.__map, handler=map.container.listeners.wheel.fn;
+   assert.equal(typeof handler, "function");
+   const event = (deltaY, target={}) => ({
+     deltaY, deltaMode:0, clientX:220, clientY:175, target,
+     prevented: false, stopped:false,
+     preventDefault() { this.prevented=true; },
+     stopImmediatePropagation() { this.stopped=true; }
+   });
+   const e1=event(-24), e2=event(-24), e3=event(-24);
+   handler(e1);handler(e2);handler(e3);
+   assert.equal(e1.prevented,true);
+   assert.equal(e1.stopped,true);
+   assert.equal(map.zoomAroundCalls?.length || 0,0,
+     "no intermediate zoom on each wheel event");
+   vm.runInContext("flushSingleTargetWheel()",context);
+   assert.equal(map.zoomAroundCalls.length,1,
+     "one gesture resolves to one animated destination");
+   assert.equal(map.zoomAroundCalls[0].anchor.x,220);
+   assert.equal(map.zoomAroundCalls[0].anchor.y,175);
+   assert.ok(map.zoomAroundCalls[0].zoom>13);
+   assert.ok(map.zoomAroundCalls[0].zoom<17);
+   assert.equal(map.zoomAroundCalls[0].options.animate,true);
+   const firstTarget = map.zoomAroundCalls[0].zoom;
+   handler(event(40));
+   vm.runInContext("flushSingleTargetWheel()",context);
+   assert.equal(map.zoomAroundCalls.length,2);
+   assert.ok(map.zoomAroundCalls[1].zoom<firstTarget,
+     "negative wheel intent returns toward the prior zoom");
+   const pinch=event(-48);pinch.ctrlKey=true;handler(pinch);
+   assert.equal(pinch.prevented,false,"trackpad pinch keeps native Leaflet handling");
+   const popup=event(-48,{closest:()=>({})});handler(popup);
+   assert.equal(popup.prevented,false,"popover scroll does not zoom map");
+   // An explicit half-step preference remains under Leaflet's own handler.
+   context.window.HINANEX_MAP_GESTURES.setSettings({style:"steps"});
+   const stepped=event(-48);handler(stepped);
+   assert.equal(stepped.prevented,false);
+   assert.equal(map.zoomAroundCalls.length,2);
+   // Minimum and maximum zoom are clamped by the map's effective bounds.
+   context.window.HINANEX_MAP_GESTURES.setSettings({style:"continuous"});
+   map.zoom=map.getMinZoom();
+   handler(event(2000));
+   vm.runInContext("flushSingleTargetWheel()",context);
+   assert.equal(map.zoomAroundCalls.length,2);
+   map.zoom=18;
+   handler(event(-2000));
+   vm.runInContext("flushSingleTargetWheel()",context);
+   assert.equal(map.zoomAroundCalls.length,2);
+ }
 
 // Gesture settings are opt-in, persistent only in this browser, and never
 // modify location/region/official data. Storage errors degrade gracefully.
