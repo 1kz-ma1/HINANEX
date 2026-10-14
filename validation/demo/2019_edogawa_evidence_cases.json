@@ -1,0 +1,124 @@
+{
+  "schema_id": "hinanex.c.midterm_explanation_cases.v0.1",
+  "case_set_id": "2019-typhoon19-edogawa-educational",
+  "event_label": "2019年台風19号｜江戸川区",
+  "presentation_only": true,
+  "historical_replay_executed": false,
+  "historical_prediction_approved": false,
+  "human_c_approved": false,
+  "verification_scope": "POST_EVENT_T0_SOURCE_OUTPUT_MACHINE_CHECKS_ONLY__HUMAN_REVIEW_PENDING",
+  "t1_opening_prediction_accuracy": "NOT_EVALUABLE",
+  "t2_hazard_prediction_accuracy": "NOT_RUN",
+  "prediction_numerator": null,
+  "prediction_denominator": null,
+  "approved_actual_building_pairs": 0,
+  "approved_historical_prediction_inputs": 0,
+  "source_snapshot_version_note": "取得した原本のSHA256とレポートの整合は先行するC自動監査で確認。2019年当時に同一バイトが公開済みだったことや正式なC人手承認を意味しない。",
+  "sources": [
+    {
+      "id": "school",
+      "title": "江戸川区 台風19号 学校避難所対応（事後報告）",
+      "official_url": "https://www.city.edogawa.tokyo.jp/documents/17316/19matome.pdf",
+      "raw_sha256": "89fc7de1810685aaf48a5c6fd6f4c79d6888e1ffb3d6314756fa5665d652b380",
+      "machine_audit_url": "https://github.com/1kz-ma1/HINANEX/actions/runs/38344307696",
+      "role": "POST_EVENT_TRUTH_ONLY"
+    },
+    {
+      "id": "campus",
+      "title": "江戸川区 小松川第二中学校 校舎改築の概要",
+      "official_url": "https://www.city.edogawa.tokyo.jp/e071/kosodate/kyoiku/kyouiku/shiryo/keikaku/kaichiku/komanichu.html",
+      "raw_sha256": "542d615df1df07139c37eab45d65e0ea3e4ac87783e868471f79746702a673df",
+      "machine_audit_url": "https://github.com/1kz-ma1/HINANEX/actions/runs/38350260260",
+      "role": "CAMPUS_HISTORY_NOT_EVENT_SHELTER_PROOF"
+    },
+    {
+      "id": "newsletter",
+      "title": "江戸川区 広報えどがわ 2018年8月20日号",
+      "official_url": "https://www.city.edogawa.tokyo.jp/documents/26598/300820.pdf",
+      "raw_sha256": "c44db027ac7d75444a5684e0a1c37973c6c6dc50fbe9974374c566713c219e33",
+      "machine_audit_url": "https://github.com/1kz-ma1/HINANEX/actions/runs/38349472925",
+      "role": "HISTORICAL_SCHOOL_LABEL_CONTEXT_ONLY"
+    },
+    {
+      "id": "cross",
+      "title": "C独立監査：当日使用した建物の紐付け保留",
+      "official_url": null,
+      "raw_sha256": null,
+      "machine_audit_url": "https://github.com/1kz-ma1/HINANEX/actions/runs/38351185440",
+      "role": "INDEPENDENT_C_CROSS_REPORT_GATE"
+    }
+  ],
+  "cases": [
+    {
+      "id": "trace",
+      "label": "① 整合を確認",
+      "short_label": "原本と出力",
+      "track": "T0",
+      "kind": "TECHNICAL_SOURCE_OUTPUT_CONSISTENCY",
+      "result": "C_MACHINE_TRACE_PASSED_HUMAN_PENDING",
+      "real_prediction_finding": null,
+      "seconds": 25,
+      "question": "公式の事後記録を、HINANEXは欠落なく読み取れているか？",
+      "input_title": "公式の事後資料",
+      "input_text": "学校避難所の運用は65グループ。通常・夜間などを分けると66明細で、報告避難者数は26,761人。",
+      "output_title": "HINANEXの抽出",
+      "output_text": "65グループ／66明細／26,761人を別々の意味として保持。明細数を建物数へ読み替えない。",
+      "audit_title": "Cの独立監査",
+      "audit_text": "原本のハッシュ、表の行、件数を照合した機械検証は成功。ただし過去の予測が当たった証明ではない。",
+      "takeaway": "「元資料と抽出値が整合する」を実証。災害予測のMATCHは未評価。",
+      "source_ids": [
+        "school"
+      ],
+      "review_label": "T0 技術的照合 PASS｜人手承認前"
+    },
+    {
+      "id": "abstain",
+      "label": "② 判断を保留",
+      "short_label": "未確定の建物",
+      "track": "T1",
+      "kind": "UNVERIFIED_PHYSICAL_SITE_NOT_EVALUABLE",
+      "result": "NOT_EVALUABLE",
+      "real_prediction_finding": null,
+      "seconds": 25,
+      "question": "通常205人・夜間11人は、当日どの建物に避難したのか？",
+      "input_title": "別々の公式資料",
+      "input_text": "同じ運用番号の通常205人と夜間11人。校舎資料では通常課程と夜間学級の所在地が異なる。",
+      "output_title": "HINANEXの判断",
+      "output_text": "報告明細は2件として保持。一方、実際に使われた避難先建物IDは両方とも未確定（null）。",
+      "audit_title": "Cの独立監査",
+      "audit_text": "学校の所在地を当日の避難建物へ転用しない。建物対応の承認は0件。T1の正誤は比較不可。",
+      "takeaway": "証拠のない施設の同一視を避け、分からないことを明示する。",
+      "source_ids": [
+        "school",
+        "campus",
+        "newsletter",
+        "cross"
+      ],
+      "review_label": "T1 NOT_EVALUABLE｜建物対応0件承認"
+    },
+    {
+      "id": "negative",
+      "label": "③ 誤処理を検出",
+      "short_label": "合成負系テスト",
+      "track": "T0_TEST",
+      "kind": "SYNTHETIC_NEGATIVE_TEST_NOT_REAL_MISMATCH",
+      "result": "SYNTHETIC_INVALID_INPUT_REJECTED",
+      "real_prediction_finding": null,
+      "seconds": 25,
+      "question": "通常205人と夜間11人を一つに潰したら？ または校舎住所を避難先建物と決め付けたら？",
+      "input_title": "テスト用に改変した入力",
+      "input_text": "合成テストで「夜間11人の明細を消す」「通常校舎の住所を当日の避難建物として確定する」不正な変更を投入。",
+      "output_title": "HINANEXの防御",
+      "output_text": "独立Cの負系テストが不当な明細の統合や無根拠の建物指定を拒否する。",
+      "audit_title": "検証の意味",
+      "audit_text": "これは合成データを使う回帰テストであり、実際の災害で予測が外れた事例（MISMATCH）ではない。",
+      "takeaway": "「間違いに気づける仕組み」を示す。実災害の予測不一致は未実証。",
+      "source_ids": [
+        "school",
+        "campus",
+        "cross"
+      ],
+      "review_label": "合成負系テスト PASS｜実災害MISMATCHは未検証"
+    }
+  ]
+}
