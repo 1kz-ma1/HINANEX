@@ -192,3 +192,13 @@ test("pause while pending cancels stale result, next step is manually selectable
   assert.match(a.get("mapTourCompare15100").textContent, /取得 2件/);
   assert.ok(a.calls.halt >= 2);
 });
+
+test("the primary historical validation demo is accessible without changing map tour semantics", () => {
+  assert.match(html, /id="mapHistoricalEvidenceDemo"/);
+  assert.match(html, /href="\.\.\/\.\.\/frontend\/historical-evidence-demo\.html"/);
+  assert.match(html, /3つの検証パターンを再生する/);
+  assert.match(html, /実災害の予測一致・不一致は未検証/);
+  assert.match(html, /補助：従来の3地域データ閲覧ツアー/);
+  assert.match(css, /\.map-tour-evidence-cta>a:focus-visible/);
+  assert.match(html, /id="mapTourCase23100"/);
+});

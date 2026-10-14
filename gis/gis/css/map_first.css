@@ -469,3 +469,13 @@ footer{display:none}
 .map-decision-dot.d-status-excluded{background:#64748b}
 .map-decision-dot.d-status-unknown{background:#c18a32}
 .map-decision-dot.d-status-gsi{background:#7439aa}
+
+/* Primary midterm demonstration is independent of the older three-city map flyover. */
+.map-tour-evidence-cta{display:grid;gap:7px;margin:12px 0 15px;padding:14px;border-radius:12px;background:rgba(78,215,220,.09);border:1px solid rgba(78,215,220,.45)}
+.map-tour-evidence-cta>span{font-size:10px;letter-spacing:.07em;font-weight:800;color:var(--cyan)}
+.map-tour-evidence-cta>strong{font-size:14px;line-height:1.5}
+.map-tour-evidence-cta>a{display:block;padding:12px 10px;border-radius:9px;background:#4ed7dc;color:#051920;font-size:12px;font-weight:800;text-align:center;text-decoration:none}
+.map-tour-evidence-cta>a:hover{background:#8bf3f4}
+.map-tour-evidence-cta>a:focus-visible{outline:3px solid var(--text);outline-offset:3px}
+.map-tour-evidence-cta>p{font-size:11px;line-height:1.6;color:var(--muted);margin:0}
+.map-tour-panel .map-tour-legacy-label{font-size:11px;color:var(--muted);margin:10px 0 2px}
