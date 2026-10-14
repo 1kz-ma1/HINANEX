@@ -114,3 +114,9 @@ D `RegionExport.scenarios[]` に `scenario_id=flood_shelter_selection` がある
 - 分析ページ内でスクロールしてもヘッダーが使えるようsticky表示。モバイル44pxタップ領域・キーボードフォーカスに対応。
 - 元のGISタブは引き続き存在するが、別タブ間の自動フォーカス移動やタブ自動クローズは実装しない。ブラウザの戻る履歴や `window.opener` に依存しない。
 - UI導線のみでD RegionExport/GISの判定・公式データの意味は変更しない。実ブラウザでの見え方は別途確認。
+
+## GISパフォーマンス改善のB受入仕様
+
+施設検索・一覧（PERF-07）、panel / MutationObserver（PERF-08）、marker / cluster表示（PERF-09）は、現行RepositoryではE所有の`gis/**`に実装があります。B feature branchからGIS実装を変更せず、計測baseline、UI要件、データ意味を維持する受入条件、Desktop / Mobile回帰項目を[`docs/GIS_PERFORMANCE_UX_ACCEPTANCE.md`](docs/GIS_PERFORMANCE_UX_ACCEPTANCE.md)にまとめています。
+
+BはEの実装後にこの仕様でUI/UXを確認します。性能改善を理由に、座標欠損record、`CANDIDATE` / `EXCLUDED` / `UNKNOWN`、DとGSIのSource区別、取得失敗状態を別の意味へ変換しません。

@@ -1,0 +1,72 @@
+{
+  "schema_id": "hinanex.a.historical_contemporaneous_candidates.v0.1",
+  "case_id": "2019-typhoon19-edogawa",
+  "created_on": "2026-10-13",
+  "status": "RESEARCH_CANDIDATES_ONLY__NONE_APPROVED",
+  "historical_asof_approved_count": 0,
+  "raw_archive_count": 0,
+  "license_review": "NOT_DONE",
+  "review_gate": "A source bytes + published version + release instant; C independent approval",
+  "sources": [
+    {
+      "source_id": "jma-20191009-t19",
+      "publisher": "気象庁",
+      "title": "台風第19号に早めの備えを！（10月9日）",
+      "url": "https://www.jma.go.jp/jma/press/1910/09a/201910091400.html",
+      "source_type": "FORECAST_PRESS_RELEASE",
+      "published_date_jst": "2019-10-09",
+      "published_at_jst": null,
+      "date_precision": "DATE_ONLY__INSTANT_NOT_APPROVED",
+      "archive_sha256": null,
+      "historical_version_sha256": null,
+      "asof_input_accepted": false,
+      "source_review": "WEB_PAGE_REVIEW_ONLY",
+      "time_note": "URL name contains digits; do not infer release minute without official evidence"
+    },
+    {
+      "source_id": "jma-20191010-t19",
+      "publisher": "気象庁",
+      "title": "台風第19号の今後の見通しについて（10月10日）",
+      "url": "https://www.jma.go.jp/jma/press/1910/10c/201910101400.html",
+      "source_type": "FORECAST_PRESS_RELEASE",
+      "published_date_jst": "2019-10-10",
+      "published_at_jst": null,
+      "date_precision": "DATE_ONLY__INSTANT_NOT_APPROVED",
+      "archive_sha256": null,
+      "historical_version_sha256": null,
+      "asof_input_accepted": false,
+      "source_review": "WEB_PAGE_REVIEW_ONLY",
+      "time_note": "Precise release instant not independently documented here"
+    },
+    {
+      "source_id": "jma-20191011-t19",
+      "publisher": "気象庁",
+      "title": "台風第19号について（10月11日）",
+      "url": "https://www.jma.go.jp/jma/press/1910/11b/201910111100.html",
+      "source_type": "FORECAST_PRESS_RELEASE",
+      "published_date_jst": "2019-10-11",
+      "published_at_jst": null,
+      "date_precision": "DATE_ONLY__INSTANT_NOT_APPROVED",
+      "archive_sha256": null,
+      "historical_version_sha256": null,
+      "asof_input_accepted": false,
+      "source_review": "WEB_PAGE_REVIEW_ONLY",
+      "time_note": "JMA press body describes risk; actual exact issuance time/archived revision not approved"
+    },
+    {
+      "source_id": "edogawa-201905-water-hazard-map",
+      "publisher": "江戸川区",
+      "title": "江戸川区水害ハザードマップ（2019年5月発行）",
+      "url": "https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/n_hazardmap.html",
+      "source_type": "HISTORICAL_HAZARD_MAP_CATALOG",
+      "published_date_jst": "2019-05",
+      "published_at_jst": null,
+      "date_precision": "MONTH_ONLY",
+      "archive_sha256": null,
+      "historical_version_sha256": null,
+      "asof_input_accepted": false,
+      "source_review": "SEARCH_INDEX_PAGE_REVIEW__CANONICAL_PAGE_DIRECT_RETRIEVAL_404",
+      "time_note": "Indexed official page states current PDFs include 2023 changes; another 2025 revision exists. Old 2019 exact PDF bytes not obtained"
+    }
+  ]
+}

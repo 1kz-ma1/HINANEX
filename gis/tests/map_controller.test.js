@@ -846,7 +846,7 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="uiTabScenario"[^>]*role="tab"/);
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
   assert.match(pageSource, /current_theme[.]css[?]v=gis-facility-drawer-20261009-v6/);
-  assert.match(pageSource, /map_first[.]css[?]v=d-decision-filter-20261010-v1/);
+  assert.match(pageSource, /map_first[.]css[?]v=guided-tour-three-region-comparison-20261013-v1/);
   assert.match(pageSource, /id="toggleLeftPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="toggleRightPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="gisLeftPanel"/);
@@ -1867,7 +1867,7 @@ nagoya.scenarios = [{
   assert.match(page, /id="mapShareURL"[^>]*readonly value="https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
   assert.match(page, /id="mapAudienceIntro"[^>]*hidden/);
   assert.match(page, /js\/audience_share[.]js[?]v=audience-share-20261010-v1/);
-  assert.match(page, /css\/map_first[.]css[?]v=d-decision-filter-20261010-v1/);
+  assert.match(page, /css\/map_first[.]css[?]v=guided-tour-three-region-comparison-20261013-v1/);
   assert.match(styles, /\.map-share-panel\[hidden\],\.map-audience-intro\[hidden\]\{display:none\}/);
   assert.match(shareSource, /const AUDIENCE_URL = "https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
   assert.doesNotMatch(shareSource, /geolocation|getCurrentPosition|flyTo|map\.setView|fetch\(|sendBeacon|XMLHttpRequest|<iframe/);
@@ -2034,8 +2034,8 @@ nagoya.scenarios = [{
   const css = fs.readFileSync(path.resolve(__dirname, "../gis/css/map_first.css"), "utf8");
   assert.match(html, /id="mapTourPanel"[^>]*hidden/);
   assert.match(html, /id="mapTourOpen"[^>]*aria-controls="mapTourPanel"/);
-  assert.match(html, /js\/guided_tour[.]js[?]v=guided-tour-loading-fix-20261010-v2/);
-  assert.match(html, /災害の時間変化や避難ルートの予測ではありません/);
+  assert.match(html, /js\/guided_tour[.]js[?]v=guided-tour-three-region-comparison-20261013-v1/);
+  assert.match(html, /災害予測や避難推奨ではありません/);
   assert.match(viewSource, /mapTourPause/);
   assert.match(viewSource, /prefers-reduced-motion: reduce/);
   assert.match(viewSource, /pointerdown", "wheel", "touchstart"/);
@@ -2106,7 +2106,7 @@ nagoya.scenarios = [{
   assert.match(html, /id="mapEvidenceOpen"[^>]*aria-controls="mapEvidencePanel"/);
   assert.match(html, /id="mapEvidencePanel"[^>]*hidden/);
   assert.match(html, /js\/evidence_sheet[.]js[?]v=evidence-sheet-20261010-v1/);
-  assert.match(html, /css\/map_first[.]css[?]v=d-decision-filter-20261010-v1/);
+  assert.match(html, /css\/map_first[.]css[?]v=guided-tour-three-region-comparison-20261013-v1/);
   assert.match(html, /D施設とGSI公式掲載地点は別情報源/);
   assert.match(style, /\.map-evidence-panel\[hidden\]\{display:none\}/);
   assert.doesNotMatch(source, /fetch\(|getCurrentPosition|geolocation|setView\(|flyTo|sendBeacon/);
@@ -2335,3 +2335,7 @@ nagoya.scenarios = [{
   console.error(error);
   process.exitCode = 1;
 });
+
+// Run the new data-safe three-case playback comparison checks in the existing
+// required GIS controller CI job without modifying shared workflow ownership.
+require("./guided_tour_compare.test.js");
