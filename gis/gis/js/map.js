@@ -407,7 +407,7 @@ function detail(title, rows, type, options = {}) {
   const showSafetyCaveat = type === "D: shelter_location / raw facts" ||
     type === "GSI公式掲載 / 未推奨";
   const caution = showSafetyCaveat
-    ? `<p class="place-card-caution">安全性・現在の開設状況は確認できていません。</p>`
+    ? `<p class="place-card-caution">安全性・現在の開設状況は確認できていません。${type === "D: shelter_location / raw facts" ? "洪水対応の未判定は危険・対応不可を意味しません。" : ""}</p>`
     : "";
   const visibleType = PLACE_KIND_LABELS[type] || type;
   document.getElementById("details").innerHTML =
@@ -1076,9 +1076,9 @@ function drawIndividualDMarker(record, summary) {
           record.name,
           [
             ["ID", record.id],
-            ["洪水対応分類", decision === "UNKNOWN" ? "未判定（UNKNOWN）" :
-              decision === "CANDIDATE" ? "候補として分類済み（CANDIDATE）" :
-              "対象外として分類済み（EXCLUDED）"],
+            ["洪水対応分類", decision === "UNKNOWN" ? "未判定" :
+              decision === "CANDIDATE" ? "候補として分類済み" :
+              "対象外として分類済み"],
             ["種別", facilityTypeLabel(record.facility_type)],
             ["住所", displayValue(record.address)],
             ["行政区域", displayValue(record.administrative_area)],
