@@ -71,8 +71,9 @@ test("manual map gesture preserves demo timer without undoing user pan",async()=
  m.get("filterDemoPause").click();assert.equal(m.timers.size,0);
  m.get("filterDemoPlay").click();assert.equal(m.timers.size,1);
  const before=m.get("filterDemoClock").textContent;
+ const haltsBefore=m.calls.filter(c=>c==="halt").length;
  m.gesture();assert.equal(m.timers.size,1);
- assert.ok(!m.calls.includes("halt"));
+ assert.equal(m.calls.filter(c=>c==="halt").length,haltsBefore);
  m.tick(1);assert.notEqual(m.get("filterDemoClock").textContent,before);
  m.get("filterDemoClose").click();
  assert.ok(m.calls.includes("end:false"));
