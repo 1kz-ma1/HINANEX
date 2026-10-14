@@ -126,7 +126,7 @@
     el("filterDemoContent").hidden=true;
     summary=null;detail=null;scene=0;elapsed=0;remaining=durations[0];
     restore=true;state="loading";clearTimer();
-    status("現在の施設情報 RegionExportを確認しています。根拠不明の施設は絞り込みません。");
+    status("現在の地域の施設データを確認しています。根拠不明の施設は絞り込みません。");
     try {
       const r=await api.begin();
       if(token!==request||panel.hidden)return;
