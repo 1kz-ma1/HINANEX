@@ -41,17 +41,19 @@ class LandingParser(HTMLParser):
 
 
 class LandingTests(unittest.TestCase):
-    def test_two_existing_public_entrypoints_remain_unchanged(self):
+    def test_existing_entrypoints_remain_and_evidence_demo_is_primary(self):
         page = LANDING.read_text(encoding="utf-8")
         parser = LandingParser()
         parser.feed(page)
-        self.assertEqual(parser.links, ["/frontend/", "/gis/gis/"])
+        self.assertEqual(parser.links, ["/frontend/historical-evidence-demo.html", "/frontend/", "/gis/gis/"])
         self.assertEqual(parser.lang, "ja")
         self.assertEqual(parser.main_count, 1)
         self.assertEqual(parser.nav_count, 1)
         self.assertTrue(parser.meta_viewport)
         self.assertIn("地域の分析を見る", page)
         self.assertIn("地図で情報を探す", page)
+        self.assertIn("3つの検証パターンを見る", page)
+        self.assertIn("合成テスト", page)
 
     def test_staging_safety_and_technical_disclosure_remain_explicit(self):
         page = LANDING.read_text(encoding="utf-8")
