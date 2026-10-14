@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="css/current_theme.css?v=gis-facility-drawer-20261009-v6">
   <link rel="stylesheet" href="css/map_first.css?v=guided-tour-three-region-comparison-20261013-v1">
   <link rel="stylesheet" href="css/evidence_replay.css?v=spatial-evidence-20261014-v2">
+  <link rel="stylesheet" href="css/presentation_story.css?v=presenter-55s-20261014-v1">
 </head>
 <body>
 <header class="header">
@@ -230,7 +231,8 @@
       <div class="map-tour-evidence-cta" aria-label="発表向け過去災害検証デモ">
         <span>MAIN DEMO / 2019年台風19号・江戸川区</span>
         <strong>原本の照合・判断保留・誤処理の検出</strong>
-        <button id="mapHistoricalEvidenceDemo" type="button" aria-controls="mapEvidenceReplayPanel" aria-expanded="false">▶ 地図上で3つの検証パターンを再生</button>
+                <button id="mapStoryOpen" type="button" aria-controls="storyPanel" aria-expanded="false">▶ 55秒で検証の流れを再生する</button>
+        <button id="mapHistoricalEvidenceDemo" type="button" aria-controls="mapEvidenceReplayPanel" aria-expanded="false">詳細90秒版：地図上で3つの検証パターンを再生</button>
         <p>T0の照合、T1の比較不可、合成負系テストを紹介します。実災害の予測一致・不一致は未検証です。</p>
       </div>
       <p class="map-tour-legacy-label">補助：従来の3地域データ閲覧ツアー（予測・検証ケースではありません）</p>
@@ -312,6 +314,53 @@
           <button id="mapEvidenceReplayRestart" type="button">最初から</button>
         </div>
       </div>
+    </section>
+    <section id="storyPanel" class="story-panel" role="dialog" aria-modal="true"
+      aria-labelledby="storySceneTitle" aria-describedby="storyHistoricalCaution" hidden>
+      <div class="story-topline">
+        <div><span class="story-eyebrow">HINANEX / PRESENTER DEMO</span><strong>3つの検証を55秒で理解する</strong></div>
+        <button id="storyClose" type="button" aria-label="55秒デモを閉じる">×</button>
+      </div>
+      <p id="storyHistoricalCaution" class="story-caution">2019年台風19号・江戸川区の事後資料による検証の説明です。予測や災害進行の再現ではありません。</p>
+      <p id="storyMapStatus" class="story-map-status">現行Dの位置は2019年の避難先を示しません。</p>
+      <div id="storyContent" hidden>
+        <div class="story-scene-header">
+          <span id="storySceneKicker" class="story-kicker"></span>
+          <span id="storySceneCount" class="story-count"></span>
+        </div>
+        <h2 id="storySceneTitle">この避難記録、どこまで確かめられる？</h2>
+        <div class="story-flow" role="group" aria-label="根拠・抽出結果・独立監査の関係を可視化">
+          <div class="story-node story-node--source"><span>01</span><strong id="storyNodeTitle0"></strong><b id="storyNodeValue0"></b></div>
+          <span class="story-arrow" aria-hidden="true">→</span>
+          <div class="story-node story-node--process"><span>02</span><strong id="storyNodeTitle1"></strong><b id="storyNodeValue1"></b></div>
+          <span class="story-arrow" aria-hidden="true">→</span>
+          <div class="story-node story-node--audit"><span>03</span><strong id="storyNodeTitle2"></strong><b id="storyNodeValue2"></b></div>
+        </div>
+        <div class="story-verdict" role="note"><span>検証のポイント</span><strong id="storyVerdict"></strong></div>
+        <p id="storySceneLine" class="story-message"></p>
+        <div class="story-jumps" role="group" aria-label="ケース別の説明を表示">
+          <button id="storyJumptrace" type="button" aria-pressed="false">① 正しく読む</button>
+          <button id="storyJumpabstain" type="button" aria-pressed="false">② 保留する</button>
+          <button id="storyJumpnegative" type="button" aria-pressed="false">③ 拒否する</button>
+        </div>
+        <div class="story-timeline" aria-label="55秒の再生位置">
+          <div class="story-timeline__meta"><span id="storyLiveStatus" role="status" aria-live="polite">準備中</span><span id="storyClock">5 秒</span></div>
+          <div class="story-timeline__track" aria-hidden="true"><span id="storyBar"></span></div>
+        </div>
+        <div class="story-controls" role="group" aria-label="発表再生の操作">
+          <button id="storyPlay" type="button">▶ 再生</button>
+          <button id="storyPause" type="button">一時停止</button>
+          <button id="storyNext" type="button">次の場面 →</button>
+          <button id="storyRestart" type="button">↺ 最初から</button>
+        </div>
+        <div class="story-sources">
+          <a id="storyOfficialSource" target="_blank" rel="noopener noreferrer">公式原本 ↗</a>
+          <a id="storyMachineAudit" target="_blank" rel="noopener noreferrer">C機械監査記録 ↗</a>
+          <button id="storyDetailed" type="button">詳細90秒版で根拠を見る ↗</button>
+        </div>
+        <p class="story-footnote">T0は機械照合でありC人手承認前。T1は比較不可。③は合成負系テスト。実災害の予測精度・避難先の安全性は示しません。</p>
+      </div>
+      <p id="storyLoadStatus" class="story-loading" role="status">正本データの読み込みを確認しています。</p>
     </section>
     <section id="mapSharePanel" class="map-share-panel" role="region" aria-label="観客向けHINANEX共有" hidden>
       <div class="map-share-heading">
@@ -436,6 +485,7 @@
 <script src="js/audience_share.js?v=audience-share-20261010-v1"></script>
 <script src="js/guided_tour.js?v=guided-tour-three-region-comparison-20261013-v1"></script>
 <script src="js/evidence_replay.js?v=spatial-evidence-20261014-v2"></script>
+<script src="js/presentation_story.js?v=presenter-55s-20261014-v1"></script>
 <script src="js/evidence_sheet.js?v=evidence-sheet-20261010-v1"></script>
 </body>
 </html>
