@@ -601,6 +601,9 @@ function captureSingleTargetWheel(event) {
     // New gesture, new bounded budget. Previous prefetched images have already
     // served (or expired) and must not prevent warmup at another destination.
     discardPredictedTiles();
+    // A new independent gesture invalidates any old base-map cover. Otherwise
+    // a stale, fully opaque atlas would hide the next instantaneous preview.
+    removeTargetCover();
     pendingWheelPoint = map.mouseEventToContainerPoint(event);
     wheelIntentStartedAt = perfTime();
   }
