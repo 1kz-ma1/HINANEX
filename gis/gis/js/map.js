@@ -1499,7 +1499,7 @@ window.HINANEX_GSI_FLOOD_PRESENTER = Object.freeze({
     };
     gsiPresenterSession=session;
     selectedOrigin={latitude:origin.latitude,longitude:origin.longitude};
-    setDisplayMode("nearby"); // GSI flood dataset ONLY, not D/GSI merged pins.
+    setDisplayMode("region"); // start with D as context; GSI appears at the source-switch scene.
     await loadFloodReferenceCatalog();
     if(token!==gsiPresenterEpoch||gsiPresenterSession!==session)return {state:"cancelled"};
     const d=engine.discoverReferenceTiles(verifiedFloodCatalog,selectedOrigin,selectedRegionCode);
@@ -1508,7 +1508,7 @@ window.HINANEX_GSI_FLOOD_PRESENTER = Object.freeze({
     }
     session.sites=d.sites;
     session.discovery=d;
-    focusReferenceCandidates(); // only verified GSI positions + chosen source origin
+    // GSI data has been validated but stays hidden until the demo applies the flood designation.
     return {
       state:"ready", source:"GSI_SKHB01_FLOOD", rawDisaster1:1,
       label:"洪水に対応する指定緊急避難場所（GSI skhb01）",
@@ -1517,6 +1517,14 @@ window.HINANEX_GSI_FLOOD_PRESENTER = Object.freeze({
       partial:d.partialCoverage,firstName:d.sites[0].name,
       sourceUrl:d.sites[0].sourceUrl
     };
+  },
+  show() {
+    const s=gsiPresenterSession;
+    if(!s?.discovery||s.sourceCode!==selectedRegionCode)return {state:"unavailable"};
+    setDisplayMode("nearby");
+    focusReferenceCandidates();
+    return {state:"shown",count:s.discovery.total,shown:s.sites.length,
+      partial:s.discovery.partialCoverage};
   },
   inspect() {
     const s=gsiPresenterSession;
@@ -1543,6 +1551,7 @@ window.HINANEX_GSI_FLOOD_PRESENTER = Object.freeze({
       return {state:"unavailable",reason:"D RegionExport not loaded"};
     const mapped=d.mappableRecords.length;
     const unclassified=d.mappableRecords.filter(r=>dFloodDecision(d,r)==="UNKNOWN").length;
+    setDisplayMode("both"); // green D and purple GSI remain distinct sources
     return {state:"separate-source",source:"D RegionExport",total:d.records.length,
       mapped,missing:d.missingCoordinateRecords.length,unclassified,
       classified:mapped-unclassified,joinedWithGSI:false};
