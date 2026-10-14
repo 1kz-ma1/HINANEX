@@ -139,6 +139,7 @@ const GSI_PREFETCH_ROOT = "https://cyberjapandata.gsi.go.jp/xyz/std";
 let predictedTileTimer = null;
 let predictedTileReleaseTimer = null;
 let predictedTileImages = new Map();
+let predictedTileZoom = null;
 function clearPredictedTileTimer() {
   if (predictedTileTimer !== null) clearTimeout(predictedTileTimer);
   predictedTileTimer = null;
@@ -148,6 +149,7 @@ function discardPredictedTiles() {
   if (predictedTileReleaseTimer !== null) clearTimeout(predictedTileReleaseTimer);
   predictedTileReleaseTimer = null;
   predictedTileImages.clear();
+  predictedTileZoom = null;
 }
 function predictedGsiTileCoords() {
   const point = pendingWheelPoint;
@@ -188,6 +190,9 @@ function warmPredictedTiles() {
   const ImageCtor = window.Image;
   if (typeof ImageCtor !== "function") return;
   const coords = predictedGsiTileCoords();
+  if (!coords.length || (predictedTileZoom !== null &&
+      predictedTileZoom !== coords[0].z)) return;
+  if (predictedTileZoom === null) predictedTileZoom = coords[0].z;
   let started=0;
   for(const tile of coords) {
     if(predictedTileImages.size>=GSI_PREFETCH_MAX_TILES)break;
@@ -213,6 +218,7 @@ function keepPredictedTileCache() {
   if(predictedTileReleaseTimer!==null)clearTimeout(predictedTileReleaseTimer);
   predictedTileReleaseTimer=setTimeout(()=>{
     predictedTileImages.clear();
+    predictedTileZoom=null;
     predictedTileReleaseTimer=null;
   },GSI_PREFETCH_KEEP_MS);
 }
@@ -402,6 +408,9 @@ function captureSingleTargetWheel(event) {
   event.stopImmediatePropagation?.();
   const scale = event.deltaMode === 1 ? 20 : event.deltaMode === 2 ? 60 : 1;
   if (!pendingWheelPoint) {
+    // New gesture, new bounded budget. Previous prefetched images have already
+    // served (or expired) and must not prevent warmup at another destination.
+    discardPredictedTiles();
     pendingWheelPoint = map.mouseEventToContainerPoint(event);
     wheelIntentStartedAt = perfTime();
   }
