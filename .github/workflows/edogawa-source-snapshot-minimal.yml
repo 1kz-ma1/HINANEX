@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 1kz-ma1/HINANEX
-          ref: 7d67540ac5db30221d995e86937cb777f08df3bb
+          ref: 8b674f1c4820d14743f573eb6a1967e453bff455
           persist-credentials: false
 
       - name: Install Python 3.12
@@ -47,6 +47,27 @@ jobs:
           python validation/validation/archive_edogawa_official_sources.py \
             --verify-dir "$RUNNER_TEMP/edogawa-seven-originals-UNREVIEWED"
 
+      - name: Test C content-shape rejection guards offline
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s validation/validation -p 'test_edogawa_official_archive_content.py' -v
+
+      - name: Independently preflight actual original-source content (NO APPROVAL)
+        id: preflight
+        run: |
+          set -euo pipefail
+          python validation/validation/validate_edogawa_official_archive.py \
+            --archive-dir "$RUNNER_TEMP/edogawa-seven-originals-UNREVIEWED" \
+            --report "$RUNNER_TEMP/edogawa-content-preflight-UNREVIEWED.json"
+
+      - name: Preserve seven-day C content report separately (not source approval)
+        if: ${{ steps.preflight.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: edogawa-C-content-UNREVIEWED-${{ github.run_id }}
+          path: ${{ runner.temp }}/edogawa-content-preflight-UNREVIEWED.json
+          retention-days: 7
+          if-no-files-found: error
       - name: Preserve private seven-day originals for independent C inspection
         if: ${{ steps.capture.outcome == 'success' && steps.verify.outcome == 'success' }}
         uses: actions/upload-artifact@v4
@@ -63,9 +84,10 @@ jobs:
             echo "### Edogawa official-source snapshot — evidence only"
             echo "- HTTPS original-byte capture: ${{ steps.capture.outcome }}"
             echo "- Offline raw/manifest integrity recheck: ${{ steps.verify.outcome }}"
+            echo "- Live original content/CSV/header C preflight: ${{ steps.preflight.outcome }}"
             echo "- Files/manifest remain private, time-limited Actions artifacts, not Git or Render"
             echo "- Source content meaning, historic version, site physical identity: **NOT APPROVED**"
             echo "- Shelter safety/opening and flood-only eligibility: **NOT EVALUATED**"
             echo "- Cross-source pairs approved = **0**; candidate/excluded promotions = **0**"
-            echo "- Human C review and content-shape preflight are separate jobs (issue #221)"
+            echo "- Human original-version and physical site identity C signoff remain separate (issue #221)"
           } >> "$GITHUB_STEP_SUMMARY"
