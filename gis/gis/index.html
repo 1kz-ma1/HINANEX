@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HINANEX | GIS / Map</title>
+  <title>HINANEX | 避難施設マップ</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/current_theme.css?v=gis-facility-drawer-20261009-v6">
@@ -18,7 +18,7 @@
 <header class="header">
   <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i></span><strong>HINANEX</strong><span>地域防災データを、根拠とともに。</span></div>
   <div class="header-actions">
-    <span class="role">GIS / FLOOD REFERENCE</span>
+    <span class="role">地域の施設・洪水情報</span>
     <button id="mapShareOpen" class="header-evidence-link header-share-button" type="button"
       aria-controls="mapSharePanel" aria-expanded="false">共有・体験 <span aria-hidden="true">▣</span></button>
     <a class="header-evidence-link" href="../../frontend/" target="_blank" rel="noopener noreferrer"
@@ -371,7 +371,7 @@
         </div>
         <div class="story-sources">
           <a id="storyOfficialSource" target="_blank" rel="noopener noreferrer">公式原本 ↗</a>
-          <a id="storyMachineAudit" target="_blank" rel="noopener noreferrer">C機械監査記録 ↗</a>
+          <a id="storyMachineAudit" target="_blank" rel="noopener noreferrer">機械照合の記録 ↗</a>
           <button id="storyDetailed" type="button">詳細90秒版で根拠を見る ↗</button>
         </div>
         <p class="story-footnote">T0は機械照合でありC人手承認前。T1は比較不可。③は合成負系テスト。実災害の予測精度・避難先の安全性は示しません。</p>
@@ -444,7 +444,7 @@
     <section id="filterDemoPanel" class="filter-demo-panel" role="region"
       aria-label="施設の条件抽出と根拠を確認する発表デモ" hidden>
       <div class="filter-demo-head">
-        <div><span>HINANEX / CURRENT D SOURCE</span><strong>条件に合う施設を、根拠と一緒に探す。</strong></div>
+        <div><span>HINANEX / 地域の施設データ</span><strong>条件に合う施設を、根拠と一緒に探す。</strong></div>
         <button id="filterDemoClose" type="button" aria-label="条件抽出デモを閉じる">×</button>
       </div>
       <p id="filterDemoStatus" class="filter-demo-status" role="status" aria-live="polite">施設情報を確認中です。</p>
@@ -463,7 +463,7 @@
           <small id="filterDemoCriterionNote"></small>
         </div>
         <section id="filterDemoEvidence" class="filter-demo-evidence" aria-label="選択した施設と条件の照合" hidden>
-          <span>抽出結果を、実際のD原データで確認</span>
+          <span>抽出結果を、地域の施設データで確認</span>
           <h3 id="filterDemoFacility"></h3>
           <dl>
             <div><dt>抽出条件</dt><dd id="filterDemoEvidenceCriterion"></dd></div>
@@ -567,7 +567,7 @@
         <p class="facility-list-caveat">この一覧は取得済みSourceの閲覧機能です。施設の位置・洪水時の安全性・開設状況・避難経路を保証しません。UNKNOWNは危険や利用不可を意味しません。</p>
       </section>
     </div>
-    <div class="map-badge">GIS / RegionExport</div>
+    <div class="map-badge">地図・施設情報</div>
   </main>
 
   <div class="gis-side-shell gis-side-shell--right">
@@ -610,7 +610,7 @@
 <script src="js/audience_share.js?v=audience-share-20261010-v1"></script>
 <script src="js/guided_tour.js?v=guided-tour-three-region-comparison-20261013-v1"></script>
 <script src="js/evidence_replay.js?v=spatial-evidence-20261014-v2"></script>
-<script src="js/presentation_story.js?v=presenter-55s-20261014-v1"></script>
+<script src="js/presentation_story.js?v=presenter-55s-20261014-v2"></script>
 <script src="js/filter_demo.js?v=d-source-criteria-20261014-v1"></script>
 <script src="js/gsi_flood_demo.js?v=gsi-flood-fallback-20261014-v2"></script>
 <script src="js/evidence_sheet.js?v=evidence-sheet-20261010-v1"></script>
