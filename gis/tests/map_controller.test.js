@@ -652,7 +652,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "smooth-fast-wheel-20261014-v1");
+  assert.equal(mapAsset[1], "target-first-wheel-20261014-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -1825,8 +1825,8 @@ nagoya.scenarios = [{
   assert.equal(L.__tiles[1].options.keepBuffer, 3);
   assert.equal(L.__tiles[0].options.updateInterval, 220,
     "throttle mid-animation base-tile requests");
-  assert.equal(L.__tiles[0].options.updateWhenZooming, true,
-    "load intermediate base-map tiles to reduce abrupt raster swaps");
+  assert.equal(L.__tiles[0].options.updateWhenZooming, false,
+    "target-first view must skip intermediate basemap tile requests");
   assert.equal(L.__tiles[1].options.updateWhenZooming, false,
     "official flood raster retains lighter end-of-zoom tile loading");
   assert.equal(L.__tiles[0].options.minZoom, 2);
@@ -1843,8 +1843,8 @@ nagoya.scenarios = [{
   assert.equal(L.__map.options.wheelPxPerZoomLevel, 27,
     "new baseline is 3.75x (2.5 times 1.5), unsnapped");
   assert.equal(L.__map.options.zoomSnap, 0);
-  assert.equal(L.__map.options.wheelDebounceTime, 80,
-    "coalesce wheel bursts rather than restarting zoom animation at 40ms");
+  assert.equal(L.__map.options.wheelDebounceTime, 135,
+    "batch rapid wheel input before one destination-focused zoom animation");
   assert.equal(L.__map.options.zoomAnimation, true);
   assert.equal(L.__map.options.zoomAnimationThreshold, 5);
   assert.equal(L.__map.options.preferCanvas, true, "renderer is unchanged");
@@ -1866,6 +1866,19 @@ nagoya.scenarios = [{
     "both versions retain Japan zoom floor");
   assert.equal(old.L.__map.getZoom(), L.__map.getZoom(),
     "same municipality zoom for fair comparisons");
+
+  // Same 3.75× speed, old intermediate raster redraw policy: isolated A/B.
+  const progressive = makeContext({
+    protocol: "http:",
+    href: "http://test/gis/gis/?region=13123&zoomFeel=progressive",
+    fetchImpl: async () => ({ ok: false, status: 404, json: async () => ({}) })
+  });
+  assert.equal(progressive.L.__map.options.wheelPxPerZoomLevel, 27);
+  assert.equal(progressive.L.__map.options.wheelDebounceTime, 80);
+  assert.equal(progressive.L.__map.options.zoomSnap, 0);
+  assert.equal(progressive.L.__tiles[0].options.updateWhenZooming, true);
+  assert.equal(progressive.L.__tiles[1].options.updateWhenZooming, false);
+  assert.equal(progressive.L.__map.getZoom(), L.__map.getZoom());
 
   const slow = makeContext({
     protocol: "http:",
@@ -1941,7 +1954,7 @@ nagoya.scenarios = [{
   assert.equal(legacyCustom.L.__map.options.wheelPxPerZoomLevel, 44);
   assert.equal(legacyCustom.L.__map.options.zoomSnap, 0.5);
   // v2 overrides v1 after an explicit change; values never modify map view.
-  assert.equal(reopened.L.__map.options.wheelDebounceTime, 80);
+  assert.equal(reopened.L.__map.options.wheelDebounceTime, 135);
 
   const blocked = makeContext({
     protocol: "http:",
