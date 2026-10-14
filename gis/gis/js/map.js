@@ -32,6 +32,7 @@ const previousZoomFeel = zoomFeelMode === "previous";
 const slowZoomFeel = zoomFeelMode === "slow";
 const progressiveZoomFeel = zoomFeelMode === "progressive";
 const singleTargetWheel = !["native", "previous", "slow", "progressive"].includes(zoomFeelMode);
+const legacyWheelPreview = zoomFeelMode === "preview135";
 // Persist only gesture preferences in this browser. Never persist map/GPS
 // coordinates, source data, or disaster/safety assessments.
 const GESTURE_PREF_KEY = "hinanex.gis.gesture.v2";
@@ -99,12 +100,17 @@ const map = L.map("map", {
 // Once the wheel burst is quiet, commit one bounded Leaflet zoom at the same
 // pointer anchor and remove the temporary visual transform in the same frame.
 // Pinch, map controls, popup scrolling and explicitly stepped zoom stay native.
-const WHEEL_GESTURE_IDLE_MS = 135;
+// Shorten only the custom preview's idle-to-commit delay: tile fetches can
+// start sooner. Native wheel / stepped / pinch remain unchanged. The previous
+// 135ms preview stays accessible for direct comparison.
+const WHEEL_GESTURE_IDLE_MS = legacyWheelPreview ? 135 : 70;
+const WHEEL_PREVIEW_TRANSITION_MS = legacyWheelPreview ? 65 : 40;
 const MAX_WHEEL_PREVIEW_LEVELS = 2.75;
 let pendingWheelPixels = 0;
 let pendingWheelPoint = null;
 let wheelGestureTimer = null;
 let wheelPreview = null;
+let wheelIntentStartedAt = null;
 
 function singleTargetZoomChange(pixels) {
   const d = Math.abs(pixels) / (map.options.wheelPxPerZoomLevel * 4);
@@ -132,6 +138,7 @@ function clearPendingWheel() {
   restoreWheelPreview();
   pendingWheelPixels = 0;
   pendingWheelPoint = null;
+  wheelIntentStartedAt = null;
 }
 function updateWheelPreview(event) {
   if (!wheelPreview) {
@@ -152,7 +159,7 @@ function updateWheelPreview(event) {
     };
     wheelPreview = {pane, original};
     pane.style.transformOrigin = `${originX}px ${originY}px`;
-    pane.style.transition = "scale 65ms ease-out";
+    pane.style.transition = `scale ${WHEEL_PREVIEW_TRANSITION_MS}ms ease-out`;
     pane.style.willChange = "scale";
   }
   // Rescale the old map image and its existing markers in the compositor.
@@ -165,6 +172,8 @@ function flushSingleTargetWheel() {
   wheelGestureTimer = null;
   const point = pendingWheelPoint;
   const targetZoom = wheelDestinationZoom();
+  const startedAt = wheelIntentStartedAt;
+  wheelIntentStartedAt = null;
   // Remove the cosmetic preview before the Leaflet view changes. Both edits
   // happen synchronously, without an intermediate browser paint.
   restoreWheelPreview();
@@ -174,6 +183,13 @@ function flushSingleTargetWheel() {
   // The preview already displayed the target scale; animate:false prevents
   // a second camera animation. Only destination-level tiles are requested.
   map.setZoomAround(point, targetZoom, {animate: false});
+  if (debugMapPerf && startedAt !== null) {
+    console.info("[HINANEX map perf] wheel intent-to-commit", {
+      delayMs: Math.round(perfTime() - startedAt),
+      idleMs: WHEEL_GESTURE_IDLE_MS,
+      mode: zoomFeelMode || "preview-fast"
+    });
+  }
 }
 function captureSingleTargetWheel(event) {
   if (!singleTargetWheel || gesturePrefs.style === "steps" ||
@@ -186,7 +202,10 @@ function captureSingleTargetWheel(event) {
   event.preventDefault();
   event.stopImmediatePropagation?.();
   const scale = event.deltaMode === 1 ? 20 : event.deltaMode === 2 ? 60 : 1;
-  if (!pendingWheelPoint) pendingWheelPoint = map.mouseEventToContainerPoint(event);
+  if (!pendingWheelPoint) {
+    pendingWheelPoint = map.mouseEventToContainerPoint(event);
+    wheelIntentStartedAt = perfTime();
+  }
   pendingWheelPixels += -rawDelta * scale;
   updateWheelPreview(event);
   if (wheelGestureTimer !== null) clearTimeout(wheelGestureTimer);
