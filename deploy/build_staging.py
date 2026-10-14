@@ -9,6 +9,13 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError, URLError
+
+# Support direct execution as python deploy/build_staging.py as well as imports.
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPOSITORY_ROOT))
+from deploy.publish_gsi_staging import (GSI_DEMO_TILES, build_official_reference_tile)
 
 REQUIRED_EXPORTS = {
     "edogawa.json": "13123",
@@ -77,6 +84,8 @@ def build_bundle(
     output_dir: Path,
     *,
     run_pipeline: bool = True,
+    publish_official_gsi: bool | None = None,
+    gsi_opener=None,
 ) -> Path:
     """Generate runtime RegionExports and assemble the static staging bundle."""
 
@@ -118,6 +127,30 @@ def build_bundle(
     for filename in REQUIRED_EXPORTS:
         shutil.copy2(runtime_output / filename, published_output / filename)
 
+    # Render's normal build performs current official GSI acquisition and
+    # independent C→D→E verification. Offline/skip-pipeline test builds remain
+    # deterministic unless explicitly opting in with an injected opener.
+    if publish_official_gsi is None:
+        publish_official_gsi = run_pipeline
+    gsi_publication = {"status": "NOT_REQUESTED", "verified_tiles": []}
+    if publish_official_gsi:
+        gsi_publication = {"status": "BLOCKED_UNVERIFIED_SOURCE", "verified_tiles": []}
+        for region_code, z, x, y in GSI_DEMO_TILES:
+            try:
+                kwargs = {"opener": gsi_opener} if gsi_opener is not None else {}
+                verified = build_official_reference_tile(
+                    published_output / "gsi_verified_tiles",
+                    region_code=region_code, z=z, x=x, y=y, **kwargs,
+                )
+                gsi_publication["verified_tiles"].append(verified)
+            except (ValueError, OSError, HTTPError, URLError) as exc:
+                # Keep D and C presentations available. Crucially, do not
+                # publish any GSI JSON if the C or HTTPS audit failed.
+                print("GSI OFFICIAL REFERENCE BLOCKED (not an empty source tile): " +
+                      type(exc).__name__ + ": " + str(exc), file=sys.stderr)
+        if gsi_publication["verified_tiles"]:
+            gsi_publication["status"] = "PARTIAL_VERIFIED_REFERENCE_ONLY"
+
     evidence_source = root / "validation" / "demo" / "2019_edogawa_evidence_cases.json"
     if not evidence_source.is_file():
         raise StagingBuildError("Required C presentation evidence manifest is missing")
@@ -150,6 +183,7 @@ def build_bundle(
     shutil.copy2(staging_template, output_dir / "index.html")
 
     build_meta = {
+        "gsi_reference_publication": gsi_publication,
         "regions": {
             filename: {
                 "region_code": payload["region"]["code"],
@@ -179,6 +213,11 @@ def build_bundle(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
+        "--skip-gsi",
+        action="store_true",
+        help="Explicitly omit official GSI publication (D-only staging)",
+    )
+    parser.add_argument(
         "--skip-pipeline",
         action="store_true",
         help="Use existing pipeline/data/output files instead of regenerating them.",
@@ -193,7 +232,10 @@ def main() -> None:
 
     root = Path(__file__).resolve().parents[1]
     output = args.output or (root / "deploy" / "dist")
-    build_bundle(root, output, run_pipeline=not args.skip_pipeline)
+    build_bundle(
+        root, output, run_pipeline=not args.skip_pipeline,
+        publish_official_gsi=not (args.skip_pipeline or args.skip_gsi),
+    )
 
 
 if __name__ == "__main__":
