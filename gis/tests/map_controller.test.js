@@ -988,6 +988,23 @@ nagoya.scenarios = [{
   });
   assert.equal(acceptedCase.L.__map.openedPopup, null,
     "blank-map click must dismiss, not replace with raster details");
+  // The screenshot's boundary click is UI-only: show a compact label first,
+  // keep its geographic click anchor and source/caveat under one disclosure.
+  vm.runInContext(`detail("江戸川区", [
+    ["種類", "自治体境界"], ["地域", "東京都江戸川区"],
+    ["自治体コード", "13123"], ["データ状態", "表示確認用fixture"]
+  ], "境界fixture", {
+    anchor: [35.71, 139.88],
+    note: "この境界は表示確認用で、分析の正本ではありません。"
+  })`, acceptedCase.context);
+  const boundaryPopup = acceptedCase.L.__map.openedPopup;
+  assert.match(boundaryPopup.options.className, /place-bubble--boundary/);
+  assert.match(boundaryPopup.content, /自治体境界（参考）/);
+  assert.doesNotMatch(boundaryPopup.content, /<div class="place-card-summary"><div class="row">/);
+  assert.equal((boundaryPopup.content.match(/<details class="place-card-disclosure">/g) || []).length, 1);
+  assert.match(boundaryPopup.content, /13123/);
+  assert.match(boundaryPopup.content, /表示確認用で、分析の正本ではありません/);
+  assert.deepEqual(Array.from(boundaryPopup.anchor), [35.71,139.88]);
   const pageSource = fs.readFileSync(path.resolve(__dirname, "../gis/index.html"), "utf8");
   assert.match(pageSource, /紫：公式掲載地点（安全性未判定/);
   assert.match(pageSource, /id="uiTabNormal"[^>]*role="tab"/);
