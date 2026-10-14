@@ -1,0 +1,126 @@
+name: Edogawa 2019 shelter-building proof gate (3 independent C reports)
+
+"on":
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - ".github/workflows/edogawa-2019-three-report-shelter-building-gate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  building-link:
+    name: A + three C reports; BLOCK unsupported event-building links
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout pinned A research ledger
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: f0df077e26137544fd12383578ddfabc5e1b1530
+          path: a-evidence
+          persist-credentials: false
+
+      - name: Checkout pinned C cross-report gate
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 55c18f6fec1113fd02f3dbc73fd03d6dfe885b2d
+          path: c-independent
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: C synthetic original/provenance and site-join negative tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s c-independent/validation/validation -p 'test_verify_2019_event_shelter_building_lineage.py' -v
+
+      - name: Download independent C campus audit from immutable prior run
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 38350260260
+          github-token: ${{ github.token }}
+          name: edogawa-2019-campus-C-UNAPPROVED-38350260260
+          path: ${{ runner.temp }}/C-2019-campus
+
+      - name: Download independent C 2018 school names audit
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 38349472925
+          github-token: ${{ github.token }}
+          name: edogawa-2018-night-campus-C-UNAPPROVED-38349472925
+          path: ${{ runner.temp }}/C-2018-school
+
+      - name: Download C 2020 post-event shelter operational raw audit
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 38344307696
+          github-token: ${{ github.token }}
+          name: edogawa-2019-school-roster-C-UNAPPROVED-38344307696
+          path: ${{ runner.temp }}/C-2020-afteraction
+
+      - name: Cross-check three real prior independent source audits
+        id: c_gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          python c-independent/validation/validation/verify_2019_event_shelter_building_lineage.py \
+            --a-ledger a-evidence/data-research/scenarios/2019-typhoon19-komatsugawa-campus-vs-evacuation-building-evidence.json \
+            --c-campus-report "$RUNNER_TEMP/C-2019-campus/C_2019_campus_vs_shelter_UNAPPROVED.json" \
+            --c-newsletter-report "$RUNNER_TEMP/C-2018-school/C_edogawa_2018_night-school_UNAPPROVED.json" \
+            --c-ops-report "$RUNNER_TEMP/C-2020-afteraction/C_edogawa_2019_school_roster_UNAPPROVED.json" \
+            --out "$RUNNER_TEMP/C_2019_actual_shelter_building_LINK_BLOCKED.json"
+          code=$?
+          set -e
+          if [ "$code" -ne 2 ]; then
+            echo "C identity gate incorrectly accepted or errored (exit=$code)"
+            exit 1
+          fi
+          python - "$RUNNER_TEMP/C_2019_actual_shelter_building_LINK_BLOCKED.json" <<'PY'
+          import json,sys
+          r=json.load(open(sys.argv[1],encoding='utf-8'))
+          assert r['status']=='BLOCKED_ACTUAL_EVENT_SHELTER_BUILDING_LINK__NEEDS_OFFICIAL_OPERATION_LOG'
+          assert r['c_source_reports_cross_checked']==3
+          assert r['identified_physical_shelter_buildings']==0
+          assert r['approved_occupancy_to_building_pairs']==0
+          assert r['distinct_source_reporting_rows']==2
+          assert r['source_operational_groups']==1
+          assert sorted(row['reported_persons'] for row in r['decisions'])==[11,205]
+          assert all(row['actual_2019_shelter_building_id'] is None for row in r['decisions'])
+          assert r['historical_asof_input_approvals']==0
+          assert r['predictive_match_mismatch_cases']==0
+          assert r['prediction_accuracy_evaluated'] is False
+          print('C_CROSS_REPORT_GUARD_PASS__TWO_EVENT_BUILDINGS_STILL_UNKNOWN')
+          PY
+
+      - name: Preserve separate C synthesis report for 14 days
+        if: ${{ steps.c_gate.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: edogawa-2019-shelter-building-C-BLOCKED-${{ github.run_id }}
+          path: ${{ runner.temp }}/C_2019_actual_shelter_building_LINK_BLOCKED.json
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Evidence and public safety boundaries
+        if: always()
+        run: |
+          {
+            echo "### 2019 Edogawa campus vs actual shelter building"
+            echo "- C three-source independent audits: ${{ steps.c_gate.outcome }}"
+            echo "- Confirmed 2019 school operations: normal Komatsugawa2, night Hirai3."
+            echo "- 2020 post-event occupancy: normal 205 and night 11, one reported group but two detail rows."
+            echo "- **ACTUAL 2019 OCT 12 BUILDING FOR EITHER GROUP = UNKNOWN.**"
+            echo "- Later-revised equipment table cannot be backdated to 2019."
+            echo "- **0 C-approved building identity links, 0 approved historical inputs, 0 prediction matches.**"
+            echo "- Green means correct abstention, not shelter eligibility or model success."
+          } >> "$GITHUB_STEP_SUMMARY"
