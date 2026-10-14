@@ -32,7 +32,7 @@
       ORIGIN_OUTSIDE_SOURCE_TILE:"この地点を含むGSIタイルは検証・配信されていません。別地点の結果を流用しません。",
       UNVERIFIED_SOURCE:"この地点のGSI検証済みデータを読み込めません。配信・検証状態の確認が必要です。"
     };
-    writeStatus(messages[reason] || "GSI公式データの検証結果を確認できないため、再生を停止しました。");
+    writeStatus(messages[reason] || "GSI公式データの検証結果を確認できません。再生を停止しました。");
     get("gsiFloodDemoFallback").hidden=false;
     get("gsiFloodDemoFallbackReason").textContent=
       "洪水指定の掲載有無・現在の安全性は判断できません。"+

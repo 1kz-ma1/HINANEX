@@ -821,7 +821,7 @@ nagoya.scenarios = [{
   gsiPresenterCase.L.__map.setView([35.4,138.7],8);
   const savedCenter=gsiPresenterCase.L.__map.getCenter();
   const result=await gp.begin();
-  assert.deepEqual(gsiPresenterCase.L.__map.lastPointFly.latlng,[35.70,139.88],
+  assert.deepEqual(Array.from(gsiPresenterCase.L.__map.lastPointFly.latlng),[35.70,139.88],
     "presentation origin must be a verified regional D point, never the map center");
   assert.equal(gsiPresenterCase.L.__map.lastPointFly.zoom,12);
   assert.equal(result.state,"ready");
