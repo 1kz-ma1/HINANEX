@@ -195,8 +195,9 @@
   },true);
   function manualGesture(){
     if(panel.hidden)return;
-    restore=false;pause();api?.halt();
-    writeStatus("地図を手動操作したため再生を停止。閉じても今の地図視点を維持します。");
+    // Map inspection never pauses the presentation clock or halts the scene.
+    // Only the automatic return-to-original-camera is suppressed on close.
+    restore=false;
   }
   for(const name of ["pointerdown","wheel","touchstart"]){
     get("map").addEventListener(name,manualGesture,{passive:true});
