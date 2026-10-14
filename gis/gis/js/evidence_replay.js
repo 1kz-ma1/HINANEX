@@ -364,6 +364,7 @@
     mapRestore = false; // Do not undo the viewer's manual navigation on close.
     pause();
     stopMapMovement();
+    if (mapSession) mapApi.halt(); // Even a completed focus() may still be flying.
   }
   for (const type of ["pointerdown", "wheel", "touchstart"]) {
     get("map").addEventListener(type, onManualMapGesture, { passive: true });
