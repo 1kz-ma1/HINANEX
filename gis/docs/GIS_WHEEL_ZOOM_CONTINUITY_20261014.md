@@ -55,3 +55,14 @@ The last one-target wheel handler (PR #245) reduced animation restarts but intro
 **Tradeoffs:** a brief CSS preview can enlarge already-rendered imagery before the new destination tiles are available, and extreme zoom-out preview may momentarily expose old tile coverage limits. A nonanimated final Leaflet commit can still produce some perceptible settling, depending on tile load speed. This is a narrow UX experiment, not a measured reproduction of Google Maps. Rollback comparison: `?zoomFeel=native` (the #244 native handler with the same tile policy), or revert the GIS-only PR.
 
 **Verification:** deterministic map-controller tests assert CSS preview before zoom/view mutation, anchored scaling, one final Leaflet commit, complete CSS cleanup, cancelled pending gestures, input limit and native step/pinch/popover bypass. Existing independent Chromium smoke asserts synchronous preview, delayed geographic commit, tile scheduling and restoration. Required GitHub `test` executes the controller tests and parses Chromium scripts but **does not run the real page in a browser**; real device/trackpad GPU smoothness, frame-time, and visual tile transition still require staged manual/Playwright acceptance.
+
+ 
+## Faster destination-image request (2026-10-15)
+
+After confirming that #246's instant CSS image preview matches the requested behavior, user feedback identified a second latency: **the sharp destination image takes too long to appear**.
+
+The default preview now commits the *real* geographic zoom after **70ms idle** instead of 135ms, and the temporary GPU-scale ease is **40ms** instead of 65ms. Both preserve the immediate feedback, geographic point anchoring and destination-only GSI tile loading; no intermediate tile levels are requested. The native/stepped/pinch/scroll paths remain untouched. This removes **65ms of intentional waiting before the final official tiles can begin loading**, not 65ms from the network itself. Public network latency, caching and tile server throughput remain independent bottlenecks and may dominate perceived sharpness.
+
+A controlled comparison at exactly the same 3.75× wheel sensitivity and same tile policy is available with `?zoomFeel=preview135`, restoring both the old 135ms debounce and 65ms CSS ease. Existing `?zoomFeel=native` and other diagnostic modes remain.
+
+For opt-in measurement, `?debugMapPerf=1` now prints `wheel intent-to-commit` latency (including the user's wheel-burst duration and the 70/135ms quiet period) alongside the existing `tile batch` load-time logs. These stay local to browser console and do not transmit coordinates or analytics. Comparing the two measurements can distinguish intentional debounce delay from network/basemap loading. Required CI covers timer constants, legacy A/B behavior, unchanged flood tile configuration and script validity. **Actual frame timing and end-to-end target tile load remain unmeasured until interactive Chromium/real mouse or trackpad QA.**
