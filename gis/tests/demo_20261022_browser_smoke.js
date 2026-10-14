@@ -138,6 +138,29 @@ async function screenshot(page, name) {
     assert.equal(gestureConfig.debounce, 135);
     assert.equal(gestureConfig.basemapDuringZoom, false);
     assert.equal(gestureConfig.floodDuringZoom, false);
+    // Real Leaflet projection: the destination grid must cover the complete
+    // viewport before it can replace a scaled-out old raster. CI parses this
+    // script; assembled Chromium execution is a distinct acceptance step.
+    const targetCoverage=await page.evaluate(()=>{
+      const size=map.getSize(),point=L.point(size.x/2,size.y/2);
+      const grid=destinationTileGrid(point,Math.max(map.getMinZoom(),map.getZoom()-1));
+      if(!grid)return null;
+      return {count:grid.tiles.length,
+        left:Math.min(...grid.tiles.map(t=>t.left)),
+        right:Math.max(...grid.tiles.map(t=>t.left+t.size)),
+        top:Math.min(...grid.tiles.map(t=>t.top)),
+        bottom:Math.max(...grid.tiles.map(t=>t.top+t.size)),
+        size:{x:size.x,y:size.y},
+        accurateSource:grid.tiles.every(t=>t.url.startsWith(
+          "https://cyberjapandata.gsi.go.jp/xyz/std/"))};
+    });
+    assert.ok(targetCoverage,"a normal zoom-out has manageable full coverage");
+    assert.ok(targetCoverage.count<=48 && targetCoverage.count>0);
+    assert.ok(targetCoverage.left<=0.01);
+    assert.ok(targetCoverage.right>=targetCoverage.size.x-0.01);
+    assert.ok(targetCoverage.top<=0.01);
+    assert.ok(targetCoverage.bottom>=targetCoverage.size.y-0.01);
+    assert.equal(targetCoverage.accurateSource,true);
     // The CSS preview updates immediately; the geographic destination/tile
     // switch should start ~70ms after the final wheel event rather than 135ms.
     assert.deepEqual(await page.evaluate(() => [
