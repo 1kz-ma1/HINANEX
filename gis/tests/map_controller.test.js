@@ -2146,6 +2146,24 @@ nagoya.scenarios = [{
     assert.equal([...zSet][0],zoom);
     assert.ok(grid.tiles.every(t=>/^https:\/\/cyberjapandata[.]gsi[.]go[.]jp\/xyz\/std\/\d+\/\d+\/\d+[.]png$/.test(t.url)));
   }
+  // Old-raster zoom-out preview must never visibly shrink loaded imagery
+  // beyond its source screen-space bounds while waiting for target coverage.
+  const viewport={left:0,top:0,right:1000,bottom:700};
+  const origin={x:500,y:350};
+  context.window.__coverage={left:-100,top:-90,right:1100,bottom:790};
+  context.window.__viewport=viewport;
+  context.window.__origin=origin;
+  const clamped=vm.runInContext(
+    "coverageLimitedScale(.25,window.__coverage,window.__origin,window.__viewport)",context);
+  assert.ok(clamped>0.8 && clamped<=1,
+    "old geographic coverage must not collapse to a small center rectangle");
+  const ample=vm.runInContext(
+    "coverageLimitedScale(.5,{left:-800,top:-800,right:1800,bottom:1600},window.__origin,window.__viewport)",context);
+  assert.equal(ample,.5,"well-buffered old raster can still respond freely");
+  const missing=vm.runInContext(
+    "coverageLimitedScale(.25,{missing:true},window.__origin,window.__viewport)",context);
+  assert.equal(missing,1,"unloaded raster cannot claim visual coverage");
+
   const originalSize=L.__map.getSize;
   L.__map.getSize=()=>({x:20000,y:12000});
   assert.equal(vm.runInContext("destinationTileGrid({x:5,y:5},10)",context),null,
