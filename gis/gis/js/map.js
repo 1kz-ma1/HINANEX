@@ -183,6 +183,181 @@ function predictedGsiTileCoords() {
   return candidates.sort((a,b)=>a.distance-b.distance)
     .slice(0,GSI_PREFETCH_MAX_TILES);
 }
+// Screen-complete target imagery handoff for significant zoom-outs.
+// The old 8-tile warmup accelerates common requests but is not sufficient
+// evidence that the whole destination viewport is covered. This grid is
+// computed only at the *final* zoom, from Leaflet's projected source position.
+// Do not repeat/extrapolate tiles beyond official Web-Mercator coverage.
+const TARGET_COVER_MAX_TILES = 48;
+const TARGET_COVER_WAIT_MS = 650;
+const TARGET_COVER_HOLD_MS = 1300;
+const TARGET_COVER_FADE_MS = 120;
+let targetCoverGeneration = 0;
+let targetCover = null;
+function destinationTileGrid(point, targetZoom) {
+  if (!point || !Number.isFinite(targetZoom) ||
+      typeof map.containerPointToLatLng !== "function" ||
+      typeof map.getSize !== "function") return null;
+  const size = map.getSize();
+  if (!(size?.x > 0 && size?.y > 0)) return null;
+  const tileZoom = Math.max(2, Math.min(18, Math.round(targetZoom)));
+  const geographicPoint = map.containerPointToLatLng(point);
+  const projected = map.project(geographicPoint, tileZoom);
+  if (!Number.isFinite(projected?.x) || !Number.isFinite(projected?.y)) return null;
+  const ratio = Math.pow(2, tileZoom - targetZoom);
+  const left = projected.x - point.x * ratio;
+  const top = projected.y - point.y * ratio;
+  const right = left + size.x * ratio;
+  const bottom = top + size.y * ratio;
+  const worldTileCount = Math.pow(2, tileZoom);
+  const xStart = Math.floor(left / 256);
+  const xEnd = Math.floor((right - 0.001) / 256);
+  const yStart = Math.floor(top / 256);
+  const yEnd = Math.floor((bottom - 0.001) / 256);
+  const tileCount = (xEnd - xStart + 1) * (yEnd - yStart + 1);
+  // Above/below world bounds, or extremely large screens: do not claim
+  // geographic image coverage that the official map does not provide.
+  if (tileCount < 1 || tileCount > TARGET_COVER_MAX_TILES ||
+      yStart < 0 || yEnd >= worldTileCount) return null;
+  const tiles = [];
+  for (let y = yStart; y <= yEnd; y++) {
+    for (let x = xStart; x <= xEnd; x++) {
+      const wrappedX = ((x % worldTileCount) + worldTileCount) % worldTileCount;
+      tiles.push({
+        url: `${GSI_PREFETCH_ROOT}/${tileZoom}/${wrappedX}/${y}.png`,
+        left: (x * 256 - left) / ratio,
+        top: (y * 256 - top) / ratio,
+        size: 256 / ratio
+      });
+    }
+  }
+  return {tiles, width:size.x, height:size.y};
+}
+function removeTargetCover() {
+  if (!targetCover) return;
+  clearTimeout(targetCover.timeout);
+  targetCover.layer?.off?.("load", targetCover.finish);
+  targetCover.node?.remove?.();
+  targetCover = null;
+}
+function positionTargetCover() {
+  if (!targetCover) return;
+  const {node, pane} = targetCover;
+  const a = map.getContainer()?.getBoundingClientRect?.();
+  const p = pane.getBoundingClientRect?.();
+  if (!a || !p) return;
+  node.style.left = `${a.left - p.left}px`;
+  node.style.top = `${a.top - p.top}px`;
+}
+function presentTargetCover(grid, images) {
+  if (typeof document.createElement !== "function" ||
+      typeof map.createPane !== "function") return false;
+  let pane = map.getPane?.("wheelCoverPane");
+  if (!pane) {
+    map.createPane("wheelCoverPane");
+    pane = map.getPane?.("wheelCoverPane");
+  }
+  if (!pane?.appendChild) return false;
+  removeTargetCover();
+  pane.style.zIndex = "205"; // above GSI base, BELOW official flood and points
+  pane.style.pointerEvents = "none";
+  const node = document.createElement("div");
+  node.className = "hinanex-target-tile-cover";
+  node.setAttribute("aria-hidden","true");
+  Object.assign(node.style, {
+    position:"absolute",width:`${grid.width}px`,height:`${grid.height}px`,
+    overflow:"hidden",pointerEvents:"none",zIndex:"1"
+  });
+  // One decoded, authorized official tile per *distinct geographic tile*.
+  // No stretching an unrelated old tile to fabricate new map coverage.
+  for (let i=0; i<grid.tiles.length; i++) {
+    const tile = grid.tiles[i];
+    const img = document.createElement("img");
+    Object.assign(img.style,{
+      position:"absolute",left:`${tile.left}px`,top:`${tile.top}px`,
+      width:`${tile.size}px`,height:`${tile.size}px`,
+      maxWidth:"none",pointerEvents:"none"
+    });
+    img.alt = "";
+    img.src = tile.url;
+    node.appendChild(img);
+  }
+  pane.appendChild(node);
+  const entry = {node,pane,layer:baseMap,timeout:null,finish:null};
+  targetCover = entry;
+  positionTargetCover();
+  let finished = false;
+  entry.finish = () => {
+    if (finished) return;
+    finished = true;
+    entry.layer.off?.("load",entry.finish);
+    clearTimeout(entry.timeout);
+    node.style.transition = `opacity ${TARGET_COVER_FADE_MS}ms ease-out`;
+    node.style.opacity = "0";
+    entry.timeout = setTimeout(() => {
+      if (targetCover === entry) removeTargetCover();
+    }, TARGET_COVER_FADE_MS + 25);
+  };
+  entry.layer.on?.("load", entry.finish);
+  entry.timeout = setTimeout(entry.finish, TARGET_COVER_HOLD_MS);
+  return true;
+}
+function prepareTargetCover(point,targetZoom,generation,done) {
+  // No source-safe complete atlas possible: retain normal Leaflet rendering,
+  // never create filled/incorrect geographic imagery.
+  const grid = targetZoom < map.getZoom() - 0.15 ?
+    destinationTileGrid(point,targetZoom) : null;
+  if (!grid || !grid.tiles.length ||
+      typeof window.Image !== "function" ||
+      typeof document.createElement !== "function") {
+    done(false);
+    return;
+  }
+  const images = grid.tiles.map(tile => {
+    let image = predictedTileImages.get(tile.url);
+    if (!image) {
+      image = new window.Image();
+      image.decoding = "async";
+      predictedTileImages.set(tile.url,image);
+      image.src = tile.url;
+    }
+    return image;
+  });
+  let complete = false;
+  const finish = ok => {
+    if (complete) return;
+    complete = true;
+    clearTimeout(timeout);
+    for (const [img,loaded,failed] of listeners) {
+      img.removeEventListener?.("load",loaded);
+      img.removeEventListener?.("error",failed);
+    }
+    if (generation === targetCoverGeneration) {
+      if (ok) presentTargetCover(grid,images);
+      done(ok);
+    }
+  };
+  const listeners = [];
+  let awaiting = 0, failed = false;
+  for (const image of images) {
+    if (image.complete && image.naturalWidth > 0) continue;
+    if (image.complete && image.naturalWidth === 0) {
+      failed = true;break;
+    }
+    if (typeof image.addEventListener !== "function") {
+      failed = true;break;
+    }
+    awaiting++;
+    const loaded = () => { awaiting--; if (!awaiting) finish(!failed); };
+    const error = () => {failed=true;finish(false);};
+    image.addEventListener("load",loaded);
+    image.addEventListener("error",error);
+    listeners.push([image,loaded,error]);
+  }
+  const timeout = setTimeout(() => finish(false),TARGET_COVER_WAIT_MS);
+  if (failed || !awaiting) finish(!failed);
+}
+
 function warmPredictedTiles() {
   predictedTileTimer = null;
   // The browser must use the *same* GSI URL and image request mode as the
@@ -272,6 +447,8 @@ function restoreWheelPreview() {
   return previews;
 }
 function clearPendingWheel() {
+  targetCoverGeneration++;
+  removeTargetCover();
   if (wheelGestureTimer !== null) clearTimeout(wheelGestureTimer);
   wheelGestureTimer = null;
   restoreWheelPreview().forEach(({ghost}) => ghost?.remove?.());
@@ -281,6 +458,44 @@ function clearPendingWheel() {
   discardRetainedRaster();
   discardPredictedTiles();
 }
+// For zoom-outs, old loaded tiles do not necessarily cover newly exposed
+// geography. Limit the cosmetic shrink to coverage actually present, while
+// waiting for the full, geographically correct destination atlas.
+function oldRasterCoverage() {
+  const container = baseMap?.getContainer?.();
+  const tiles = container?.querySelectorAll?.("img.leaflet-tile-loaded");
+  if (!tiles) return null;
+  const boxes = Array.from(tiles).map(el => el.getBoundingClientRect?.())
+    .filter(rect => rect && rect.width > 0 && rect.height > 0);
+  if (!boxes.length) return {missing:true};
+  return {
+    left:Math.min(...boxes.map(r=>r.left)),
+    top:Math.min(...boxes.map(r=>r.top)),
+    right:Math.max(...boxes.map(r=>r.right)),
+    bottom:Math.max(...boxes.map(r=>r.bottom))
+  };
+}
+function coverageLimitedScale(wanted, coverage, origin, viewport) {
+  if (!(wanted < 1) || !coverage || !viewport || !origin) return wanted;
+  if (coverage.missing) return 1;
+  // This is a conservative rectangular screen-envelope bound. The loaded
+  // image grid may have internal holes; full final coverage still requires
+  // the actual destination atlas, not this rough preview limit.
+  const covers = scale =>
+    origin.x+(coverage.left-origin.x)*scale <= viewport.left+1 &&
+    origin.x+(coverage.right-origin.x)*scale >= viewport.right-1 &&
+    origin.y+(coverage.top-origin.y)*scale <= viewport.top+1 &&
+    origin.y+(coverage.bottom-origin.y)*scale >= viewport.bottom-1;
+  if (!covers(1)) return 1;
+  if (covers(wanted)) return wanted;
+  let low=wanted, high=1;
+  for(let i=0;i<14;i++){
+    const mid=(low+high)/2;
+    if(covers(mid)) high=mid; else low=mid;
+  }
+  return high;
+}
+
 function updateWheelPreview(event) {
   if (!wheelPreview) {
     discardRetainedRaster();
@@ -304,10 +519,19 @@ function updateWheelPreview(event) {
       pane.style.willChange = "scale";
     }
     if (!targets.length) return; // Unsupported CSS scale: safe native commit.
-    wheelPreview = {targets};
+    const viewport = map.getContainer()?.getBoundingClientRect?.();
+    wheelPreview = {
+      targets,
+      coverage:oldRasterCoverage(),
+      viewport,
+      origin:{x:Number(event.clientX),y:Number(event.clientY)}
+    };
   }
   const change = wheelDestinationZoom() - map.getZoom();
-  const visualScale = String(Number(Math.pow(2,change).toFixed(5)));
+  const wanted = Math.pow(2,change);
+  const displayed = coverageLimitedScale(wanted,
+    wheelPreview.coverage,wheelPreview.origin,wheelPreview.viewport);
+  const visualScale = String(Number(displayed.toFixed(5)));
   for (const {pane} of wheelPreview.targets) pane.style.scale = visualScale;
 }
 function retainUntilRasterReady(previews) {
@@ -363,38 +587,51 @@ function flushSingleTargetWheel() {
   const point = pendingWheelPoint;
   const targetZoom = wheelDestinationZoom();
   const startedAt = wheelIntentStartedAt;
-  wheelIntentStartedAt = null;
-  // Retain a read-only copy of the old raster below markers while the target
-  // tiles settle. Never keep the original CSS scale on Leaflet's live panes.
-  keepPredictedTileCache();
-  const previews = wheelPreview?.targets || [];
-  const scale = previews.map(({pane})=>pane.style.scale);
-  const origins = previews.map(({pane})=>pane.style.transformOrigin);
-  restoreWheelPreview();
-  pendingWheelPixels = 0;
-  pendingWheelPoint = null;
-  if (!point || Math.abs(targetZoom - map.getZoom()) < 0.001) {
-    previews.forEach(({ghost})=>ghost?.remove?.());
-    return;
-  }
-  previews.forEach((item,i)=>{
-    if (item.ghost) {
-      item.ghost.style.scale = scale[i];
-      item.ghost.style.transformOrigin = origins[i];
+  const generation = ++targetCoverGeneration;
+  // Begin official final-level downloads BEFORE replacing old imagery.
+  // On slow/no coverage, fall back to the existing bounded Leaflet path.
+  prepareTargetCover(point,targetZoom,generation,covered => {
+    if (generation !== targetCoverGeneration) return;
+    wheelIntentStartedAt = null;
+    keepPredictedTileCache();
+    const previews = wheelPreview?.targets || [];
+    const scales = previews.map(({pane}) => pane.style.scale);
+    const origins = previews.map(({pane}) => pane.style.transformOrigin);
+    restoreWheelPreview();
+    pendingWheelPixels = 0;
+    pendingWheelPoint = null;
+    if (!point || Math.abs(targetZoom - map.getZoom()) < 0.001) {
+      previews.forEach(({ghost}) => ghost?.remove?.());
+      removeTargetCover();
+      return;
+    }
+    previews.forEach((item,i) => {
+      if (item.ghost) {
+        item.ghost.style.scale = scales[i];
+        item.ghost.style.transformOrigin = origins[i];
+        // A complete, geographically aligned destination grid replaces the
+        // old BACKGROUND clone. Flood uses its independent source/cap.
+        if (covered && item.layer === baseMap) {
+          item.ghost.remove?.();
+          item.ghost = null;
+        }
+      }
+    });
+    retainUntilRasterReady(previews);
+    committingWheelZoom = true;
+    try { map.setZoomAround(point,targetZoom,{animate:false}); }
+    finally { committingWheelZoom = false; }
+    positionTargetCover();
+    alignRetainedRaster();
+    if (debugMapPerf && startedAt !== null) {
+      console.info("[HINANEX map perf] wheel intent-to-commit",{
+        delayMs:Math.round(perfTime()-startedAt),
+        idleMs:WHEEL_GESTURE_IDLE_MS,
+        fullTargetCover:covered,
+        mode:zoomFeelMode || "preview-fast"
+      });
     }
   });
-  retainUntilRasterReady(previews);
-  committingWheelZoom = true;
-  try { map.setZoomAround(point, targetZoom, {animate: false}); }
-  finally { committingWheelZoom = false; }
-  alignRetainedRaster();
-  if (debugMapPerf && startedAt !== null) {
-    console.info("[HINANEX map perf] wheel intent-to-commit", {
-      delayMs: Math.round(perfTime() - startedAt),
-      idleMs: WHEEL_GESTURE_IDLE_MS,
-      mode: zoomFeelMode || "preview-fast"
-    });
-  }
 }
 function captureSingleTargetWheel(event) {
   if (!singleTargetWheel || gesturePrefs.style === "steps" ||
@@ -411,9 +648,13 @@ function captureSingleTargetWheel(event) {
     // New gesture, new bounded budget. Previous prefetched images have already
     // served (or expired) and must not prevent warmup at another destination.
     discardPredictedTiles();
+    // A new independent gesture invalidates any old base-map cover. Otherwise
+    // a stale, fully opaque atlas would hide the next instantaneous preview.
+    removeTargetCover();
     pendingWheelPoint = map.mouseEventToContainerPoint(event);
     wheelIntentStartedAt = perfTime();
   }
+  targetCoverGeneration++;
   pendingWheelPixels += -rawDelta * scale;
   updateWheelPreview(event);
   schedulePredictedTileWarmup();
