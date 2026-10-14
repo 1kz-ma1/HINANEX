@@ -849,7 +849,7 @@ nagoya.scenarios = [{
   const badCatalog={...officialCatalog,
     sites:officialCatalog.sites.map(s=>({...s,disaster1_raw:0}))};
   const noRegionalD=makeContext({protocol:"http:",fetchImpl:async u=>
-    {ok:false,status:404}});
+    ({ok:false,status:404})});
   await new Promise(r=>setTimeout(r,0));
   const missingPoint=await noRegionalD.context.window.HINANEX_GSI_FLOOD_PRESENTER.begin();
   assert.equal(missingPoint.state,"unavailable");
