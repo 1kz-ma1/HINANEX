@@ -1,0 +1,43 @@
+name: A source research original/UNKNOWN offline regression (NON-APPROVAL)
+
+"on":
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - ".github/workflows/a-research-unreviewed-offline-regressions.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a-offline-negative:
+    name: Exact A #189 offline research + negative tests (never shelter approval)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout pinned current-main integration A content (not main deployment)
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 519b05285b6451baea1aaccbc1e9a0b8f6c67869
+          path: a-candidate
+          persist-credentials: false
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Full research suite incl. source tamper, no-overwrite and nonpromotion assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s a-candidate/data-research/tests -p 'test_*.py' -v
+      - name: Explicit source and approval scope
+        if: always()
+        run: |
+          echo 'OFFLINE_REGRESSIONS_ONLY'
+          echo 'No municipal or GSI network fetch, no protected source original read.'
+          echo 'Human C site identity approvals: NOT TESTED / NOT GRANTED.'
+          echo 'Actual current flood-safe shelter designation: NOT APPROVED.'
+          echo 'Historical 2019 as-of original publication: NOT APPROVED.'
+          echo 'No staging production deployment or main merge.'
