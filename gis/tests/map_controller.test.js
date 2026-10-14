@@ -98,6 +98,10 @@ function makeElement(id) {
 function makeLeafletStub() {
   const mapLayers = new Set();
   const panes = {};
+  const mapPane = {
+    style: {scale:"",transformOrigin:"",transition:"",willChange:""},
+    getBoundingClientRect() { return {left:0,top:0}; }
+  };
   const groups = [];
   const markers = [];
   const tiles = [];
@@ -150,6 +154,7 @@ function makeLeafletStub() {
     getMinZoom() { return this.minZoom ?? 2; },
     getMaxZoom() { return 18; },
     getContainer() { return this.container; },
+    getPanes() { return {mapPane}; },
     mouseEventToContainerPoint(e) { return {x:e.clientX,y:e.clientY}; },
     setZoomAround(anchor, zoom, options) {
       this.zoomAroundCalls = [...(this.zoomAroundCalls || []), {anchor,zoom,options}];
@@ -1933,6 +1938,7 @@ nagoya.scenarios = [{
      fetchImpl: async () => ({ok:false,status:404,json:async()=>({})})
    });
    const map=L.__map, handler=map.container.listeners.wheel.fn;
+   const mapPane=map.getPanes().mapPane;
    assert.equal(typeof handler, "function");
    const event = (deltaY, target={}) => ({
      deltaY, deltaMode:0, clientX:220, clientY:175, target,
@@ -1944,16 +1950,25 @@ nagoya.scenarios = [{
    handler(e1);handler(e2);handler(e3);
    assert.equal(e1.prevented,true);
    assert.equal(e1.stopped,true);
+   assert.ok(Number(mapPane.style.scale)>1,
+     "reuse existing rendered image immediately before Leaflet moves");
+   assert.match(mapPane.style.transformOrigin, /220px 175px/);
+   assert.equal(map.zoom,13, "preview must not change geographic map zoom");
    assert.equal(map.zoomAroundCalls?.length || 0,0,
      "no intermediate zoom on each wheel event");
    vm.runInContext("flushSingleTargetWheel()",context);
+   assert.equal(mapPane.style.scale,"",
+     "commit restores original map-pane CSS preview");
+   assert.equal(mapPane.style.transformOrigin,"");
    assert.equal(map.zoomAroundCalls.length,1,
      "one gesture resolves to one animated destination");
    assert.equal(map.zoomAroundCalls[0].anchor.x,220);
    assert.equal(map.zoomAroundCalls[0].anchor.y,175);
    assert.ok(map.zoomAroundCalls[0].zoom>13);
-   assert.ok(map.zoomAroundCalls[0].zoom<17);
-   assert.equal(map.zoomAroundCalls[0].options.animate,true);
+   assert.ok(map.zoomAroundCalls[0].zoom<16,
+     "limit preview scale so zoom raster stays manageable");
+   assert.equal(map.zoomAroundCalls[0].options.animate,false,
+     "a completed visual preview must not trigger a second animation");
    const firstTarget = map.zoomAroundCalls[0].zoom;
    handler(event(40));
    vm.runInContext("flushSingleTargetWheel()",context);
@@ -1969,6 +1984,14 @@ nagoya.scenarios = [{
    const stepped=event(-48);handler(stepped);
    assert.equal(stepped.prevented,false);
    assert.equal(map.zoomAroundCalls.length,2);
+   // Competing drag cancels pending wheel rather than restoring stale camera.
+   handler(event(-32));
+   assert.ok(Number(mapPane.style.scale)>1);
+   map.handlers.dragstart();
+   assert.equal(mapPane.style.scale,"");
+   vm.runInContext("flushSingleTargetWheel()",context);
+   assert.equal(map.zoomAroundCalls.length,2);
+
    // Minimum and maximum zoom are clamped by the map's effective bounds.
    context.window.HINANEX_MAP_GESTURES.setSettings({style:"continuous"});
    map.zoom=map.getMinZoom();
