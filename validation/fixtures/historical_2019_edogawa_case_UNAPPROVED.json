@@ -1,0 +1,46 @@
+{
+  "schema_id": "hinanex.historical_replay_case.v0.1",
+  "case_id": "2019-typhoon19-edogawa",
+  "as_of_jst": "2019-10-12T17:00:00+09:00",
+  "example_state": "UNAPPROVED_REAL_CANDIDATE_METADATA_ONLY__NO_REPLAY",
+  "sources": [
+    {
+      "source_id": "jma-20191011-t19",
+      "role": "INPUT",
+      "url": "https://www.jma.go.jp/jma/press/1910/11b/201910111100.html",
+      "published_at_jst": null,
+      "published_date_jst": "2019-10-11",
+      "observation_at_jst": null,
+      "archive_sha256": null,
+      "depends_on": []
+    },
+    {
+      "source_id": "edogawa-201905-water-hazard-map",
+      "role": "INPUT",
+      "url": "https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/n_hazardmap.html",
+      "published_at_jst": null,
+      "published_date_jst": "2019-05",
+      "archive_sha256": null,
+      "depends_on": [],
+      "historical_revision_problem": "CURRENT_PUBLIC_PDF_REFLECTS_2023_EDITS"
+    },
+    {
+      "source_id": "tokyo-20191013-report49",
+      "role": "TRUTH",
+      "url": "https://www.bousai.metro.tokyo.lg.jp/mobile/taisaku/saigai/1000036/1030675/1006952/1006947.html",
+      "published_at_jst": "2019-10-13T02:00:00+09:00",
+      "observation_at_jst": "2019-10-13T00:00:00+09:00",
+      "archive_sha256": null,
+      "depends_on": []
+    },
+    {
+      "source_id": "edogawa-school-ops-review",
+      "role": "TRUTH",
+      "url": "https://www.city.edogawa.tokyo.jp/documents/17316/19matome.pdf",
+      "published_at_jst": null,
+      "archive_sha256": null,
+      "depends_on": [],
+      "post_event_report": true
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "schema_id": "hinanex.a.edogawa_historical_school_roster_candidates.v0.1",
+  "case_id": "2019-typhoon19-edogawa",
+  "as_of_jst": "2019-10-12T09:00:00+09:00",
+  "created_on": "2026-10-13",
+  "status": "OFFICIAL_CANDIDATES_UNAPPROVED",
+  "temporal_note": "An annual reporting date or catalog Created date does not prove that the current bytes were available to users in 2019.",
+  "input_asof_approved_count": 0,
+  "approved_physical_site_pairs": 0,
+  "candidates": [
+    {
+      "source_id": "tokyo-2017-junior-high-open-data",
+      "source_title": "平成29年度 東京都公立学校一覧 中学校（学級数、教員数、職員数、住所等）",
+      "issuing_authority": "東京都教育庁",
+      "catalogue_url": "https://spec.api.metro.tokyo.lg.jp/spec/t000021d1700000002-c0aa9217b65291115b9a588fc71b0c81-0?lang=en",
+      "raw_url_catalogued": "http://www.kyoiku.metro.tokyo.jp/administration/statistics_and_research/list_of_public_school/files/school_lists2017_csv/houkokushokouritsu02_03.csv",
+      "source_format": "CSV (catalog says historic HTTP URL; HTTPS raw availability not confirmed)",
+      "catalogue_created_date": "2018-03-30",
+      "catalogue_updated_date": "2018-03-30",
+      "source_edition_year": 2017,
+      "publication_interval_jst": {
+        "not_before": "2018-03-30",
+        "not_after": "2018-03-30",
+        "precision": "CATALOG_METADATA_DAY_ONLY_NOT_ORIGINAL_RELEASE"
+      },
+      "evidence_type": "PRE_EVENT_CATALOGUE_RECORD",
+      "source_contents_snapshot_verified": false,
+      "source_2019_temporal_continuity_verified": false,
+      "raw_sha256": null,
+      "historical_asof_approved": false,
+      "physical_site_ids_approved": 0,
+      "licence": "CC BY (official API catalog)",
+      "review_state": "CATALOGUE_REVIEW_ONLY",
+      "important_caveat": "2017 school list cannot establish that schools/addresses still matched on 2019-10-12; official catalog metadata can be republished."
+    },
+    {
+      "source_id": "tokyo-2018-school-directory-print",
+      "source_title": "東京都公立学校一覧（平成30年度）",
+      "issuing_authority": "東京都教育庁総務部",
+      "catalogue_url": "https://www.library.metro.tokyo.lg.jp/search/research_guide/tokyo/monthly/202103/index.html",
+      "raw_url_catalogued": null,
+      "source_format": "PRINT_PUBLICATION_REFERENCE",
+      "catalogue_created_date": null,
+      "catalogue_updated_date": null,
+      "source_edition_year": 2018,
+      "publication_interval_jst": {
+        "not_before": "2018-10-01",
+        "not_after": "2018-10-31",
+        "precision": "MONTH_ONLY_LIBRARY_BIBLIOGRAPHY"
+      },
+      "evidence_type": "LIBRARY_2021_RETROSPECTIVE_BIBLIOGRAPHIC_RECORD",
+      "source_contents_snapshot_verified": false,
+      "source_2019_temporal_continuity_verified": false,
+      "raw_sha256": null,
+      "historical_asof_approved": false,
+      "physical_site_ids_approved": 0,
+      "licence": "NOT_REVIEWED",
+      "review_state": "BIBLIOGRAPHY_ONLY",
+      "important_caveat": "Publication month is from the 2021 library retrospective record, not yet an authenticated copy or proof of the distribution date."
+    },
+    {
+      "source_id": "tokyo-2019-school-directory-print",
+      "source_title": "東京都公立学校一覧（令和元年度）",
+      "issuing_authority": "東京都教育庁総務部",
+      "catalogue_url": "https://www.library.metro.tokyo.lg.jp/search/research_guide/tokyo/monthly/202103/index.html",
+      "raw_url_catalogued": null,
+      "source_format": "PRINT_PUBLICATION_REFERENCE",
+      "catalogue_created_date": null,
+      "catalogue_updated_date": null,
+      "source_edition_year": 2019,
+      "publication_interval_jst": {
+        "not_before": "2019-10-01",
+        "not_after": "2019-10-31",
+        "precision": "MONTH_ONLY_LIBRARY_BIBLIOGRAPHY"
+      },
+      "evidence_type": "LIBRARY_2021_RETROSPECTIVE_BIBLIOGRAPHIC_RECORD",
+      "source_contents_snapshot_verified": false,
+      "source_2019_temporal_continuity_verified": false,
+      "raw_sha256": null,
+      "historical_asof_approved": false,
+      "physical_site_ids_approved": 0,
+      "licence": "NOT_REVIEWED",
+      "review_state": "BIBLIOGRAPHY_ONLY",
+      "important_caveat": "October 2019 overlaps 12 October typhoon: day/time of public release unknown. MUST NOT infer 1 October availability."
+    },
+    {
+      "source_id": "edogawa-2019-nov-school-placement",
+      "source_title": "令和元年11月 江戸川区学校適正配置の考え方",
+      "issuing_authority": "江戸川区",
+      "catalogue_url": "https://www.city.edogawa.tokyo.jp/documents/8888/r1gakkoutekiseihaitinokanngaekata.pdf",
+      "raw_url_catalogued": null,
+      "source_format": "PDF",
+      "catalogue_created_date": null,
+      "catalogue_updated_date": null,
+      "source_edition_year": 2019,
+      "publication_interval_jst": {
+        "not_before": "2019-11-01",
+        "not_after": "2019-11-30",
+        "precision": "MONTH_ONLY_PRINTED_IN_SOURCE"
+      },
+      "evidence_type": "POST_EVENT_SCHOOL_PLACEMENT_REFERENCE",
+      "source_contents_snapshot_verified": false,
+      "source_2019_temporal_continuity_verified": false,
+      "raw_sha256": null,
+      "historical_asof_approved": false,
+      "physical_site_ids_approved": 0,
+      "licence": "NOT_REVIEWED",
+      "review_state": "POST_EVENT_CONTEXT_ONLY",
+      "important_caveat": "Contains historical-looking school placement diagrams, but was published after Oct 12; must never be event-time input."
+    }
+  ]
+}

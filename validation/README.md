@@ -2,6 +2,13 @@
 
 C担当は公式SourceとDのRegionExportの対応を検証します。出力結果を根拠に公式値の意味を推測しないでください。
 
+## 過去災害再現検証（Historical Replay、2026-10-13提案）
+
+- 設計仕様: [docs/HISTORICAL_REPLAY_VALIDATION_SPEC_20261013.md](docs/HISTORICAL_REPLAY_VALIDATION_SPEC_20261013.md)
+- 検証の3パターン: 整合（MATCH）/ 判定保留（ABSTAIN）/ 不一致（MISMATCH）。比較不可（NOT_EVALUABLE）は統計上別扱い。
+- 2019年台風19号・江戸川区は**候補事例**であり、再現検証や実機デモは**未実装・未承認**。当時利用できた入力と事後実績の混入を禁止。
+- 基礎受入 [Issue #89](https://github.com/1kz-ma1/HINANEX/issues/89) と独立C監査を先行。A/B/D/Eへの実装依頼は別Issue/PRで管理する。
+
 ## 洪水Scenario（2026-10-08）
 
 - Review: [reviews/2026-10-08-flood-scenario-acceptance.md](reviews/2026-10-08-flood-scenario-acceptance.md)
