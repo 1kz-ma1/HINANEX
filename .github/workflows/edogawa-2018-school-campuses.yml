@@ -1,0 +1,102 @@
+name: Edogawa 2018 school/night publication evidence (UNAPPROVED)
+
+"on":
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - ".github/workflows/edogawa-2018-school-campuses.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  historical-campus-evidence:
+    name: Archive official 2018 source and separately audit two school listings
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout pinned A evidence implementation
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 3e7dcb7f89b9c1738ca01e2e2e6f979d0d057b7e
+          path: a-evidence
+          persist-credentials: false
+
+      - name: Checkout pinned independent C source auditor
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 166ff8d0de99f8dadea89814b25ee52522e1fa91
+          path: c-audit
+          persist-credentials: false
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Offline A and C negative regression tests
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s a-evidence/data-research/tests -p 'test_archive_edogawa_2018_school_news.py' -v
+          python -m unittest discover -s c-audit/validation/validation -p 'test_audit_edogawa_2018_school_identity.py' -v
+
+      - name: Archive exact official 2018 newspaper original (current web copy)
+        id: a_capture
+        run: |
+          set -euo pipefail
+          python a-evidence/data-research/tools/archive_edogawa_2018_school_news.py \
+            --out-dir "$RUNNER_TEMP/edogawa-2018-school-originals-UNREVIEWED"
+
+      - name: A original-byte integrity re-verification
+        id: a_verify
+        run: |
+          set -euo pipefail
+          python a-evidence/data-research/tools/archive_edogawa_2018_school_news.py \
+            --verify-dir "$RUNNER_TEMP/edogawa-2018-school-originals-UNREVIEWED"
+
+      - name: Install pinned PDF inspector for C
+        run: python -m pip install "pymupdf==1.26.4"
+
+      - name: C independently inspect the same 2018 source for day/night labels
+        id: c_check
+        run: |
+          set -euo pipefail
+          zip -j -q "$RUNNER_TEMP/edogawa-2018-school-original.zip" "$RUNNER_TEMP/edogawa-2018-school-originals-UNREVIEWED/"*
+          python c-audit/validation/validation/audit_edogawa_2018_school_identity.py \
+            --archive-zip "$RUNNER_TEMP/edogawa-2018-school-original.zip" \
+            --report "$RUNNER_TEMP/C_edogawa_2018_night-school_UNAPPROVED.json"
+
+      - name: Upload 14-day A original-byte evidence (not git)
+        if: ${{ steps.a_capture.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: edogawa-2018-school-raw-UNREVIEWED-${{ github.run_id }}
+          path: ${{ runner.temp }}/edogawa-2018-school-originals-UNREVIEWED/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload independent C report separately
+        if: ${{ steps.c_check.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: edogawa-2018-night-campus-C-UNAPPROVED-${{ github.run_id }}
+          path: ${{ runner.temp }}/C_edogawa_2018_night-school_UNAPPROVED.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Explicit safety/evidence status
+        if: always()
+        run: |
+          {
+            echo "### 2018 江戸川区学校広報原本"
+            echo "- A original HTTPS capture: ${{ steps.a_capture.outcome }}"
+            echo "- A byte integrity verification: ${{ steps.a_verify.outcome }}"
+            echo "- C independent day/night source-label verification: ${{ steps.c_check.outcome }}"
+            echo "- Physical site equivalence in 2019: **UNKNOWN**, site identity pairs = **0**."
+            echo "- Printed 2018 date != cryptographic first web publication of current PDF bytes."
+            echo "- 2020 post-event operational 205/11 rows are held out from 2018 input."
+            echo "- Flood safety, shelter availability, and predictive performance: **NOT EVALUATED**."
+          } >> "$GITHUB_STEP_SUMMARY"
