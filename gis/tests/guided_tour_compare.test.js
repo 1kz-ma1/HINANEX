@@ -89,7 +89,7 @@ test("three distinct labeled cases and safe comparison exist in responsive GIS p
     assert.match(html, new RegExp('id="mapTourCompare' + code + '"'));
   }
   assert.match(html, /id="mapTourStart"[^>]*>3地域を連続再生/);
-  assert.match(html, /js\/guided_tour[.]js[?]v=guided-tour-three-region-comparison-20261013-v1/);
+  assert.match(html, /js\/guided_tour[.]js[?]v=interactive-presenter-20261014-v1/);
   assert.match(html, /css\/map_first[.]css[?]v=guided-tour-three-region-comparison-20261013-v1/);
   assert.match(html, /未取得は0件ではありません/);
   assert.match(css, /\.map-tour-case button\[aria-pressed="true"\]/);
@@ -191,6 +191,27 @@ test("pause while pending cancels stale result, next step is manually selectable
   assert.equal(a.get("mapTourProgress").textContent, "2 / 3｜再生中");
   assert.match(a.get("mapTourCompare15100").textContent, /取得 2件/);
   assert.ok(a.calls.halt >= 2);
+});
+
+test("manual pan, wheel and toolbar interaction continue the guided tour", async () => {
+  const a=mount();
+  a.get("mapTourOpen").click();
+  a.get("mapTourStart").click();
+  await flush();
+  assert.equal(a.timers.size,1);
+  a.get("map").fire("wheel");
+  a.get("map").fire("pointerdown");
+  a.get("mapToolScene").open=true;
+  a.get("mapToolScene").fire("toggle");
+  assert.equal(a.timers.size,1,"the step's clock keeps running");
+  assert.equal(a.get("mapTourPanel").hidden,false);
+  assert.equal(a.get("mapTourProgress").textContent,"1 / 3｜再生中");
+  a.nextTimer();
+  await flush();
+  assert.equal(a.get("mapTourProgress").textContent,"2 / 3｜再生中");
+  a.get("mapTourStop").click();
+  assert.equal(a.calls.end.at(-1),false,
+    "manual camera adjustments must not be reverted on stop");
 });
 
 test("on-map evidence player replaces cross-tab link without altering three-region preview", () => {

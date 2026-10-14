@@ -387,6 +387,7 @@ const PLACE_PRIORITY_FIELDS = new Set([
   "住所", "公式住所", "種別", "洪水対応分類",
   "直線距離（経路距離ではない）", "件数", "表示", "位置", "状態"
 ]);
+// Leaflet anchors a bubble to the selected point; #details is a hidden template.
 function detail(title, rows, type, options = {}) {
   const badgeClass = options.badgeClass ? " " + options.badgeClass : "";
   const noteClass = options.noteTone ? " " + options.noteTone : "";
@@ -420,11 +421,23 @@ function detail(title, rows, type, options = {}) {
     `<h2 class="detail-title">${escapeHtml(title)}</h2>` +
     `<div class="place-card-summary">${renderRows(summaryRows)}</div>` +
     caution + externalLink + disclosure + note;
-  // Dataset summaries are informational; a map selection reveals the card.
-  if (type !== "D RegionExport" && type !== "地域切替") {
+  if (options.anchor && typeof L.popup === "function") {
+    L.popup({
+      className: "hinanex-place-popup", closeButton: true, autoPan: true,
+      autoPanPaddingTopLeft: [20, 95],
+      autoPanPaddingBottomRight: [20, 85], maxWidth: 360
+    }).setLatLng(options.anchor)
+      .setContent(document.getElementById("details").innerHTML).openOn(map);
+    window.HINANEX_MAP_FIRST_UI?.showDetail?.();
+  } else if (options.anchor && typeof L.popup !== "function") {
+    // For offline controller fixtures without real Leaflet popup primitives.
     window.HINANEX_MAP_FIRST_UI?.showDetail?.();
   }
 }
+map.on("popupclose", () => {
+  document.getElementById("gisLayout")?.setAttribute("data-right-panel", "closed");
+  document.getElementById("toggleRightPanel")?.setAttribute("aria-expanded", "false");
+});
 function shelterIcon(decision = "UNKNOWN") {
   const safeClass = decision === "CANDIDATE" ? "d-status-candidate" :
     decision === "EXCLUDED" ? "d-status-excluded" : "d-status-unknown";
@@ -720,14 +733,6 @@ function renderReferenceMap(discovery) {
 
   // Five display pins, not 6,656. No lines, routing or safety ranking.
   discovery.sites.forEach(site => {
-    const sourceLink = safeExternalUrl(site.sourceUrl);
-    const popup = '<div class="reference-site-popup"><strong>GSI公式掲載地点（参考）</strong>' +
-      '<p>' + escapeHtml(site.name) + '</p>' +
-      '<p>直線距離：' + escapeHtml(site.distanceMetres.toLocaleString("ja-JP")) +
-      'm（経路距離ではありません）</p>' +
-      (sourceLink ? '<a href="' + escapeHtml(sourceLink) +
-        '" target="_blank" rel="noopener noreferrer">原典タイル</a>' : '') +
-      '<p>安全性・現在の開設・避難経路は未判定です。直線距離は安全性や優先度を表すものではありません。</p></div>';
     L.marker([site.latitude, site.longitude], {
       pane: "referenceSitePane", zIndexOffset: 1000,
       icon: L.divIcon({
@@ -735,10 +740,8 @@ function renderReferenceMap(discovery) {
         html: '<span class="reference-site-marker" aria-label="GSI公式掲載地点・安全性未判定"></span>',
         iconSize: [32, 32], iconAnchor: [16, 16]
       })
-    }).bindPopup(popup).on("click", event => {
+    }).on("click", event => {
       L.DomEvent.stopPropagation(event);
-      // Avoid showing the Leaflet popup and a second information card together.
-      event.target?.closePopup?.();
       detail(site.name, [
         ["出典", "GSI skhb01 洪水指定緊急避難場所（参照のみ）"],
         ["直線距離（経路距離ではない）", site.distanceMetres + "m"],
@@ -746,6 +749,7 @@ function renderReferenceMap(discovery) {
         ["公式備考", displayValue(site.remarks)],
         ["raw行", displayValue(site.trace)]
       ], "GSI公式掲載 / 未推奨", {
+        anchor: [site.latitude, site.longitude],
         href: site.sourceUrl,
         note: "国土地理院に掲載された場所の参考情報です。安全性・現在の開設状況・避難経路・自治体所属は確認できていません。"
       });
@@ -910,6 +914,7 @@ function setReferenceOrigin(latitude, longitude) {
     ["表示内容", "GSIの検証済み公式掲載地点を参考探索"],
     ["照合結果", "地図の紫マーカー・左欄・検証済み範囲を確認"]
   ], "地点指定", {
+    anchor: [latitude, longitude],
     badgeClass: "reference",
     note: "この地点の浸水リスク・避難の安全性・開設状況・経路は評価していません。未検証タイルは掲載施設が存在しないことを意味しません。"
   });
@@ -931,6 +936,8 @@ function showRegionWaitingDetail() {
 }
 
 function clearShelters() {
+  // On data replacement an old point bubble must never masquerade as a new record.
+  map.closePopup?.();
   shelterGroup.clearLayers();
   shelterBounds = null;
   currentShelterSummary = null;
@@ -973,6 +980,7 @@ function renderReferenceBoundary() {
         ],
         "境界fixture",
         {
+          anchor: event.latlng,
           badgeClass: "reference",
           note: "この境界は表示確認用で、HINANEXの分析正本ではありません。"
         }
@@ -1107,6 +1115,7 @@ function drawIndividualDMarker(record, summary) {
           ],
           "D: shelter_location / raw facts",
           {
+            anchor: [record.latitude, record.longitude],
             href: summary.floodScenario?.byId.get(record.id)?.sourceUrl || record.detail_url,
             note: summary.floodScenario?.byId.has(record.id)
               ? "洪水対応の確認状態は、出典を追える形で記録したものです。未判定は危険・候補外を意味しません。公式記号の意味、実際の開設、建物・経路の安全性は未確認です。"
@@ -1155,6 +1164,7 @@ function drawDClusterMarker(records, regionLabel = currentRegion().label,
       ["表示位置", "含まれる施設座標の平均値（実在する施設位置ではありません）"],
       ["洪水対応分類", "分類済み " + classified + "件／未判定 " + unknown + "件"]
     ], "地図表示用クラスタ", {
+      anchor: [latitude, longitude],
       note: "この円の中心は避難場所ではありません。クリックで拡大すると個別施設の元データを確認できます。安全性・開設状況・経路・優先順位は未判定です。"
     });
     map.setView([latitude, longitude], Math.min(13, map.getZoom() + 2));
@@ -2006,6 +2016,7 @@ document.getElementById("useGps").addEventListener("click", () => {
 document.getElementById("resetView").addEventListener("click", fitCurrentRegion);
 document.getElementById("autoLoad").addEventListener("click", tryAutoLoad);
 regionSelect.addEventListener("change", event => {
+  map.closePopup?.();
   selectRegion(event.target.value);
   // Keep the deep-link's municipality consistent with the visible dropdown.
   // Only explicit region changes update the URL; map/GPS/coordinate queries
@@ -2045,25 +2056,9 @@ map.on("click", event => {
     setReferenceOrigin(event.latlng.lat, event.latlng.lng);
     return;
   }
-  // A background tap used to dismiss another panel should never instantly
-  // reopen a raster information sheet on that very same click.
-  if (window.HINANEX_MAP_FIRST_UI?.wasDismissalClick?.(event.originalEvent)) return;
-  if (!map.hasLayer(officialFloodLayer)) return;
-  const { lat, lng } = event.latlng;
-  detail(
-    "洪水浸水想定区域（想定最大規模）",
-    [
-      ["位置", `${lat.toFixed(6)}, ${lng.toFixed(6)}`],
-      ["表示", "公的参照ラスタ"],
-      ["想定", "想定最大規模"],
-      ["地点属性", "Eでは推測しない"]
-    ],
-    "公的参照",
-    {
-      badgeClass: "reference",
-      note: "ラスタ色から独自に危険度を推測せず、公式の表示をそのまま参照しています。洪水の分析ContractがDで追加された後、その属性を表示します。"
-    }
-  );
+  // A blank-map tap dismisses the selection; official raster remains available
+  // in the 災害情報 evidence view, not as a competing floating card.
+  map.closePopup?.();
 });
 
 const externalTileSampleCounts = new Map();

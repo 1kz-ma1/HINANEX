@@ -33,7 +33,7 @@ function mount(reply={state:"ready",source:"GSI_SKHB01_FLOOD",rawDisaster1:1,tot
 }
 test("GSI flood is primary while D filter and 2019 evidence remain",()=>{
  assert.ok(html.indexOf('id="mapGsiFloodDemoOpen"')<html.indexOf('id="mapFilterDemoOpen"'));
- assert.match(html,/gsi_flood_demo[.]js[?]v=gsi-flood-fallback-20261014-v2/);
+ assert.match(html,/gsi_flood_demo[.]js[?]v=interactive-presenter-20261014-v1/);
  assert.match(html,/公式掲載 ≠ 現在安全・開設中・避難推奨/);
 });
 test("50 seconds: verified source layer -> raw flood proof -> distinct D unknown -> future",async()=>{
@@ -60,8 +60,10 @@ test("source absent or incorrect raw value refuses to animate",async()=>{
   m.get("gsiFloodDemoClose").click();
  }
 });
-test("gesture cancels animation and leaves manually moved map; Esc restores otherwise",async()=>{
- const m=mount();await m.open();m.pan();assert.equal(m.timers.size,0);
+test("gesture keeps 50-second demo animating and does not restore manual map pan",async()=>{
+ const m=mount();await m.open();m.pan();assert.equal(m.timers.size,1);
+ assert.ok(!m.calls.includes("halt"));
+ m.tick(1);assert.equal(m.timers.size,1);
  m.get("gsiFloodDemoClose").click();assert.ok(m.calls.includes("end:false"));
  const x=mount();await x.open();let prevented=false;
  x.ev.get("keydown")({key:"Escape",preventDefault(){prevented=true;},stopImmediatePropagation(){}});

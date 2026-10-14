@@ -23,8 +23,8 @@ for (const filename of ["demo_20261022_browser_smoke.js",
 }
 const actualBrowserSmoke = fs.readFileSync(
   path.join(__dirname, "demo_20261022_browser_smoke.js"), "utf8");
-assert.match(actualBrowserSmoke, /white card body must scroll within its shell/);
-assert.match(actualBrowserSmoke, /white card and presenter must not intersect/);
+assert.match(actualBrowserSmoke, /long point details must scroll in speech bubble/);
+assert.match(actualBrowserSmoke, /anchored bubble must fit mobile width/);
 assert.match(actualBrowserSmoke, /UI_TEST_ONLY/);
 
 
@@ -101,6 +101,7 @@ function makeLeafletStub() {
   const groups = [];
   const markers = [];
   const tiles = [];
+  const popups = [];
 
   const map = {
     handlers: {},
@@ -128,6 +129,14 @@ function makeLeafletStub() {
     setView(latlng, zoom) { this.lastView = { latlng, zoom }; this.zoom = zoom; return this; },
     getCenter() { return this.lastView?.latlng || [35.704, 139.882]; },
     stop() { this.stopCalls = (this.stopCalls || 0) + 1; return this; },
+    closePopup() {
+      if (this.openedPopup) {
+        this.lastClosedPopup = this.openedPopup;
+        this.openedPopup = null;
+        this.handlers.popupclose?.({ popup: this.lastClosedPopup });
+      }
+      return this;
+    },
     flyToBounds(bounds, options) { this.lastFly = { bounds, options }; return this; },
     flyTo(latlng, zoom, options) {
       this.lastPointFly = { latlng, zoom, options };
@@ -193,6 +202,20 @@ function makeLeafletStub() {
     layerGroup: group,
     control: { scale: () => ({ addTo: () => ({}) }) },
     divIcon: value => value,
+    popup: options => {
+      const bubble = {
+        options,
+        setLatLng(latlng) { this.anchor = latlng; return this; },
+        setContent(content) { this.content = content; return this; },
+        openOn(target) {
+          target.closePopup();
+          target.openedPopup = this;
+          return this;
+        }
+      };
+      popups.push(bubble);
+      return bubble;
+    },
     marker: (latlng, options) => {
       const marker = {
         latlng, options,
@@ -220,7 +243,8 @@ function makeLeafletStub() {
     __groups: groups,
     __markers: markers,
     __panes: panes,
-    __tiles: tiles
+    __tiles: tiles,
+    __popups: popups
   };
 }
 
@@ -628,7 +652,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "unified-place-card-20261014-v1");
+  assert.equal(mapAsset[1], "anchored-point-bubble-20261014-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -918,12 +942,13 @@ nagoya.scenarios = [{
   assert.ok(acceptedPin.options.icon.html.includes("reference-site-marker"));
   assert.match(acceptedPin.options.icon.html, /aria-label="GSI公式掲載地点・安全性未判定"/);
   assert.doesNotMatch(acceptedPin.options.icon.html, />[1-5]<|GSI公式掲載参考地点[1-5]/);
-  assert.match(acceptedPin.popupHtml, /GSI公式掲載地点（参考）/);
-  assert.doesNotMatch(acceptedPin.popupHtml, /GSI公式掲載（参考\s*[0-9]|番号は|順位/);
-  assert.ok(acceptedPin.popupHtml.includes("未判定"));
-  assert.ok(acceptedPin.popupHtml.includes("&lt;unsafe&gt;"));
-  assert.ok(!acceptedPin.popupHtml.includes("<unsafe>"));
   acceptedPin.handlers.click({});
+  assert.deepEqual(Array.from(acceptedCase.L.__map.openedPopup.anchor),
+    [35.705, 139.89], "GSI official source point anchors its own bubble");
+  assert.match(acceptedCase.L.__map.openedPopup.content, /洪水に関する公式掲載地点/);
+  assert.equal(acceptedCase.L.__map.openedPopup.options.className,
+    "hinanex-place-popup");
+  assert.doesNotMatch(acceptedCase.L.__map.openedPopup.content, /<unsafe>/);
   assert.match(acceptedCase.elements.details.innerHTML, /洪水に関する公式掲載地点/);
   assert.match(acceptedCase.elements.details.innerHTML, /place-card-disclosure/);
   assert.match(acceptedCase.elements.details.innerHTML, /公式の出典を確認/);
@@ -932,6 +957,15 @@ nagoya.scenarios = [{
     /feature_index=0|raw行/, "raw source trace belongs in the collapsed detail section");
   assert.match(acceptedCase.elements.details.innerHTML, /安全性・現在の開設状況は確認できていません/);
   assert.doesNotMatch(acceptedCase.elements.details.innerHTML, /番号は表示順序/);
+  // Selecting another pin replaces the first bubble; a blank map tap closes it.
+  acceptedCase.L.__groups[1].items[0].handlers.click({});
+  assert.match(acceptedCase.L.__map.openedPopup.content, /地域の避難施設/);
+  assert.notEqual(acceptedCase.L.__map.openedPopup, acceptedCase.L.__popups[0]);
+  acceptedCase.L.__map.handlers.click({
+    latlng: {lat:35.7,lng:139.88}, originalEvent: {}
+  });
+  assert.equal(acceptedCase.L.__map.openedPopup, null,
+    "blank-map click must dismiss, not replace with raster details");
   const pageSource = fs.readFileSync(path.resolve(__dirname, "../gis/index.html"), "utf8");
   assert.match(pageSource, /紫：公式掲載地点（安全性未判定/);
   assert.match(pageSource, /id="uiTabNormal"[^>]*role="tab"/);
@@ -939,9 +973,11 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
   assert.match(pageSource, /current_theme[.]css[?]v=gis-facility-drawer-20261009-v6/);
   assert.match(pageSource, /map_first[.]css[?]v=guided-tour-three-region-comparison-20261013-v1/);
-  assert.match(pageSource, /place_card[.]css[?]v=place-card-20261014-v2/);
+  assert.match(pageSource, /place_card[.]css[?]v=anchored-point-bubble-20261014-v1/);
   const cardCss = fs.readFileSync(path.resolve(__dirname, "../gis/css/place_card.css"), "utf8");
-  assert.match(cardCss, /top:142px;right:18px/);
+  assert.match(cardCss, /\.hinanex-place-popup \.leaflet-popup-content-wrapper/);
+  assert.match(cardCss, /display:none !important/,
+    "fixed right-side information card must stay hidden");
   assert.match(cardCss, /place-card-disclosure/);
   assert.match(cardCss, /height:min\(22%,160px\);max-height:none;overflow:hidden/, "mobile demo must cap the card and clip overflow");
   assert.match(cardCss, /height:100%;max-height:none;overflow-y:auto/, "mobile card contents must scroll within the card");
@@ -2137,7 +2173,7 @@ nagoya.scenarios = [{
   const css = fs.readFileSync(path.resolve(__dirname, "../gis/css/map_first.css"), "utf8");
   assert.match(html, /id="mapTourPanel"[^>]*hidden/);
   assert.match(html, /id="mapTourOpen"[^>]*aria-controls="mapTourPanel"/);
-  assert.match(html, /js\/guided_tour[.]js[?]v=guided-tour-three-region-comparison-20261013-v1/);
+  assert.match(html, /js\/guided_tour[.]js[?]v=interactive-presenter-20261014-v1/);
   assert.match(html, /災害予測や避難推奨ではありません/);
   assert.match(viewSource, /mapTourPause/);
   assert.match(viewSource, /prefers-reduced-motion: reduce/);
@@ -2430,7 +2466,7 @@ nagoya.scenarios = [{
   assert.match(page,/id="mapDDecisionFilter"/);
   assert.match(page,/value="classified"/);
   assert.match(page,/value="unclassified"/);
-  assert.match(page,/unified-place-card-20261014-v1/);
+  assert.match(page,/anchored-point-bubble-20261014-v1/);
   assert.match(css,/\.shelter-icon\.d-status-unknown/);
   assert.match(css,/\.d-facility-cluster\.d-status-mixed/);
   console.log("D flood assessment display-only filter and legend: OK");

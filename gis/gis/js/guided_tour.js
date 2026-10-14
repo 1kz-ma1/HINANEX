@@ -26,6 +26,7 @@
   let sequence = [];
   let playbackId = 0;
   let timer = null;
+  let restoreViewOnStop = true;
   function clearTimer() {
     if (timer !== null) window.clearTimeout(timer);
     timer = null;
@@ -126,7 +127,8 @@
     clearTimer();
     markInterruptedFetch();
     playbackId++;
-    if (state !== "idle") api.end(true);
+    if (state !== "idle") api.end(restoreViewOnStop);
+    restoreViewOnStop = true;
     sequence = nextCodes.map(code => steps.find(step => step.code === code));
     index = -1;
     state = "idle";
@@ -151,7 +153,8 @@
     clearTimer();
     markInterruptedFetch();
     playbackId++;
-    if (state !== "idle") api.end(restore);
+    if (state !== "idle") api.end(restore && restoreViewOnStop);
+    restoreViewOnStop = true;
     state = "idle";
     index = -1;
     sequence = [];
@@ -191,18 +194,19 @@
   get("mapTourStop").addEventListener("click", () => stop(true));
   const mapElement = get("map");
   for (const type of ["pointerdown", "wheel", "touchstart"]) {
-    mapElement.addEventListener(type, pause, { passive: true });
+    mapElement.addEventListener(type, () => {
+      // Keep the step timer running, but respect the manually chosen camera
+      // when the presenter is closed or stopped.
+      if (!panel.hidden) restoreViewOnStop = false;
+    }, { passive: true });
   }
   document.addEventListener("keydown", event => {
     if (panel.hidden) return;
     if (event.key === "Escape") { event.preventDefault(); close(); }
-    else if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) pause();
+    else if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key))
+      restoreViewOnStop = false;
   });
   get("mapShareOpen").addEventListener("click", () => { if (!panel.hidden) close(); });
-  for (const name of ["mapToolScene", "mapToolScenario", "mapToolMarks", "mapToolHazards"]) {
-    get(name).addEventListener("toggle", () => {
-      if (get(name).open && !panel.hidden) close();
-    });
-  }
+  // Ordinary toolbar interaction must not terminate a playing presentation.
   renderState();
 })();

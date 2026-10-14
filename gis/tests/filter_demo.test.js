@@ -45,7 +45,7 @@ test("primary demo is source-attribute GIS presentation; historical demos remain
  assert.match(html,/id="mapFilterDemoOpen" type="button"/);
  assert.match(html,/id="mapStoryOpen" type="button"/);
  assert.match(html,/id="mapHistoricalEvidenceDemo" type="button"/);
- assert.match(html,/js\/filter_demo[.]js[?]v=unified-place-card-20261014-v2/);
+ assert.match(html,/js\/filter_demo[.]js[?]v=interactive-presenter-20261014-v1/);
  assert.match(css,/@media\(max-width:780px\)/);
  assert.match(html,/表示された施設 ≠ 避難先として適切な施設/);
 });
@@ -66,11 +66,15 @@ test("52s animation drives actual filter and record inspection; no fake safety c
  m.tick(7);assert.equal(m.timers.size,0);
  assert.equal(m.get("filterDemoProgress").style.width,"100%");
 });
-test("pause, manual map gesture and close restore filters without undoing user pan",async()=>{
+test("manual map gesture preserves demo timer without undoing user pan",async()=>{
  const m=mount();await m.open();
  m.get("filterDemoPause").click();assert.equal(m.timers.size,0);
  m.get("filterDemoPlay").click();assert.equal(m.timers.size,1);
- m.gesture();assert.equal(m.timers.size,0);
+ const before=m.get("filterDemoClock").textContent;
+ const haltsBefore=m.calls.filter(c=>c==="halt").length;
+ m.gesture();assert.equal(m.timers.size,1);
+ assert.equal(m.calls.filter(c=>c==="halt").length,haltsBefore);
+ m.tick(1);assert.notEqual(m.get("filterDemoClock").textContent,before);
  m.get("filterDemoClose").click();
  assert.ok(m.calls.includes("end:false"));
  assert.equal(m.get("filterDemoPanel").hidden,true);

@@ -83,9 +83,11 @@
       (rightPanel.contains(target) || id("toggleRightPanel").contains(target));
     const inReference = !referenceSummary.hidden && referenceDisclosure.open &&
       referenceSummary.contains(target);
+    const inPopup = typeof target?.closest === "function" &&
+      !!target.closest(".hinanex-place-popup");
     const inSettings = !settingsPanel.hidden &&
       (settingsPanel.contains(target) || settingsToggle.contains(target));
-    if (inOpenMenu || inLeft || inRight || inReference || inSettings) return;
+    if (inOpenMenu || inLeft || inRight || inPopup || inReference || inSettings) return;
     const wasOpen = toolMenus.some(menu => menu.open) ||
       isPanelOpen("left") || isPanelOpen("right") || referenceDisclosure.open ||
       !settingsPanel.hidden;
