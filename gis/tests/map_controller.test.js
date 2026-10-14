@@ -159,6 +159,8 @@ function makeLeafletStub() {
     getMinZoom() { return this.minZoom ?? 2; },
     getMaxZoom() { return 18; },
     getContainer() { return this.container; },
+    getSize() { return {x:1024,y:768}; },
+    containerPointToLatLng() { return [35.704,139.882]; },
     getPanes() { return {mapPane,tilePane}; },
     mouseEventToContainerPoint(e) { return {x:e.clientX,y:e.clientY}; },
     setZoomAround(anchor, zoom, options) {
@@ -296,7 +298,7 @@ function makeLeafletStub() {
   };
 }
 
-function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = null, geolocation = undefined, localStorage = undefined }) {
+function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = null, geolocation = undefined, localStorage = undefined, ImageCtor = undefined }) {
   const ids = [
     "map", "mapUnavailable", "mapUnavailableMessage", "details", "status", "region",
     "basemap", "officialFlood", "boundary", "boundaryNote", "shelter", "floodOpacity",
@@ -327,7 +329,7 @@ function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = nul
   };
 
   const context = {
-    window: { location, history, localStorage },
+    window: { location, history, localStorage, Image: ImageCtor },
     document: { getElementById: id => elements[id] },
     navigator: geolocation === undefined ? undefined : { geolocation },
     L,
@@ -700,7 +702,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "raster-only-hold-20261015-v1");
+  assert.equal(mapAsset[1], "bounded-final-tile-prefetch-20261015-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -2068,6 +2070,43 @@ nagoya.scenarios = [{
    handler(event(-2000));
    vm.runInContext("flushSingleTargetWheel()",context);
    assert.equal(map.zoomAroundCalls.length,2);
+ }
+
+
+ // Prefetch only bounded, predicted *final* GSI basemap tiles. No flood
+ // raster, invented destination or intermediate zoom pyramid is requested.
+ {
+   const images=[];
+   class FakeImage {
+     set src(url) {this.url=url;images.push(url);}
+     get src() {return this.url;}
+   }
+   const {context,L}=makeContext({
+     protocol:"http:",ImageCtor:FakeImage,
+     fetchImpl:async()=>({ok:false,status:404,json:async()=>({})})
+   });
+   const ev={
+     deltaY:-96,deltaMode:0,clientX:280,clientY:220,target:{},
+     preventDefault(){},stopImmediatePropagation(){}
+   };
+   L.__map.container.listeners.wheel.fn(ev);
+   const coords=vm.runInContext("predictedGsiTileCoords()",context);
+   assert.ok(coords.length>0 && coords.length<=8);
+   assert.equal(new Set(coords.map(x=>x.z)).size,1,
+     "preload only ONE destination tile zoom, never crossed levels");
+   assert.equal(coords[0].z,Math.round(vm.runInContext("wheelDestinationZoom()",context)));
+   vm.runInContext("warmPredictedTiles()",context);
+   assert.ok(images.length>0 && images.length<=8,
+     "hard cap on extra tile requests per burst");
+   assert.equal(new Set(images).size,images.length);
+   assert.ok(images.every(url=>/^https:\/\/cyberjapandata[.]gsi[.]go[.]jp\/xyz\/std\/\d+\/\d+\/\d+[.]png$/.test(url)),
+     "prefetch only exact official GSI background PNG URL");
+   assert.ok(images.every(url=>!url.includes("flood")),
+     "hazard raster cannot be speculative and stays a separate layer");
+   vm.runInContext("warmPredictedTiles()",context);
+   assert.equal(images.length,coords.length,"duplicate URLs reused in one burst");
+   vm.runInContext("clearPendingWheel()",context);
+   assert.equal(vm.runInContext("predictedTileImages.size",context),0);
  }
 
 // Gesture settings are opt-in, persistent only in this browser, and never
