@@ -43,6 +43,12 @@ class ActualStagingBundleSmokeTests(unittest.TestCase):
                 (REPOSITORY_ROOT / "gis" / "gis", root / "gis" / "gis"),
             ]:
                 shutil.copytree(source, destination, ignore=shutil.ignore_patterns("__pycache__", "node_modules"))
+            evidence_file = root / "validation" / "demo" / "2019_edogawa_evidence_cases.json"
+            evidence_file.parent.mkdir(parents=True)
+            shutil.copyfile(
+                REPOSITORY_ROOT / "validation" / "demo" / evidence_file.name,
+                evidence_file,
+            )
             (root / "deploy").mkdir()
             shutil.copyfile(REPOSITORY_ROOT / "deploy" / "staging-index.html",
                             root / "deploy" / "staging-index.html")
@@ -91,6 +97,7 @@ class ActualStagingBundleSmokeTests(unittest.TestCase):
                 published = json.loads((bundle / "pipeline" / "data" / "output" / filename)
                                        .read_text(encoding="utf-8"))
                 self.assertEqual(published["region"]["code"], code)
+            self.assertTrue((bundle / "evidence" / "2019_edogawa_evidence_cases.json").is_file())
             manifest = json.loads((bundle / "_staging.json").read_text(encoding="utf-8"))
             self.assertEqual(manifest["paths"]["frontend"], "/frontend/")
             self.assertEqual(manifest["paths"]["gis"], "/gis/gis/")

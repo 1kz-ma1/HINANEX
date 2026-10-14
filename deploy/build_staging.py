@@ -118,6 +118,31 @@ def build_bundle(
     for filename in REQUIRED_EXPORTS:
         shutil.copy2(runtime_output / filename, published_output / filename)
 
+    evidence_source = root / "validation" / "demo" / "2019_edogawa_evidence_cases.json"
+    if not evidence_source.is_file():
+        raise StagingBuildError("Required C presentation evidence manifest is missing")
+    try:
+        evidence_data = json.loads(evidence_source.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise StagingBuildError("Invalid C presentation evidence manifest") from exc
+    if not (
+        isinstance(evidence_data, dict)
+        and evidence_data.get("schema_id") == "hinanex.c.midterm_explanation_cases.v0.1"
+        and evidence_data.get("historical_replay_executed") is False
+        and evidence_data.get("historical_prediction_approved") is False
+        and evidence_data.get("human_c_approved") is False
+        and evidence_data.get("approved_actual_building_pairs") == 0
+        and evidence_data.get("prediction_denominator") is None
+        and isinstance(evidence_data.get("cases"), list)
+        and [c.get("id") for c in evidence_data["cases"] if isinstance(c, dict)] == ["trace", "abstain", "negative"]
+        and all(c.get("real_prediction_finding") is None for c in evidence_data["cases"] if isinstance(c, dict))
+    ):
+        raise StagingBuildError("C presentation evidence must remain unapproved and non-predictive")
+
+    published_evidence = output_dir / "evidence" / "2019_edogawa_evidence_cases.json"
+    published_evidence.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(evidence_source, published_evidence)
+
     manifest = runtime_output / "manifest.json"
     if manifest.is_file():
         shutil.copy2(manifest, published_output / "manifest.json")
@@ -136,6 +161,7 @@ def build_bundle(
             "frontend": "/frontend/",
             "gis": "/gis/gis/",
             "region_exports": "/pipeline/data/output/",
+            "historical_evidence": "/evidence/2019_edogawa_evidence_cases.json",
         },
     }
     (output_dir / "_staging.json").write_text(
