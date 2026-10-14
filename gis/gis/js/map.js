@@ -1005,6 +1005,8 @@ function dFloodDecision(summary, record) {
   return status === "CANDIDATE" || status === "EXCLUDED" ? status : "UNKNOWN";
 }
 function dRecordVisible(summary, record) {
+  if (presenterFilterIds && summary === currentShelterSummary &&
+      !presenterFilterIds.has(record.id)) return false;
   const filter = document.getElementById("mapDDecisionFilter").value;
   const status = dFloodDecision(summary, record);
   return filter === "classified" ? status !== "UNKNOWN" :
@@ -1314,6 +1316,164 @@ function scheduleViewportD() {
   }, 120);
 }
 map.on("moveend", scheduleViewportD);
+
+
+// Presenter-only source-attribute filter. This is an exact subset of the
+// selected D RegionExport, never a new hazard/eligibility calculation.
+let presenterFilterIds = null;
+let presenterFilterSession = null;
+let presenterFilterEpoch = 0;
+function presenterChooseCondition(summary) {
+  const all = summary.mappableRecords || [];
+  if (all.length < 2) return null;
+  const classified = all.filter(r => dFloodDecision(summary, r) !== "UNKNOWN");
+  if (classified.length && classified.length < all.length) return {
+    kind: "classification", value: "分類済み（CANDIDATE または EXCLUDED）",
+    label: "洪水対応分類が UNKNOWN ではない", records: classified
+  };
+  // If D has no approved scenario decisions (common in production), show
+  // an honest *source-text* filter rather than inventing a flood-safe result.
+  for (const word of ["小学校", "中学校", "高等学校", "体育館", "公民館", "公園"]) {
+    const matching = all.filter(r => r.name.includes(word));
+    if (matching.length && matching.length < all.length) return {
+      kind: "name", value: word, label: "施設名に「" + word + "」を含む",
+      records: matching
+    };
+  }
+  for (const key of ["facility_type", "administrative_area"]) {
+    const groups = new Map();
+    for (const record of all) {
+      const value = record[key];
+      if (typeof value !== "string" || !value.trim()) continue;
+      if (!groups.has(value)) groups.set(value, []);
+      groups.get(value).push(record);
+    }
+    const possible = [...groups].filter(([,set]) => set.length < all.length);
+    if (possible.length) {
+      possible.sort((a,b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+      const [value,records] = possible[0];
+      return {
+        kind:key, value,
+        label:(key === "facility_type" ? "施設区分（D原値）" : "行政区域（D原値）")+
+          "が「"+value+"」",records
+      };
+    }
+  }
+  return null; // No useful subset: don't fake a filter or a count.
+}
+window.HINANEX_FACILITY_PRESENTER = Object.freeze({
+  async begin() {
+    if (presenterFilterSession) return {state:"busy"};
+    const epoch = ++presenterFilterEpoch;
+    const filterControl = document.getElementById("mapDDecisionFilter");
+    const shelterControl = document.getElementById("shelter");
+    const session = {
+      epoch, code: selectedRegionCode,
+      center: map.getCenter(), zoom: map.getZoom(),
+      filter: filterControl.value, shelter: shelterControl.checked, mode:displayMode,
+      summary:null, condition:null
+    };
+    presenterFilterSession = session;
+    const config = currentRegion();
+    if (!currentShelterSummary && window.location.protocol !== "file:") {
+      await fetchViewportDOnce(config);
+    }
+    if (epoch !== presenterFilterEpoch || presenterFilterSession !== session)
+      return {state:"cancelled"};
+    const summary = currentShelterSummary ||
+      viewportDCache.get(config.code)?.summary || null;
+    if (!summary?.dataset || summary.region.code !== config.code ||
+        !Array.isArray(summary.mappableRecords) || !summary.mappableRecords.length)
+      return {state:"unavailable",region:config.label};
+    if (summary !== currentShelterSummary) {
+      // Validated D adapter output, shared with the ordinary GIS view.
+      renderShelterSummary(summary, "D RegionExport（発表用確認）");
+    }
+    const condition = presenterChooseCondition(summary);
+    session.summary=summary;
+    session.condition=condition;
+    filterControl.value="all";
+    shelterControl.checked=true;
+    setDisplayMode("region");
+    presenterFilterIds=null;
+    lastDMarkerZoomBucket=null;
+    renderDMarkers();
+    const sourceLocations=summary.mappableRecords;
+    const bounds=L.latLngBounds(sourceLocations.map(r=>[r.latitude,r.longitude]));
+    if (bounds.isValid()) {
+      if (typeof map.flyToBounds==="function")
+        map.flyToBounds(bounds,{padding:[64,64],maxZoom:12,duration:1.2});
+      else map.fitBounds(bounds,{padding:[64,64],maxZoom:12});
+    }
+    const classified=sourceLocations.filter(r=>dFloodDecision(summary,r)!=="UNKNOWN").length;
+    return {
+      state:condition?"ready":"no-distinguishing-condition", region:config.label,
+      sourceTotal:summary.records.length, mapped:sourceLocations.length,
+      missing:summary.missingCoordinateRecords.length,
+      classified,unknown:sourceLocations.length-classified,
+      criterion:condition?.label || null,criterionKind:condition?.kind || null,
+      matches:condition?.records.length || 0
+    };
+  },
+  apply() {
+    const s=presenterFilterSession;
+    if (!s?.summary || !s.condition || selectedRegionCode !== s.code)
+      return {state:"unavailable"};
+    presenterFilterIds=new Set(s.condition.records.map(r=>r.id));
+    lastDMarkerZoomBucket=null;
+    renderDMarkers(); // Existing D markers, source coordinates, normal clustering.
+    const points=s.condition.records.map(r=>[r.latitude,r.longitude]);
+    const bounds=L.latLngBounds(points);
+    if(bounds.isValid()){
+      if(typeof map.flyToBounds==="function")
+        map.flyToBounds(bounds,{padding:[55,55],maxZoom:13,duration:1.1});
+      else map.fitBounds(bounds,{padding:[55,55],maxZoom:13});
+    }
+    return {state:"filtered",matches:s.condition.records.length,
+      mapped:s.summary.mappableRecords.length,criterion:s.condition.label};
+  },
+  inspect() {
+    const s=presenterFilterSession;
+    if (!s?.summary || !s.condition || selectedRegionCode !== s.code)
+      return {state:"unavailable"};
+    const record=s.condition.records[0];
+    // Actual selected D-record coordinates only; not a recommended destination.
+    if (typeof map.flyTo==="function")
+      map.flyTo([record.latitude,record.longitude],14,{duration:1.1});
+    else map.setView([record.latitude,record.longitude],14,{animate:false});
+    const fact=s.summary.floodScenario?.byId.get(record.id) || null;
+    const criterionValue=s.condition.kind==="classification" ?
+      dFloodDecision(s.summary,record) :
+      s.condition.kind==="name" ? record.name :
+      record[s.condition.kind];
+    return {
+      state:"inspected",name:record.name,
+      criterion:s.condition.label,kind:s.condition.kind,criterionValue,
+      decision:dFloodDecision(s.summary,record),
+      facilityType:record.facility_type,administrativeArea:record.administrative_area,
+      rawSymbol:fact?.officialStatusRaw ?? null,
+      rawFloor:fact?.usableFloorRaw ?? null,
+      sourceTrace:fact?.sourceRecordTrace ?? null,
+      reason:fact?.reason ?? null,
+      sourceUrl:safeExternalUrl(fact?.sourceUrl || record.detail_url) || null
+    };
+  },
+  halt(){ if(typeof map.stop==="function")map.stop(); },
+  end(restore=true) {
+    const s=presenterFilterSession;
+    presenterFilterEpoch++;
+    if(typeof map.stop==="function")map.stop();
+    presenterFilterSession=null;
+    presenterFilterIds=null;
+    if(!s)return;
+    document.getElementById("mapDDecisionFilter").value=s.filter;
+    document.getElementById("shelter").checked=s.shelter;
+    setDisplayMode(s.mode);
+    lastDMarkerZoomBucket=null;
+    renderDMarkers();
+    if(restore)map.setView(s.center,s.zoom,{animate:false});
+  }
+});
 
 // Presentation-only map tour API. This does not select another municipality,
 // alter Scenario contracts, imply data coverage, or infer unlocated facilities.
