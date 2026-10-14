@@ -124,3 +124,77 @@
     max-height:min(40%,calc(100% - 145px - min(22%,160px)));
   }
 }
+
+/* Selected places are Leaflet point-anchored speech bubbles. The old right
+   shell is now a DOM-only compatibility template and must never float. */
+.layout>.gis-side-shell--right,
+.layout[data-right-panel="open"]>.gis-side-shell--right {
+  display:none !important;
+}
+.hinanex-place-popup .leaflet-popup-content-wrapper {
+  background:#fff;color:#243b4a;border:1px solid #dce8ed;
+  border-radius:13px;box-shadow:0 12px 32px rgba(8,32,53,.24);
+}
+.hinanex-place-popup .leaflet-popup-content {
+  box-sizing:border-box;margin:0;padding:16px 18px;
+  width:min(324px,calc(100vw - 52px)) !important;
+  max-height:min(56dvh,440px);overflow-y:auto;
+  color:#243b4a;font-size:12px;line-height:1.55;
+  overscroll-behavior:contain;
+}
+.hinanex-place-popup .leaflet-popup-tip {background:#fff}
+.hinanex-place-popup .leaflet-popup-close-button {
+  top:7px !important;right:7px !important;
+  width:34px !important;height:34px !important;
+  display:grid;place-items:center;border-radius:50%;
+  background:#f3f8fa;color:#31546b !important;
+  font-size:22px !important;line-height:1 !important;
+}
+.hinanex-place-popup .detail-title {
+  color:#18354b;font-size:17px;line-height:1.45;
+  margin:6px 26px 12px 0;
+  overflow-wrap:anywhere;
+}
+.hinanex-place-popup .badge {
+  display:inline-block;background:#e9f6f7;color:#155b6f;
+  font-size:10px;padding:4px 8px;border-radius:7px;
+}
+.hinanex-place-popup .badge.reference {background:#eff2fc;color:#435e9e}
+.hinanex-place-popup .row {
+  display:grid;grid-template-columns:minmax(80px,36%) minmax(0,1fr);
+  gap:8px;padding:9px 0;align-items:start;
+  border-bottom:1px solid #e7eff3;
+}
+.hinanex-place-popup .label {color:#6b808d}
+.hinanex-place-popup .value {color:#203d52;overflow-wrap:anywhere}
+.hinanex-place-popup .place-card-caution {
+  margin:11px 0 0;padding:9px 10px;background:#f3f7f9;
+  color:#495d6a;border-left:3px solid #83a7b8;
+  font-size:11px;line-height:1.6;
+}
+.hinanex-place-popup .detail-link {
+  display:inline-block;margin:12px 0 4px;color:#106a8b;
+  font-size:12px;text-decoration:underline;text-underline-offset:3px;
+  overflow-wrap:anywhere;
+}
+.hinanex-place-popup .place-card-disclosure {
+  margin:9px 0 0;border:1px solid #dae7ee;border-radius:8px;
+}
+.hinanex-place-popup .place-card-disclosure>summary {
+  cursor:pointer;padding:12px;background:#f4f9fb;
+  color:#185572;font-weight:750;font-size:12px;
+}
+.hinanex-place-popup .place-card-extra {padding:3px 11px 10px}
+.hinanex-place-popup .place-card-disclosure .note {
+  background:#f7fafb;color:#465f6d;font-size:11px;
+  line-height:1.65;margin:0;padding:12px;
+}
+.hinanex-place-popup :is(a,summary):focus-visible {
+  outline:3px solid #1789b6;outline-offset:2px;
+}
+@media(max-width:680px) {
+  .hinanex-place-popup .leaflet-popup-content {
+    width:min(300px,calc(100vw - 60px)) !important;
+    max-height:min(43dvh,330px);padding:13px 14px;
+  }
+}
