@@ -2116,6 +2116,74 @@ nagoya.scenarios = [{
    assert.equal(vm.runInContext("predictedTileImages.size",context),0);
  }
 
+// Full target-zoom geographic coverage: verify layout in viewport pixels,
+// no interpolated hazard/source features and a strict fallback for missing grid.
+{
+  const {context,L}=makeContext({
+    protocol:"http:",
+    fetchImpl:async()=>({ok:false,status:404,json:async()=>({})})
+  });
+  assert.equal(vm.runInContext("TARGET_COVER_MAX_TILES",context),48);
+  assert.equal(vm.runInContext("TARGET_COVER_WAIT_MS",context),650);
+  const points = [{x:16,y:18},{x:512,y:384},{x:1000,y:744}];
+  for (const point of points) for (const zoom of [3,5,8,10,12]) {
+    context.window.__targetPoint=point;
+    context.window.__targetZoom=zoom;
+    const grid=vm.runInContext(
+      "destinationTileGrid(window.__targetPoint,window.__targetZoom)",context);
+    assert.ok(grid,"target tile coverage should be computable for normal view");
+    assert.ok(grid.tiles.length>0 && grid.tiles.length<=48);
+    assert.equal(grid.width,1024);
+    assert.equal(grid.height,768);
+    assert.ok(Math.min(...grid.tiles.map(t=>t.left))<=0.01,
+      "tile grid covers the left viewport edge");
+    assert.ok(Math.max(...grid.tiles.map(t=>t.left+t.size))>=1023.99,
+      "tile grid covers the right viewport edge");
+    assert.ok(Math.min(...grid.tiles.map(t=>t.top))<=0.01);
+    assert.ok(Math.max(...grid.tiles.map(t=>t.top+t.size))>=767.99);
+    const zSet=new Set(grid.tiles.map(t=>Number(t.url.match(/std\\/(\\d+)\\//)[1])));
+    assert.equal(zSet.size,1,"only destination zoom tiles, never intermediates");
+    assert.equal([...zSet][0],zoom);
+    assert.ok(grid.tiles.every(t=>/^https:\/\/cyberjapandata[.]gsi[.]go[.]jp\/xyz\/std\/\d+\/\d+\/\d+[.]png$/.test(t.url)));
+  }
+  const originalSize=L.__map.getSize;
+  L.__map.getSize=()=>({x:20000,y:12000});
+  assert.equal(vm.runInContext("destinationTileGrid({x:5,y:5},10)",context),null,
+    "over-budget display must fall back rather than synthesize coverage");
+  L.__map.getSize=originalSize;
+  // Test the DOM-only layer handoff without a map, raster or network provider.
+  const elems=[];
+  const createElement=tag=>{
+    const obj={tag,style:{},children:[],className:"",removed:false,
+      setAttribute(){},remove(){this.removed=true;},
+      appendChild(child){this.children.push(child);}};
+    elems.push(obj);
+    return obj;
+  };
+  context.document.createElement=createElement;
+  const pane={style:{},children:[],appendChild(child){this.children.push(child);},
+    getBoundingClientRect(){return {left:0,top:0};}};
+  L.__map.createPane=name=>{L.__map.coverPane=pane;};
+  const existingPane=L.__map.getPane.bind(L.__map);
+  L.__map.getPane=name=>name==="wheelCoverPane"?
+    L.__map.coverPane:existingPane(name);
+  const grid=vm.runInContext("destinationTileGrid({x:512,y:384},10)",context);
+  context.window.__coverageGrid=grid;
+  const presented=vm.runInContext(
+    "presentTargetCover(window.__coverageGrid,[])",context);
+  assert.equal(presented,true);
+  assert.equal(pane.style.zIndex,"205",
+    "complete backdrop must sit UNDER official flood and marker panes");
+  assert.equal(pane.children.length,1);
+  assert.equal(pane.children[0].children.length,grid.tiles.length,
+    "use all exact official destination image URLs, not just 8 nearest");
+  assert.ok(pane.children[0].children.every((img,i)=>
+    img.src===grid.tiles[i].url && img.style.width.endsWith("px")));
+  vm.runInContext("removeTargetCover()",context);
+  assert.equal(pane.children[0].removed,true);
+  assert.equal(vm.runInContext("targetCover",context),null);
+}
+
 // Gesture settings are opt-in, persistent only in this browser, and never
 // modify location/region/official data. Storage errors degrade gracefully.
 {
