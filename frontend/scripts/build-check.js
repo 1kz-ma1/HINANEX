@@ -2,6 +2,10 @@ import { access, readFile } from "node:fs/promises";
 
 const requiredFiles = [
   "index.html",
+  "historical-evidence-demo.html",
+  "historical-evidence-demo.css",
+  "src/historical-evidence-demo.js",
+  "src/historical-evidence-model.js",
   "styles.css",
   "src/app.js",
   "src/region-export-view-model.js",
@@ -18,6 +22,7 @@ await Promise.all(requiredFiles.map((path) => access(new URL(`../${path}`, impor
 const index = await readFile(new URL("../index.html", import.meta.url), "utf8");
 const requiredMarkers = [
   'id="overviewRoot"',
+  'href="./historical-evidence-demo.html"',
   'id="summaryRoot"',
   'id="capabilityRoot"',
   'id="floodScenarioRoot"',
