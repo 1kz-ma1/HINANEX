@@ -33,6 +33,7 @@ const slowZoomFeel = zoomFeelMode === "slow";
 const progressiveZoomFeel = zoomFeelMode === "progressive";
 const singleTargetWheel = !["native", "previous", "slow", "progressive"].includes(zoomFeelMode);
 const legacyWheelPreview = zoomFeelMode === "preview135";
+const legacyWholePanePreview = zoomFeelMode === "preview135" || zoomFeelMode === "wholePane";
 // Persist only gesture preferences in this browser. Never persist map/GPS
 // coordinates, source data, or disaster/safety assessments.
 const GESTURE_PREF_KEY = "hinanex.gis.gesture.v2";
@@ -123,49 +124,142 @@ function wheelDestinationZoom() {
   return Math.max(map.getMinZoom(),
     Math.min(map.getMaxZoom(), base + singleTargetZoomChange(pendingWheelPixels)));
 }
+// Scale geographic raster panes only; NEVER scale Leaflet marker, popup,
+// boundary, control, tooltip or cluster panes with the image.
+const RASTER_HOLD_MAX_MS = 1100;
+const FLOOD_RASTER_HOLD_MAX_MS = 650;
+const RASTER_FADE_MS = 120;
+let retainedRaster = [];
+function discardRetainedRaster() {
+  for (const entry of retainedRaster.splice(0)) {
+    clearTimeout(entry.maxTimer);
+    clearTimeout(entry.fadeTimer);
+    entry.layer?.off?.("load", entry.release);
+    entry.ghost?.remove?.();
+  }
+}
+function rasterTargets() {
+  if (legacyWholePanePreview) {
+    const pane = map.getPanes?.().mapPane;
+    return pane ? [{pane, layer:null, legacy:true}] : [];
+  }
+  return [
+    {pane:map.getPane?.("tilePane") || map.getPanes?.().tilePane,layer:baseMap},
+    {pane:map.getPane?.("officialFloodPane"),layer:officialFloodLayer,flood:true}
+  ].filter(item => item.pane?.style);
+}
+function copyRenderedRaster(layer) {
+  const source = layer?.getContainer?.();
+  if (!source?.cloneNode || !source.parentElement) return null;
+  // Clones only already displayed, verified raster layers. No marker clones,
+  // simulated risk colors, CSS text, or new tile URL construction.
+  const ghost = source.cloneNode(true);
+  ghost.removeAttribute?.("id");
+  ghost.querySelectorAll?.("[id]").forEach(el => el.removeAttribute("id"));
+  ghost.setAttribute?.("aria-hidden","true");
+  ghost.classList?.add("hinanex-raster-retained");
+  ghost.style.pointerEvents = "none";
+  ghost.style.userSelect = "none";
+  ghost.style.zIndex = "999";
+  source.parentElement.appendChild(ghost);
+  return ghost;
+}
 function restoreWheelPreview() {
-  if (!wheelPreview) return;
-  const { pane, original } = wheelPreview;
-  pane.style.scale = original.scale;
-  pane.style.transformOrigin = original.transformOrigin;
-  pane.style.transition = original.transition;
-  pane.style.willChange = original.willChange;
+  if (!wheelPreview) return [];
+  const previews = wheelPreview.targets;
+  for (const {pane,original} of previews) {
+    pane.style.scale = original.scale;
+    pane.style.transformOrigin = original.transformOrigin;
+    pane.style.transition = original.transition;
+    pane.style.willChange = original.willChange;
+  }
   wheelPreview = null;
+  return previews;
 }
 function clearPendingWheel() {
   if (wheelGestureTimer !== null) clearTimeout(wheelGestureTimer);
   wheelGestureTimer = null;
-  restoreWheelPreview();
+  restoreWheelPreview().forEach(({ghost}) => ghost?.remove?.());
   pendingWheelPixels = 0;
   pendingWheelPoint = null;
   wheelIntentStartedAt = null;
+  discardRetainedRaster();
 }
 function updateWheelPreview(event) {
   if (!wheelPreview) {
-    const pane = map.getPanes()?.mapPane;
-    // Browser CSS individual 'scale' avoids overwriting Leaflet's translation.
-    // If unsupported, keep the working one-shot fallback with delayed commit.
-    if (!pane?.style || !("scale" in pane.style) ||
-        !pane.getBoundingClientRect) return;
-    const rect = pane.getBoundingClientRect();
-    const originX = Number(event.clientX) - rect.left;
-    const originY = Number(event.clientY) - rect.top;
-    if (!Number.isFinite(originX) || !Number.isFinite(originY)) return;
-    const original = {
-      scale: pane.style.scale,
-      transformOrigin: pane.style.transformOrigin,
-      transition: pane.style.transition,
-      willChange: pane.style.willChange
-    };
-    wheelPreview = {pane, original};
-    pane.style.transformOrigin = `${originX}px ${originY}px`;
-    pane.style.transition = `scale ${WHEEL_PREVIEW_TRANSITION_MS}ms ease-out`;
-    pane.style.willChange = "scale";
+    discardRetainedRaster();
+    const targets = [];
+    for (const item of rasterTargets()) {
+      const pane = item.pane;
+      if (!pane?.style || !("scale" in pane.style) ||
+          !pane.getBoundingClientRect) continue;
+      const rect = pane.getBoundingClientRect();
+      const x = Number(event.clientX) - rect.left;
+      const y = Number(event.clientY) - rect.top;
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+      const original = {
+        scale:pane.style.scale,transformOrigin:pane.style.transformOrigin,
+        transition:pane.style.transition,willChange:pane.style.willChange
+      };
+      const ghost = item.legacy ? null : copyRenderedRaster(item.layer);
+      targets.push({...item,ghost,original});
+      pane.style.transformOrigin = `${x}px ${y}px`;
+      pane.style.transition = `scale ${WHEEL_PREVIEW_TRANSITION_MS}ms ease-out`;
+      pane.style.willChange = "scale";
+    }
+    if (!targets.length) return; // Unsupported CSS scale: safe native commit.
+    wheelPreview = {targets};
   }
-  // Rescale the old map image and its existing markers in the compositor.
-  // Leaflet's actual view/zoom and all source tiles remain unchanged for now.
   const change = wheelDestinationZoom() - map.getZoom();
-  wheelPreview.pane.style.scale = String(Number(Math.pow(2, change).toFixed(5)));
+  const visualScale = String(Number(Math.pow(2,change).toFixed(5)));
+  for (const {pane} of wheelPreview.targets) pane.style.scale = visualScale;
+}
+function retainUntilRasterReady(previews) {
+  for (const item of previews) {
+    const {ghost,pane,layer,flood} = item;
+    if (!ghost || !layer) continue;
+    // Preserve the current raster frame while Leaflet commits geographic zoom.
+    // A ghost is scoped to its original *raster* pane, underneath real markers.
+    const before = ghost.getBoundingClientRect?.();
+    ghost.style.scale = pane.style.scale || "1";
+    ghost.style.transformOrigin = pane.style.transformOrigin;
+    // Do not leave stale official imagery over updated hazard tiles indefinitely.
+    const entry = {ghost,layer,release:null,maxTimer:null,fadeTimer:null};
+    let released = false;
+    entry.release = () => {
+      if (released) return;
+      released = true;
+      layer.off?.("load",entry.release);
+      clearTimeout(entry.maxTimer);
+      ghost.style.transition = `opacity ${RASTER_FADE_MS}ms ease-out`;
+      ghost.style.opacity = "0";
+      entry.fadeTimer = setTimeout(() => {
+        ghost.remove?.();
+        retainedRaster = retainedRaster.filter(value=>value!==entry);
+      },RASTER_FADE_MS+20);
+    };
+    entry.maxTimer = setTimeout(entry.release,
+      flood ? FLOOD_RASTER_HOLD_MAX_MS : RASTER_HOLD_MAX_MS);
+    layer.on?.("load",entry.release);
+    retainedRaster.push(entry);
+    // Reconcile the old pane's Leaflet translation after setZoomAround. An
+    // optional pre-commit bounding box is retained for the following tick.
+    entry.before = before;
+  }
+}
+function alignRetainedRaster() {
+  for (const entry of retainedRaster) {
+    const before=entry.before;
+    const after=entry.ghost?.getBoundingClientRect?.();
+    if (!before || !after) continue;
+    const dx=before.left-after.left,dy=before.top-after.top;
+    if (Number.isFinite(dx)&&Number.isFinite(dy))
+      entry.ghost.style.translate = `${dx}px ${dy}px`;
+    // Cached tiles may already have completed synchronously.
+    setTimeout(() => {
+      if (!entry.layer?.isLoading?.()) entry.release();
+    },90);
+  }
 }
 function flushSingleTargetWheel() {
   if (wheelGestureTimer !== null) clearTimeout(wheelGestureTimer);
@@ -174,15 +268,27 @@ function flushSingleTargetWheel() {
   const targetZoom = wheelDestinationZoom();
   const startedAt = wheelIntentStartedAt;
   wheelIntentStartedAt = null;
-  // Remove the cosmetic preview before the Leaflet view changes. Both edits
-  // happen synchronously, without an intermediate browser paint.
+  // Retain a read-only copy of the old raster below markers while the target
+  // tiles settle. Never keep the original CSS scale on Leaflet's live panes.
+  const previews = wheelPreview?.targets || [];
+  const scale = previews.map(({pane})=>pane.style.scale);
+  const origins = previews.map(({pane})=>pane.style.transformOrigin);
   restoreWheelPreview();
   pendingWheelPixels = 0;
   pendingWheelPoint = null;
-  if (!point || Math.abs(targetZoom - map.getZoom()) < 0.001) return;
-  // The preview already displayed the target scale; animate:false prevents
-  // a second camera animation. Only destination-level tiles are requested.
+  if (!point || Math.abs(targetZoom - map.getZoom()) < 0.001) {
+    previews.forEach(({ghost})=>ghost?.remove?.());
+    return;
+  }
+  previews.forEach((item,i)=>{
+    if (item.ghost) {
+      item.ghost.style.scale = scale[i];
+      item.ghost.style.transformOrigin = origins[i];
+    }
+  });
+  retainUntilRasterReady(previews);
   map.setZoomAround(point, targetZoom, {animate: false});
+  alignRetainedRaster();
   if (debugMapPerf && startedAt !== null) {
     console.info("[HINANEX map perf] wheel intent-to-commit", {
       delayMs: Math.round(perfTime() - startedAt),
