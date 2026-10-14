@@ -21,33 +21,48 @@ const REGION_CONFIGS = {
 
 const FLOOD_REFERENCE_URL = "https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png";
 
-// A/B investigation: the prior 240px wheel setting felt unresponsive, while
-// even 0.25 zoomSnap still rounded gestures into visible steps. Default to
-// continuous (unsnapped) wheel/pinch zoom at the formerly responsive speed.
-// ?zoomFeel=previous compares with 0.5-step/100px; ?zoomFeel=slow compares
-// with the rejected 0.25-step/240px tuning. Neither touches source data.
+// Faster pointer-wheel response and smoother raster continuity are separate.
+// The default is 2.5x the prior 1.5 baseline (3.75x); keep zoomSnap=0.
+// A short debounce coalesces wheel bursts so a fast scroll doesn't repeatedly
+// restart map animations. Source coordinates and disaster layers are unchanged.
+// ?zoomFeel=previous compares with 0.5-step/100px and ?zoomFeel=slow with
+// 0.25-step/240px. Both are retained for manual before/after assessment.
 const zoomFeelMode = new URL(window.location.href).searchParams.get("zoomFeel");
 const previousZoomFeel = zoomFeelMode === "previous";
 const slowZoomFeel = zoomFeelMode === "slow";
 // Persist only gesture preferences in this browser. Never persist map/GPS
 // coordinates, source data, or disaster/safety assessments.
-const GESTURE_PREF_KEY = "hinanex.gis.gesture.v1";
-const DEFAULT_WHEEL_SENSITIVITY = 1.5;
+const GESTURE_PREF_KEY = "hinanex.gis.gesture.v2";
+const LEGACY_GESTURE_PREF_KEY = "hinanex.gis.gesture.v1";
+const DEFAULT_WHEEL_SENSITIVITY = 3.75;
+const WHEEL_DEBOUNCE_MS = 80;
 function normalizeWheelSensitivity(value) {
   const number = Number(value);
   if (!Number.isFinite(number)) return DEFAULT_WHEEL_SENSITIVITY;
-  return Math.round(Math.max(0.5, Math.min(2.5, number)) * 4) / 4;
+  return Math.round(Math.max(0.5, Math.min(5, number)) * 4) / 4;
 }
 function normalizeZoomStyle(value) {
   return value === "steps" ? "steps" : "continuous";
 }
 function readGesturePrefs() {
   try {
-    const stored = JSON.parse(window.localStorage?.getItem(GESTURE_PREF_KEY) || "null");
-    if (stored && typeof stored === "object") return {
-      sensitivity: normalizeWheelSensitivity(stored.sensitivity),
-      style: normalizeZoomStyle(stored.style)
+    const current = JSON.parse(window.localStorage?.getItem(GESTURE_PREF_KEY) || "null");
+    if (current && typeof current === "object") return {
+      sensitivity: normalizeWheelSensitivity(current.sensitivity),
+      style: normalizeZoomStyle(current.style)
     };
+    const legacy = JSON.parse(window.localStorage?.getItem(LEGACY_GESTURE_PREF_KEY) || "null");
+    if (legacy && typeof legacy === "object") {
+      // The former default was 1.5. Users who never changed that baseline
+      // should experience the newly requested 3.75 default after upgrading.
+      // Deliberately customized wheel speeds/step style remain opt-in.
+      const oldSensitivity = Number(legacy.sensitivity);
+      return {
+        sensitivity: oldSensitivity === 1.5
+          ? DEFAULT_WHEEL_SENSITIVITY : normalizeWheelSensitivity(oldSensitivity),
+        style: normalizeZoomStyle(legacy.style)
+      };
+    }
   } catch (_) {
     // Private browsing/storage blocking must not disable map interaction.
   }
@@ -66,7 +81,11 @@ const map = L.map("map", {
   zoomDelta: 0.5,
   wheelPxPerZoomLevel: slowZoomFeel ? 240 : previousZoomFeel ? 100
     : Math.round(100 / gesturePrefs.sensitivity),
-  wheelDebounceTime: slowZoomFeel ? 55 : 40
+  wheelDebounceTime: slowZoomFeel ? 55 : previousZoomFeel ? 40 : WHEEL_DEBOUNCE_MS,
+  zoomAnimation: true,
+  // A fast wheel burst may cover more than Leaflet's default 4 zoom levels;
+  // allow a slightly larger transition before falling back to an instant jump.
+  zoomAnimationThreshold: 5
 }).setView([35.704, 139.882], 13);
 function getGesturePrefs() {
   return { ...gesturePrefs };
@@ -84,7 +103,7 @@ function setGesturePrefs(changes) {
   // each gesture; live changes don't need a map reload or a setView() call.
   map.options.wheelPxPerZoomLevel = Math.round(100 / gesturePrefs.sensitivity);
   map.options.zoomSnap = gesturePrefs.style === "steps" ? 0.5 : 0;
-  map.options.wheelDebounceTime = 40;
+  map.options.wheelDebounceTime = WHEEL_DEBOUNCE_MS;
   try { window.localStorage?.setItem(GESTURE_PREF_KEY, JSON.stringify(gesturePrefs)); }
   catch (_) { /* session-only fallback */ }
   return getGesturePrefs();
@@ -117,11 +136,13 @@ const baseMap = L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y
   minZoom: 2,
   maxZoom: 18,
   maxNativeZoom: 18,
-  // Avoid additional bitmap swaps while the wheel gesture is still moving.
-  // Only the rejected slow mode re-enables mid-animation basemap requests.
-  // Official flood data is never hidden/changed to simulate smoothness.
-  keepBuffer: 3,
-  updateWhenZooming: slowZoomFeel,
+  // Maintain raster tile detail during fractional zoom, while throttling
+  // intermediate requests. This avoids one large blurry-to-crisp swap at the
+  // end of every fast wheel gesture. Legacy comparison remains unchanged.
+  // Official flood data remains an independent visible source layer.
+  keepBuffer: previousZoomFeel ? 3 : 4,
+  updateWhenZooming: !previousZoomFeel,
+  updateInterval: 220,
   attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>'
 }).addTo(map);
 
@@ -132,6 +153,8 @@ const officialFloodLayer = L.tileLayer(FLOOD_REFERENCE_URL, {
   maxNativeZoom: 17,
   opacity: 0.58,
   keepBuffer: 3,
+  // Larger verified hazard-raster requests are delayed until zoom end so
+  // the faster base map never triggers a flood-tile network storm.
   updateWhenZooming: false,
   attribution: '出典：<a href="https://disaportal.gsi.go.jp/" target="_blank" rel="noopener">ハザードマップポータルサイト</a>'
 }).addTo(map);

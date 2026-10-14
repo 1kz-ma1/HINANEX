@@ -123,6 +123,31 @@ async function screenshot(page, name) {
     await waitUntilLoaded(page, "13123");
     assert.equal(new URL(page.url()).searchParams.get("region"), "13123");
 
+    // Real-browser gesture smoke, distinct from Node's option-level unit test:
+    // verify that the new default produces a zoom change without hiding data.
+    const gestureConfig = await page.evaluate(() => ({
+      settings: window.HINANEX_MAP_GESTURES.getSettings(),
+      perLevel: map.options.wheelPxPerZoomLevel,
+      debounce: map.options.wheelDebounceTime,
+      basemapDuringZoom: baseMap.options.updateWhenZooming,
+      floodDuringZoom: officialFloodLayer.options.updateWhenZooming
+    }));
+    assert.equal(gestureConfig.settings.sensitivity, 3.75);
+    assert.equal(gestureConfig.settings.style, "continuous");
+    assert.equal(gestureConfig.perLevel, 27);
+    assert.equal(gestureConfig.debounce, 80);
+    assert.equal(gestureConfig.basemapDuringZoom, true);
+    assert.equal(gestureConfig.floodDuringZoom, false);
+    const beforeWheel = await page.evaluate(() => map.getZoom());
+    await page.locator("#map").hover();
+    await page.mouse.wheel(0, -48);
+    await page.waitForTimeout(400);
+    const afterWheel = await page.evaluate(() => map.getZoom());
+    assert.ok(afterWheel > beforeWheel,
+      "wheel input must visibly zoom into the map with new default settings");
+    await page.evaluate(z => map.setZoom(z, {animate:false}), beforeWheel);
+    await page.waitForTimeout(160);
+
     // Exercise the assembled Leaflet popup with UI-only synthetic content.
     await page.evaluate(() => window.detail("カードUI表示テスト", [
       ["種別", "表示テスト"], ["住所", "住所の推定ではありません"],

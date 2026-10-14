@@ -652,7 +652,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "zoom-compact-popup-20261014-v1");
+  assert.equal(mapAsset[1], "smooth-fast-wheel-20261014-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -1494,7 +1494,7 @@ nagoya.scenarios = [{
   assert.match(html, /id="mapViewportDStatus"[^>]*role="status"/);
   assert.match(html, /id="mapSettingsPanel"[^>]*hidden/);
   assert.match(html, /id="mapSettingsToggle"[^>]*type="button"/);
-  assert.match(html, /id="mapWheelSensitivity"[^>]*type="range"[^>]*min="0.5"[^>]*max="2.5"/);
+  assert.match(html, /id="mapWheelSensitivity"[^>]*type="range"[^>]*min="0.5"[^>]*max="5"/);
   assert.match(html, /id="mapZoomStyle"/);
   assert.match(css, /\.map-settings-sheet\[hidden\]\{display:none\}/);
   assert.match(css, /\.map-locate-button\{[\s\S]*?right:16px;bottom:18px/);
@@ -1574,14 +1574,14 @@ nagoya.scenarios = [{
     },
     window: {
       HINANEX_MAP_GESTURES: {
-        settings: { sensitivity: 1.5, style: "continuous" },
+        settings: { sensitivity: 3.75, style: "continuous" },
         getSettings() { return { ...this.settings }; },
         setSettings(changes) {
           this.settings = { ...this.settings, ...changes };
           return this.getSettings();
         },
         resetSettings() {
-          this.settings = { sensitivity: 1.5, style: "continuous" };
+          this.settings = { sensitivity: 3.75, style: "continuous" };
           return this.getSettings();
         }
       }
@@ -1591,7 +1591,7 @@ nagoya.scenarios = [{
   vm.createContext(facade);
   vm.runInContext(uiCode, facade, { filename: "map_first_ui.js" });
   assert.equal(gpsRequests, 0);
-  assert.equal(nodes.mapWheelSensitivity.value, "1.5");
+  assert.equal(nodes.mapWheelSensitivity.value, "3.75");
   assert.equal(nodes.mapZoomStyle.value, "continuous");
   nodes.mapRegionQuickSelect.value = "15100";
   nodes.mapRegionQuickSelect.listeners.change();
@@ -1703,7 +1703,7 @@ nagoya.scenarios = [{
   assert.equal(nodes.mapSettingsPanel.hidden, false,
     "tapping within settings should not dismiss or change the map");
   nodes.mapGestureReset.click();
-  assert.equal(nodes.mapWheelSensitivity.value, "1.5");
+  assert.equal(nodes.mapWheelSensitivity.value, "3.75");
   assert.equal(nodes.mapZoomStyle.value, "continuous");
   nodes.mapToolMarks.open = true;
   nodes.mapToolMarks.listeners.toggle();
@@ -1821,11 +1821,12 @@ nagoya.scenarios = [{
     protocol: "http:",
     fetchImpl: async () => ({ ok: false, status: 404, json: async () => ({}) })
   });
-  for (const tile of L.__tiles.slice(0, 2)) {
-    assert.equal(tile.options.keepBuffer, 3);
-  }
-  assert.equal(L.__tiles[0].options.updateWhenZooming, false,
-    "avoid mid-gesture bitmap swaps in the responsive mode");
+  assert.equal(L.__tiles[0].options.keepBuffer, 4);
+  assert.equal(L.__tiles[1].options.keepBuffer, 3);
+  assert.equal(L.__tiles[0].options.updateInterval, 220,
+    "throttle mid-animation base-tile requests");
+  assert.equal(L.__tiles[0].options.updateWhenZooming, true,
+    "load intermediate base-map tiles to reduce abrupt raster swaps");
   assert.equal(L.__tiles[1].options.updateWhenZooming, false,
     "official flood raster retains lighter end-of-zoom tile loading");
   assert.equal(L.__tiles[0].options.minZoom, 2);
@@ -1839,10 +1840,13 @@ nagoya.scenarios = [{
   assert.equal(L.__map.options.zoomSnap, 0,
     "continuous mode must not snap wheel and pinch gestures to discrete levels");
   assert.equal(L.__map.options.zoomDelta, 0.5, "+/- and keyboard remain half steps");
-  assert.equal(L.__map.options.wheelPxPerZoomLevel, 67,
-    "new default is 1.5x, but map remains unsnapped");
+  assert.equal(L.__map.options.wheelPxPerZoomLevel, 27,
+    "new baseline is 3.75x (2.5 times 1.5), unsnapped");
   assert.equal(L.__map.options.zoomSnap, 0);
-  assert.equal(L.__map.options.wheelDebounceTime, 40, "restore default debounce");
+  assert.equal(L.__map.options.wheelDebounceTime, 80,
+    "coalesce wheel bursts rather than restarting zoom animation at 40ms");
+  assert.equal(L.__map.options.zoomAnimation, true);
+  assert.equal(L.__map.options.zoomAnimationThreshold, 5);
   assert.equal(L.__map.options.preferCanvas, true, "renderer is unchanged");
   assert.match(mapCode, /\[HINANEX map perf\] zoom gesture/);
   assert.match(mapCode, /HINANEX_MAP_GESTURES/);
@@ -1894,8 +1898,8 @@ nagoya.scenarios = [{
   });
   const first = makeGestureCase();
   const api = first.context.window.HINANEX_MAP_GESTURES;
-  assert.deepEqual({ ...api.getSettings() }, { sensitivity: 1.5, style: "continuous" });
-  assert.equal(first.L.__map.options.wheelPxPerZoomLevel, 67);
+  assert.deepEqual({ ...api.getSettings() }, { sensitivity: 3.75, style: "continuous" });
+  assert.equal(first.L.__map.options.wheelPxPerZoomLevel, 27);
   const startView = first.L.__map.lastView;
   const minZoom = first.L.__map.minZoom;
   api.setSettings({ sensitivity: 2, style: "steps" });
@@ -1903,17 +1907,41 @@ nagoya.scenarios = [{
   assert.equal(first.L.__map.options.zoomSnap, 0.5);
   assert.strictEqual(first.L.__map.lastView, startView);
   assert.equal(first.L.__map.minZoom, minZoom);
-  assert.match(memory["hinanex.gis.gesture.v1"], /"sensitivity":2/);
+  assert.match(memory["hinanex.gis.gesture.v2"], /"sensitivity":2/);
   const reopened = makeGestureCase();
   assert.equal(reopened.L.__map.options.zoomSnap, 0.5);
   assert.equal(reopened.L.__map.options.wheelPxPerZoomLevel, 50);
   reopened.context.window.HINANEX_MAP_GESTURES.setSettings({ sensitivity: 99, style: "invalid" });
-  assert.equal(reopened.L.__map.options.wheelPxPerZoomLevel, 40,
-    "clamp unsafe extreme inputs to 2.5x");
+  assert.equal(reopened.L.__map.options.wheelPxPerZoomLevel, 20,
+    "clamp unsafe extreme inputs to 5x");
   assert.equal(reopened.L.__map.options.zoomSnap, 0);
   reopened.context.window.HINANEX_MAP_GESTURES.resetSettings();
-  assert.equal(reopened.L.__map.options.wheelPxPerZoomLevel, 67);
+  assert.equal(reopened.L.__map.options.wheelPxPerZoomLevel, 27);
   assert.equal(reopened.L.__map.options.zoomSnap, 0);
+
+  // Existing visitors with the previous *default* inherit the new
+  // baseline; intentional earlier speed/step changes remain preserved.
+  const legacyDefault = makeContext({
+    protocol: "http:",
+    localStorage: { getItem(k) {
+      return k === "hinanex.gis.gesture.v1"
+        ? '{"sensitivity":1.5,"style":"continuous"}' : null;
+    }},
+    fetchImpl: async () => ({ ok: false, status: 404, json: async () => ({}) })
+  });
+  assert.equal(legacyDefault.L.__map.options.wheelPxPerZoomLevel, 27);
+  const legacyCustom = makeContext({
+    protocol: "http:",
+    localStorage: { getItem(k) {
+      return k === "hinanex.gis.gesture.v1"
+        ? '{"sensitivity":2.25,"style":"steps"}' : null;
+    }},
+    fetchImpl: async () => ({ ok: false, status: 404, json: async () => ({}) })
+  });
+  assert.equal(legacyCustom.L.__map.options.wheelPxPerZoomLevel, 44);
+  assert.equal(legacyCustom.L.__map.options.zoomSnap, 0.5);
+  // v2 overrides v1 after an explicit change; values never modify map view.
+  assert.equal(reopened.L.__map.options.wheelDebounceTime, 80);
 
   const blocked = makeContext({
     protocol: "http:",
