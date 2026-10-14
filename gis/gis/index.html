@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/current_theme.css?v=gis-facility-drawer-20261009-v6">
   <link rel="stylesheet" href="css/map_first.css?v=guided-tour-three-region-comparison-20261013-v1">
-  <link rel="stylesheet" href="css/evidence_replay.css?v=inline-evidence-20261014-v1">
+  <link rel="stylesheet" href="css/evidence_replay.css?v=spatial-evidence-20261014-v2">
 </head>
 <body>
 <header class="header">
@@ -261,11 +261,16 @@
       </div>
       <p class="map-tour-caution">発表用の閲覧演出です。安全な避難先・現在の開設状況・災害進行を示すものではありません。手動で地図を動かすと停止できます。</p>
     </section>
-    <section id="mapEvidenceReplayPanel" class="evidence-replay" role="dialog" aria-modal="true" aria-labelledby="replayHeading" aria-describedby="replaySafety" hidden>
+    <div id="mapEvidenceReplayMapLabel" class="replay-map-label" role="note" hidden>
+      <strong>現行D施設の位置（参考表示）</strong>
+      <span id="mapEvidenceReplayMapLabelText">位置情報を取得していません。</span>
+      <small>2019年に利用された避難先の位置ではありません。</small>
+    </div>
+    <section id="mapEvidenceReplayPanel" class="evidence-replay" role="region" aria-labelledby="replayHeading" aria-describedby="replaySafety" hidden>
       <div class="evidence-replay__head">
         <div><p class="replay-kicker">2019 TYPHOON 19 / EDOGAWA / EVIDENCE WALKTHROUGH</p>
           <h2 id="replayHeading">検証の過程を、地図上で見る。</h2>
-          <p id="replaySafety">公式資料を使った<strong>説明用の再生演出</strong>です。災害の時間経過・避難先・予測のMATCH/MISMATCHを再現しません。</p>
+          <p id="replaySafety">江戸川区の現行D施設へ地図を移動し、2019年の公式資料と独立監査を段階的に説明します。<strong>現行施設の場所は当日の避難先とは限りません。</strong>災害進行や予測精度の再現ではありません。</p>
         </div>
         <button id="mapEvidenceReplayClose" type="button" aria-label="検証デモを閉じる">×</button>
       </div>
@@ -290,6 +295,11 @@
           <div class="replay-progress" aria-hidden="true"><span id="mapEvidenceReplayProgress"></span></div>
         </section>
         <div class="replay-finding"><strong id="mapEvidenceReplayFinding"></strong><p id="mapEvidenceReplayTakeaway"></p></div>
+        <div class="replay-spatial-info" role="note">
+          <strong>地図で実際に表示しているデータ</strong>
+          <p id="mapEvidenceReplayMapStatus" role="status" aria-live="polite">現行D施設の確認状況を取得中。</p>
+          <small>現行Dの位置だけを参考表示。2019年当日に使用した建物の確定数は0件。避難先・安全性・開設を保証しません。</small>
+        </div>
         <div class="replay-sources"><strong>原本・独立C監査の証拠</strong><div id="mapEvidenceReplaySources"></div>
           <p>資料の機械照合は2019年当時版の人手承認や予測精度の証明ではありません。</p>
           <a href="../../frontend/historical-evidence-demo.html" target="_blank" rel="noopener noreferrer">詳しい検証資料を見る ↗</a>
@@ -425,7 +435,7 @@
 <script src="js/map_first_ui.js?v=map-first-20261009-v3"></script>
 <script src="js/audience_share.js?v=audience-share-20261010-v1"></script>
 <script src="js/guided_tour.js?v=guided-tour-three-region-comparison-20261013-v1"></script>
-<script src="js/evidence_replay.js?v=inline-evidence-20261014-v1"></script>
+<script src="js/evidence_replay.js?v=spatial-evidence-20261014-v2"></script>
 <script src="js/evidence_sheet.js?v=evidence-sheet-20261010-v1"></script>
 </body>
 </html>

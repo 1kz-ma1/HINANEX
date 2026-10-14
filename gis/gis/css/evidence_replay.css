@@ -35,3 +35,58 @@
 .replay-flow{gap:3px}.replay-flow>div{min-height:62px}.replay-flow strong{font-size:10px}.replay-flow>div span{font-size:9px}
 .replay-focus{min-height:135px}.replay-actions button{flex:1 1 27%;padding:8px}}
 @media(prefers-reduced-motion:reduce){.replay-flow>div,.replay-progress span{transition:none;transform:none}}
+
+/* 2026-10-14: make the *actual Leaflet map* the presentation surface.
+   Left side remains interactive and shows only actual D source coordinates.
+   2019 operational groups NEVER become map pins. */
+.evidence-replay{
+  inset:12px 12px 12px auto;
+  width:min(425px,calc(100% - 24px));
+  max-height:calc(100% - 24px);
+  margin:0;
+  padding:15px;
+  border-radius:15px;
+  box-shadow:0 20px 50px #0009;
+}
+.evidence-replay__head h2{font-size:clamp(18px,1.8vw,23px)}
+.evidence-replay__head p{font-size:11px}
+.evidence-replay .replay-tabs{gap:5px;margin:12px 0 6px}
+.evidence-replay .replay-tabs button{padding:8px;min-height:57px}
+.evidence-replay .replay-tabs button strong{font-size:12px}
+.evidence-replay .replay-question h3{font-size:17px}
+.evidence-replay .replay-flow>div{min-height:63px}
+.evidence-replay .replay-flow strong{font-size:11px}
+.evidence-replay .replay-focus{min-height:130px;padding:15px}
+.evidence-replay #mapEvidenceReplayStageTitle{font-size:18px}
+.evidence-replay #mapEvidenceReplayStageText{font-size:13px;line-height:1.65}
+.evidence-replay .replay-finding{padding:8px 11px}
+.evidence-replay .replay-sources{padding:9px 12px}
+.replay-spatial-info{margin:10px 0;padding:9px 11px;border-left:3px solid #4ed7dc;background:#113743;color:#fff}
+.replay-spatial-info>strong{font-size:12px}
+.replay-spatial-info p{font-size:12px;line-height:1.6;margin:5px 0}
+.replay-spatial-info small{display:block;font-size:10px;color:#c4d4de;line-height:1.6}
+.replay-map-label{
+  position:absolute;left:12px;top:15px;z-index:1705;
+  width:min(340px,calc(100% - 475px));
+  padding:12px;border:1px solid #4ed7dc;border-radius:11px;
+  color:#f5fbfe;background:#102e3aeF;box-shadow:0 10px 30px #0008;
+  box-sizing:border-box;pointer-events:none
+}
+.replay-map-label[hidden]{display:none}
+.replay-map-label strong,.replay-map-label span,.replay-map-label small{display:block}
+.replay-map-label strong{font-size:13px;color:#7ceaf0}
+.replay-map-label span{font-size:12px;margin:4px 0;line-height:1.55}
+.replay-map-label small{font-size:10px;color:#cfdae2}
+@media (max-width:780px){
+  .evidence-replay{
+    inset:auto 6px 74px;
+    width:calc(100% - 12px);
+    max-height:min(55%,510px);
+    border-radius:14px 14px 8px 8px;
+    padding:11px
+  }
+  .replay-map-label{top:64px;left:8px;width:min(310px,calc(100% - 16px));padding:9px}
+  .replay-map-label strong{font-size:11px}
+  .replay-map-label span{font-size:11px}
+  .evidence-replay__head h2{font-size:18px}
+}
