@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="2019年台風19号の公式資料をもとにHINANEXの整合確認・判定保留・合成負系テストを理解する説明デモ">
+  <title>HINANEX | 過去災害の検証デモ</title>
+  <link rel="stylesheet" href="./historical-evidence-demo.css">
+</head>
+<body>
+<div class="page">
+  <header class="site-header">
+    <a class="brand" href="../">HINANEX <span class="brand-sub">EVIDENCE LAB</span></a>
+    <nav class="navigation" aria-label="他の画面"><a href="/gis/gis/">地図へ</a><a href="./">地域分析へ</a></nav>
+  </header>
+  <main>
+    <section class="hero" aria-labelledby="demoTitle">
+      <p class="eyebrow">2019 TYPHOON 19 / EDOGAWA / C SOURCE EVIDENCE</p>
+      <h1 id="demoTitle">その結論に、根拠はあるか。</h1>
+      <p class="lead">公式資料を読み取り、照合し、根拠が足りない判断は保留する。HINANEXの検証の仕組みを、3つの実例とテストで紹介します。</p>
+      <div class="boundary" role="note">
+        <strong>検証の説明デモ — 実災害の予測成績ではありません</strong>
+        <span>①はT0の機械的照合、②はT1の比較不可、③は合成負系テストです。予測のMATCH/MISMATCHは未検証。避難先や安全性は示しません。</span>
+      </div>
+    </section>
+    <section class="case-section" aria-labelledby="casesTitle">
+      <div class="section-label"><h2 id="casesTitle">3つの検証ケース</h2><span class="section-caption">選択すると、入力 → 出力 → C独立監査を同じ並びで表示</span></div>
+      <div class="case-grid" role="group" aria-label="検証するケースを選択">
+        <button class="case-button" type="button" data-case-id="trace" aria-pressed="false" disabled><span class="case-number">CASE 01 / T0</span><strong>整合を確認</strong><small>原本と抽出結果</small></button>
+        <button class="case-button" type="button" data-case-id="abstain" aria-pressed="false" disabled><span class="case-number">CASE 02 / T1</span><strong>判断を保留</strong><small>建物の特定は未承認</small></button>
+        <button class="case-button" type="button" data-case-id="negative" aria-pressed="false" disabled><span class="case-number">CASE 03 / TEST</span><strong>誤処理を検出</strong><small>合成回帰テスト</small></button>
+      </div>
+    </section>
+    <p id="loadStatus" class="load-status" role="status" aria-live="polite">Cの説明データを読み込んでいます…</p>
+    <section id="walkthrough" class="walkthrough" aria-labelledby="caseTitle" hidden>
+      <div class="stage-heading">
+        <div><span id="caseTrack" class="case-track"></span><h2 id="caseTitle"></h2><p id="caseQuestion" class="case-question"></p></div>
+        <div class="stage-progress"><span id="caseProgress"></span><span id="secondsRemaining"></span></div>
+      </div>
+      <div class="evidence-grid">
+        <article class="evidence-card"><span class="panel-number">01 / OFFICIAL</span><h3 id="inputTitle"></h3><p id="inputText"></p></article>
+        <article class="evidence-card"><span class="panel-number">02 / HINANEX</span><h3 id="outputTitle"></h3><p id="outputText"></p></article>
+        <article class="evidence-card"><span class="panel-number">03 / C CHECK</span><h3 id="auditTitle"></h3><p id="auditText"></p></article>
+      </div>
+      <div class="finding" role="group" aria-label="検証結果">
+        <div><span class="finding-eyebrow">VERIFICATION STATUS / 予測の正解・不正解とは別です</span><strong id="reviewLabel"></strong><p id="caseTakeaway"></p></div>
+        <span class="finding-label" id="caseKind"></span>
+      </div>
+      <section class="sources" aria-labelledby="sourcesTitle"><h3 id="sourcesTitle">根拠資料・C監査記録</h3><div id="sourceLinks" class="source-links"></div><p class="source-note">表示した資料はCの先行機械監査に基づく説明用参照です。2019年当時に同一バイトが公開されていたという人手承認ではありません。</p></section>
+      <div class="controls" role="group" aria-label="デモ再生操作">
+        <button id="playButton" type="button">▶ ガイドを再生</button>
+        <button id="pauseButton" type="button" disabled>一時停止</button>
+        <button id="nextButton" type="button">次のケースへ</button>
+        <button id="resetButton" type="button">最初から</button>
+        <span class="guide-hint">冒頭説明15秒＋各25秒＝約90秒。手動切替も可能。</span>
+      </div>
+    </section>
+    <section class="limits" aria-labelledby="limitsTitle"><h2 id="limitsTitle">このデモで証明していないこと</h2><p>実災害に対する予測精度、当日使用された避難先建物の確定、開設状況、浸水の予測、安全な避難先・経路の推奨は扱いません。資料が無いことは、施設が存在しないことを意味しません。</p><a href="https://github.com/1kz-ma1/HINANEX/issues/142" target="_blank" rel="noopener noreferrer">Historical Replayの実証計画を読む ↗</a></section>
+  </main>
+  <footer class="site-footer">HINANEX / 検証用プレゼンテーション。公式の最新防災情報を優先してください。</footer>
+</div>
+<noscript>デモ表示にはJavaScriptが必要です。</noscript>
+<script type="module" src="./src/historical-evidence-demo.js"></script>
+</body>
+</html>
