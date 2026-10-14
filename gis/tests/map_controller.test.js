@@ -922,11 +922,13 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
   assert.match(pageSource, /current_theme[.]css[?]v=gis-facility-drawer-20261009-v6/);
   assert.match(pageSource, /map_first[.]css[?]v=guided-tour-three-region-comparison-20261013-v1/);
-  assert.match(pageSource, /place_card[.]css[?]v=place-card-20261014-v1/);
+  assert.match(pageSource, /place_card[.]css[?]v=place-card-20261014-v2/);
   const cardCss = fs.readFileSync(path.resolve(__dirname, "../gis/css/place_card.css"), "utf8");
   assert.match(cardCss, /top:142px;right:18px/);
   assert.match(cardCss, /place-card-disclosure/);
-  assert.match(cardCss, /max-height:min\(22%,160px\)/, "mobile demo must keep a compact selected-place card accessible");
+  assert.match(cardCss, /height:min\(22%,160px\);max-height:none;overflow:hidden/, "mobile demo must cap the card and clip overflow");
+  assert.match(cardCss, /height:100%;max-height:none;overflow-y:auto/, "mobile card contents must scroll within the card");
+  assert.match(cardCss, /calc\(100% - 144px - min\(22%,160px\)\)/, "mobile presenter must leave room above for its place card");
   assert.match(cardCss, /data-right-panel="closed"/);
   assert.match(pageSource, /地域の避難施設データ/);
   assert.doesNotMatch(pageSource, /D施設|地域D|DのUNKNOWN|CURRENT D SOURCE|GIS \/ RegionExport|CANDIDATE・EXCLUDED|UNKNOWN・資料不足|洪水Scenario/);
