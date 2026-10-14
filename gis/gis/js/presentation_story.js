@@ -40,7 +40,7 @@
     const token=++mapRun;
     mapStarted=true;
     camera.begin();
-    setMapText("現行地域の避難施設の元座標を照合中（2019年の実際の避難先ではありません）。");
+    setMapText("現在の地域の避難施設について、元データの座標を照合中（2019年の実際の避難先ではありません）。");
     const reduced=!!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
     Promise.resolve().then(()=>camera.focus("13123",!reduced,false)).then(result=>{
       if(token!==mapRun||panel.hidden||!mapStarted)return;
@@ -50,10 +50,10 @@
         setMapText("現在の施設情報：取得 "+result.total+"件 ／ 元座標あり "+result.mapped+
           "件 ／ 位置未確認 "+(result.total-result.mapped)+"件。2019年の使用建物ではありません。");
       }else{
-        setMapText("現在の施設情報の位置未取得・未確認。地図のピンなし＝避難施設なし、ではありません。");
+        setMapText("現在の施設の位置情報は未取得または未確認です。地図のピンがないことは、避難施設がないことを意味しません。");
       }
     }).catch(()=>{
-      if(token===mapRun&&!panel.hidden)setMapText("現在の施設情報位置の取得に失敗。場所は推測しません。");
+      if(token===mapRun&&!panel.hidden)setMapText("現在の施設の位置情報を取得できませんでした。場所は推測しません。");
     });
   }
   function render(){
@@ -149,7 +149,7 @@
     el("storyClose").focus();
     stopClock();state="loading"; deck=null; restoreMap=true; current=0;elapsed=0;
     remaining=timings[0];
-    status("検証資料を検証中。読み込めない場合は再生しません。");
+    status("検証資料の整合性を確認中です。読み込めない場合は再生しません。");
     el("storyContent").hidden=true;
     el("storyLoadStatus").hidden=false;
     el("storyLoadStatus").textContent="正本データを確認しています。";
