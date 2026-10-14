@@ -135,8 +135,8 @@ async function screenshot(page, name) {
     assert.equal(gestureConfig.settings.sensitivity, 3.75);
     assert.equal(gestureConfig.settings.style, "continuous");
     assert.equal(gestureConfig.perLevel, 27);
-    assert.equal(gestureConfig.debounce, 80);
-    assert.equal(gestureConfig.basemapDuringZoom, true);
+    assert.equal(gestureConfig.debounce, 135);
+    assert.equal(gestureConfig.basemapDuringZoom, false);
     assert.equal(gestureConfig.floodDuringZoom, false);
     const beforeWheel = await page.evaluate(() => map.getZoom());
     await page.locator("#map").hover();

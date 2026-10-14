@@ -15,3 +15,19 @@ The current mouse wheel/touchpad zoom felt under-responsive even with the 1.5× 
 - Required GitHub CI: deterministic E controller tests for default settings, slider, backward compatibility/migration, unchanged flood overlay, throttled base tiles, opt-in diagnostics and no source data changes.
 - Existing independent Chromium smoke adds a real wheel zoom on the assembled GIS to catch missing wheel handlers and checks the tile policy. Required CI statically validates its syntax but does **not** execute Chromium or measure FPS.
 - Before claiming **visually smooth**, perform interactive staging smoke on desktop mouse/touchpad and mobile Safari, ideally comparing the two query-mode URLs with browser performance tools. Measure frame timing, terrain tile network load and source layer latency; a passing CI or Render Live status alone does not prove perceptual smoothness.
+
+## Follow-up: destination-first zoom (2026-10-14)
+
+Visual feedback identified a flaw in the preceding progressive-refresh strategy: repeatedly rendering **transient zoom levels** can make a fast mouse-wheel gesture feel like a stack of steps even with fractional `zoomSnap:0`.
+
+The updated default is **target-first** without replacing Leaflet's wheel handler:
+- Keep pointer-anchored, continuous `zoomSnap:0` and default **3.75×** wheel sensitivity.
+- Accumulate nearby wheel events inside Leaflet's native **135 ms wheel debounce** (was 80 ms). Leaflet then resolves a final gesture target in one map zoom call. This adds a small delay before an animation begins, deliberately trading a little latency for fewer repeated transitions.
+- **`baseMap.updateWhenZooming:false`** means intermediate background tile levels are *not individually requested during the animation*; after reaching the destination, load the official destination raster tiles. The existing cached imagery may be temporarily scaled while traveling. This is not the same as Google Maps' private renderer, nor does it guarantee that target tiles arrive without network delay.
+- The **official flood raster is unchanged**, visible throughout the gesture, and still refreshed on zoom end. No fake hazard overlay or hidden-risk interpretation is introduced.
+- Preserve `?zoomFeel=progressive` with the prior 80 ms debounce + intermediate base-tile updates at **the same 3.75× sensitivity** for a controlled apples-to-apples visual comparison. Retain legacy `?zoomFeel=previous` and `?zoomFeel=slow` settings and existing local wheel controls. User settings continue to change only sensitivity/step style; no map/GPS state is saved.
+- Existing map/popup/marker zoomend callbacks remain intact. D marker group reuse at integer zoom buckets is unchanged and source geometry is never interpolated.
+
+**Verification scope:** required CI tests cover destination-only tile scheduling, wheel parameter bounds, per-mode comparison options and unchanged official flood raster configuration. The independently authored Playwright smoke checks options and mouse-wheel operation but is not executed by required CI. In-browser frame timing, input responsiveness and actual network tile requests remain to be checked against deployed staging; do not equate CI success with proven perceptual smoothness.
+
+**Rollback:** `?zoomFeel=progressive` restores the previous raster-refresh strategy for comparison without a source/schema change; fully reverting default policy requires a new GIS PR.
