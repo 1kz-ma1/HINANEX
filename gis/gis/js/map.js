@@ -465,7 +465,7 @@ map.getPane("referenceSitePane").style.zIndex = 690;
 map.createPane("referenceOriginPane");
 map.getPane("referenceOriginPane").style.zIndex = 730;
 
-const baseMap = L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png", {
+const baseMap = L.tileLayer(GSI_PREFETCH_ROOT + "/{z}/{x}/{y}.png", {
   // The overview minimum is set on the map itself based on its viewport.
   // Allow low-zoom GSI tiles so zooming out does not leave a blank basemap.
   minZoom: 2,
