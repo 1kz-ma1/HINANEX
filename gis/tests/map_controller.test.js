@@ -2339,3 +2339,67 @@ nagoya.scenarios = [{
 // Run the new data-safe three-case playback comparison checks in the existing
 // required GIS controller CI job without modifying shared workflow ownership.
 require("./guided_tour_compare.test.js");
+
+// Presenter regression on actual D adapter + Leaflet-stub marker membership.
+(async()=>{
+ const d=payload("13123","東京都江戸川区",[
+   record("f1","東小学校",35.70,139.88,"https://example.invalid/f1"),
+   record("f2","西小学校",35.71,139.89),
+   record("f3","中央体育館",35.72,139.90)
+ ]);
+ const t=makeContext({protocol:"http:",fetchImpl:async u=>String(u).endsWith("edogawa.json")
+   ? {ok:true,status:200,json:async()=>d} : {ok:false,status:404}});
+ await new Promise(r=>setTimeout(r,0));
+ const api=t.context.window.HINANEX_FACILITY_PRESENTER;
+ const markers=t.L.__groups[1],before=t.L.__map.getCenter();
+ assert.equal(markers.items.length,3);
+ const loaded=await api.begin();
+ assert.equal(loaded.state,"ready");
+ assert.equal(loaded.mapped,3);
+ assert.equal(loaded.matches,2);
+ assert.equal(loaded.classified,0);
+ assert.match(loaded.criterion,/小学校/);
+ api.apply();
+ assert.equal(markers.items.length,2,"real marker group must be filtered");
+ assert.equal(t.elements.recordCount.textContent,3,"never modify total source count");
+ const f=api.inspect();
+ assert.match(f.name,/小学校/);
+ assert.match(f.criterionValue,/小学校/);
+ assert.equal(f.decision,"UNKNOWN");
+ assert.equal(t.L.__map.lastPointFly.zoom,14);
+ api.end(true);
+ assert.equal(markers.items.length,3,"restore real D layer");
+ assert.deepEqual(t.L.__map.getCenter(),before);
+ assert.equal(t.L.__groups[3].items.length,0,"no fabricated GSI markers");
+ const s=payload("13123","東京都江戸川区",[
+   record("a1","A",35.70,139.88),record("a2","B",35.71,139.89),
+   record("a3","C",35.72,139.90)
+ ]);
+ s.scenarios=[{scenario_id:"flood_shelter_selection",region_code:"13123",status:"DEGRADED",
+   facility_results:[
+     {facility_id:"a1",status:"CANDIDATE",fact:{facility_id:"a1",official_status_raw:"○",source_record_trace:"row 1"}},
+     {facility_id:"a2",status:"EXCLUDED",fact:{facility_id:"a2",official_status_raw:"×"}},
+     {facility_id:"a3",status:"UNKNOWN",fact:{facility_id:"a3"}}
+   ]}];
+ const v=makeContext({protocol:"http:",fetchImpl:async u=>String(u).endsWith("edogawa.json")
+   ? {ok:true,status:200,json:async()=>s} : {ok:false,status:404}});
+ await new Promise(r=>setTimeout(r,0));
+ const api2=v.context.window.HINANEX_FACILITY_PRESENTER;
+ const cls=await api2.begin();
+ assert.equal(cls.criterionKind,"classification");
+ assert.equal(cls.matches,2);
+ api2.apply();
+ assert.equal(v.L.__groups[1].items.length,2);
+ assert.equal(api2.inspect().sourceTrace,"row 1");
+ api2.end(false);
+ const no=payload("13123","東京都江戸川区",[
+   record("z1","A",35.70,139.88),record("z2","B",35.71,139.89)
+ ]);
+ const u=makeContext({protocol:"http:",fetchImpl:async url=>String(url).endsWith("edogawa.json")
+   ? {ok:true,status:200,json:async()=>no} : {ok:false,status:404}});
+ await new Promise(r=>setTimeout(r,0));
+ assert.equal((await u.context.window.HINANEX_FACILITY_PRESENTER.begin()).state,"no-distinguishing-condition");
+ u.context.window.HINANEX_FACILITY_PRESENTER.end();
+ console.log("E condition-based D facility presenter true marker filter and source matching: OK");
+})().catch(e=>{console.error(e);process.exitCode=1;});
+require("./filter_demo.test.js");
