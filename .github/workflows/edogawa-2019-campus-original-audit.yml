@@ -1,0 +1,111 @@
+name: 2019 Edogawa school campuses vs Typhoon 19 shelter identity (UNAPPROVED)
+
+"on":
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - ".github/workflows/edogawa-2019-campus-original-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  campus-source-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    name: Official page bytes + independent school-versus-shelter C check
+    steps:
+      - name: Checkout pinned A source
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: d4efef9e5f97ea870b7d4f87d10af249bc5f582f
+          path: a-source
+          persist-credentials: false
+
+      - name: Checkout pinned independent C reviewer
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: ecb2be68016bb7162ee6ef9ccdd52c1a20909353
+          path: c-review
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Independently test A and C guards (synthetic only)
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s a-source/data-research/tests -p 'test_archive_edogawa_2019_campus_overview.py' -v
+          python -m unittest discover -s c-review/validation/validation -p 'test_audit_edogawa_2019_campus_source.py' -v
+
+      - name: A capture exact current government HTML bytes
+        id: capture
+        run: |
+          set -euo pipefail
+          python a-source/data-research/tools/archive_edogawa_2019_campus_overview.py \
+            --out-dir "$RUNNER_TEMP/edogawa-2019-school-campus-UNREVIEWED"
+
+      - name: A recheck original SHA256
+        id: a_verify
+        run: |
+          set -euo pipefail
+          python a-source/data-research/tools/archive_edogawa_2019_campus_overview.py \
+            --verify-dir "$RUNNER_TEMP/edogawa-2019-school-campus-UNREVIEWED"
+
+      - name: C separately parse same original page without importing A
+        id: c_verify
+        run: |
+          set -euo pipefail
+          zip -j -q "$RUNNER_TEMP/edogawa-2019-school-campus-C.zip" "$RUNNER_TEMP/edogawa-2019-school-campus-UNREVIEWED/"*
+          python c-review/validation/validation/audit_edogawa_2019_campus_source.py \
+            --archive-zip "$RUNNER_TEMP/edogawa-2019-school-campus-C.zip" \
+            --report "$RUNNER_TEMP/C_2019_campus_vs_shelter_UNAPPROVED.json"
+          python - "$RUNNER_TEMP/C_2019_campus_vs_shelter_UNAPPROVED.json" <<'PY'
+          import json,sys
+          r=json.load(open(sys.argv[1],encoding="utf-8"))
+          assert r["status"]=="C_PAGE_CAMPUS_CLAIMS_VERIFIED__SHELTER_SITE_UNAPPROVED"
+          assert r["source_states_different_school_operation_districts"] is True
+          assert r["source_normal_campus_street_address"]=="小松川2丁目10番2号"
+          assert r["source_night_campus_street_address"] is None
+          assert r["actual_shelter_used_building_for_205"] is None
+          assert r["actual_shelter_used_building_for_11"] is None
+          assert r["shelter_identity_pairs_approved"]==0
+          assert r["historical_page_revision_asof_approved"] is False
+          PY
+
+      - name: Save A official original for C human review
+        if: ${{ steps.capture.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: edogawa-2019-campus-original-UNREVIEWED-${{ github.run_id }}
+          path: ${{ runner.temp }}/edogawa-2019-school-campus-UNREVIEWED/
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Save independent C source-to-statement report
+        if: ${{ steps.c_verify.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: edogawa-2019-campus-C-UNAPPROVED-${{ github.run_id }}
+          path: ${{ runner.temp }}/C_2019_campus_vs_shelter_UNAPPROVED.json
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Do not conflate school campuses and disaster shelters
+        if: always()
+        run: |
+          {
+            echo "### Edogawa 2019-03-01 school reconstruction page"
+            echo "A source capture: ${{ steps.capture.outcome }}"
+            echo "A byte recheck: ${{ steps.a_verify.outcome }}"
+            echo "C independent claims check: ${{ steps.c_verify.outcome }}"
+            echo "Official page: **normal school = Komatsugawa 2-chome; night school = Hirai 3-chome**."
+            echo "**2019 event-time shelter building for 205/11: UNKNOWN**."
+            echo "**2019 first-publication of current HTML byte revision: NOT AUTHENTICATED**."
+            echo "**0 approved shelter-building joins; 0 predictive performance cases.**"
+            echo "Private raw/report 14-day artifacts; no raw commit or Render change."
+          } >> "$GITHUB_STEP_SUMMARY"
