@@ -509,7 +509,7 @@ function renderFacilityList() {
     return `<details class="facility-list-card"><summary><strong>${escapeHtml(record.name)}</strong>` +
       `<small>${escapeHtml(displayValue(record.address))} / ${escapeHtml(displayValue(record.administrative_area))}</small>` +
       `</summary><dl>${detailRows}</dl>${officialLink}` +
-      `<p class="list-note">地図上の位置・洪水時の安全性・開設は未検証です。raw記号やUNKNOWNから利用可否を判定しません。</p></details>`;
+      `<p class="list-note">地図上の位置・洪水時の安全性・開設は未検証です。元資料の記号や未判定の情報から利用可否を判断しません。</p></details>`;
   });
   document.getElementById("facilityListResults").innerHTML =
     cards.length ? cards.join("") : '<div class="facility-list-empty">一致する施設はありません。検索語を変更してください。</div>';
@@ -1010,7 +1010,7 @@ function showDatasetOverview(summary, sourceLabel) {
         ["洪水Scenario（D原値）", summary.floodScenario.status],
         ["公式raw取得の状態", displayValue(summary.floodScenario.discoveryStatus)],
         ["Scenario元施設行", `${summary.floodScenario.recordCount}件`],
-        ["洪水対応判定UNKNOWN", `${summary.floodScenario.unknownCount}件`]
+        ["洪水対応が未判定", `${summary.floodScenario.unknownCount}件`]
       ] : [])
     ],
     "D RegionExport",
@@ -1367,8 +1367,8 @@ function presenterChooseCondition(summary) {
   if (all.length < 2) return null;
   const classified = all.filter(r => dFloodDecision(summary, r) !== "UNKNOWN");
   if (classified.length && classified.length < all.length) return {
-    kind: "classification", value: "分類済み（CANDIDATE または EXCLUDED）",
-    label: "洪水対応分類が UNKNOWN ではない", records: classified
+    kind: "classification", value: "洪水対応の分類結果がある施設",
+    label: "洪水対応が分類済み", records: classified
   };
   // If D has no approved scenario decisions (common in production), show
   // an honest *source-text* filter rather than inventing a flood-safe result.
@@ -1728,14 +1728,14 @@ function renderShelterSummary(summary, sourceLabel) {
   const listOnly = summary.records.length > 0 && summary.mappableRecords.length === 0;
   setMapAvailability(
     !listOnly && Boolean(boundaryBounds?.isValid() || shelterBounds?.isValid()),
-    `${summary.region.name} は座標を確認できる施設がなく、地図上の範囲を確定できません。位置は推測しません。`
+    `${summary.region.name}には座標を確認できる施設がなく、地図上の範囲を確定できません。位置は推測しません。`
   );
   setFacilityListMode(listOnly ? summary : null);
 
   const missing = summary.missingCoordinateRecords.length;
   updateDatasetChip("施設データ読込済", "ok");
   setDatasetStatus(
-    `${sourceLabel}｜RegionExport ${summary.schemaVersion}｜records ${summary.records.length}件 / 地図表示 ${summary.mappableRecords.length}件 / 座標欠損 ${missing}件`,
+    `${sourceLabel}｜施設データ形式 ${summary.schemaVersion}｜取得 ${summary.records.length}件 / 地図に表示 ${summary.mappableRecords.length}件 / 位置未確認 ${missing}件`,
     missing > 0 ? "warning" : "success"
   );
   setStatus(
@@ -1762,14 +1762,14 @@ function parseRegionExport(payload, sourceLabel) {
     clearShelters();
     currentShelterSummary = summary;
     updateCoverage(summary);
-    updateDatasetChip("対象datasetなし", "warning");
-    setDatasetStatus(`${sourceLabel}｜shelter_location dataset がありません`, "warning");
+    updateDatasetChip("施設データ未確認", "warning");
+    setDatasetStatus(`${sourceLabel}｜避難施設データが見つかりません`, "warning");
     setStatus("この地域の施設情報を確認できません", "warning");
     detail(
       summary.region.name,
       [
         ["Contract", `RegionExport ${summary.schemaVersion}`],
-        ["状態", "shelter_location datasetなし"],
+        ["状態", "避難施設データを確認できません"],
         ["読込元", sourceLabel]
       ],
       "D RegionExport",
@@ -1794,7 +1794,7 @@ async function tryAutoLoad() {
   if (window.location.protocol === "file:") {
     updateDatasetChip("手動読込", "wait");
     setDatasetStatus(
-      "file:// ではブラウザのorigin制約があるため自動fetchしません。HTTP起動するか、RegionExport JSONを選択してください。",
+      "file:// で開いているため、ブラウザの制限により自動取得できません。HTTPサーバー経由で開くか、施設データ（JSON）を選択してください。",
       "warning"
     );
     showRegionWaitingDetail();
@@ -1803,7 +1803,7 @@ async function tryAutoLoad() {
   }
 
   updateDatasetChip("探索中", "wait");
-  setDatasetStatus(`${config.label} のpipeline出力を探索しています…`);
+  setDatasetStatus(`${config.label} の施設データを探しています…`);
 
   try {
     const response = await fetch(config.autoUrl, {
