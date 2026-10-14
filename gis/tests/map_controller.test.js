@@ -929,7 +929,7 @@ nagoya.scenarios = [{
   assert.match(cardCss, /max-height:min\(22%,160px\)/, "mobile demo must keep a compact selected-place card accessible");
   assert.match(cardCss, /data-right-panel="closed"/);
   assert.match(pageSource, /地域の避難施設データ/);
-  assert.doesNotMatch(pageSource, /D施設|地域D|DのUNKNOWN|CURRENT D SOURCE|GIS \/ RegionExport/);
+  assert.doesNotMatch(pageSource, /D施設|地域D|DのUNKNOWN|CURRENT D SOURCE|GIS \/ RegionExport|CANDIDATE・EXCLUDED|UNKNOWN・資料不足|洪水Scenario/);
 
   assert.match(pageSource, /id="toggleLeftPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="toggleRightPanel"[^>]*aria-expanded="false"/);
@@ -991,7 +991,7 @@ nagoya.scenarios = [{
     sidebar.indexOf('id="layerDisclosure"'), "raster warning cannot be hidden in layer options");
   assert.match(sidebar, /安全な避難先や現在の開設状況を保証しません/);
   assert.match(sidebar, /座標未確認/);
-  assert.match(sidebar, /UNKNOWNを施設IDで照合/);
+  assert.match(sidebar, /未判定の施設情報を施設IDで照合/);
   const theme = fs.readFileSync(path.resolve(__dirname, "../gis/css/current_theme.css"), "utf8");
   assert.match(theme, /--bg:#07131e/);
   assert.match(theme, /--cyan:#4ed7dc/);
