@@ -520,7 +520,7 @@
       </label>
       <input id="mapWheelSensitivity" type="range" min="0.5" max="5" step="0.25" value="3.75" aria-describedby="mapWheelSensitivityHelp">
       <div class="map-settings-range-labels"><span>ゆっくり</span><span>速く</span></div>
-      <p id="mapWheelSensitivityHelp" class="map-settings-help">基準は3.75倍。通常のホイール操作はまとめて1回の滑らかなズームにします。ピンチ操作には影響しません。</p>
+      <p id="mapWheelSensitivityHelp" class="map-settings-help">基準は3.75倍。ホイール操作と同時に現在の地図画像を拡縮し、操作後に最終倍率の画像へ切り替えます。ピンチ操作には影響しません。</p>
       <label for="mapZoomStyle" class="map-settings-label">ズームの切り替わり</label>
       <select id="mapZoomStyle">
         <option value="continuous">連続（おすすめ）</option>
@@ -605,7 +605,7 @@
 <script src="js/facility_list.js"></script>
 <!-- Discovery API remains v14; map UI-only consumer has a separate cache-busting key. -->
 <script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v14"></script>
-<script src="js/map.js?v=single-target-wheel-20261014-v1"></script>
+<script src="js/map.js?v=instant-raster-preview-wheel-20261014-v1"></script>
 <script src="js/map_first_ui.js?v=anchored-point-bubble-20261014-v1"></script>
 <script src="js/audience_share.js?v=audience-share-20261010-v1"></script>
 <script src="js/guided_tour.js?v=interactive-presenter-20261014-v1"></script>
