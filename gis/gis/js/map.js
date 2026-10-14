@@ -129,6 +129,94 @@ function wheelDestinationZoom() {
 const RASTER_HOLD_MAX_MS = 1100;
 const FLOOD_RASTER_HOLD_MAX_MS = 650;
 const RASTER_FADE_MS = 120;
+// Destination-only cache warm-up: at most eight already-authorized GSI
+// background tiles per wheel burst. No intermediate zoom levels or hazard
+// raster prefetch, no user GPS, no RegionExport changes.
+const GSI_PREFETCH_MAX_TILES = 8;
+const GSI_PREFETCH_PAUSE_MS = 28;
+const GSI_PREFETCH_KEEP_MS = 1500;
+const GSI_PREFETCH_ROOT = "https://cyberjapandata.gsi.go.jp/xyz/std";
+let predictedTileTimer = null;
+let predictedTileReleaseTimer = null;
+let predictedTileImages = new Map();
+function clearPredictedTileTimer() {
+  if (predictedTileTimer !== null) clearTimeout(predictedTileTimer);
+  predictedTileTimer = null;
+}
+function discardPredictedTiles() {
+  clearPredictedTileTimer();
+  if (predictedTileReleaseTimer !== null) clearTimeout(predictedTileReleaseTimer);
+  predictedTileReleaseTimer = null;
+  predictedTileImages.clear();
+}
+function predictedGsiTileCoords() {
+  const point = pendingWheelPoint;
+  if (!point || typeof map.containerPointToLatLng !== "function" ||
+      typeof map.getSize !== "function") return [];
+  const targetZoom = wheelDestinationZoom();
+  if (!Number.isFinite(targetZoom)) return [];
+  const z = Math.max(2, Math.min(18, Math.round(targetZoom)));
+  const anchor = map.containerPointToLatLng(point);
+  const projected = map.project(anchor,z);
+  const size = map.getSize();
+  if (!projected || !Number.isFinite(projected.x) ||
+      !Number.isFinite(projected.y) || !size?.x || !size?.y) return [];
+  const ratio = Math.pow(2,z-targetZoom);
+  const left = projected.x-point.x*ratio;
+  const top = projected.y-point.y*ratio;
+  const right = left+size.x*ratio;
+  const bottom = top+size.y*ratio;
+  const maxIndex = Math.pow(2,z);
+  const candidates = [];
+  // Round only the selected final tile-zoom, never every crossed zoom.
+  const xStart=Math.floor(left/256),xEnd=Math.floor(right/256);
+  const yStart=Math.max(0,Math.floor(top/256));
+  const yEnd=Math.min(maxIndex-1,Math.floor(bottom/256));
+  for (let y=yStart;y<=yEnd;y++) for(let x=xStart;x<=xEnd;x++) {
+    const normalizedX = ((x%maxIndex)+maxIndex)%maxIndex;
+    const distance = Math.pow(x*256+128-(left+right)/2,2)
+      + Math.pow(y*256+128-(top+bottom)/2,2);
+    candidates.push({x:normalizedX,y,z,distance});
+  }
+  return candidates.sort((a,b)=>a.distance-b.distance)
+    .slice(0,GSI_PREFETCH_MAX_TILES);
+}
+function warmPredictedTiles() {
+  predictedTileTimer = null;
+  // The browser must use the *same* GSI URL and image request mode as the
+  // existing Leaflet TileLayer for shared HTTP caching.
+  const ImageCtor = window.Image;
+  if (typeof ImageCtor !== "function") return;
+  const coords = predictedGsiTileCoords();
+  let started=0;
+  for(const tile of coords) {
+    if(predictedTileImages.size>=GSI_PREFETCH_MAX_TILES)break;
+    const url = `${GSI_PREFETCH_ROOT}/${tile.z}/${tile.x}/${tile.y}.png`;
+    if(predictedTileImages.has(url))continue;
+    const image = new ImageCtor();
+    image.decoding="async";
+    predictedTileImages.set(url,image);
+    image.src=url;
+    started++;
+  }
+  if(debugMapPerf && started)
+    console.info("[HINANEX map perf] destination tile prefetch",
+      {count:started,total:predictedTileImages.size});
+}
+function schedulePredictedTileWarmup() {
+  clearPredictedTileTimer();
+  if(predictedTileImages.size>=GSI_PREFETCH_MAX_TILES)return;
+  predictedTileTimer=setTimeout(warmPredictedTiles,GSI_PREFETCH_PAUSE_MS);
+}
+function keepPredictedTileCache() {
+  clearPredictedTileTimer();
+  if(predictedTileReleaseTimer!==null)clearTimeout(predictedTileReleaseTimer);
+  predictedTileReleaseTimer=setTimeout(()=>{
+    predictedTileImages.clear();
+    predictedTileReleaseTimer=null;
+  },GSI_PREFETCH_KEEP_MS);
+}
+
 let retainedRaster = [];
 let committingWheelZoom = false;
 function discardRetainedRaster() {
@@ -185,6 +273,7 @@ function clearPendingWheel() {
   pendingWheelPoint = null;
   wheelIntentStartedAt = null;
   discardRetainedRaster();
+  discardPredictedTiles();
 }
 function updateWheelPreview(event) {
   if (!wheelPreview) {
@@ -271,6 +360,7 @@ function flushSingleTargetWheel() {
   wheelIntentStartedAt = null;
   // Retain a read-only copy of the old raster below markers while the target
   // tiles settle. Never keep the original CSS scale on Leaflet's live panes.
+  keepPredictedTileCache();
   const previews = wheelPreview?.targets || [];
   const scale = previews.map(({pane})=>pane.style.scale);
   const origins = previews.map(({pane})=>pane.style.transformOrigin);
@@ -317,6 +407,7 @@ function captureSingleTargetWheel(event) {
   }
   pendingWheelPixels += -rawDelta * scale;
   updateWheelPreview(event);
+  schedulePredictedTileWarmup();
   if (wheelGestureTimer !== null) clearTimeout(wheelGestureTimer);
   wheelGestureTimer = setTimeout(flushSingleTargetWheel, WHEEL_GESTURE_IDLE_MS);
 }
