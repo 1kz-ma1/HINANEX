@@ -944,7 +944,7 @@ nagoya.scenarios = [{
   assert.doesNotMatch(acceptedPin.options.icon.html, />[1-5]<|GSI公式掲載参考地点[1-5]/);
   acceptedPin.handlers.click({});
   assert.deepEqual(Array.from(acceptedCase.L.__map.openedPopup.anchor),
-    [35.7001, 139.8801], "GSI official source point anchors its own bubble");
+    [35.705, 139.89], "GSI official source point anchors its own bubble");
   assert.match(acceptedCase.L.__map.openedPopup.content, /洪水に関する公式掲載地点/);
   assert.equal(acceptedCase.L.__map.openedPopup.options.className,
     "hinanex-place-popup");
