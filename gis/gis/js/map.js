@@ -21,21 +21,24 @@ const REGION_CONFIGS = {
 
 const FLOOD_REFERENCE_URL = "https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png";
 
-// Faster pointer-wheel response and smoother raster continuity are separate.
-// The default is 2.5x the prior 1.5 baseline (3.75x); keep zoomSnap=0.
-// A short debounce coalesces wheel bursts so a fast scroll doesn't repeatedly
-// restart map animations. Source coordinates and disaster layers are unchanged.
-// ?zoomFeel=previous compares with 0.5-step/100px and ?zoomFeel=slow with
-// 0.25-step/240px. Both are retained for manual before/after assessment.
+// Target-first wheel zoom: coalesce a short gesture into one Leaflet target
+// zoom rather than scheduling base-map image requests at passing zoom levels.
+// Native Leaflet wheel handling retains pointer anchoring, continuous zoom,
+// pinch and explicit zoom controls. The 3.75× default sensitivity is unchanged.
+// ?zoomFeel=progressive retains the old intermediate tile refresh at the same
+// speed for controlled A/B tests; previous/slow comparison modes still work.
 const zoomFeelMode = new URL(window.location.href).searchParams.get("zoomFeel");
 const previousZoomFeel = zoomFeelMode === "previous";
 const slowZoomFeel = zoomFeelMode === "slow";
+const progressiveZoomFeel = zoomFeelMode === "progressive";
 // Persist only gesture preferences in this browser. Never persist map/GPS
 // coordinates, source data, or disaster/safety assessments.
 const GESTURE_PREF_KEY = "hinanex.gis.gesture.v2";
 const LEGACY_GESTURE_PREF_KEY = "hinanex.gis.gesture.v1";
 const DEFAULT_WHEEL_SENSITIVITY = 3.75;
-const WHEEL_DEBOUNCE_MS = 80;
+// Enough to collect a short wheel burst before Leaflet's single target zoom;
+// measured smoothness/latency still needs real-device visual acceptance.
+const WHEEL_DEBOUNCE_MS = 135;
 function normalizeWheelSensitivity(value) {
   const number = Number(value);
   if (!Number.isFinite(number)) return DEFAULT_WHEEL_SENSITIVITY;
@@ -81,7 +84,8 @@ const map = L.map("map", {
   zoomDelta: 0.5,
   wheelPxPerZoomLevel: slowZoomFeel ? 240 : previousZoomFeel ? 100
     : Math.round(100 / gesturePrefs.sensitivity),
-  wheelDebounceTime: slowZoomFeel ? 55 : previousZoomFeel ? 40 : WHEEL_DEBOUNCE_MS,
+  wheelDebounceTime: slowZoomFeel ? 55 : previousZoomFeel ? 40
+    : progressiveZoomFeel ? 80 : WHEEL_DEBOUNCE_MS,
   zoomAnimation: true,
   // A fast wheel burst may cover more than Leaflet's default 4 zoom levels;
   // allow a slightly larger transition before falling back to an instant jump.
@@ -136,12 +140,12 @@ const baseMap = L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y
   minZoom: 2,
   maxZoom: 18,
   maxNativeZoom: 18,
-  // Maintain raster tile detail during fractional zoom, while throttling
-  // intermediate requests. This avoids one large blurry-to-crisp swap at the
-  // end of every fast wheel gesture. Legacy comparison remains unchanged.
-  // Official flood data remains an independent visible source layer.
+  // Avoid the intermediate raster/tile work during a rapid zoom gesture.
+  // Leaflet scales the available imagery, then requests the target zoom's
+  // official tiles. Old progressive mode is available for A/B diagnostics.
+  // The flood layer is never hidden and retains its separate source.
   keepBuffer: previousZoomFeel ? 3 : 4,
-  updateWhenZooming: !previousZoomFeel,
+  updateWhenZooming: slowZoomFeel || progressiveZoomFeel,
   updateInterval: 220,
   attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>'
 }).addTo(map);
@@ -177,7 +181,7 @@ if (debugMapPerf) {
     console.info("[HINANEX map perf] zoom gesture", {
       durationMs: Math.round(perfTime() - zoomStartedAt),
       zoom: Number(map.getZoom().toFixed(2)),
-      mode: zoomFeelMode || "continuous"
+      mode: zoomFeelMode || "target-first"
     });
     zoomStartedAt = null;
   });
