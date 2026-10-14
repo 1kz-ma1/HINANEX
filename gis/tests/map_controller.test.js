@@ -1049,7 +1049,7 @@ nagoya.scenarios = [{
     "comparison fits clicked origin + certified GSI pin + both D coordinates");
   assert.equal(acceptedCase.L.__map.lastBounds.points[0][0], 35.7);
   assert.equal(acceptedCase.L.__map.lastBounds.points[0][1], 139.88);
-  assert.match(acceptedCase.elements.toggleDMarkers.textContent, /周辺/);
+  assert.match(acceptedCase.elements.toggleDMarkers.textContent, /公式掲載地点だけ表示/);
   acceptedCase.elements.toggleDMarkers.listeners.click();
   assert.equal(acceptedCase.elements.facilityDisplayMode.value, "nearby");
   assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[1]), false);
