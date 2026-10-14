@@ -1,0 +1,63 @@
+/* GSI-presenter-only surface. The actual Leaflet/GSI data remains interactive. */
+.map-tour-gsi-cta{display:grid;gap:8px;margin:8px 0 12px;padding:14px;
+  border-radius:12px;background:linear-gradient(135deg,#092b4d,#1a4b64);
+  border:1px solid #7ce4ed}
+.map-tour-gsi-cta span{color:#81f2f0;font-size:10px;font-weight:850;letter-spacing:.07em}
+.map-tour-gsi-cta strong{color:white;font-size:15px;line-height:1.5}
+.map-tour-gsi-cta p{color:#d3eaf0;font-size:11px;line-height:1.6;margin:0}
+#mapGsiFloodDemoOpen{padding:12px 8px;min-height:48px;border:0;border-radius:8px;
+  background:#7be8e7;color:#062632;font-weight:850;font-size:13px;cursor:pointer}
+.gsi-demo-panel{position:absolute;z-index:1760;top:12px;right:12px;bottom:12px;
+ width:min(430px,calc(100% - 24px));box-sizing:border-box;overflow:auto;
+ padding:18px;border-radius:15px;background:linear-gradient(155deg,#082d45,#061e2c);
+ border:1px solid #62cddc;box-shadow:0 22px 60px #001d35bb;color:#f2faff;
+ font-family:system-ui,"Noto Sans JP",sans-serif}
+.gsi-demo-panel[hidden],.gsi-demo-panel [hidden]{display:none!important}
+.gsi-demo-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.gsi-demo-top>div{display:grid;gap:3px}
+.gsi-demo-top span{font-size:10px;font-weight:900;color:#83e8e9;letter-spacing:.08em}
+.gsi-demo-top strong{font-size:15px}
+#gsiFloodDemoClose{flex:none;width:40px;height:40px;border-radius:50%;border:1px solid #789cb0;
+ background:#123e54;color:white;font-size:22px;cursor:pointer}
+#gsiFloodDemoStatus{font-size:11px;line-height:1.6;color:#b1dae6}
+.gsi-demo-step{display:flex;justify-content:space-between;color:#8be9eb;font-size:12px;font-weight:800;margin:14px 0 6px}
+.gsi-demo-panel h2{font-size:clamp(23px,2.6vw,30px);line-height:1.4;margin:6px 0 10px}
+#gsiFloodDemoMessage{font-size:14px;line-height:1.65;color:#daedf3;margin:0 0 12px}
+.gsi-demo-source-count{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.gsi-demo-source-count>div{display:grid;gap:6px;padding:12px;
+ background:#13465a;border:1px solid #3a7b8d;border-radius:11px;text-align:center}
+.gsi-demo-source-count span{color:#d0e7ee;font-size:10px;line-height:1.5}
+.gsi-demo-source-count strong{color:#92eee4;font-size:33px;font-variant-numeric:tabular-nums}
+.gsi-demo-filter{border-radius:9px;background:#123b4b;border-left:4px solid #72dbe9;
+ padding:12px;display:grid;gap:6px}
+.gsi-demo-filter>span{color:#acd7e3;font-size:11px}
+.gsi-demo-filter>strong{font-size:18px}
+.gsi-demo-filter>div{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}
+.gsi-demo-filter b{color:#a0f3eb;font-size:15px}
+.gsi-demo-evidence{border:1px solid #4c9aa6;border-radius:11px;padding:12px;margin:13px 0;background:#0b3544}
+.gsi-demo-evidence>span{font-size:11px;color:#8cf2e6}
+.gsi-demo-evidence h3{font-size:20px;line-height:1.4;margin:7px 0}
+.gsi-demo-evidence dl{margin:0;display:grid;gap:5px}
+.gsi-demo-evidence dl>div{display:grid;grid-template-columns:108px 1fr;gap:7px;padding:6px 0;border-bottom:1px solid #2c5663}
+.gsi-demo-evidence dt{font-size:11px;color:#b4d0d8}
+.gsi-demo-evidence dd{font-size:12px;margin:0;overflow-wrap:anywhere}
+.gsi-demo-evidence a{display:inline-block;color:#a1f7ee;font-size:12px;margin-top:10px}
+.gsi-demo-contrast{border-radius:10px;background:#293b4d;border:1px solid #7396af;padding:12px;margin:12px 0}
+.gsi-demo-contrast strong{font-size:14px;color:#f0f5ff}
+.gsi-demo-contrast p{font-size:12px;color:#d2e4ec;line-height:1.6}
+.gsi-demo-future{border-radius:10px;background:#1e4d46;border:1px solid #6ecbad;padding:12px;margin:12px 0}
+.gsi-demo-future strong{font-size:15px}
+.gsi-demo-future p{font-size:13px;line-height:1.65}
+.gsi-demo-notice{font-size:10px;line-height:1.65;color:#c0d2dc;margin:12px 0}
+.gsi-demo-progress{height:6px;background:#275365;border-radius:9px;overflow:hidden}
+.gsi-demo-progress span{display:block;background:#70e4da;width:0;height:100%;transition:width .2s}
+.gsi-demo-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:12px}
+.gsi-demo-actions button{min-height:42px;padding:6px 3px;background:#1b4e62;border:1px solid #4c8896;
+ border-radius:8px;color:white;font-size:11px;font-weight:800;cursor:pointer}
+#gsiFloodDemoPlay{background:#8af0e1;color:#103845}
+.gsi-demo-actions button:disabled{opacity:.42;cursor:not-allowed}
+.gsi-demo-panel :is(a,button):focus-visible,#mapGsiFloodDemoOpen:focus-visible{outline:3px solid #ffe2a1;outline-offset:2px}
+@media(max-width:780px){.gsi-demo-panel{top:auto;left:5px;right:5px;bottom:68px;
+ width:calc(100% - 10px);max-height:min(62%,550px);padding:13px}
+ .gsi-demo-panel h2{font-size:22px}.gsi-demo-source-count strong{font-size:27px}}
+@media(prefers-reduced-motion:reduce){.gsi-demo-progress span{transition:none}}
