@@ -138,26 +138,45 @@ async function screenshot(page, name) {
     assert.equal(gestureConfig.debounce, 135);
     assert.equal(gestureConfig.basemapDuringZoom, false);
     assert.equal(gestureConfig.floodDuringZoom, false);
-    const beforeWheel = await page.evaluate(() => {
+    const wheelPreview = await page.evaluate(() => {
       window.__wheelZoomCalls = 0;
       const oldZoomAround = map.setZoomAround.bind(map);
       map.setZoomAround = (...args) => {
         window.__wheelZoomCalls++;
         return oldZoomAround(...args);
       };
-      return map.getZoom();
+      const before = map.getZoom();
+      const el = map.getContainer();
+      const rect = el.getBoundingClientRect();
+      for (let i = 0; i < 3; i++) {
+        el.dispatchEvent(new WheelEvent("wheel", {
+          bubbles:true, cancelable:true,
+          clientX:rect.left+rect.width/2, clientY:rect.top+rect.height/2,
+          deltaMode:0, deltaY:-16
+        }));
+      }
+      return {
+        before,
+        immediateZoom:map.getZoom(),
+        cssScale:map.getPanes().mapPane.style.scale,
+        calls:window.__wheelZoomCalls
+      };
     });
-    await page.locator("#map").hover();
-    await page.mouse.wheel(0, -16);
-    await page.mouse.wheel(0, -16);
-    await page.mouse.wheel(0, -16);
-    await page.waitForTimeout(700);
+    assert.equal(wheelPreview.immediateZoom,wheelPreview.before,
+      "the geographic map must remain unchanged while old raster is scaled");
+    assert.ok(Number(wheelPreview.cssScale)>1,
+      "map image preview must respond before wheel idle timer expires");
+    assert.equal(wheelPreview.calls,0,
+      "no Leaflet destination update while previewing");
+    await page.waitForTimeout(450);
     const afterWheel = await page.evaluate(() => map.getZoom());
-    assert.ok(afterWheel > beforeWheel,
-      "wheel input must zoom toward the target with new default settings");
-    assert.equal(await page.evaluate(() => window.__wheelZoomCalls), 1,
-      "a short wheel gesture should animate once, not per wheel step");
-    await page.evaluate(z => map.setZoom(z, {animate:false}), beforeWheel);
+    assert.ok(afterWheel>wheelPreview.before,
+      "final wheel target must zoom into the map");
+    assert.equal(await page.evaluate(() => window.__wheelZoomCalls),1,
+      "one wheel burst must produce exactly one Leaflet view commit");
+    assert.equal(await page.evaluate(() => map.getPanes().mapPane.style.scale),"",
+      "temporary image scaling must be fully cleared after commit");
+    await page.evaluate(z => map.setZoom(z, {animate:false}), wheelPreview.before);
     await page.waitForTimeout(160);
 
     // Exercise the assembled Leaflet popup with UI-only synthetic content.

@@ -93,41 +93,91 @@ const map = L.map("map", {
   zoomAnimationThreshold: 5
 }).setView([35.704, 139.882], 13);
 
-// Leaflet's standard wheel handler may end one short scroll burst and restart
-// an animation while the user is still scrolling. Intercept only ordinary
-// wheel events at the map container's capture phase. Ctrl+wheel (pinch),
-// explicitly selected stepped zoom and A/B variants retain native behavior.
-// All camera changes use public Leaflet APIs; hazard/source data is untouched.
+// Instant visual feedback, deferred native tile resolution.
+// Each ordinary wheel event only GPU-scales the *existing map pane*: no
+// intermediate GSI or official flood raster requests, no new geographic facts.
+// Once the wheel burst is quiet, commit one bounded Leaflet zoom at the same
+// pointer anchor and remove the temporary visual transform in the same frame.
+// Pinch, map controls, popup scrolling and explicitly stepped zoom stay native.
 const WHEEL_GESTURE_IDLE_MS = 135;
+const MAX_WHEEL_PREVIEW_LEVELS = 2.75;
 let pendingWheelPixels = 0;
 let pendingWheelPoint = null;
 let wheelGestureTimer = null;
-function flushSingleTargetWheel() {
-  if (wheelGestureTimer !== null) {
-    clearTimeout(wheelGestureTimer);
-    wheelGestureTimer = null;
-  }
-  const pixels = pendingWheelPixels;
-  const anchor = pendingWheelPoint;
+let wheelPreview = null;
+
+function singleTargetZoomChange(pixels) {
+  const d = Math.abs(pixels) / (map.options.wheelPxPerZoomLevel * 4);
+  const raw = Math.sign(pixels) * 4 * Math.log2(2 / (1 + Math.exp(-d)));
+  return Math.max(-MAX_WHEEL_PREVIEW_LEVELS,
+    Math.min(MAX_WHEEL_PREVIEW_LEVELS, raw));
+}
+function wheelDestinationZoom() {
+  const base = map.getZoom();
+  return Math.max(map.getMinZoom(),
+    Math.min(map.getMaxZoom(), base + singleTargetZoomChange(pendingWheelPixels)));
+}
+function restoreWheelPreview() {
+  if (!wheelPreview) return;
+  const { pane, original } = wheelPreview;
+  pane.style.scale = original.scale;
+  pane.style.transformOrigin = original.transformOrigin;
+  pane.style.transition = original.transition;
+  pane.style.willChange = original.willChange;
+  wheelPreview = null;
+}
+function clearPendingWheel() {
+  if (wheelGestureTimer !== null) clearTimeout(wheelGestureTimer);
+  wheelGestureTimer = null;
+  restoreWheelPreview();
   pendingWheelPixels = 0;
   pendingWheelPoint = null;
-  if (!anchor || !Number.isFinite(pixels) || pixels === 0) return;
-  const pxPerLevel = map.options.wheelPxPerZoomLevel;
-  const d = Math.abs(pixels) / (pxPerLevel * 4);
-  // Leaflet's smooth, bounded wheel-delta curve, but applied once to the
-  // complete input burst (maximum <4 zoom levels, below the animation cutoff).
-  const change = Math.sign(pixels) *
-    4 * Math.log2(2 / (1 + Math.exp(-d)));
-  const currentZoom = map.getZoom();
-  const targetZoom = Math.max(map.getMinZoom(),
-    Math.min(map.getMaxZoom(), currentZoom + change));
-  if (Math.abs(targetZoom - currentZoom) < 0.001) return;
-  map.setZoomAround(anchor, targetZoom, { animate: true });
+}
+function updateWheelPreview(event) {
+  if (!wheelPreview) {
+    const pane = map.getPanes()?.mapPane;
+    // Browser CSS individual 'scale' avoids overwriting Leaflet's translation.
+    // If unsupported, keep the working one-shot fallback with delayed commit.
+    if (!pane?.style || !("scale" in pane.style) ||
+        !pane.getBoundingClientRect) return;
+    const rect = pane.getBoundingClientRect();
+    const originX = Number(event.clientX) - rect.left;
+    const originY = Number(event.clientY) - rect.top;
+    if (!Number.isFinite(originX) || !Number.isFinite(originY)) return;
+    const original = {
+      scale: pane.style.scale,
+      transformOrigin: pane.style.transformOrigin,
+      transition: pane.style.transition,
+      willChange: pane.style.willChange
+    };
+    wheelPreview = {pane, original};
+    pane.style.transformOrigin = `${originX}px ${originY}px`;
+    pane.style.transition = "scale 65ms ease-out";
+    pane.style.willChange = "scale";
+  }
+  // Rescale the old map image and its existing markers in the compositor.
+  // Leaflet's actual view/zoom and all source tiles remain unchanged for now.
+  const change = wheelDestinationZoom() - map.getZoom();
+  wheelPreview.pane.style.scale = String(Number(Math.pow(2, change).toFixed(5)));
+}
+function flushSingleTargetWheel() {
+  if (wheelGestureTimer !== null) clearTimeout(wheelGestureTimer);
+  wheelGestureTimer = null;
+  const point = pendingWheelPoint;
+  const targetZoom = wheelDestinationZoom();
+  // Remove the cosmetic preview before the Leaflet view changes. Both edits
+  // happen synchronously, without an intermediate browser paint.
+  restoreWheelPreview();
+  pendingWheelPixels = 0;
+  pendingWheelPoint = null;
+  if (!point || Math.abs(targetZoom - map.getZoom()) < 0.001) return;
+  // The preview already displayed the target scale; animate:false prevents
+  // a second camera animation. Only destination-level tiles are requested.
+  map.setZoomAround(point, targetZoom, {animate: false});
 }
 function captureSingleTargetWheel(event) {
   if (!singleTargetWheel || gesturePrefs.style === "steps" ||
       event.ctrlKey || event.metaKey) return;
-  // A scroll inside popup details/tool controls must stay a scroll, not zoom.
   if (event.target?.closest?.(
     ".leaflet-popup, .leaflet-control, .map-settings-sheet, " +
     "input, select, textarea, [data-wheel-scroll]")) return;
@@ -136,8 +186,9 @@ function captureSingleTargetWheel(event) {
   event.preventDefault();
   event.stopImmediatePropagation?.();
   const scale = event.deltaMode === 1 ? 20 : event.deltaMode === 2 ? 60 : 1;
+  if (!pendingWheelPoint) pendingWheelPoint = map.mouseEventToContainerPoint(event);
   pendingWheelPixels += -rawDelta * scale;
-  pendingWheelPoint = map.mouseEventToContainerPoint(event);
+  updateWheelPreview(event);
   if (wheelGestureTimer !== null) clearTimeout(wheelGestureTimer);
   wheelGestureTimer = setTimeout(flushSingleTargetWheel, WHEEL_GESTURE_IDLE_MS);
 }
@@ -145,6 +196,10 @@ if (singleTargetWheel) {
   map.getContainer().addEventListener("wheel", captureSingleTargetWheel, {
     capture: true, passive: false
   });
+  // If another camera gesture begins before the wheel settles, discard the
+  // stale preview instead of overwriting the newer move with an old zoom.
+  map.on("dragstart", clearPendingWheel);
+  map.on("zoomstart", clearPendingWheel);
 }
 function getGesturePrefs() {
   return { ...gesturePrefs };
