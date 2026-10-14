@@ -11,6 +11,23 @@ const mapCode = fs.readFileSync(path.join(root, "map.js"), "utf8");
 const discoveryCode = fs.readFileSync(path.join(root, "flood_discovery.js"), "utf8");
 const referenceCode = fs.readFileSync(path.join(root, "reference_data.js"), "utf8");
 
+// Ensure the independent REAL-browser predeploy smoke remains syntactically
+// runnable and follows the current GIS consumer copy after white-card changes.
+// Chromium itself is deliberately NOT implied by this static CI validation.
+for (const filename of ["demo_20261022_browser_smoke.js",
+  "guided_tour_compare_browser_smoke.cjs"]) {
+  const script = fs.readFileSync(path.join(__dirname, filename), "utf8");
+  new vm.Script(script, { filename });
+  assert.doesNotMatch(script, /includes\("D出力読込済"\)/,
+    "browser smoke must follow the current dataset chip label");
+}
+const actualBrowserSmoke = fs.readFileSync(
+  path.join(__dirname, "demo_20261022_browser_smoke.js"), "utf8");
+assert.match(actualBrowserSmoke, /white card body must scroll within its shell/);
+assert.match(actualBrowserSmoke, /white card and presenter must not intersect/);
+assert.match(actualBrowserSmoke, /UI_TEST_ONLY/);
+
+
 function payload(code, name, records) {
   return {
     region: { code, name },
