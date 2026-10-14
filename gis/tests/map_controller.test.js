@@ -652,7 +652,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "unified-place-card-20261014-v1");
+  assert.equal(mapAsset[1], "anchored-point-bubble-20261014-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -973,7 +973,7 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
   assert.match(pageSource, /current_theme[.]css[?]v=gis-facility-drawer-20261009-v6/);
   assert.match(pageSource, /map_first[.]css[?]v=guided-tour-three-region-comparison-20261013-v1/);
-  assert.match(pageSource, /place_card[.]css[?]v=place-card-20261014-v2/);
+  assert.match(pageSource, /place_card[.]css[?]v=anchored-point-bubble-20261014-v1/);
   const cardCss = fs.readFileSync(path.resolve(__dirname, "../gis/css/place_card.css"), "utf8");
   assert.match(cardCss, /\.hinanex-place-popup \.leaflet-popup-content-wrapper/);
   assert.match(cardCss, /display:none !important/,
@@ -2173,7 +2173,7 @@ nagoya.scenarios = [{
   const css = fs.readFileSync(path.resolve(__dirname, "../gis/css/map_first.css"), "utf8");
   assert.match(html, /id="mapTourPanel"[^>]*hidden/);
   assert.match(html, /id="mapTourOpen"[^>]*aria-controls="mapTourPanel"/);
-  assert.match(html, /js\/guided_tour[.]js[?]v=guided-tour-three-region-comparison-20261013-v1/);
+  assert.match(html, /js\/guided_tour[.]js[?]v=interactive-presenter-20261014-v1/);
   assert.match(html, /災害予測や避難推奨ではありません/);
   assert.match(viewSource, /mapTourPause/);
   assert.match(viewSource, /prefers-reduced-motion: reduce/);
@@ -2466,7 +2466,7 @@ nagoya.scenarios = [{
   assert.match(page,/id="mapDDecisionFilter"/);
   assert.match(page,/value="classified"/);
   assert.match(page,/value="unclassified"/);
-  assert.match(page,/unified-place-card-20261014-v1/);
+  assert.match(page,/anchored-point-bubble-20261014-v1/);
   assert.match(css,/\.shelter-icon\.d-status-unknown/);
   assert.match(css,/\.d-facility-cluster\.d-status-mixed/);
   console.log("D flood assessment display-only filter and legend: OK");
