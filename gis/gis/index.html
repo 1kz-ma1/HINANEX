@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="css/evidence_replay.css?v=spatial-evidence-20261014-v2">
   <link rel="stylesheet" href="css/presentation_story.css?v=presenter-55s-20261014-v1">
   <link rel="stylesheet" href="css/filter_demo.css?v=d-source-criteria-20261014-v1">
+  <link rel="stylesheet" href="css/gsi_flood_demo.css?v=verified-gsi-flood-20261014-v1">
 </head>
 <body>
 <header class="header">
@@ -229,8 +230,15 @@
         <div><strong>ガイド付きデモ</strong><p>取得済み施設データと未確認事項を順番に紹介します。</p></div>
         <button id="mapTourClose" type="button" aria-label="ガイド付きデモを閉じる">×</button>
       </div>
+      <div class="map-tour-gsi-cta" aria-label="公式洪水指定に基づく本番デモ">
+        <span>MAIN DEMO / GSI公式指定緊急避難場所</span>
+        <strong>洪水の公式指定 → 掲載地点 → 出典 → 未判定との違い</strong>
+        <button id="mapGsiFloodDemoOpen" type="button" aria-controls="gsiFloodDemoPanel"
+          aria-expanded="false">▶ 50秒：洪水の指定がある場所を公式データで確認</button>
+        <p>GSIの検証済み洪水用データを使います。避難先の推奨や、D施設への同一建物判定はしません。</p>
+      </div>
       <div class="map-tour-filter-cta" aria-label="実データを条件で絞り込む発表デモ">
-        <span>MAIN DEMO / 現在のDデータ</span>
+        <span>参考：D施設の属性絞り込み</span>
         <strong>条件で抽出 → 地図で確認 → 元データと照合</strong>
         <button id="mapFilterDemoOpen" type="button" aria-controls="filterDemoPanel" aria-expanded="false">▶ 52秒：施設を条件で絞り込んで確認する</button>
         <p>確認済み施設の属性で絞り込みます。安全な避難先を自動選定する機能ではありません。</p>
@@ -368,6 +376,64 @@
         <p class="story-footnote">T0は機械照合でありC人手承認前。T1は比較不可。③は合成負系テスト。実災害の予測精度・避難先の安全性は示しません。</p>
       </div>
       <p id="storyLoadStatus" class="story-loading" role="status">正本データの読み込みを確認しています。</p>
+    </section>
+    <section id="gsiFloodDemoPanel" class="gsi-demo-panel" role="region"
+      aria-label="GSI公式洪水指定の根拠を確認する発表デモ" hidden>
+      <div class="gsi-demo-top">
+        <div><span>HINANEX / VERIFIED GSI SOURCE</span>
+          <strong>「洪水」の指定を、出典から確かめる。</strong></div>
+        <button id="gsiFloodDemoClose" type="button" aria-label="洪水指定デモを閉じる">×</button>
+      </div>
+      <p id="gsiFloodDemoStatus" role="status" aria-live="polite">検証済みの公式データを確認しています。</p>
+      <div id="gsiFloodDemoContent" hidden>
+        <div class="gsi-demo-step">
+          <span id="gsiFloodDemoPhase">01 / 05</span>
+          <strong id="gsiFloodDemoClock">7秒</strong>
+        </div>
+        <h2 id="gsiFloodDemoTitle"></h2>
+        <p id="gsiFloodDemoMessage"></p>
+        <div class="gsi-demo-source-count">
+          <div><span>GSI検証済みタイル内の掲載地点</span>
+            <strong id="gsiFloodDemoCount">—</strong></div>
+          <div><span>今回表示する公式掲載地点</span>
+            <strong id="gsiFloodDemoShown">—</strong></div>
+        </div>
+        <div id="gsiFloodDemoFilter" class="gsi-demo-filter">
+          <span>確認する条件（GSI公式属性）</span>
+          <strong>指定緊急避難場所 / 洪水</strong>
+          <div><span>データ層</span><b>skhb01</b></div>
+          <div><span>原データ</span><b>disaster1 = 1</b></div>
+        </div>
+        <section id="gsiFloodDemoEvidence" class="gsi-demo-evidence" hidden>
+          <span>公式掲載データの具体例</span>
+          <h3 id="gsiFloodDemoName"></h3>
+          <dl>
+            <div><dt>指定の原属性</dt><dd>disaster1 = 1（洪水）</dd></div>
+            <div><dt>住所（公式原文）</dt><dd id="gsiFloodDemoAddress"></dd></div>
+            <div><dt>元データの行</dt><dd id="gsiFloodDemoTrace"></dd></div>
+            <div><dt>読み込んだ範囲</dt><dd id="gsiFloodDemoCoverage"></dd></div>
+          </dl>
+          <a id="gsiFloodDemoOfficial" target="_blank" rel="noopener noreferrer"
+            hidden>GSI公式GeoJSONを確認 ↗</a>
+        </section>
+        <section id="gsiFloodDemoContrast" class="gsi-demo-contrast" hidden>
+          <strong>GSIの公式指定と、D施設の未判定は別の情報</strong>
+          <p id="gsiFloodDemoDStatus"></p>
+          <p>同じ名前・近い座標だけで、GSI地点とD施設を同一建物とは判断しません。</p>
+        </section>
+        <section id="gsiFloodDemoFuture" class="gsi-demo-future" hidden>
+          <strong>今できること：公式の指定を出典まで確認</strong>
+          <p>将来は災害の状況、施設の条件や開設情報を接続して、避難先の選定支援へ発展させる。</p>
+        </section>
+        <p class="gsi-demo-notice">公式掲載 ≠ 現在安全・開設中・避難推奨。掲載データは未更新・未掲載の場合があり、自治体の最新情報が優先です。未検証タイル・DのUNKNOWNは「該当施設なし」ではありません。</p>
+        <div class="gsi-demo-progress" aria-hidden="true"><span id="gsiFloodDemoProgress"></span></div>
+        <div class="gsi-demo-actions">
+          <button id="gsiFloodDemoPlay" type="button">▶ 再生</button>
+          <button id="gsiFloodDemoPause" type="button">一時停止</button>
+          <button id="gsiFloodDemoNext" type="button">次へ →</button>
+          <button id="gsiFloodDemoRestart" type="button">↺ 最初から</button>
+        </div>
+      </div>
     </section>
     <section id="filterDemoPanel" class="filter-demo-panel" role="region"
       aria-label="施設の条件抽出と根拠を確認する発表デモ" hidden>
@@ -533,13 +599,14 @@
 <script src="js/facility_list.js"></script>
 <!-- Discovery API remains v14; map UI-only consumer has a separate cache-busting key. -->
 <script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v14"></script>
-<script src="js/map.js?v=d-source-filter-presenter-20261014-v1"></script>
+<script src="js/map.js?v=gsi-flood-presenter-20261014-v2"></script>
 <script src="js/map_first_ui.js?v=map-first-20261009-v3"></script>
 <script src="js/audience_share.js?v=audience-share-20261010-v1"></script>
 <script src="js/guided_tour.js?v=guided-tour-three-region-comparison-20261013-v1"></script>
 <script src="js/evidence_replay.js?v=spatial-evidence-20261014-v2"></script>
 <script src="js/presentation_story.js?v=presenter-55s-20261014-v1"></script>
 <script src="js/filter_demo.js?v=d-source-criteria-20261014-v1"></script>
+<script src="js/gsi_flood_demo.js?v=verified-gsi-flood-20261014-v1"></script>
 <script src="js/evidence_sheet.js?v=evidence-sheet-20261010-v1"></script>
 </body>
 </html>

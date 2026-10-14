@@ -611,7 +611,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "d-source-filter-presenter-20261014-v1");
+  assert.equal(mapAsset[1], "gsi-flood-presenter-20261014-v2");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -808,6 +808,52 @@ nagoya.scenarios = [{
       hazard_dataset: "GSI_SKHB01_FLOOD"
     }]
   };
+  // Presentation uses ONLY already C/HTTPS-accepted GSI skhb01 tiles.
+  const gsiPresenterCase=makeContext({protocol:"http:",fetchImpl:async u=>
+    String(u).includes("gsi_verified_tiles/") ? {ok:false,status:404} :
+    String(u).includes("edogawa_flood_site_catalog.json") ? {ok:true,status:200,json:async()=>officialCatalog} :
+    String(u).endsWith("edogawa.json") ? {ok:true,status:200,json:async()=>edogawa} :
+    {ok:false,status:404}});
+  await new Promise(r=>setTimeout(r,0));
+  const gp=gsiPresenterCase.context.window.HINANEX_GSI_FLOOD_PRESENTER;
+  const savedCenter=gsiPresenterCase.L.__map.getCenter();
+  const result=await gp.begin();
+  assert.equal(result.state,"ready");
+  assert.equal(result.source,"GSI_SKHB01_FLOOD");
+  assert.equal(result.rawDisaster1,1);
+  assert.equal(result.total,1);
+  assert.equal(result.partial,true);
+  assert.equal(gsiPresenterCase.elements.facilityDisplayMode.value,"region");
+  assert.equal(gp.show().state,"shown");
+  assert.equal(gsiPresenterCase.elements.facilityDisplayMode.value,"nearby");
+  assert.equal(gsiPresenterCase.L.__map.hasLayer(gsiPresenterCase.L.__groups[3]),true);
+  const verifiedSite=gp.inspect();
+  assert.equal(verifiedSite.disaster1Raw,1);
+  assert.equal(verifiedSite.sourceTrace,"feature_index=0");
+  assert.match(verifiedSite.sourceUrl,/cyberjapandata[.]gsi[.]go[.]jp\/xyz\/skhb01/);
+  const dUnknown=gp.compareD();
+  assert.equal(dUnknown.state,"separate-source");
+  assert.equal(dUnknown.unclassified,2);
+  assert.equal(dUnknown.joinedWithGSI,false);
+  assert.equal(gsiPresenterCase.elements.facilityDisplayMode.value,"both");
+  gp.end(true);
+  assert.equal(gsiPresenterCase.elements.facilityDisplayMode.value,"region");
+  assert.equal(gsiPresenterCase.L.__groups[3].items.length,0);
+  assert.deepEqual(gsiPresenterCase.L.__map.getCenter(),savedCenter);
+  const badCatalog={...officialCatalog,
+    sites:officialCatalog.sites.map(s=>({...s,disaster1_raw:0}))};
+  const rejected=makeContext({protocol:"http:",fetchImpl:async u=>
+    String(u).includes("gsi_verified_tiles/") ? {ok:false,status:404} :
+    String(u).includes("edogawa_flood_site_catalog.json") ? {ok:true,status:200,json:async()=>badCatalog} :
+    String(u).endsWith("edogawa.json") ? {ok:true,status:200,json:async()=>edogawa} :
+    {ok:false,status:404}});
+  await new Promise(r=>setTimeout(r,0));
+  const rejectApi=rejected.context.window.HINANEX_GSI_FLOOD_PRESENTER;
+  assert.equal((await rejectApi.begin()).state,"unavailable");
+  assert.equal(rejected.L.__groups[3].items.length,0);
+  rejectApi.end(true);
+  console.log("Verified GSI flood presenter, D separation, and false-positive refusal: OK");
+
   const acceptedCase = makeContext({
     protocol: "http:",
     fetchImpl: async url => String(url).includes("gsi_verified_tiles/")
@@ -2327,7 +2373,7 @@ nagoya.scenarios = [{
   assert.match(page,/id="mapDDecisionFilter"/);
   assert.match(page,/value="classified"/);
   assert.match(page,/value="unclassified"/);
-  assert.match(page,/d-source-filter-presenter-20261014-v1/);
+  assert.match(page,/gsi-flood-presenter-20261014-v2/);
   assert.match(css,/\.shelter-icon\.d-status-unknown/);
   assert.match(css,/\.d-facility-cluster\.d-status-mixed/);
   console.log("D flood assessment display-only filter and legend: OK");
@@ -2403,3 +2449,4 @@ require("./guided_tour_compare.test.js");
  console.log("E condition-based D facility presenter true marker filter and source matching: OK");
 })().catch(e=>{console.error(e);process.exitCode=1;});
 require("./filter_demo.test.js");
+require("./gsi_flood_demo.test.js");
