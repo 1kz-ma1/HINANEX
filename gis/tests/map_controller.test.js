@@ -1064,7 +1064,7 @@ nagoya.scenarios = [{
   assert.match(pageSource, /map_first[.]css[?]v=guided-tour-three-region-comparison-20261013-v1/);
   assert.match(pageSource, /place_card[.]css[?]v=zoom-compact-popup-20261014-v1/);
   const dPinCss = fs.readFileSync(path.resolve(__dirname, "../gis/css/style.css"), "utf8");
-  assert.match(dPinCss, /\.leaflet-shelterPane-pane \.leaflet-marker-icon/);
+  assert.match(dPinCss, /\.leaflet-shelter-pane \.leaflet-marker-icon/);
   assert.match(dPinCss, /animation: hinanex-d-marker-appear 140ms ease-out both/);
   assert.match(dPinCss, /prefers-reduced-motion: reduce/);
   assert.doesNotMatch(dPinCss, /\.leaflet-marker-icon\s*\{\s*transform:scale/,
