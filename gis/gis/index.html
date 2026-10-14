@@ -179,7 +179,7 @@
       <button id="mapOriginShortcut" type="button">地図をクリックして探索</button>
       <p id="mapOriginShortcutStatus" role="status" aria-live="polite">ボタンを押してから地図をクリック</p>
 <button class="map-tool-action" id="mapScenarioSelectOrigin" type="button">地図上の地点を選択</button><p class="map-tool-note">災害条件・時間変化のシナリオは今後実装予定です。</p></div></details>
-      <details class="map-tool map-tool--marks" id="mapToolMarks"><summary><span class="map-tool-symbol" aria-hidden="true">⌖</span><span>マーク</span><span class="map-tool-arrow" aria-hidden="true">⌄</span></summary><div class="map-tool-panel"><label class="map-tool-check"><input id="mapShowShelter" type="checkbox" checked>表示範囲の地域の避難施設マーク</label><p class="map-tool-note">施設の表示切替は出典ごとに扱います。安全性・開設は未判定です。</p>      <label for="facilityDisplayMode" class="display-mode-label">地図に表示する施設</label>
+      <details class="map-tool map-tool--marks" id="mapToolMarks"><summary><span class="map-tool-symbol" aria-hidden="true">⌖</span><span>マーク</span><span class="map-tool-arrow" aria-hidden="true">⌄</span></summary><div class="map-tool-panel"><label class="map-tool-check"><input id="mapShowShelter" type="checkbox" checked>表示範囲の避難施設マーク</label><p class="map-tool-note">施設の表示切替は出典ごとに扱います。安全性・開設は未判定です。</p>      <label for="facilityDisplayMode" class="display-mode-label">地図に表示する施設</label>
       <select id="facilityDisplayMode" aria-label="表示する施設データ">
         <option value="region">地域の避難施設</option>
         <option value="nearby">選択地点周辺のGSI公式掲載</option>
@@ -217,12 +217,12 @@
       <dl class="map-evidence-facts">
         <div><dt>選択中の地域</dt><dd id="mapEvidenceRegion">—</dd></div>
         <div><dt>施設データ（取得レコード）</dt><dd id="mapEvidenceD">未読込</dd></div>
-        <div><dt>地域の避難施設の元座標</dt><dd id="mapEvidenceCoordinate">未確認</dd></div>
+        <div><dt>避難施設の元データの座標</dt><dd id="mapEvidenceCoordinate">未確認</dd></div>
         <div><dt>GSI公式掲載地点</dt><dd id="mapEvidenceGSI">地点未指定・未照合</dd></div>
         <div><dt>洪水浸水想定ラスタ</dt><dd id="mapEvidenceFlood">表示状況を確認中</dd></div>
       </dl>
       <p id="mapEvidenceViewport" class="map-evidence-viewport">閲覧範囲に応じた施設データの確認状況は未取得です。</p>
-      <p class="map-evidence-warning">地域の避難施設とGSI公式掲載地点は別情報源です。取得件数は網羅数ではありません。元座標がない施設は地図に置きません。タイル未取得・施設が見えないことは安全を意味しません。</p>
+      <p class="map-evidence-warning">地域の避難施設と国土地理院の公式掲載地点は別情報源です。取得件数は網羅数ではありません。元座標がない施設は地図に置きません。タイル未取得・施設が見えないことは安全を意味しません。</p>
       <p class="map-evidence-warning">洪水時の安全性、現在の開設状況、避難経路や公式データの未確認条件は評価していません。個別施設の元情報は地図マークから確認できます。</p>
       <a class="map-evidence-details-link" href="../../frontend/" target="_blank" rel="noopener noreferrer">詳しい分析・根拠を見る ↗</a>
     </section>
@@ -239,7 +239,7 @@
         <p>国土地理院の検証済み洪水用データを使います。避難先の推奨や、地域の避難施設への同一建物判定はしません。</p>
       </div>
       <div class="map-tour-filter-cta" aria-label="実データを条件で絞り込む発表デモ">
-        <span>参考：地域の避難施設の属性絞り込み</span>
+        <span>参考：施設の属性絞り込み</span>
         <strong>条件で抽出 → 地図で確認 → 元データと照合</strong>
         <button id="mapFilterDemoOpen" type="button" aria-controls="filterDemoPanel" aria-expanded="false">▶ 52秒：施設を条件で絞り込んで確認する</button>
         <p>確認済み施設の属性で絞り込みます。安全な避難先を自動選定する機能ではありません。</p>
@@ -280,7 +280,7 @@
       <p class="map-tour-caution">発表用の閲覧演出です。安全な避難先・現在の開設状況・災害進行を示すものではありません。手動で地図を動かすと停止できます。</p>
     </section>
     <div id="mapEvidenceReplayMapLabel" class="replay-map-label" role="note" hidden>
-      <strong>現行地域の避難施設の位置（参考表示）</strong>
+      <strong>現在の地域施設の位置（参考表示）</strong>
       <span id="mapEvidenceReplayMapLabelText">位置情報を取得していません。</span>
       <small>2019年に利用された避難先の位置ではありません。</small>
     </div>
@@ -288,7 +288,7 @@
       <div class="evidence-replay__head">
         <div><p class="replay-kicker">2019 TYPHOON 19 / EDOGAWA / EVIDENCE WALKTHROUGH</p>
           <h2 id="replayHeading">検証の過程を、地図上で見る。</h2>
-          <p id="replaySafety">江戸川区の現行地域の避難施設へ地図を移動し、2019年の公式資料と独立監査を段階的に説明します。<strong>現行施設の場所は当日の避難先とは限りません。</strong>災害進行や予測精度の再現ではありません。</p>
+          <p id="replaySafety">江戸川区の現在の地域施設へ地図を移動し、2019年の公式資料と独立監査を段階的に説明します。<strong>現行施設の場所は当日の避難先とは限りません。</strong>災害進行や予測精度の再現ではありません。</p>
         </div>
         <button id="mapEvidenceReplayClose" type="button" aria-label="検証デモを閉じる">×</button>
       </div>
@@ -315,7 +315,7 @@
         <div class="replay-finding"><strong id="mapEvidenceReplayFinding"></strong><p id="mapEvidenceReplayTakeaway"></p></div>
         <div class="replay-spatial-info" role="note">
           <strong>地図で実際に表示しているデータ</strong>
-          <p id="mapEvidenceReplayMapStatus" role="status" aria-live="polite">現行地域の避難施設の確認状況を取得中。</p>
+          <p id="mapEvidenceReplayMapStatus" role="status" aria-live="polite">現在の地域施設の確認状況を取得中。</p>
           <small>現在の施設情報の位置だけを参考表示。2019年当日に使用した建物の確定数は0件。避難先・安全性・開設を保証しません。</small>
         </div>
         <div class="replay-sources"><strong>原本・独立した検証の証拠</strong><div id="mapEvidenceReplaySources"></div>
@@ -389,7 +389,7 @@
       <section id="gsiFloodDemoFallback" class="gsi-demo-fallback" aria-label="公式データ未確認時の代替案" hidden>
         <strong>公式の洪水指定は、現在の配信データでは確認できません</strong>
         <p id="gsiFloodDemoFallbackReason">未確認の指定情報を表示しません。</p>
-        <button id="gsiFloodDemoFallbackD" type="button">地域の避難施設の属性絞り込みデモを見る（公式洪水指定ではありません） →</button>
+        <button id="gsiFloodDemoFallbackD" type="button">施設の属性絞り込みデモを見る（公式洪水指定ではありません） →</button>
       </section>
       <div id="gsiFloodDemoContent" hidden>
         <div class="gsi-demo-step">
@@ -425,7 +425,7 @@
         <section id="gsiFloodDemoContrast" class="gsi-demo-contrast" hidden>
           <strong>国土地理院の公式指定と、地域の避難施設の未判定は別の情報</strong>
           <p id="gsiFloodDemoDStatus"></p>
-          <p>同じ名前・近い座標だけで、GSI地点と地域の避難施設を同一建物とは判断しません。</p>
+          <p>同じ名前・近い座標だけで、公式掲載地点と地域の避難施設を同一建物とは判断しません。</p>
         </section>
         <section id="gsiFloodDemoFuture" class="gsi-demo-future" hidden>
           <strong>今できること：公式の指定を出典まで確認</strong>

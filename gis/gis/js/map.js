@@ -644,7 +644,7 @@ function applyDisplayMode() {
       : displayMode === "nearby"
         ? "選択地点周辺で確認済みの公式掲載地点だけを表示。安全性・開設は未判定。"
         : !hasMappedD
-          ? "地域の避難施設の位置情報が未読込・座標欠損のため比較範囲を表示できません。GSIは別データです。"
+          ? "地域施設の位置情報が未読込・座標欠損のため比較範囲を表示できません。GSIは別データです。"
           : "地域の避難施設（緑）と公式掲載地点（紫）を比較。異なる出典の情報です。";
   const focusButton = document.getElementById("focusReferenceTiles");
   focusButton.textContent = displayMode === "both"
@@ -1287,7 +1287,7 @@ function renderViewportD() {
   const loading = viewportDLoading.size;
   const failures = viewportDFailed.size;
   badge.textContent = activeTotal
-    ? "表示範囲の地域施設：" + counts.join(" / ") + "（開設・安全性未判定）"
+    ? "表示範囲の避難施設：" + counts.join(" / ") + "（開設・安全性未判定）"
     : "表示範囲：座標を確認できた施設は未表示（未収録・未取得を含む）";
   if (document.getElementById("mapDDecisionFilter").value !== "all") {
     badge.textContent += "｜洪水対応分類で絞込中（非表示＝施設なしではありません）";
