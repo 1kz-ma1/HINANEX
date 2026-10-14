@@ -130,6 +130,7 @@ const RASTER_HOLD_MAX_MS = 1100;
 const FLOOD_RASTER_HOLD_MAX_MS = 650;
 const RASTER_FADE_MS = 120;
 let retainedRaster = [];
+let committingWheelZoom = false;
 function discardRetainedRaster() {
   for (const entry of retainedRaster.splice(0)) {
     clearTimeout(entry.maxTimer);
@@ -287,7 +288,9 @@ function flushSingleTargetWheel() {
     }
   });
   retainUntilRasterReady(previews);
-  map.setZoomAround(point, targetZoom, {animate: false});
+  committingWheelZoom = true;
+  try { map.setZoomAround(point, targetZoom, {animate: false}); }
+  finally { committingWheelZoom = false; }
   alignRetainedRaster();
   if (debugMapPerf && startedAt !== null) {
     console.info("[HINANEX map perf] wheel intent-to-commit", {
@@ -324,7 +327,9 @@ if (singleTargetWheel) {
   // If another camera gesture begins before the wheel settles, discard the
   // stale preview instead of overwriting the newer move with an old zoom.
   map.on("dragstart", clearPendingWheel);
-  map.on("zoomstart", clearPendingWheel);
+  map.on("zoomstart", () => {
+    if (!committingWheelZoom) clearPendingWheel();
+  });
 }
 function getGesturePrefs() {
   return { ...gesturePrefs };
