@@ -611,7 +611,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "gsi-flood-presenter-20261014-v2");
+  assert.equal(mapAsset[1], "gsi-flood-origin-20261014-v3");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -816,8 +816,14 @@ nagoya.scenarios = [{
     {ok:false,status:404}});
   await new Promise(r=>setTimeout(r,0));
   const gp=gsiPresenterCase.context.window.HINANEX_GSI_FLOOD_PRESENTER;
+  // Simulates the supplied screenshot: map moved far west although Edogawa
+  // is selected. Presenter must use an actual D source coordinate instead.
+  gsiPresenterCase.L.__map.setView([35.4,138.7],8);
   const savedCenter=gsiPresenterCase.L.__map.getCenter();
   const result=await gp.begin();
+  assert.deepEqual(Array.from(gsiPresenterCase.L.__map.lastPointFly.latlng),[35.70,139.88],
+    "presentation origin must be a verified regional D point, never the map center");
+  assert.equal(gsiPresenterCase.L.__map.lastPointFly.zoom,12);
   assert.equal(result.state,"ready");
   assert.equal(result.source,"GSI_SKHB01_FLOOD");
   assert.equal(result.rawDisaster1,1);
@@ -842,6 +848,14 @@ nagoya.scenarios = [{
   assert.deepEqual(gsiPresenterCase.L.__map.getCenter(),savedCenter);
   const badCatalog={...officialCatalog,
     sites:officialCatalog.sites.map(s=>({...s,disaster1_raw:0}))};
+  const noRegionalD=makeContext({protocol:"http:",fetchImpl:async u=>
+    ({ok:false,status:404})});
+  await new Promise(r=>setTimeout(r,0));
+  const missingPoint=await noRegionalD.context.window.HINANEX_GSI_FLOOD_PRESENTER.begin();
+  assert.equal(missingPoint.state,"unavailable");
+  assert.equal(missingPoint.reason,"NO_REGION_SOURCE_POINT");
+  assert.equal(noRegionalD.L.__map.lastPointFly,undefined,
+    "without a regional source point, do not fly to a guessed location");
   const rejected=makeContext({protocol:"http:",fetchImpl:async u=>
     String(u).includes("gsi_verified_tiles/") ? {ok:false,status:404} :
     String(u).includes("edogawa_flood_site_catalog.json") ? {ok:true,status:200,json:async()=>badCatalog} :
@@ -2373,7 +2387,7 @@ nagoya.scenarios = [{
   assert.match(page,/id="mapDDecisionFilter"/);
   assert.match(page,/value="classified"/);
   assert.match(page,/value="unclassified"/);
-  assert.match(page,/gsi-flood-presenter-20261014-v2/);
+  assert.match(page,/gsi-flood-origin-20261014-v3/);
   assert.match(css,/\.shelter-icon\.d-status-unknown/);
   assert.match(css,/\.d-facility-cluster\.d-status-mixed/);
   console.log("D flood assessment display-only filter and legend: OK");
