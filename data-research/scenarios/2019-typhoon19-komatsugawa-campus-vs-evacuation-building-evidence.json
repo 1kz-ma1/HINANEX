@@ -1,0 +1,105 @@
+{
+  "schema_id": "hinanex.a.2019_komatsugawa_shelter_building_link_v0.1",
+  "case_id": "2019-typhoon19-edogawa",
+  "researched_on": "2026-10-13",
+  "evidence_state": "MULTIPLE_OFFICIAL_SOURCES__ACTUAL_EVENT_SHELTER_BUILDING_UNKNOWN",
+  "sources": [
+    {
+      "id": "campus2019",
+      "role": "SCHOOL_CAMPUS_OPERATIONS_REFERENCE",
+      "url": "https://www.city.edogawa.tokyo.jp/e071/kosodate/kyoiku/kyouiku/shiryo/keikaku/kaichiku/komanichu.html",
+      "source_raw_sha256": "542d615df1df07139c37eab45d65e0ea3e4ac87783e868471f79746702a673df",
+      "c_machine_audit_run": 38350260260,
+      "source_displayed_date": "2019-03-01",
+      "historical_asof_source_version_approved": false,
+      "verified_disaster_shelter_site": false
+    },
+    {
+      "id": "newsletter2018",
+      "role": "PRE_EVENT_SCHOOL_NAMES_REFERENCE",
+      "url": "https://www.city.edogawa.tokyo.jp/documents/26598/300820.pdf",
+      "source_raw_sha256": "c44db027ac7d75444a5684e0a1c37973c6c6dc50fbe9974374c566713c219e33",
+      "c_machine_audit_run": 38349472925,
+      "source_displayed_date": "2018-08-20",
+      "historical_asof_source_version_approved": false,
+      "verified_disaster_shelter_site": false
+    },
+    {
+      "id": "afteraction2020",
+      "role": "POST_EVENT_OPERATIONAL_TRUTH",
+      "url": "https://www.city.edogawa.tokyo.jp/documents/17316/19matome.pdf",
+      "source_raw_sha256": "89fc7de1810685aaf48a5c6fd6f4c79d6888e1ffb3d6314756fa5665d652b380",
+      "c_machine_audit_run": 38344307696,
+      "source_report_date": "2020-01",
+      "historical_asof_source_version_approved": false,
+      "verified_disaster_shelter_site": false
+    },
+    {
+      "id": "posteventmanual",
+      "role": "LATER_REVISED_EQUIPMENT_ROSTER_ONLY",
+      "url": "https://www.city.edogawa.tokyo.jp/documents/557/hinanjo.pdf",
+      "source_raw_sha256": null,
+      "source_revision_history_known": [
+        "2017-12",
+        "2020-11",
+        "2022-03"
+      ],
+      "source_original_retrieved": false,
+      "c_machine_audit_run": null,
+      "historical_asof_source_version_approved": false,
+      "verified_disaster_shelter_site": false,
+      "note": "Search-index snippet lists school No.2 and nighttime No.3 in 2022 revised manual. Host direct retrieval not successfully verified; cannot backdate listed facilities/equipment to October 2019."
+    },
+    {
+      "id": "schoolhistorylater",
+      "role": "POST_EVENT_SCHOOL_BUILDING_LINEAGE_CONTEXT",
+      "url": "https://edogawa.schoolweb.ne.jp/1320032/page/frm4cd26abc60641",
+      "source_raw_sha256": null,
+      "source_original_retrieved": false,
+      "archive_status": "WEB_INDEX_ONLY",
+      "historical_asof_source_version_approved": false,
+      "verified_disaster_shelter_site": false,
+      "note": "Official later school history says old Hirai campus was at 平井3丁目20番1号, but does not establish building used by 11 evacuees in October 2019."
+    }
+  ],
+  "observations": [
+    {
+      "id": "ordinary_205",
+      "source": "afteraction2020",
+      "operational_group": "junior_high:02",
+      "printed_name": "小松川第二中学校",
+      "reported_evacuees": 205,
+      "confirmed_2019_shelter_building_id": null,
+      "confirmed_2019_shelter_address": null,
+      "building_site_pair_approved": false
+    },
+    {
+      "id": "night_11",
+      "source": "afteraction2020",
+      "operational_group": "junior_high:02",
+      "printed_name": "小松川第二中学校【夜間】",
+      "reported_evacuees": 11,
+      "confirmed_2019_shelter_building_id": null,
+      "confirmed_2019_shelter_address": null,
+      "building_site_pair_approved": false
+    }
+  ],
+  "distinct_operational_detail_count": 2,
+  "source_operational_group_count": 1,
+  "stated_school_campus_relation": {
+    "normal_district": "小松川2丁目",
+    "normal_street_address": "小松川2丁目10番2号",
+    "night_district": "平井3丁目",
+    "night_street_address": null,
+    "verified_actual_event_shelter_use": false
+  },
+  "evidence_needed_to_approve_actual_building_pair": [
+    "2019-10-12 individual shelter opening log naming campus/building",
+    "building-level shelter use or occupant routing contemporaneous trace tied to regular/night detail row",
+    "C human validation of authentic original revision and facility building IDs"
+  ],
+  "historical_asof_input_approvals": 0,
+  "physical_event_shelter_site_pairs_approved": 0,
+  "predictive_match_mismatch_cases": 0,
+  "manual_equipment_data_used_for_2019": false
+}
