@@ -193,6 +193,27 @@ test("pause while pending cancels stale result, next step is manually selectable
   assert.ok(a.calls.halt >= 2);
 });
 
+test("manual pan, wheel and toolbar interaction continue the guided tour", async () => {
+  const a=mount();
+  a.get("mapTourOpen").click();
+  a.get("mapTourStart").click();
+  await flush();
+  assert.equal(a.timers.size,1);
+  a.get("map").fire("wheel");
+  a.get("map").fire("pointerdown");
+  a.get("mapToolScene").open=true;
+  a.get("mapToolScene").fire("toggle");
+  assert.equal(a.timers.size,1,"the step's clock keeps running");
+  assert.equal(a.get("mapTourPanel").hidden,false);
+  assert.equal(a.get("mapTourProgress").textContent,"1 / 3｜再生中");
+  a.nextTimer();
+  await flush();
+  assert.equal(a.get("mapTourProgress").textContent,"2 / 3｜再生中");
+  a.get("mapTourStop").click();
+  assert.equal(a.calls.end.at(-1),false,
+    "manual camera adjustments must not be reverted on stop");
+});
+
 test("on-map evidence player replaces cross-tab link without altering three-region preview", () => {
   assert.match(html, /id="mapHistoricalEvidenceDemo" type="button"/);
   assert.match(html, /aria-controls="mapEvidenceReplayPanel"/);
