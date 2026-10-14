@@ -369,6 +369,11 @@ const PLACE_KIND_LABELS = Object.freeze({
 });
 const PLACE_FIELD_LABELS = Object.freeze({
   "ID": "施設ID", "raw行": "元データの記録位置",
+  "施設名（D原値）": "施設名（元データ）",
+  "住所（D原値）": "住所（元データ）",
+  "行政区域（D原値）": "行政区域（元データ）",
+  "施設区分（D原値）": "施設区分（元データ）",
+  "公式災害列（原文）": "公式資料の災害区分（原文）",
   "公式Source行": "出典の記録位置",
   "公式rawの記号": "公式資料の記号",
   "公式災害列": "公式資料の災害区分",
@@ -491,7 +496,7 @@ function renderFacilityList() {
       ["施設区分（D原値）", record.facility_type],
       ["元データ記載の災害（適合性未検証）", record.supported_disasters],
       ["座標", record.hasCoordinates ? "元データに座標あり" : "元データで未確認（推測表示なし）"],
-      ["洪水Scenario（D原値）", fact?.status ?? "Scenario情報なし"],
+      ["洪水Scenario（D原値）", fact?.status ?? "判定情報なし"],
       ["公式災害列（原文）", fact?.hazardScopeRaw],
       ["公式rawの記号", fact?.officialStatusRaw],
       ["利用階の原文", fact?.usableFloorRaw],
@@ -500,7 +505,7 @@ function renderFacilityList() {
       ["Dの判定理由", fact?.reason]
     ];
     const detailRows = fields.map(([label, value]) =>
-      `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(displayValue(value))}</dd>`
+      `<dt>${escapeHtml(PLACE_FIELD_LABELS[label] || label)}</dt><dd>${escapeHtml(displayValue(value))}</dd>`
     ).join("");
     const url = safeExternalUrl(fact?.sourceUrl || record.detail_url);
     const officialLink = url && url.startsWith("https:")
@@ -1393,7 +1398,7 @@ function presenterChooseCondition(summary) {
       const [value,records] = possible[0];
       return {
         kind:key, value,
-        label:(key === "facility_type" ? "施設区分（D原値）" : "行政区域（D原値）")+
+        label:(key === "facility_type" ? "施設区分（元データ）" : "行政区域（元データ）")+
           "が「"+value+"」",records
       };
     }
