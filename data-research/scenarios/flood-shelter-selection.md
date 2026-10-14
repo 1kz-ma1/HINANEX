@@ -411,3 +411,7 @@ Scenario
 - 名古屋：公式HTML更新日2026-10-07、一覧基準日2026-09-01。16区屋内が現行D scope、屋外は別データ。旧版と最新Excelの差分は推測しない。
 - 江戸川：既存 PARTIAL join、施設単位Source行未照合という制約は変更せず。
 - Aが算定するのはEvidenceであり、CANDIDATE/EXCLUDED/UNKNOWN、Capability、Gapの判定規則はD/C側の責務。
+
+## 12. 2026-10-10 判定可能な施設を増やすための根拠ゲート
+
+[2026-10-10公式根拠・施設照合ゲート](2026-10-10-flood-classification-unblock-plan.md) を参照。江戸川は水害時待避施設HTMLとD位置CSVの共通ID・住所未照合、新潟は同一行traceがあるがODS `災害種別_洪水` 列のraw記号を公式に解釈できない。現時点でA/D/Cの正式に承認済みの施設単位分類増加はゼロ。AのEvidence収集と、D評価・C独立受入を混同しない。
