@@ -936,6 +936,8 @@ function showRegionWaitingDetail() {
 }
 
 function clearShelters() {
+  // On data replacement an old point bubble must never masquerade as a new record.
+  map.closePopup?.();
   shelterGroup.clearLayers();
   shelterBounds = null;
   currentShelterSummary = null;
@@ -2014,6 +2016,7 @@ document.getElementById("useGps").addEventListener("click", () => {
 document.getElementById("resetView").addEventListener("click", fitCurrentRegion);
 document.getElementById("autoLoad").addEventListener("click", tryAutoLoad);
 regionSelect.addEventListener("change", event => {
+  map.closePopup?.();
   selectRegion(event.target.value);
   // Keep the deep-link's municipality consistent with the visible dropdown.
   // Only explicit region changes update the URL; map/GPS/coordinate queries
