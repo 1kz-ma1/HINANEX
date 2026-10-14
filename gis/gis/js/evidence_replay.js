@@ -133,6 +133,8 @@
     return data;
   }
 
+  window.HINANEX_VALIDATE_EVIDENCE = requireEvidence;
+
   function clearClock() {
     if (interval !== null) window.clearInterval(interval);
     interval = null;
