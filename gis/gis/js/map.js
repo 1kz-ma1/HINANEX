@@ -359,30 +359,67 @@ function displayValue(value, nullLabel = "不明 / 未確認") {
   return String(value);
 }
 
+// All source enums and raw values remain unchanged; these are presentation labels.
+const PLACE_KIND_LABELS = Object.freeze({
+  "D: shelter_location / raw facts": "地域の避難施設",
+  "D RegionExport": "地域の施設情報",
+  "GSI公式掲載 / 未推奨": "洪水に関する公式掲載地点",
+  "地図表示用クラスタ": "近接する施設",
+  "公的参照": "公的な洪水情報"
+});
+const PLACE_FIELD_LABELS = Object.freeze({
+  "ID": "施設ID", "raw行": "元データの記録位置",
+  "公式Source行": "出典の記録位置",
+  "公式rawの記号": "公式資料の記号",
+  "公式災害列": "公式資料の災害区分",
+  "洪水Scenario（D原値）": "洪水対応の確認状態",
+  "Dの判定理由": "判定の根拠",
+  "元データ記載の災害（適合性未検証）": "資料に記載された災害種別",
+  "照合方式": "情報の照合方法",
+  "Contract": "データ形式"
+});
+const PLACE_PRIORITY_FIELDS = new Set([
+  "住所", "公式住所", "種別", "洪水対応分類",
+  "直線距離（経路距離ではない）", "件数", "表示", "位置", "状態"
+]);
 function detail(title, rows, type, options = {}) {
-  const badgeClass = options.badgeClass ? ` ${options.badgeClass}` : "";
-  const noteClass = options.noteTone ? ` ${options.noteTone}` : "";
-  const safeRows = rows.map(([label, value]) =>
-    `<div class="row"><div class="label">${escapeHtml(label)}</div><div class="value">${escapeHtml(value)}</div></div>`
+  const badgeClass = options.badgeClass ? " " + options.badgeClass : "";
+  const noteClass = options.noteTone ? " " + options.noteTone : "";
+  const prominent = rows.filter(row => PLACE_PRIORITY_FIELDS.has(row[0])).slice(0, 4);
+  const summaryRows = prominent.length ? prominent : rows.slice(0, 3);
+  const extraRows = rows.filter(row => !summaryRows.includes(row));
+  const renderRows = entries => entries.map(([label, value]) =>
+    `<div class="row"><div class="label">${escapeHtml(PLACE_FIELD_LABELS[label] || label)}</div>` +
+    `<div class="value">${escapeHtml(displayValue(value))}</div></div>`
   ).join("");
+  const disclosure = extraRows.length
+    ? `<details class="place-card-disclosure"><summary>詳しい情報を見る（${extraRows.length}項目）</summary>` +
+      `<div class="place-card-extra">${renderRows(extraRows)}</div></details>`
+    : "";
   const note = options.note
-    ? `<div class="note${noteClass}">${escapeHtml(options.note)}</div>`
+    ? `<details class="place-card-disclosure"><summary>注意事項と確認範囲</summary>` +
+      `<p class="note${noteClass}">${escapeHtml(options.note)}</p></details>`
     : "";
   const safeHref = safeExternalUrl(options.href);
   const externalLink = safeHref
-    ? `<a class="detail-link" href="${escapeHtml(safeHref)}" target="_blank" rel="noopener noreferrer">公式詳細を開く</a>`
+    ? `<a class="detail-link" href="${escapeHtml(safeHref)}" target="_blank" rel="noopener noreferrer">公式の出典を確認 ↗</a>`
     : "";
-
+  const showSafetyCaveat = type === "D: shelter_location / raw facts" ||
+    type === "GSI公式掲載 / 未推奨";
+  const caution = showSafetyCaveat
+    ? `<p class="place-card-caution">安全性・現在の開設状況は確認できていません。</p>`
+    : "";
+  const visibleType = PLACE_KIND_LABELS[type] || type;
   document.getElementById("details").innerHTML =
-    `<span class="badge${badgeClass}">${escapeHtml(type)}</span>` +
-    `<h2 class="detail-title">${escapeHtml(title)}</h2>` + safeRows + externalLink + note;
-  // Map-first presentation only: background dataset summaries remain
-  // collapsed, but a marker/origin/raster selection reveals the detail sheet.
+    `<span class="badge${badgeClass}">${escapeHtml(visibleType)}</span>` +
+    `<h2 class="detail-title">${escapeHtml(title)}</h2>` +
+    `<div class="place-card-summary">${renderRows(summaryRows)}</div>` +
+    caution + externalLink + disclosure + note;
+  // Dataset summaries are informational; a map selection reveals the card.
   if (type !== "D RegionExport" && type !== "地域切替") {
     window.HINANEX_MAP_FIRST_UI?.showDetail?.();
   }
 }
-
 function shelterIcon(decision = "UNKNOWN") {
   const safeClass = decision === "CANDIDATE" ? "d-status-candidate" :
     decision === "EXCLUDED" ? "d-status-excluded" : "d-status-unknown";
@@ -453,7 +490,7 @@ function renderFacilityList() {
       ["行政区域（D原値）", record.administrative_area],
       ["施設区分（D原値）", record.facility_type],
       ["元データ記載の災害（適合性未検証）", record.supported_disasters],
-      ["座標", record.hasCoordinates ? "Dに元座標あり" : "元データで未確認（推測表示なし）"],
+      ["座標", record.hasCoordinates ? "元データに座標あり" : "元データで未確認（推測表示なし）"],
       ["洪水Scenario（D原値）", fact?.status ?? "Scenario情報なし"],
       ["公式災害列（原文）", fact?.hazardScopeRaw],
       ["公式rawの記号", fact?.officialStatusRaw],
@@ -496,14 +533,14 @@ function setFacilityListMode(summary) {
   selectOriginButton.disabled = active;
   mapOriginShortcut.disabled = active;
   selectOriginButton.textContent = active
-    ? "D施設の地図位置は未確認（地図選択不可）"
+    ? "施設の地図位置は未確認（地図選択不可）"
     : "地図から出発地点を指定";
   if (active) {
     choosingOrigin = false;
-    updateMapOriginAction("選択地域のD施設は座標未確認です。施設一覧で名前・住所を確認してください。");
+    updateMapOriginAction("選択地域の施設は座標未確認です。施設一覧で名前・住所を確認してください。");
     if (!selectedOrigin) {
       document.getElementById("originStatus").textContent =
-        "選択地域のD施設は地図位置を確認できません。地図をクリックして選択する操作は使えません。施設一覧を利用してください。";
+        "選択地域の施設の地図位置を確認できません。地図をクリックして選択する操作は使えません。施設一覧を利用してください。";
     }
   }
   if (active) renderFacilityList();
@@ -561,7 +598,7 @@ function verifiedTileBounds(key) {
 
 function updateDReferenceButton() {
   document.getElementById("toggleDMarkers").textContent =
-    displayMode === "both" ? "周辺のGSIだけ表示" : "地域Dと比較";
+    displayMode === "both" ? "公式掲載地点だけ表示" : "地域の避難施設と比較";
 }
 
 function applyDisplayMode() {
@@ -603,12 +640,12 @@ function applyDisplayMode() {
   document.getElementById("facilityDisplayMode").value = displayMode;
   document.getElementById("facilityDisplayModeDescription").textContent =
     displayMode === "region"
-      ? "選択地域のD施設を表示。GSIの照合結果は地図で非表示（再切替で復帰）。"
+      ? "地域の避難施設を表示。GSIの照合結果は地図で非表示（再切替で復帰）。"
       : displayMode === "nearby"
         ? "選択地点周辺の検証済みGSI掲載地点だけを表示。安全性・開設は未判定。"
         : !hasMappedD
-          ? "選択地域Dの位置情報が未読込・座標欠損のため比較範囲を表示できません。GSIは別データです。"
-          : "選択地域D（緑）と選択地点周辺GSI（紫）を比較。異なる出典の情報です。";
+          ? "地域の避難施設の位置情報が未読込・座標欠損のため比較範囲を表示できません。GSIは別データです。"
+          : "地域の避難施設（緑）と公式掲載地点（紫）を比較。異なる出典の情報です。";
   const focusButton = document.getElementById("focusReferenceTiles");
   focusButton.textContent = displayMode === "both"
     ? "緑と紫を一緒に見る" : "選択地点と5件を見る";
@@ -695,6 +732,8 @@ function renderReferenceMap(discovery) {
       })
     }).bindPopup(popup).on("click", event => {
       L.DomEvent.stopPropagation(event);
+      // Avoid showing the Leaflet popup and a second information card together.
+      event.target?.closePopup?.();
       detail(site.name, [
         ["出典", "GSI skhb01 洪水指定緊急避難場所（参照のみ）"],
         ["直線距離（経路距離ではない）", site.distanceMetres + "m"],
@@ -1093,11 +1132,11 @@ function drawDClusterMarker(records, regionLabel = currentRegion().label,
   const count = records.length;
   return L.marker([latitude, longitude], {
     pane: "shelterPane",
-    title: "近接するD施設" + count + "件（地図表示用の集合、優先順位ではありません）",
+    title: "近接する施設" + count + "件（地図表示用の集合、優先順位ではありません）",
     icon: L.divIcon({
       className: "",
       html: '<div class="d-facility-cluster ' + className +
-        '" aria-label="近接するD施設' + count + '件。洪水対応分類済み' + classified +
+        '" aria-label="近接する施設' + count + '件。洪水対応分類済み' + classified +
         '件・未判定' + unknown + '件。地図表示用の集合、安全性未判定">' +
         count.toLocaleString("ja-JP") + '</div>',
       iconSize: [42, 42],
@@ -1105,9 +1144,9 @@ function drawDClusterMarker(records, regionLabel = currentRegion().label,
     })
   }).on("click", event => {
     L.DomEvent.stopPropagation(event);
-    detail("D施設の表示上の集合（" + count + "件）", [
+    detail("施設の表示上の集合（" + count + "件）", [
       ["件数", count + "件（地図上の重なりを軽減するための表示件数）"],
-      ["対象", regionLabel + "のD RegionExport"],
+      ["対象", regionLabel + "の施設データ"],
       ["表示位置", "含まれる施設座標の平均値（実在する施設位置ではありません）"],
       ["洪水対応分類", "分類済み " + classified + "件／未判定 " + unknown + "件"]
     ], "地図表示用クラスタ", {
@@ -1248,12 +1287,12 @@ function renderViewportD() {
   const loading = viewportDLoading.size;
   const failures = viewportDFailed.size;
   badge.textContent = activeTotal
-    ? "表示範囲のD施設：" + counts.join(" / ") + "（開設・安全性未判定）"
-    : "表示範囲：確認済み座標のD施設は未表示（未収録・未取得を含む）";
+    ? "表示範囲の地域施設：" + counts.join(" / ") + "（開設・安全性未判定）"
+    : "表示範囲：座標を確認できた施設は未表示（未収録・未取得を含む）";
   if (document.getElementById("mapDDecisionFilter").value !== "all") {
     badge.textContent += "｜洪水対応分類で絞込中（非表示＝施設なしではありません）";
   }
-  if (loading) badge.textContent += "｜他地域のDデータ確認中";
+  if (loading) badge.textContent += "｜他地域の施設データ確認中";
   if (failures) badge.textContent += "｜未取得 " + failures + "地域";
   // A second official GSI legend has priority on small screens.
   badge.hidden = !viewportTriggered || displayMode === "nearby" ||
@@ -1694,7 +1733,7 @@ function renderShelterSummary(summary, sourceLabel) {
   setFacilityListMode(listOnly ? summary : null);
 
   const missing = summary.missingCoordinateRecords.length;
-  updateDatasetChip("D出力読込済", "ok");
+  updateDatasetChip("施設データ読込済", "ok");
   setDatasetStatus(
     `${sourceLabel}｜RegionExport ${summary.schemaVersion}｜records ${summary.records.length}件 / 地図表示 ${summary.mappableRecords.length}件 / 座標欠損 ${missing}件`,
     missing > 0 ? "warning" : "success"
@@ -1703,8 +1742,8 @@ function renderShelterSummary(summary, sourceLabel) {
     listOnly
       ? `座標未確認のため施設一覧を表示中（${summary.records.length}件）。安全・開設状況は判定していません。`
       : missing > 0
-        ? `D避難所を表示中｜${missing}件は座標欠損のため地図非表示（件数は保持）`
-        : `D避難所を${summary.mappableRecords.length}件表示中`,
+        ? `避難施設を表示中｜${missing}件は座標欠損のため地図非表示（件数は保持）`
+        : `避難施設を${summary.mappableRecords.length}件表示中`,
     missing > 0 ? "warning" : "success"
   );
 
@@ -1725,7 +1764,7 @@ function parseRegionExport(payload, sourceLabel) {
     updateCoverage(summary);
     updateDatasetChip("対象datasetなし", "warning");
     setDatasetStatus(`${sourceLabel}｜shelter_location dataset がありません`, "warning");
-    setStatus("D出力内に shelter_location dataset がありません", "warning");
+    setStatus("この地域の施設情報を確認できません", "warning");
     detail(
       summary.region.name,
       [
@@ -1781,7 +1820,7 @@ async function tryAutoLoad() {
     updateCoverage(null);
     updateDatasetChip("未読込", "wait");
     setDatasetStatus(
-      `D RegionExportを読み込めませんでした（${error.message}）。${config.label} のJSONを選択するか、元のworktreeのpipeline/data/outputからコピーしてください。GSI公式地点探索は別データなので利用できます。`,
+      `地域の施設データを読み込めませんでした（${error.message}）。${config.label} のJSONを選択するか、元のworktreeのpipeline/data/outputからコピーしてください。GSI公式地点探索は別データなので利用できます。`,
       "warning"
     );
     showRegionWaitingDetail();
@@ -1990,7 +2029,7 @@ document.getElementById("regionExportFile").addEventListener("change", async eve
     clearShelters();
     updateDatasetChip("読込失敗", "error");
     setDatasetStatus(`JSON読込失敗: ${error.message}`, "error");
-    setStatus("D出力の読込に失敗しました", "error");
+    setStatus("施設データの読込に失敗しました", "error");
   } finally {
     event.target.value = "";
   }
