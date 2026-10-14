@@ -167,8 +167,8 @@
   document.addEventListener("visibilitychange",()=>{if(document.hidden){pause();api?.halt();}});
   function onManualGesture(){
     if(panel.hidden)return;
-    restore=false;pause();api.halt();
-    status("手動で地図を操作したため再生を停止しました。閉じてもこの地図位置を保持します。");
+    // Users may pan/zoom/inspect sites without interrupting the 52s timer.
+    restore=false;
   }
   for(const e of ["pointerdown","wheel","touchstart"]){
     el("map").addEventListener(e,onManualGesture,{passive:true});
