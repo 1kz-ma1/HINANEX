@@ -395,6 +395,17 @@ footer{display:none}
   font-size:11px;font-weight:700;cursor:pointer
 }
 .map-tour-controls button:disabled{opacity:.5;cursor:not-allowed}
+.map-tour-compare{display:grid;gap:7px;margin:12px 0 6px}
+.map-tour-case{display:grid;grid-template-columns:minmax(0,1fr);gap:5px;padding:8px;
+  border:1px solid var(--line-strong);border-radius:10px;background:#162e40}
+.map-tour-case button{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+  gap:5px;min-height:42px;width:100%;text-align:left;padding:8px 10px;
+  border:1px solid #337b87;border-radius:8px;background:#194254;color:var(--text);
+  font-size:12px;font-weight:750;cursor:pointer}
+.map-tour-case button small{font-size:10px;font-weight:500;color:var(--muted)}
+.map-tour-case button[aria-pressed="true"]{background:#126c75;border-color:var(--cyan);color:white}
+.map-tour-case p{margin:0;font-size:11px;line-height:1.45;color:#b8d6e1;overflow-wrap:anywhere}
+.map-tour-panel .map-tour-compare-note{margin:7px 0;color:var(--muted);line-height:1.6;font-size:11px}
 .map-tour-panel .map-tour-caution{border-top:1px solid var(--line-strong);padding-top:9px}
 .map-tour-panel button:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
 @media(max-width:680px){
