@@ -151,6 +151,8 @@
     remaining=timings[0];
     status("Cの記録を検証中。読み込めない場合は再生しません。");
     el("storyContent").hidden=true;
+    el("storyLoadStatus").hidden=false;
+    el("storyLoadStatus").textContent="正本データを確認しています。";
     setMapText("Cの正本を確認しています。現行D座標は参考表示です。");
     try{
       const url=new URL("../../evidence/2019_edogawa_evidence_cases.json",document.baseURI);
@@ -160,11 +162,14 @@
       if(token!==request||panel.hidden)return;
       deck=verified;linkEvidence(verified);
       el("storyContent").hidden=false;
+      el("storyLoadStatus").hidden=true;
       current=0;state="paused";
       startCamera();play();
     }catch(e){
       if(token!==request||panel.hidden)return;
       state="error";deck=null;el("storyContent").hidden=true;
+      el("storyLoadStatus").hidden=false;
+      el("storyLoadStatus").textContent="説明用の正本データを確認できず、再生を停止しました。";
       status("根拠データを確認できません。55秒デモは停止しました。");
       setMapText("未確認のデータを地図に追加していません。");
       console.warn("[HINANEX] 55-second evidence storyboard unavailable",e);
