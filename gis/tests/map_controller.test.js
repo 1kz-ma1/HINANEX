@@ -2373,7 +2373,7 @@ nagoya.scenarios = [{
   assert.match(page,/id="mapDDecisionFilter"/);
   assert.match(page,/value="classified"/);
   assert.match(page,/value="unclassified"/);
-  assert.match(page,/d-source-filter-presenter-20261014-v1/);
+  assert.match(page,/gsi-flood-presenter-20261014-v2/);
   assert.match(css,/\.shelter-icon\.d-status-unknown/);
   assert.match(css,/\.d-facility-cluster\.d-status-mixed/);
   console.log("D flood assessment display-only filter and legend: OK");
