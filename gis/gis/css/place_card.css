@@ -1,0 +1,95 @@
+/* One light information card instead of the legacy bottom drawer. */
+.layout>.gis-side-shell--right {
+  position:absolute;top:142px;right:18px;left:auto;bottom:auto;
+  transform:none;width:min(345px,calc(100% - 36px));height:auto;
+  max-height:min(63%,490px);overflow:visible;z-index:1550;
+  color:#243b4a;background:#fff;border:1px solid #dce8ed;
+  border-radius:13px;box-shadow:0 12px 32px rgba(8,32,53,.24);
+}
+.layout[data-right-panel="closed"]>.gis-side-shell--right{display:none}
+.layout>.gis-side-shell--right>.right {
+  box-sizing:border-box;overflow-y:auto;height:auto;max-height:min(61dvh,460px);
+  padding:16px 18px 15px;border:0;border-radius:13px;
+  background:#fff;color:#243b4a;
+}
+.layout>.gis-side-shell--right>.right .detail-title {
+  color:#18354b;font-size:19px;line-height:1.45;margin:6px 0 12px;padding-right:24px;
+}
+.layout>.gis-side-shell--right>.right .label {color:#6b808d}
+.layout>.gis-side-shell--right>.right .value {color:#203d52}
+.layout>.gis-side-shell--right>.right .row {
+  display:grid;grid-template-columns:minmax(88px,36%) minmax(0,1fr);
+  gap:8px;padding:9px 0;align-items:start;border-bottom:1px solid #e7eff3;
+}
+.layout>.gis-side-shell--right>.right .badge {
+  background:#e9f6f7;color:#155b6f;font-size:10px;
+  padding:4px 8px;border-radius:7px;margin:0;
+}
+.layout>.gis-side-shell--right>.right .badge.reference {
+  background:#eff2fc;color:#435e9e;
+}
+.layout>.gis-side-shell--right>.right .place-card-caution {
+  margin:11px 0 0;padding:9px 10px;
+  background:#f3f7f9;color:#495d6a;border-left:3px solid #83a7b8;
+  font-size:11px;line-height:1.6;
+}
+.layout>.gis-side-shell--right>.right .detail-link {
+  display:inline-block;margin:12px 0 4px;color:#106a8b;
+  font-size:12px;text-decoration:underline;text-underline-offset:3px;
+}
+.layout>.gis-side-shell--right>.right .place-card-disclosure {
+  margin:9px 0 0;border:1px solid #dae7ee;border-radius:8px;overflow:hidden;
+}
+.layout>.gis-side-shell--right>.right .place-card-disclosure>summary {
+  list-style:none;cursor:pointer;padding:12px;
+  background:#f4f9fb;color:#185572;font-weight:750;font-size:12px;
+}
+.layout>.gis-side-shell--right>.right .place-card-disclosure>summary::-webkit-details-marker{display:none}
+.layout>.gis-side-shell--right>.right .place-card-disclosure>summary::after{content:"⌄";float:right}
+.layout>.gis-side-shell--right>.right .place-card-disclosure[open]>summary::after{content:"⌃"}
+.layout>.gis-side-shell--right>.right .place-card-extra{padding:3px 11px 10px}
+.layout>.gis-side-shell--right>.right .place-card-disclosure .note {
+  background:#f7fafb;color:#465f6d;font-size:11px;line-height:1.65;
+  margin:0;padding:12px;
+}
+.layout>.gis-side-shell--right>.right :is(a,summary):focus-visible{
+  outline:3px solid #1789b6;outline-offset:2px;
+}
+.layout>.gis-side-shell--right .gis-panel-toggle--right{
+  position:absolute;top:9px;right:9px;left:auto;z-index:12;
+  display:grid;place-items:center;width:34px;height:34px;min-width:34px;
+  border:1px solid #dae7ee;border-radius:50%;
+  background:#f3f8fa;color:#456371;cursor:pointer;
+}
+.layout>.gis-side-shell--right .gis-panel-toggle--right svg{width:16px;height:16px}
+.layout>.gis-side-shell--right .gis-panel-toggle--right:focus-visible{
+  outline:3px solid #1789b6;outline-offset:2px;
+}
+@media(min-width:1121px){
+  .layout:has(#gsiFloodDemoPanel:not([hidden]))>.gis-side-shell--right,
+  .layout:has(#filterDemoPanel:not([hidden]))>.gis-side-shell--right{
+    top:145px;right:calc(min(430px,32vw) + 27px);
+  }
+}
+@media(max-width:1120px){
+  .layout:has(#gsiFloodDemoPanel:not([hidden]))>.gis-side-shell--right,
+  .layout:has(#filterDemoPanel:not([hidden]))>.gis-side-shell--right{
+    top:135px;right:auto;left:10px;width:min(320px,calc(100% - 450px));
+  }
+}
+@media(max-width:800px){
+  .layout>.gis-side-shell--right{top:66px;right:8px;left:auto;
+    width:min(350px,calc(100% - 16px));max-height:57%}
+  .layout>.gis-side-shell--right>.right{max-height:min(52dvh,420px)}
+  .layout:has(#gsiFloodDemoPanel:not([hidden]))>.gis-side-shell--right,
+  .layout:has(#filterDemoPanel:not([hidden]))>.gis-side-shell--right{
+    top:64px;left:8px;right:auto;width:min(310px,calc(100% - 16px));max-height:28%;
+  }
+  .layout:has(#gsiFloodDemoPanel:not([hidden]))>.gis-side-shell--right>.right,
+  .layout:has(#filterDemoPanel:not([hidden]))>.gis-side-shell--right>.right{max-height:27dvh}
+  .layout[data-right-panel="open"] .map-locate-button{bottom:16px}
+}
+@media(max-width:530px){
+  .layout:has(#gsiFloodDemoPanel:not([hidden]))>.gis-side-shell--right,
+  .layout:has(#filterDemoPanel:not([hidden]))>.gis-side-shell--right{display:none}
+}
