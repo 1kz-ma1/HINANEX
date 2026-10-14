@@ -1,4 +1,5 @@
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -31,6 +32,12 @@ class StagingBuildTests(unittest.TestCase):
         (root / "frontend" / "index.html").write_text("frontend", encoding="utf-8")
         (root / "gis" / "gis").mkdir(parents=True)
         (root / "gis" / "gis" / "index.html").write_text("gis", encoding="utf-8")
+        evidence = root / "validation" / "demo" / "2019_edogawa_evidence_cases.json"
+        evidence.parent.mkdir(parents=True)
+        shutil.copyfile(
+            Path(__file__).resolve().parents[2] / "validation" / "demo" / evidence.name,
+            evidence,
+        )
         (root / "deploy").mkdir(parents=True)
         (root / "deploy" / "staging-index.html").write_text("staging", encoding="utf-8")
         output = root / "pipeline" / "data" / "output"
@@ -52,6 +59,9 @@ class StagingBuildTests(unittest.TestCase):
 
             self.assertEqual((target / "index.html").read_text(encoding="utf-8"), "staging")
             self.assertTrue((target / "frontend" / "index.html").is_file())
+            published = json.loads((target / "evidence" / "2019_edogawa_evidence_cases.json").read_text(encoding="utf-8"))
+            self.assertFalse(published["historical_prediction_approved"])
+            self.assertEqual([c["id"] for c in published["cases"]], ["trace", "abstain", "negative"])
             self.assertTrue((target / "gis" / "gis" / "index.html").is_file())
             for filename in REGIONS:
                 self.assertTrue((target / "pipeline" / "data" / "output" / filename).is_file())
@@ -70,6 +80,20 @@ class StagingBuildTests(unittest.TestCase):
             )
 
             with self.assertRaisesRegex(StagingBuildError, "filename/region mismatch"):
+                build_bundle(root, root / "deploy" / "dist", run_pipeline=False)
+
+    def test_missing_or_promoted_c_evidence_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_repo(root)
+            evidence = root / "validation" / "demo" / "2019_edogawa_evidence_cases.json"
+            payload = json.loads(evidence.read_text(encoding="utf-8"))
+            payload["historical_prediction_approved"] = True
+            evidence.write_text(json.dumps(payload), encoding="utf-8")
+            with self.assertRaisesRegex(StagingBuildError, "must remain unapproved"):
+                build_bundle(root, root / "deploy" / "dist", run_pipeline=False)
+            evidence.unlink()
+            with self.assertRaisesRegex(StagingBuildError, "evidence manifest is missing"):
                 build_bundle(root, root / "deploy" / "dist", run_pipeline=False)
 
     def test_fails_closed_when_required_export_is_missing(self):
