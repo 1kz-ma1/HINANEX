@@ -1,0 +1,129 @@
+name: HINANEX 10-22 C historical T0 offline evidence brief (NOT predictive)
+
+"on":
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - ".github/workflows/20261022-c-t0-offline-evidence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  generate-c-evidence:
+    name: Four independent C reports to 60-second offline T0 evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout pinned C evidence generator
+        uses: actions/checkout@v4
+        with:
+          repository: 1kz-ma1/HINANEX
+          ref: 005625ca273cafbccd2991b15e6760fe0e67ac08
+          path: c-evidence
+          persist-credentials: false
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run C offline regression and tamper checks
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s c-evidence/validation/validation \
+            -p "test_generate_20261022_t0_evidence_brief.py" -v
+
+      - name: Get C 2020 post-event PDF audit
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 38344307696
+          github-token: ${{ github.token }}
+          name: edogawa-2019-school-roster-C-UNAPPROVED-38344307696
+          path: ${{ runner.temp }}/C-school
+
+      - name: Get independent C 2019 campus HTML audit
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 38350260260
+          github-token: ${{ github.token }}
+          name: edogawa-2019-campus-C-UNAPPROVED-38350260260
+          path: ${{ runner.temp }}/C-campus
+
+      - name: Get independent C 2018 school newsletter audit
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 38349472925
+          github-token: ${{ github.token }}
+          name: edogawa-2018-night-campus-C-UNAPPROVED-38349472925
+          path: ${{ runner.temp }}/C-newsletter
+
+      - name: Get C original three-report site non-equivalence audit
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 38351185440
+          github-token: ${{ github.token }}
+          name: edogawa-2019-shelter-building-C-BLOCKED-38351185440
+          path: ${{ runner.temp }}/C-cross
+
+      - name: Make isolated ZIPs preserving original C report bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          zip -j -q "$RUNNER_TEMP/school.zip" "$RUNNER_TEMP/C-school/"*
+          zip -j -q "$RUNNER_TEMP/campus.zip" "$RUNNER_TEMP/C-campus/"*
+          zip -j -q "$RUNNER_TEMP/newsletter.zip" "$RUNNER_TEMP/C-newsletter/"*
+          zip -j -q "$RUNNER_TEMP/cross.zip" "$RUNNER_TEMP/C-cross/"*
+
+      - name: Generate offline report from four original C audited JSON versions
+        id: output
+        shell: bash
+        run: |
+          set -euo pipefail
+          python c-evidence/validation/validation/generate_20261022_t0_evidence_brief.py \
+            --school-zip "$RUNNER_TEMP/school.zip" \
+            --campus-zip "$RUNNER_TEMP/campus.zip" \
+            --newsletter-zip "$RUNNER_TEMP/newsletter.zip" \
+            --cross-zip "$RUNNER_TEMP/cross.zip" \
+            --out-dir "$RUNNER_TEMP/HINANEX-20261022-C-T0-UNAPPROVED"
+          python - "$RUNNER_TEMP/HINANEX-20261022-C-T0-UNAPPROVED/C_20261022_evidence_manifest.json" <<'PY'
+          import json,sys
+          j=json.load(open(sys.argv[1],encoding="utf-8"))
+          assert j["school_operational_groups"] == 65
+          assert j["school_occupancy_detail_rows"] == 66
+          assert j["reported_school_evacuees"] == 26761
+          assert j["junior_high_number_2"]["regular"] == 205
+          assert j["junior_high_number_2"]["night"] == 11
+          assert j["approved_actual_building_pairs"] == 0
+          assert j["t1_opening_prediction_accuracy"] == "NOT_EVALUABLE"
+          assert j["t2_hazard_prediction_accuracy"] == "NOT_RUN"
+          assert j["prediction_denominator"] is None
+          assert j["foundation_89_acceptance"] == "NOT_SIGNED_OFF_BY_THIS_REPORT"
+          print("C_OFFLINE_EVIDENCE_GENERATED__NO_PREDICTION_CLAIMS")
+          PY
+
+      - name: Private 14-day demo and C source-check results bundle
+        if: ${{ steps.output.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: HINANEX-20261022-C-T0-UNAPPROVED-${{ github.run_id }}
+          path: ${{ runner.temp }}/HINANEX-20261022-C-T0-UNAPPROVED/
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: State exact evidence and limitations
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### 10/22 C 60-second evidence"
+            echo "- C generator actual source verification: ${{ steps.output.outcome }}"
+            echo "- Raw official evidence: 3 prior independent C audits."
+            echo "- 65 numbered operational groups, 66 detail rows, 26,761 reported evacuees."
+            echo "- Same report group: 205 daytime, 11 nighttime, but actual October 2019 buildings **UNKNOWN**."
+            echo "- T1 = **NOT_EVALUABLE**, T2 = **NOT_RUN**. No denominator or fabricated prediction accuracy."
+            echo "- HTML is an offline **C audit sheet**, NOT a B product feature."
+            echo "- #89 full A/D/C/E/B acceptance / actual browser rehearsal **NOT DONE** by this workflow."
+          } >> "$GITHUB_STEP_SUMMARY"

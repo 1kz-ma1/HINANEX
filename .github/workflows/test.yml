@@ -55,6 +55,13 @@ jobs:
       - name: Run unit and regression tests
         run: python -m unittest discover -s tests -v
 
+      - name: A original-source research offline regression tests
+        working-directory: .
+        run: |
+          # Offline fixtures only. These tests never approve an official source,
+          # cross-source facility identity, shelter operations, or flood safety.
+          python -m unittest discover -s data-research/tests -p "test_*.py" -v
+
       - name: C independent raw-source regression tests
         working-directory: .
         run: python -m unittest discover -s validation/validation -p "test_*.py" -v

@@ -1,0 +1,83 @@
+{
+  "schema_id": "hinanex.a.school_campus_lineage_2018_edogawa.v0.1",
+  "created_on": "2026-10-13",
+  "event_case": "2019-typhoon19-edogawa",
+  "as_of_jst": "2019-10-12T09:00:00+09:00",
+  "state": "A_SOURCE_CANDIDATES__NO_PHYSICAL_FACILITY_APPROVAL",
+  "source_documents": [
+    {
+      "id": "edogawa-kouhou-20180820",
+      "issuer": "江戸川区",
+      "title": "広報えどがわ 平成30年8月20日号",
+      "url": "https://www.city.edogawa.tokyo.jp/documents/26598/300820.pdf",
+      "format": "PDF",
+      "printed_edition_date": "2018-08-20",
+      "evidence_role": "CONTEMPORANEOUS_2018_SCHOOL_CLASS_NAMES_NOT_EVENT_OPENING",
+      "pdf_page_index": 1,
+      "description": "区立中学校 学校公開・説明会 lists 小松川第二 and 小松川第二 夜間学級 as distinct entries",
+      "original_sha256": null,
+      "archived_pdf_bytes": false,
+      "exact_2018_first_web_publication_verified": false,
+      "asof_input_approved": false,
+      "license": "UNKNOWN"
+    },
+    {
+      "id": "komatsugawa2-school-history-retrospective",
+      "issuer": "江戸川区立小松川第二中学校",
+      "title": "小松川第二中学校 沿革",
+      "url": "https://edogawa.schoolweb.ne.jp/1320032/page/frm4cd26abc60641",
+      "format": "HTML",
+      "printed_edition_date": null,
+      "evidence_role": "LATER_RETROSPECTIVE_BUILDING_HISTORY_NOT_INPUT",
+      "description": "沿革には平成30年4月1日通常課程新校舎移転・夜間学級は旧校舎継続、令和4年8月25日夜間学級移転とある。直接閲覧403・検索文面確認。独立取得と原本固定が必要",
+      "original_sha256": null,
+      "archived_pdf_bytes": false,
+      "exact_2018_first_web_publication_verified": false,
+      "asof_input_approved": false,
+      "license": "UNKNOWN"
+    },
+    {
+      "id": "edogawa-2024-school-integration-retrospective",
+      "issuer": "江戸川区",
+      "title": "小松川・平井地域中学校の統合・改築",
+      "url": "https://www.city.edogawa.tokyo.jp/e071/kosodate/kyoiku/kyouiku/shiryo/keikaku/togo/komatugawatiiki.html",
+      "format": "HTML",
+      "printed_edition_date": null,
+      "source_updated_date": "2024-04-03",
+      "evidence_role": "POST_EVENT_SCHOOL_CAMPUS_CHANGE_CONTEXT",
+      "description": "2023年統合と夜間学級移設の経緯、平井校舎(平井3丁目20番1号)の敷地に新校舎と記載。2019年当時の建物場所をこのページ単独で確定しない",
+      "original_sha256": null,
+      "archived_pdf_bytes": false,
+      "exact_2018_first_web_publication_verified": false,
+      "asof_input_approved": false,
+      "license": "UNKNOWN"
+    },
+    {
+      "id": "edogawa-school-ops-2020",
+      "issuer": "江戸川区",
+      "title": "令和元年台風19号における学校避難所対応のまとめ",
+      "url": "https://www.city.edogawa.tokyo.jp/documents/17316/19matome.pdf",
+      "format": "PDF",
+      "printed_edition_date": null,
+      "evidence_role": "POST_EVENT_OPERATIONAL_TRUTH_ONLY",
+      "description": "2019年10月12日の通常と夜間が独立の人数行で、同じ中学校グループ番号2。205人と11人。既存PR #156 と #159 で原本検証済み",
+      "original_sha256": "89fc7de1810685aaf48a5c6fd6f4c79d6888e1ffb3d6314756fa5665d652b380",
+      "asof_input_approved": false,
+      "license": "UNKNOWN"
+    }
+  ],
+  "identity_hypothesis": {
+    "source_group_id": "junior_high:02",
+    "regular_label": "小松川第二中学校",
+    "night_label": "小松川第二中学校【夜間】",
+    "reported_evacuees_regular": 205,
+    "reported_evacuees_night": 11,
+    "same_post_event_operational_group": true,
+    "same_physical_site_in_2019": null,
+    "two_distinct_2019_campuses_indicated_by_retrospective_school_chronology": true,
+    "authoritative_2019_campus_to_site_id_pairs": [],
+    "approved_join_count": 0,
+    "physical_site_identity_review_state": "BLOCKED_PENDING_SOURCE_AND_HUMAN_C",
+    "historical_input_approved": false
+  }
+}
