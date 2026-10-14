@@ -90,6 +90,14 @@
   .layout[data-right-panel="open"] .map-locate-button{bottom:16px}
 }
 @media(max-width:530px){
+  /* Keep the selected place inspectable above the bottom-anchored demo panel. */
   .layout:has(#gsiFloodDemoPanel:not([hidden]))>.gis-side-shell--right,
-  .layout:has(#filterDemoPanel:not([hidden]))>.gis-side-shell--right{display:none}
+  .layout:has(#filterDemoPanel:not([hidden]))>.gis-side-shell--right{
+    top:64px;left:8px;right:auto;width:min(310px,calc(100% - 16px));
+    max-height:min(22%,160px);
+  }
+  .layout:has(#gsiFloodDemoPanel:not([hidden]))>.gis-side-shell--right>.right,
+  .layout:has(#filterDemoPanel:not([hidden]))>.gis-side-shell--right>.right{
+    max-height:min(20dvh,142px);
+  }
 }
