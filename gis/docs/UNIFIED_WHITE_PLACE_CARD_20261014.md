@@ -11,5 +11,11 @@ The user's accepted staging screenshot has a compact white GSI popup beside a mu
 - Existing top toolbar map controls, GIS evidence view, manual panning, 50s GSI and 52s D source demonstrations still use their original IDs and data API.
 - If the official data is missing, the map continues to fail closed and explicitly offers the independent D-only tour.
 
+## Follow-up QA (2026-10-14)
+- Keep raw `UNKNOWN` in source data/technical trace, but show `未判定` rather than internal enums in the primary facility summary; explicitly warn that missing judgment does not mean danger.
+- Make D-presenter copy natural; remove remaining engineering-only badges and English display headings.
+- Small-screen presenter mode keeps a capped, scrollable place card above the bottom-anchored demo sheet instead of making the selected place inaccessible.
+- Update the map asset regression to the new UI-only cache key; the discovery module's compatibility signature is unchanged.
+
 ## Acceptance
 Required GIS browser-controller test checks compact vs expanded HTML, sanitized provenance and URL, no technical trace in default view, both D and GSI clicks, close button, responsive light card styling and no normal-screen internal term leakage. Manual Render Edge/mobile screenshot acceptance remains necessary; no user-uploaded photo was modified.
