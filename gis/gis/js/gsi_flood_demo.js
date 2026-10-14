@@ -35,7 +35,7 @@
     writeStatus(messages[reason] || "GSI公式データの検証結果を確認できません。再生を停止しました。");
     get("gsiFloodDemoFallback").hidden=false;
     get("gsiFloodDemoFallbackReason").textContent=
-      "洪水指定の掲載有無・現在の安全性は判断できません。"+
+      "GSI洪水指定の掲載情報は未確認です。現在の安全性は判断できません。"+
       "D施設の属性絞り込みは別データで実行できます。";
   }
   function value(v){return v==null||v===""?"未確認":String(v);}
