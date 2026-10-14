@@ -13,6 +13,8 @@ function mount(reply={state:"ready",source:"GSI_SKHB01_FLOOD",rawDisaster1:1,tot
  querySelectorAll(){return [get("gsiFloodDemoClose"),get("gsiFloodDemoPlay")];}}
  const get=id=>{if(!nodes.has(id))nodes.set(id,new Node(id));return nodes.get(id);};
  for(const id of ["mapTourClose","mapTourOpen"])get(id).addEventListener("click",()=>{});
+ let dFallbackClicks=0;
+ get("mapFilterDemoOpen").addEventListener("click",()=>dFallbackClicks++);
  const doc={hidden:false,activeElement:null,getElementById:get,addEventListener(k,f){ev.set(k,f);}};
  const api={async begin(){calls.push("begin");return reply;},
  show(){calls.push("show");return {state:"shown",count:reply.total};},
@@ -25,13 +27,13 @@ function mount(reply={state:"ready",source:"GSI_SKHB01_FLOOD",rawDisaster1:1,tot
  setInterval(f,ms){assert.equal(ms,1000);timers.set(++n,f);return n;},
  clearInterval(k){timers.delete(k);}};
  vm.runInNewContext(code,{window:win,document:doc,console:{warn(){}}},{timeout:1800});
- return {get,ev,calls,timers,async open(){get("mapGsiFloodDemoOpen").click();await flush();await flush();},
+ return {get,ev,calls,timers,get dFallbackClicks(){return dFallbackClicks;},async open(){get("mapGsiFloodDemoOpen").click();await flush();await flush();},
  tick(count){for(let i=0;i<count;i++){const f=timers.values().next().value;assert.ok(f);f();}},
  pan(){get("map").listeners.wheel?.({});}};
 }
 test("GSI flood is primary while D filter and 2019 evidence remain",()=>{
  assert.ok(html.indexOf('id="mapGsiFloodDemoOpen"')<html.indexOf('id="mapFilterDemoOpen"'));
- assert.match(html,/gsi_flood_demo[.]js[?]v=verified-gsi-flood-20261014-v1/);
+ assert.match(html,/gsi_flood_demo[.]js[?]v=gsi-flood-fallback-20261014-v2/);
  assert.match(html,/公式掲載 ≠ 現在安全・開設中・避難推奨/);
 });
 test("50 seconds: verified source layer -> raw flood proof -> distinct D unknown -> future",async()=>{
@@ -53,6 +55,8 @@ test("source absent or incorrect raw value refuses to animate",async()=>{
   assert.equal(m.get("gsiFloodDemoContent").hidden,true);
   assert.equal(m.timers.size,0);
   assert.match(m.get("gsiFloodDemoStatus").textContent,/確認できません/);
+  assert.equal(m.get("gsiFloodDemoFallback").hidden,false);
+  assert.match(m.get("gsiFloodDemoFallbackReason").textContent,/未確認/);
   m.get("gsiFloodDemoClose").click();
  }
 });
@@ -63,4 +67,23 @@ test("gesture cancels animation and leaves manually moved map; Esc restores othe
  x.ev.get("keydown")({key:"Escape",preventDefault(){prevented=true;},stopImmediatePropagation(){}});
  assert.equal(prevented,true);assert.ok(x.calls.includes("end:true"));
  assert.equal(x.timers.size,0);
+});
+
+test("missing GSI data gives an explicit, user-controlled D-only alternative",async()=>{
+ const t=mount({state:"unavailable",reason:"UNVERIFIED_SOURCE"});
+ await t.open();
+ assert.equal(t.get("gsiFloodDemoContent").hidden,true);
+ assert.equal(t.get("gsiFloodDemoFallback").hidden,false);
+ assert.match(t.get("gsiFloodDemoStatus").textContent,/検証済みデータを読み込めません/);
+ t.get("gsiFloodDemoFallbackD").click();
+ assert.equal(t.dFallbackClicks,1);
+ assert.ok(t.calls.includes("end:true"));
+ assert.equal(t.get("gsiFloodDemoPanel").hidden,true);
+ assert.equal(t.timers.size,0);
+});
+test("no verified regional point is not substituted with an arbitrary screen center",async()=>{
+ const t=mount({state:"unavailable",reason:"NO_REGION_SOURCE_POINT"});
+ await t.open();
+ assert.match(t.get("gsiFloodDemoStatus").textContent,/選択地域の元座標/);
+ assert.equal(t.get("gsiFloodDemoFallback").hidden,false);
 });

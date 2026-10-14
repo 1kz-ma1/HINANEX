@@ -1484,7 +1484,17 @@ window.HINANEX_GSI_FLOOD_PRESENTER = Object.freeze({
   async begin() {
     if (gsiPresenterSession) return {state:"busy"};
     const center=map.getCenter();
-    const origin=selectedOrigin || {latitude:center.lat??center[0],longitude:center.lng??center[1]};
+    // A presentation must not take an arbitrary zoomed-out map center as a
+    // "source origin" for the currently selected municipality. Choose an
+    // actual D record coordinate solely as geographic context, not as a
+    // recommended shelter or evidence of a GSI/D building identity.
+    const sourceSummary=currentShelterSummary?.region.code===selectedRegionCode
+      ? currentShelterSummary : viewportDCache.get(selectedRegionCode)?.summary;
+    const sourcePoint=sourceSummary?.mappableRecords?.[0] || null;
+    const origin=selectedOrigin || (sourcePoint && {
+      latitude:sourcePoint.latitude,longitude:sourcePoint.longitude
+    });
+    if(!origin)return {state:"unavailable",reason:"NO_REGION_SOURCE_POINT"};
     const engine=compatibleDiscoveryEngine();
     if(!engine||!engine.sourceTileKey(origin))return {state:"unavailable",reason:"origin"};
     const token=++gsiPresenterEpoch;
@@ -1500,6 +1510,14 @@ window.HINANEX_GSI_FLOOD_PRESENTER = Object.freeze({
     gsiPresenterSession=session;
     selectedOrigin={latitude:origin.latitude,longitude:origin.longitude};
     setDisplayMode("region"); // start with D as context; GSI appears at the source-switch scene.
+    if(!session.origin) {
+      // The map in the user's screenshot was in the western mountains while
+      // the selected region was Edogawa. Start the story where the verified D
+      // record actually is, without manufacturing a hazard or GSI location.
+      if(typeof map.flyTo==="function")
+        map.flyTo([origin.latitude,origin.longitude],12,{duration:1.1});
+      else map.setView([origin.latitude,origin.longitude],12,{animate:false});
+    }
     await loadFloodReferenceCatalog();
     if(token!==gsiPresenterEpoch||gsiPresenterSession!==session)return {state:"cancelled"};
     const d=engine.discoverReferenceTiles(verifiedFloodCatalog,selectedOrigin,selectedRegionCode);

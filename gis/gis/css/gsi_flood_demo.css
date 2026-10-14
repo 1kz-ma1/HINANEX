@@ -61,3 +61,11 @@
  width:calc(100% - 10px);max-height:min(62%,550px);padding:13px}
  .gsi-demo-panel h2{font-size:22px}.gsi-demo-source-count strong{font-size:27px}}
 @media(prefers-reduced-motion:reduce){.gsi-demo-progress span{transition:none}}
+
+/* Never leave an unusable empty presenter panel on missing approved GSI input. */
+.gsi-demo-fallback{display:grid;gap:12px;margin:18px 0;padding:17px;
+ border:1px solid #d1a777;border-radius:11px;background:#423c2e;color:#fff}
+.gsi-demo-fallback strong{font-size:16px;line-height:1.6}
+.gsi-demo-fallback p{margin:0;font-size:13px;line-height:1.7;color:#f1e3d2}
+#gsiFloodDemoFallbackD{min-height:49px;padding:10px;border:1px solid #8cd6d7;
+ border-radius:9px;background:#69dee1;color:#07333e;font-size:12px;font-weight:850;cursor:pointer}
