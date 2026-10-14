@@ -949,6 +949,14 @@ nagoya.scenarios = [{
   assert.equal(acceptedCase.L.__map.openedPopup.options.className,
     "hinanex-place-popup");
   assert.doesNotMatch(acceptedCase.L.__map.openedPopup.content, /<unsafe>/);
+  assert.match(acceptedCase.elements.details.innerHTML, /洪水に関する公式掲載地点/);
+  assert.match(acceptedCase.elements.details.innerHTML, /place-card-disclosure/);
+  assert.match(acceptedCase.elements.details.innerHTML, /公式の出典を確認/);
+  assert.doesNotMatch(
+    acceptedCase.elements.details.innerHTML.split('<details class="place-card-disclosure">')[0],
+    /feature_index=0|raw行/, "raw source trace belongs in the collapsed detail section");
+  assert.match(acceptedCase.elements.details.innerHTML, /安全性・現在の開設状況は確認できていません/);
+  assert.doesNotMatch(acceptedCase.elements.details.innerHTML, /番号は表示順序/);
   // Selecting another pin replaces the first bubble; a blank map tap closes it.
   acceptedCase.L.__groups[1].items[0].handlers.click({});
   assert.match(acceptedCase.L.__map.openedPopup.content, /地域の避難施設/);
@@ -958,14 +966,6 @@ nagoya.scenarios = [{
   });
   assert.equal(acceptedCase.L.__map.openedPopup, null,
     "blank-map click must dismiss, not replace with raster details");
-  assert.match(acceptedCase.elements.details.innerHTML, /洪水に関する公式掲載地点/);
-  assert.match(acceptedCase.elements.details.innerHTML, /place-card-disclosure/);
-  assert.match(acceptedCase.elements.details.innerHTML, /公式の出典を確認/);
-  assert.doesNotMatch(
-    acceptedCase.elements.details.innerHTML.split('<details class="place-card-disclosure">')[0],
-    /feature_index=0|raw行/, "raw source trace belongs in the collapsed detail section");
-  assert.match(acceptedCase.elements.details.innerHTML, /安全性・現在の開設状況は確認できていません/);
-  assert.doesNotMatch(acceptedCase.elements.details.innerHTML, /番号は表示順序/);
   const pageSource = fs.readFileSync(path.resolve(__dirname, "../gis/index.html"), "utf8");
   assert.match(pageSource, /紫：公式掲載地点（安全性未判定/);
   assert.match(pageSource, /id="uiTabNormal"[^>]*role="tab"/);
