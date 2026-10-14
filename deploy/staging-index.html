@@ -121,6 +121,7 @@
         text-decoration: none;
         transition: border-color .16s ease, background .16s ease;
       }
+      .entry-card--demo { grid-column:1 / -1; min-height:124px; border-color:rgba(78,215,220,.48); background:linear-gradient(95deg,rgba(78,215,220,.1),var(--surface)); }
       .entry-card:hover { border-color: rgba(78, 215, 220, .58); background: var(--surface-raised); }
       .entry-card:focus-visible, summary:focus-visible {
         outline: 3px solid var(--cyan);
@@ -188,6 +189,15 @@
         </div>
 
         <nav class="entry-grid" aria-label="HINANEXの画面を選択">
+          <a class="entry-card entry-card--demo" href="/frontend/historical-evidence-demo.html">
+            <span class="entry-icon" aria-hidden="true">✓</span>
+            <span class="entry-copy">
+              <span class="entry-overline">GUIDED EVIDENCE / 2019 TYPHOON 19</span>
+              <strong class="entry-title">3つの検証パターンを見る</strong>
+              <span class="entry-description">原本との整合・判断保留・合成テストを、根拠まで比較する約90秒の説明デモ。実災害の予測結果ではありません。</span>
+            </span>
+            <span class="entry-arrow" aria-hidden="true">↗</span>
+          </a>
           <a class="entry-card" href="/frontend/">
             <span class="entry-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
