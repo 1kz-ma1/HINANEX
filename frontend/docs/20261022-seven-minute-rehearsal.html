@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HINANEX | 10月22日 7分リハーサル</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;color:#f5f8fb;background:#0a1421}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 95% -5%,#1b4258 0%,transparent 40%),#0a1421}
+main{max-width:1160px;margin:auto;padding:26px clamp(16px,3vw,36px) 42px}
+h1{font-size:clamp(27px,3.3vw,43px);line-height:1.2;margin:7px 0 7px}
+h2{font-size:clamp(24px,2.8vw,34px);line-height:1.28;margin:10px 0}
+p{line-height:1.7}
+.kicker{font-size:13px;letter-spacing:.11em;text-transform:uppercase;color:#9ac6d9}
+.meta{color:#a8b9c8;font-size:14px;margin:0 0 19px}
+.note{padding:12px 16px;border-left:3px solid #f6c879;background:#302b21;color:#ffe9bc;border-radius:4px;line-height:1.6;font-size:14px}
+main>.layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(270px,1fr);gap:18px;margin-top:21px}
+section.panel,aside.panel{background:#101f2e;border:1px solid #2a4054;border-radius:15px;padding:20px}
+.clock{display:flex;align-items:end;gap:25px;flex-wrap:wrap;border-bottom:1px solid #2a4054;padding-bottom:17px}
+.big{font-variant-numeric:tabular-nums;font-size:clamp(50px,6vw,76px);font-weight:720;line-height:1;letter-spacing:-.055em}
+.subclock{font-variant-numeric:tabular-nums;font-size:26px;font-weight:620;color:#a9c9e0}
+.clock label{font-size:13px;color:#a6b8c5;display:block;margin-bottom:5px}
+.progress{height:8px;background:#283b4c;border-radius:8px;overflow:hidden;margin:15px 0}
+.progress>div{background:#7ac7dc;height:100%;transition:width .15s linear;width:0}
+button{cursor:pointer;color:#f7fafc;background:#24465c;border:1px solid #466a82;font-size:14px;border-radius:9px;padding:11px 15px;min-height:44px}
+button:focus-visible,a:focus-visible{outline:3px solid #ffe3a6;outline-offset:3px}
+button.primary{background:#2d7d89;border-color:#55b5be;font-weight:700}
+button[disabled]{opacity:.4;cursor:not-allowed}
+.controls{display:flex;flex-wrap:wrap;gap:9px}
+.eyebrow{color:#7ccbd2;font-size:14px;font-weight:700;margin-top:22px}
+.dialog{background:#152a3b;padding:14px 18px;border-radius:10px;border-left:4px solid #7ac7dc;font-size:19px;line-height:1.7;min-height:85px}
+ul{padding-left:22px;margin:10px 0 0}
+li{line-height:1.66;padding:2px 0}
+.hint{color:#b5c3cf}
+.resources a{display:inline-block;color:#a5e3ec;overflow-wrap:anywhere;margin:9px 12px 0 0}
+.step{width:100%;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:13px;background:#162838;border:1px solid #2c4255;margin:7px 0;font-size:13px;padding:12px}
+.step[aria-current="step"]{border-color:#7ac7dc;background:#194358}
+.step small{font-variant-numeric:tabular-nums;color:#a8beca;white-space:nowrap}
+footer{margin:20px 0;color:#9bafbf;font-size:13px;line-height:1.65}
+#state{color:#ffe3a6;font-weight:700}
+@media(max-width:820px){main>.layout{grid-template-columns:1fr}.big{font-size:63px}}
+@media(prefers-reduced-motion:reduce){.progress>div{transition:none}}
+</style>
+</head>
+<body><main>
+<div class="kicker">HINANEX · 2026.10.22 · INTERNAL REHEARSAL</div>
+<h1>7分間プレゼン・リハーサル</h1>
+<p class="meta">7:00固定 · 7場面 · 60秒のC検証証跡＋90秒のGIS実機導線 · 切替先は事前準備・別タブで開く</p>
+<div class="note"><strong>未受入の発表支援ツールです。</strong> Cの相対リンクは共有CIの配布ZIP内でのみ利用可能。GISは事前にlocalhost:8000のHTTP配信・実Dデータを確認する必要があります。どちらも未起動／未配置ならリンクは使えません。 #89全体・Renderステージング・E実機操作・10月22日本番の成功を保証しません。避難先の推薦・安全性認定・2019年予測精度の実証を示すものではありません。</div>
+<div class="layout">
+<section class="panel" aria-label="発表の進行">
+<div class="clock">
+ <div><label>現在の場面 残り</label><div class="big" id="remaining" aria-live="off">00:40</div></div>
+ <div><label>全体 経過</label><div class="subclock" id="elapsed">00:00 / 07:00</div></div>
+</div>
+<div class="progress" aria-label="発表全体の進捗"><div id="progress-bar"></div></div>
+<div class="controls">
+ <button class="primary" type="button" id="play">開始</button>
+ <button type="button" id="prev">前の場面</button>
+ <button type="button" id="next">次の場面</button>
+ <button type="button" id="reset">最初から</button>
+</div>
+<div class="eyebrow" id="scene-label">場面 1 / 7</div>
+<h2 id="scene-title">完成像</h2>
+<p class="dialog" id="speaker">災害時に、避難先に必要な情報を根拠と一緒に確かめられる世界を目指しています。</p>
+<h3>実際の操作・提示内容</h3><ul id="actions"></ul>
+<h3>詰まったときの切り替え</h3><p class="hint" id="fallback"></p>
+<div class="resources" id="resources"></div>
+</section>
+<aside class="panel" aria-label="全体構成と制約">
+<div class="kicker">REHEARSAL CUES</div>
+<p class="meta">場面を手動選択しても時間配分の合計は7:00です。再生停止・場面ジャンプは発表受入のPASS記録ではありません。</p>
+<nav aria-label="発表場面" id="timeline"></nav>
+<p class="meta" style="margin-top:20px"><strong id="state">未開始</strong><br>Space：開始/一時停止　←/→：前後の場面　R：リセット</p>
+<p class="meta">ブラウザを他のタブへ切り替えた場合も、タイマーは壁時計の経過を元に再計算します。途中でタイムオーバーしても自動で「実機成功」とはしません。</p>
+</aside>
+</div>
+<footer>参照：<a href="https://github.com/1kz-ma1/HINANEX/issues/89">#89 基礎受入</a> ·
+<a href="https://github.com/1kz-ma1/HINANEX/issues/142">#142 Historical Replay</a> ·
+<a href="https://github.com/1kz-ma1/HINANEX/actions/runs/38352174169">C監査済み60秒デモ生成</a>。
+外部URLは閲覧先の可用性をこのページから保証しません。</footer>
+</main>
+<script id="agenda" type="application/json">
+[
+ {"id":"vision","seconds":40,"title":"完成像：災害時の判断を支える情報基盤","spoken":"災害時、避難情報を複数の公式資料から探し、意味を自分で確かめる負担があります。HINANEXは出典・情報の欠損・地域差を見えるようにする仕組みを目指しています。","actions":["完成イメージを説明。完成済みと将来構想を混同しない","安全な避難先の推薦やリアルタイム開設情報は未実装と説明"],"fallback":"画面が開かなくても完成像を口頭で説明。現在の完成機能と区別する。","links":[]},
+ {"id":"doubt","seconds":45,"title":"疑問：便利そうだけど、そのデータは正しい？","spoken":"便利な地図でも、元のデータに誤りや不足があれば信頼できません。公式出典の版・公表時刻・施設の意味を調べる必要があります。","actions":["資料の発行年と公開時刻は異なることを提示","現在の避難所名簿を2019年へそのまま移さないことを説明"],"fallback":"資料の出典リンクだけを示し、当時の公開時刻は未承認と説明。","links":[{"label":"出典・監査計画 #142","url":"https://github.com/1kz-ma1/HINANEX/issues/142"}]},
+ {"id":"evidence","seconds":60,"title":"方向転換：出典から独立監査まで","spoken":"そこで実装方針を、情報を増やすことより先に『分からないものを勝手に埋めない』ことへ切り替えました。江戸川区の学校避難所は65運用グループに66明細。通常205人と夜間11人を落とさず、当日避難した建物は未確認として保存しています。","actions":["前回生成したC_20261022_offline_evidence.htmlを別ウィンドウで表示","①65/66 ②205+11 ③通常/夜間の校舎位置 ④建物ID承認0件を順に指す","T0機械的照合成功／T1未評価／T2未実行を明言"],"fallback":"HTMLが表示できなければ60秒台本の表を説明。数値と出典はGitHub監査記録で確認。","links":[{"label":"C監査済み証拠を開く（配布ZIP内）","url":"./03_C_20261022_offline_evidence.html"},{"label":"C独立監査デモの元Actions","url":"https://github.com/1kz-ma1/HINANEX/actions/runs/38352174169"}]},
+ {"id":"map","seconds":90,"title":"GIS実機：公式データ・地図・欠損を区別","spoken":"こちらが検証用の地図です。自治体側の施設データと国土地理院の災害種別ごとの掲載情報を別出典として表示します。ここで見える場所は安全な場所や開設済み避難所を意味しません。","actions":["0-15秒：江戸川区の自治体施設・出典表示","15-30秒：クラスタを拡大。数は安全ランキングではない","30-50秒：起点35.70, 140.10を手入力してGSI参考データを探索","50-65秒：D自治体データとGSIを比較。出典の違いを説明","65-90秒：名古屋市23100へ切替。座標欠損なら一覧・UNKNOWNを表示"],"fallback":"外部地図タイル・JSON・GPS・ネットワークに失敗したら偽の地図を描かず、検証済み録画または欠損説明へ切替。","links":[{"label":"GISローカルHTTPを開く（127.0.0.1:8000／要事前起動）","url":"http://127.0.0.1:8000/gis/gis/?region=13123"},{"label":"GISローカル手順","url":"https://github.com/1kz-ma1/HINANEX/blob/main/gis/docs/DEMO_ACCEPTANCE_20261022.md"},{"label":"ステージング（未検証）","url":"https://hinanex-staging.onrender.com/gis/gis/?region=13123"}]},
+ {"id":"regional-gap","seconds":65,"title":"実装で直面した問題：地域ごとのデータ差","spoken":"江戸川区や新潟市と同じ形で名古屋市を地図化できるとは限りません。座標や原資料の意味が確認できないとき、位置を創作せず一覧や不明表示に切り替えます。","actions":["地域によって整備状況・フォーマットが異なることを説明","152/566/1602は過去の検証観測値で固定の公式件数とは呼ばない","現状の欠損・UNKNOWNと自治体が施設を指定していないことは別と説明"],"fallback":"名古屋の一覧が未ロードなら『未取得』と表示し、データなしとは主張しない。","links":[{"label":"基礎受入 #89","url":"https://github.com/1kz-ma1/HINANEX/issues/89"}]},
+ {"id":"breakthrough","seconds":65,"title":"打開策：出典・正規化・独立検証・可視化","spoken":"そこでAの出典整理、Dの正規化、Cの独立監査、Bの分析表示、Eの地図表示を責務で分けました。情報がなくても『なぜ判断できないか』を出せるようにするのが今回の成果です。","actions":["A→D→CとB/Eの責務を言葉で説明","当時入力の公開版・施設同一性が不明なら予測一致を作らない","Cのテスト成功と製品の防災上の安全認証は別と強調"],"fallback":"担当者の図がなくても責務を5つの単語で説明。","links":[{"label":"HINANEX repo","url":"https://github.com/1kz-ma1/HINANEX"}]},
+ {"id":"close","seconds":55,"title":"現在地と今後：誠実に使える情報基盤へ","spoken":"現時点で実証したのは、公式原本の追跡、資料の独立照合、欠損の保留、限定した地図探索です。2019年の予測精度や安全な避難先の推薦はまだ未検証です。次は地域と災害種別を組み合わせた検証を進めます。","actions":["実証済み・制約・今後の3つを分けて締める","MVP全体の#89受入は別途必要と伝える","7:00終了。未検証機能を完成済みと呼ばない"],"fallback":"時間が押したら一文『出典と不明を可視化する基盤を作っています』で締める。","links":[{"label":"2×2地域×災害種別の検証方針","url":"https://github.com/1kz-ma1/HINANEX/issues/89"}]}
+]
+</script>
+<script>
+"use strict";
+const agenda=JSON.parse(document.getElementById("agenda").textContent);
+const $=id=>document.getElementById(id);
+const TOTAL=agenda.reduce((sum,s)=>sum+s.seconds,0);
+let seconds=0,playing=false,startClock=0,baseSeconds=0;
+let raf=null;
+const offsets=agenda.map((_,i)=>agenda.slice(0,i).reduce((s,x)=>s+x.seconds,0));
+const format=n=>{const s=Math.max(0,Math.floor(n));return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")};
+const sceneIndex=()=>Math.max(0,agenda.findIndex((s,i)=>seconds<offsets[i]+s.seconds));
+function render(){
+ const i=seconds>=TOTAL?agenda.length-1:sceneIndex();
+ const s=agenda[i]; const sceneEnd=offsets[i]+s.seconds;
+ $("remaining").textContent=format(sceneEnd-seconds);
+ $("elapsed").textContent=format(seconds)+" / "+format(TOTAL);
+ $("progress-bar").style.width=(100*seconds/TOTAL)+"%";
+ $("scene-label").textContent="場面 "+(i+1)+" / "+agenda.length;
+ $("scene-title").textContent=s.title;
+ $("speaker").textContent=s.spoken;
+ $("actions").replaceChildren(...s.actions.map(a=>{const li=document.createElement("li");li.textContent=a;return li}));
+ $("fallback").textContent=s.fallback;
+ $("resources").replaceChildren(...s.links.map(l=>{const a=document.createElement("a");a.href=l.url;a.target="_blank";a.rel="noopener noreferrer";a.textContent="↗ "+l.label;return a}));
+ for(const el of $("timeline").children)el.setAttribute("aria-current",Number(el.dataset.index)===i?"step":"false");
+ $("play").textContent=playing?"一時停止":seconds>=TOTAL?"再実行":"開始 / 再開";
+ $("state").textContent=seconds>=TOTAL?"7分終了":playing?"リハーサル進行中":seconds>0?"一時停止中":"未開始";
+ $("prev").disabled=i===0 && seconds===0;
+ $("next").disabled=seconds>=TOTAL;
+}
+function stopFrame(){if(raf!==null){cancelAnimationFrame(raf);raf=null}}
+function pause(){if(playing){seconds=Math.min(TOTAL,baseSeconds+(performance.now()-startClock)/1000);playing=false}stopFrame();render()}
+function tick(){
+ if(!playing)return;
+ seconds=Math.min(TOTAL,baseSeconds+(performance.now()-startClock)/1000);
+ if(seconds>=TOTAL){playing=false;stopFrame();render();return}
+ render();raf=requestAnimationFrame(tick)
+}
+function play(){if(playing){pause();return}if(seconds>=TOTAL)seconds=0;playing=true;baseSeconds=seconds;startClock=performance.now();stopFrame();raf=requestAnimationFrame(tick);render()}
+function jump(i){pause();seconds=offsets[Math.min(Math.max(0,i),agenda.length-1)];render()}
+function reset(){pause();seconds=0;render()}
+$("play").addEventListener("click",play);
+$("prev").addEventListener("click",()=>jump(Math.max(0,sceneIndex()-1)));
+$("next").addEventListener("click",()=>jump(Math.min(agenda.length-1,sceneIndex()+1)));
+$("reset").addEventListener("click",reset);
+agenda.forEach((s,i)=>{const b=document.createElement("button");b.type="button";b.className="step";b.dataset.index=i;
+ b.append(document.createTextNode(format(offsets[i])+"  "+s.title),Object.assign(document.createElement("small"),{textContent:format(s.seconds)}));
+ b.addEventListener("click",()=>jump(i));$("timeline").appendChild(b)});
+document.addEventListener("keydown",e=>{
+ if((e.target instanceof HTMLButtonElement || e.target instanceof HTMLAnchorElement) && e.code==="Space")return;
+ if(e.code==="Space"){e.preventDefault();play()}
+ else if(e.key==="ArrowRight"){e.preventDefault();jump(Math.min(agenda.length-1,sceneIndex()+1))}
+ else if(e.key==="ArrowLeft"){e.preventDefault();jump(Math.max(0,sceneIndex()-1))}
+ else if(e.code==="KeyR" || e.key==="r" || e.key==="R"){e.preventDefault();reset()}
+});
+render();
+</script>
+</body>
+</html>
