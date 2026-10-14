@@ -106,7 +106,7 @@
           <label class="file-label" for="regionExportFile">JSONを選択</label>
           <input id="regionExportFile" class="file-input" type="file" accept="application/json,.json">
           <button id="autoLoad" class="secondary-button" type="button">pipeline出力を再読込</button>
-          <small class="scenario-evidence-warning">洪水Scenarioが含まれる場合、公式の記号・利用階と未判定の施設情報を施設IDで照合して表示します。○・×から安全性や開設可否を推測せず、洪水ラスタと施設点の交差から独自判定もしません。</small>
+          <small class="scenario-evidence-warning">洪水対応の情報がある場合、公式資料の記号・利用階と未判定の施設情報を施設IDで照合して表示します。○・×から安全性や開設可否を推測せず、洪水ラスタと施設点の交差から独自判定もしません。</small>
         </div>
       </details>
     </section>
@@ -193,9 +193,9 @@
         <option value="unclassified">未判定のみ表示</option>
       </select>
       <p class="map-tool-note map-decision-legend">
-        <span><i class="map-decision-dot d-status-candidate"></i>候補に分類（CANDIDATE、安全性未判定）</span>
-        <span><i class="map-decision-dot d-status-excluded"></i>対象外に分類（EXCLUDED、危険性未判定）</span>
-        <span><i class="map-decision-dot d-status-unknown"></i>未判定（UNKNOWN・資料不足）</span>
+        <span><i class="map-decision-dot d-status-candidate"></i>候補に分類（安全性は未判定）</span>
+        <span><i class="map-decision-dot d-status-excluded"></i>対象外に分類（危険性は未判定）</span>
+        <span><i class="map-decision-dot d-status-unknown"></i>未判定（確認情報なし、または判断不能）</span>
         <span><i class="map-decision-dot d-status-gsi"></i>GSI公式掲載（別の情報源）</span>
       </p>
       <p id="mapDDecisionFilterStatus" class="map-tool-note" role="status">判定の取得状況を確認中。非表示は施設なしを意味しません。</p>
@@ -477,7 +477,7 @@
           <strong>現在：属性で抽出して、原文と照合できる</strong>
           <p>将来：災害の状況・施設の利用条件などを根拠付きで組み合わせ、避難先選定の支援へ発展させる。</p>
         </div>
-        <p class="filter-demo-warning">表示された施設 ≠ 避難先として適切な施設。分類値 CANDIDATE・EXCLUDED も安全性や開設を証明しません。未判定・位置未確認は推測で補いません。</p>
+        <p class="filter-demo-warning">表示された施設 ≠ 避難先として適切な施設。分類結果が「候補」「対象外」であっても、安全性や開設を証明しません。未判定・位置未確認は推測で補いません。</p>
         <div class="filter-demo-progress"><span id="filterDemoProgress" aria-hidden="true"></span></div>
         <div class="filter-demo-actions" role="group" aria-label="発表デモを操作">
           <button id="filterDemoPlay" type="button">▶ 再生</button>
