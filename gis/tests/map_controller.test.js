@@ -1912,6 +1912,20 @@ nagoya.scenarios = [{
   assert.equal(native.L.__map.container.listeners.wheel, undefined);
   assert.equal(native.L.__tiles[0].options.updateWhenZooming, false);
 
+  // Compare new faster image-settling with precisely the same prior preview
+  // implementation, wheel sensitivity and destination-only tile policy.
+  const preview135 = makeContext({
+    protocol: "http:",
+    href: "http://test/gis/gis/?region=13123&zoomFeel=preview135",
+    fetchImpl: async () => ({ok:false,status:404,json:async()=>({})})
+  });
+  assert.equal(vm.runInContext("WHEEL_GESTURE_IDLE_MS",preview135.context),135);
+  assert.equal(vm.runInContext("WHEEL_PREVIEW_TRANSITION_MS",preview135.context),65);
+  assert.equal(preview135.L.__map.options.wheelPxPerZoomLevel,27);
+  assert.equal(preview135.L.__tiles[0].options.updateWhenZooming,false);
+  assert.equal(preview135.L.__map.options.zoomSnap,0);
+  assert.equal(typeof preview135.L.__map.container.listeners.wheel.fn,"function");
+
   const slow = makeContext({
     protocol: "http:",
     href: "http://test/gis/gis/?region=13123&zoomFeel=slow",
@@ -1939,6 +1953,10 @@ nagoya.scenarios = [{
    });
    const map=L.__map, handler=map.container.listeners.wheel.fn;
    const mapPane=map.getPanes().mapPane;
+   assert.equal(vm.runInContext("WHEEL_GESTURE_IDLE_MS",context),70,
+     "new wheel image update starts 65ms earlier than prior preview");
+   assert.equal(vm.runInContext("WHEEL_PREVIEW_TRANSITION_MS",context),40);
+   assert.match(mapCode, /\[HINANEX map perf\] wheel intent-to-commit/);
    assert.equal(typeof handler, "function");
    const event = (deltaY, target={}) => ({
      deltaY, deltaMode:0, clientX:220, clientY:175, target,
@@ -1952,6 +1970,8 @@ nagoya.scenarios = [{
    assert.equal(e1.stopped,true);
    assert.ok(Number(mapPane.style.scale)>1,
      "reuse existing rendered image immediately before Leaflet moves");
+   assert.equal(mapPane.style.transition,"scale 40ms ease-out",
+     "shorter preview transition must not delay visual response");
    assert.match(mapPane.style.transformOrigin, /220px 175px/);
    assert.equal(map.zoom,13, "preview must not change geographic map zoom");
    assert.equal(map.zoomAroundCalls?.length || 0,0,
