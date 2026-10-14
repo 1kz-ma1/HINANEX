@@ -1985,6 +1985,7 @@ nagoya.scenarios = [{
    assert.equal(stepped.prevented,false);
    assert.equal(map.zoomAroundCalls.length,2);
    // Competing drag cancels pending wheel rather than restoring stale camera.
+   context.window.HINANEX_MAP_GESTURES.setSettings({style:"continuous"});
    handler(event(-32));
    assert.ok(Number(mapPane.style.scale)>1);
    map.handlers.dragstart();
