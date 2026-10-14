@@ -163,7 +163,9 @@ async function screenshot(page, name) {
       return {
         before,
         immediateZoom:map.getZoom(),
-        cssScale:map.getPanes().mapPane.style.scale,
+        cssScale:map.getPane("tilePane").style.scale,
+        markerPaneScale:map.getPanes().mapPane.style.scale,
+        floodScale:map.getPane("officialFloodPane").style.scale,
         calls:window.__wheelZoomCalls
       };
     });
@@ -171,6 +173,10 @@ async function screenshot(page, name) {
       "the geographic map must remain unchanged while old raster is scaled");
     assert.ok(Number(wheelPreview.cssScale)>1,
       "map image preview must respond before wheel idle timer expires");
+    assert.equal(wheelPreview.markerPaneScale,"",
+      "facility markers/popups must retain constant on-screen dimensions");
+    assert.ok(Number(wheelPreview.floodScale)>1,
+      "official flood raster must visually follow map preview scale");
     assert.equal(wheelPreview.calls,0,
       "no Leaflet destination update while previewing");
     await page.waitForTimeout(250);
@@ -179,7 +185,7 @@ async function screenshot(page, name) {
       "final wheel target must zoom into the map");
     assert.equal(await page.evaluate(() => window.__wheelZoomCalls),1,
       "one wheel burst must produce exactly one Leaflet view commit");
-    assert.equal(await page.evaluate(() => map.getPanes().mapPane.style.scale),"",
+    assert.equal(await page.evaluate(() => map.getPane("tilePane").style.scale),"",
       "temporary image scaling must be fully cleared after commit");
     await page.evaluate(z => map.setZoom(z, {animate:false}), wheelPreview.before);
     await page.waitForTimeout(160);
