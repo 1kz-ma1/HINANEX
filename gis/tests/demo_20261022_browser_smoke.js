@@ -139,7 +139,7 @@ async function screenshot(page, name) {
     const overview = await speech.innerText();
     assert.match(overview, /未判定/);
     assert.match(overview, /安全性・現在の開設状況は確認できていません/);
-    assert.equal(await speech.locator(".place-card-disclosure").count(), 2);
+    assert.equal(await speech.locator(".place-card-disclosure").count(), 1);
     const fold = speech.locator(".place-card-disclosure").first();
     assert.equal(await fold.evaluate(el => el.open), false);
     await fold.locator("summary").click();
@@ -155,6 +155,33 @@ async function screenshot(page, name) {
     });
     assert.equal(anchor, true);
     await screenshot(page, "anchored-white-place-bubble-desktop");
+    const midWidth = await speech.evaluate(el => el.getBoundingClientRect().width);
+    assert.equal(await speech.evaluate(el => el.classList.contains("place-bubble--mid")), true);
+    // The same source-point bubble changes size as the map zoom changes,
+    // without dropping its evidence text or requiring a new marker click.
+    await page.evaluate(() => map.setZoom(9));
+    await page.waitForTimeout(250);
+    assert.equal(await speech.evaluate(el => el.classList.contains("place-bubble--far")), true);
+    const farWidth = await speech.evaluate(el => el.getBoundingClientRect().width);
+    assert.ok(farWidth < midWidth, "far zoom must use a smaller popup");
+    await page.evaluate(() => map.setZoom(15));
+    await page.waitForTimeout(250);
+    assert.equal(await speech.evaluate(el => el.classList.contains("place-bubble--near")), true);
+    const nearWidth = await speech.evaluate(el => el.getBoundingClientRect().width);
+    assert.ok(nearWidth > midWidth, "near zoom may show a wider popup");
+    assert.match(await speech.innerText(), /未判定/);
+    // Boundary fixture is condensed, not promoted into a real shelter.
+    await page.evaluate(() => window.detail("江戸川区", [
+      ["種類", "自治体境界"], ["地域", "東京都江戸川区"],
+      ["自治体コード", "13123"], ["データ状態", "表示確認用fixture"]
+    ], "境界fixture", {
+      anchor: [35.70,139.88],
+      note: "表示確認用で、公式の避難施設判定ではありません。"
+    }));
+    assert.equal(await speech.locator(".place-card-summary .row").count(), 0);
+    assert.match(await speech.innerText(), /自治体境界（参考）/);
+    assert.equal(await speech.locator(".place-card-disclosure").count(), 1);
+    assert.equal(await speech.evaluate(el => el.classList.contains("place-bubble--boundary")), true);
     await speech.locator(".leaflet-popup-close-button").click();
     assert.equal(await speech.isVisible(), false);
 

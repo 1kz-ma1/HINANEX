@@ -652,7 +652,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "anchored-point-bubble-20261014-v1");
+  assert.equal(mapAsset[1], "zoom-compact-popup-20261014-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -946,8 +946,30 @@ nagoya.scenarios = [{
   assert.deepEqual(Array.from(acceptedCase.L.__map.openedPopup.anchor),
     [35.705, 139.89], "GSI official source point anchors its own bubble");
   assert.match(acceptedCase.L.__map.openedPopup.content, /洪水に関する公式掲載地点/);
-  assert.equal(acceptedCase.L.__map.openedPopup.options.className,
-    "hinanex-place-popup");
+  assert.match(acceptedCase.L.__map.openedPopup.options.className,
+    /hinanex-place-popup place-bubble--mid/);
+  // Resize at a new zoom without replacing the selected site/provenance.
+  assert.equal(vm.runInContext("placePopupZoomTier(9)", acceptedCase.context),
+    "place-bubble--far");
+  assert.equal(vm.runInContext("placePopupZoomTier(12)", acceptedCase.context),
+    "place-bubble--mid");
+  assert.equal(vm.runInContext("placePopupZoomTier(15)", acceptedCase.context),
+    "place-bubble--near");
+  const preservedBubble = acceptedCase.L.__map.openedPopup;
+  const classes = new Set(["hinanex-place-popup", "place-bubble--mid"]);
+  let layoutUpdates = 0;
+  preservedBubble.getElement = () => ({classList:{
+    contains: name => classes.has(name),
+    remove: (...names) => names.forEach(name => classes.delete(name)),
+    add: name => classes.add(name)
+  }});
+  preservedBubble.update = () => {layoutUpdates += 1;};
+  acceptedCase.L.__map.zoom = 15;
+  vm.runInContext("updatePlacePopupZoom()", acceptedCase.context);
+  assert.ok(classes.has("place-bubble--near"));
+  assert.ok(!classes.has("place-bubble--mid"));
+  assert.equal(layoutUpdates, 1);
+  assert.strictEqual(acceptedCase.L.__map.openedPopup, preservedBubble);
   assert.doesNotMatch(acceptedCase.L.__map.openedPopup.content, /<unsafe>/);
   assert.match(acceptedCase.elements.details.innerHTML, /洪水に関する公式掲載地点/);
   assert.match(acceptedCase.elements.details.innerHTML, /place-card-disclosure/);
@@ -966,6 +988,23 @@ nagoya.scenarios = [{
   });
   assert.equal(acceptedCase.L.__map.openedPopup, null,
     "blank-map click must dismiss, not replace with raster details");
+  // The screenshot's boundary click is UI-only: show a compact label first,
+  // keep its geographic click anchor and source/caveat under one disclosure.
+  vm.runInContext(`detail("江戸川区", [
+    ["種類", "自治体境界"], ["地域", "東京都江戸川区"],
+    ["自治体コード", "13123"], ["データ状態", "表示確認用fixture"]
+  ], "境界fixture", {
+    anchor: [35.71, 139.88],
+    note: "この境界は表示確認用で、分析の正本ではありません。"
+  })`, acceptedCase.context);
+  const boundaryPopup = acceptedCase.L.__map.openedPopup;
+  assert.match(boundaryPopup.options.className, /place-bubble--boundary/);
+  assert.match(boundaryPopup.content, /自治体境界（参考）/);
+  assert.doesNotMatch(boundaryPopup.content, /<div class="place-card-summary"><div class="row">/);
+  assert.equal((boundaryPopup.content.match(/<details class="place-card-disclosure">/g) || []).length, 1);
+  assert.match(boundaryPopup.content, /13123/);
+  assert.match(boundaryPopup.content, /表示確認用で、分析の正本ではありません/);
+  assert.deepEqual(Array.from(boundaryPopup.anchor), [35.71,139.88]);
   const pageSource = fs.readFileSync(path.resolve(__dirname, "../gis/index.html"), "utf8");
   assert.match(pageSource, /紫：公式掲載地点（安全性未判定/);
   assert.match(pageSource, /id="uiTabNormal"[^>]*role="tab"/);
@@ -973,9 +1012,13 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
   assert.match(pageSource, /current_theme[.]css[?]v=gis-facility-drawer-20261009-v6/);
   assert.match(pageSource, /map_first[.]css[?]v=guided-tour-three-region-comparison-20261013-v1/);
-  assert.match(pageSource, /place_card[.]css[?]v=anchored-point-bubble-20261014-v1/);
+  assert.match(pageSource, /place_card[.]css[?]v=zoom-compact-popup-20261014-v1/);
   const cardCss = fs.readFileSync(path.resolve(__dirname, "../gis/css/place_card.css"), "utf8");
   assert.match(cardCss, /\.hinanex-place-popup \.leaflet-popup-content-wrapper/);
+  assert.match(cardCss, /--place-width:188px/);
+  assert.match(cardCss, /--place-width:260px/);
+  assert.match(cardCss, /place-bubble--boundary/);
+  assert.match(cardCss, /max-height:min\(var\(--place-height\),46dvh\)/);
   assert.match(cardCss, /display:none !important/,
     "fixed right-side information card must stay hidden");
   assert.match(cardCss, /place-card-disclosure/);
@@ -2466,7 +2509,7 @@ nagoya.scenarios = [{
   assert.match(page,/id="mapDDecisionFilter"/);
   assert.match(page,/value="classified"/);
   assert.match(page,/value="unclassified"/);
-  assert.match(page,/anchored-point-bubble-20261014-v1/);
+  assert.match(page,/zoom-compact-popup-20261014-v1/);
   assert.match(css,/\.shelter-icon\.d-status-unknown/);
   assert.match(css,/\.d-facility-cluster\.d-status-mixed/);
   console.log("D flood assessment display-only filter and legend: OK");

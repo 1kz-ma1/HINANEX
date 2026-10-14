@@ -365,6 +365,7 @@ const PLACE_KIND_LABELS = Object.freeze({
   "D RegionExport": "地域の施設情報",
   "GSI公式掲載 / 未推奨": "洪水に関する公式掲載地点",
   "地図表示用クラスタ": "近接する施設",
+  "境界fixture": "自治体境界（参考）",
   "公的参照": "公的な洪水情報"
 });
 const PLACE_FIELD_LABELS = Object.freeze({
@@ -387,24 +388,51 @@ const PLACE_PRIORITY_FIELDS = new Set([
   "住所", "公式住所", "種別", "洪水対応分類",
   "直線距離（経路距離ではない）", "件数", "表示", "位置", "状態"
 ]);
+// A selected source point owns one popup; its scale follows zoom, not data
+// semantics. Leaflet retains the popup's geographic anchor across pan/zoom.
+const PLACE_POPUP_TIERS = ["place-bubble--far", "place-bubble--mid", "place-bubble--near"];
+function placePopupZoomTier(zoom) {
+  return zoom < 11 ? PLACE_POPUP_TIERS[0] :
+    zoom < 14 ? PLACE_POPUP_TIERS[1] : PLACE_POPUP_TIERS[2];
+}
+let activePlacePopup = null;
+function updatePlacePopupZoom() {
+  const popup = activePlacePopup;
+  const element = popup?.getElement?.();
+  if (!element?.classList) return;
+  const tier = placePopupZoomTier(map.getZoom());
+  if (element.classList.contains(tier)) return;
+  element.classList.remove(...PLACE_POPUP_TIERS);
+  element.classList.add(tier);
+  // Leaflet remeasures the bubble after its width changes, preserving
+  // its attachment point without replacing/closing the selected content.
+  popup.update?.();
+}
+map.on("zoomend", updatePlacePopupZoom);
+
 // Leaflet anchors a bubble to the selected point; #details is a hidden template.
 function detail(title, rows, type, options = {}) {
   const badgeClass = options.badgeClass ? " " + options.badgeClass : "";
   const noteClass = options.noteTone ? " " + options.noteTone : "";
-  const prominent = rows.filter(row => PLACE_PRIORITY_FIELDS.has(row[0])).slice(0, 4);
-  const summaryRows = prominent.length ? prominent : rows.slice(0, 3);
+  const prominent = rows.filter(row => PLACE_PRIORITY_FIELDS.has(row[0])).slice(0, 2);
+  // A boundary is a display fixture, not a selectable facility. Keep its
+  // default bubble to the name/type only, with all raw fields one tap away.
+  const summaryRows = type === "境界fixture" ? [] :
+    prominent.length ? prominent : rows.slice(0, 2);
   const extraRows = rows.filter(row => !summaryRows.includes(row));
   const renderRows = entries => entries.map(([label, value]) =>
     `<div class="row"><div class="label">${escapeHtml(PLACE_FIELD_LABELS[label] || label)}</div>` +
     `<div class="value">${escapeHtml(displayValue(value))}</div></div>`
   ).join("");
-  const disclosure = extraRows.length
-    ? `<details class="place-card-disclosure"><summary>詳しい情報を見る（${extraRows.length}項目）</summary>` +
-      `<div class="place-card-extra">${renderRows(extraRows)}</div></details>`
-    : "";
   const note = options.note
-    ? `<details class="place-card-disclosure"><summary>注意事項と確認範囲</summary>` +
-      `<p class="note${noteClass}">${escapeHtml(options.note)}</p></details>`
+    ? `<p class="note${noteClass}">${escapeHtml(options.note)}</p>` : "";
+  // A single disclosure avoids two large actions occupying the map. Original
+  // evidence, caution notes and technical/source rows remain accessible.
+  const disclosure = extraRows.length || note
+    ? `<details class="place-card-disclosure"><summary>` +
+      (extraRows.length ? `詳しい情報を見る（${extraRows.length}項目）` :
+        "注意事項と確認範囲") +
+      `</summary><div class="place-card-extra">${renderRows(extraRows)}${note}</div></details>`
     : "";
   const safeHref = safeExternalUrl(options.href);
   const externalLink = safeHref
@@ -420,21 +448,28 @@ function detail(title, rows, type, options = {}) {
     `<span class="badge${badgeClass}">${escapeHtml(visibleType)}</span>` +
     `<h2 class="detail-title">${escapeHtml(title)}</h2>` +
     `<div class="place-card-summary">${renderRows(summaryRows)}</div>` +
-    caution + externalLink + disclosure + note;
+    caution + externalLink + disclosure;
   if (options.anchor && typeof L.popup === "function") {
-    L.popup({
-      className: "hinanex-place-popup", closeButton: true, autoPan: true,
-      autoPanPaddingTopLeft: [20, 95],
-      autoPanPaddingBottomRight: [20, 85], maxWidth: 360
+    const isBoundary = type === "境界fixture";
+    const zoomTier = placePopupZoomTier(map.getZoom());
+    const popup = L.popup({
+      className: "hinanex-place-popup " + zoomTier +
+        (isBoundary ? " place-bubble--boundary" : ""),
+      closeButton: true, autoPan: true,
+      autoPanPaddingTopLeft: [16, 82],
+      autoPanPaddingBottomRight: [16, 76], maxWidth: 285
     }).setLatLng(options.anchor)
-      .setContent(document.getElementById("details").innerHTML).openOn(map);
+      .setContent(document.getElementById("details").innerHTML);
+    popup.openOn(map);
+    activePlacePopup = popup;
     window.HINANEX_MAP_FIRST_UI?.showDetail?.();
   } else if (options.anchor && typeof L.popup !== "function") {
     // For offline controller fixtures without real Leaflet popup primitives.
     window.HINANEX_MAP_FIRST_UI?.showDetail?.();
   }
 }
-map.on("popupclose", () => {
+map.on("popupclose", event => {
+  if (!event?.popup || event.popup === activePlacePopup) activePlacePopup = null;
   document.getElementById("gisLayout")?.setAttribute("data-right-panel", "closed");
   document.getElementById("toggleRightPanel")?.setAttribute("aria-expanded", "false");
 });
