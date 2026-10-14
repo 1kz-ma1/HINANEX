@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="css/map_first.css?v=guided-tour-three-region-comparison-20261013-v1">
   <link rel="stylesheet" href="css/evidence_replay.css?v=spatial-evidence-20261014-v2">
   <link rel="stylesheet" href="css/presentation_story.css?v=presenter-55s-20261014-v1">
+  <link rel="stylesheet" href="css/filter_demo.css?v=d-source-criteria-20261014-v1">
 </head>
 <body>
 <header class="header">
@@ -228,8 +229,14 @@
         <div><strong>ガイド付きデモ</strong><p>取得済み施設データと未確認事項を順番に紹介します。</p></div>
         <button id="mapTourClose" type="button" aria-label="ガイド付きデモを閉じる">×</button>
       </div>
+      <div class="map-tour-filter-cta" aria-label="実データを条件で絞り込む発表デモ">
+        <span>MAIN DEMO / 現在のDデータ</span>
+        <strong>条件で抽出 → 地図で確認 → 元データと照合</strong>
+        <button id="mapFilterDemoOpen" type="button" aria-controls="filterDemoPanel" aria-expanded="false">▶ 52秒：施設を条件で絞り込んで確認する</button>
+        <p>確認済み施設の属性で絞り込みます。安全な避難先を自動選定する機能ではありません。</p>
+      </div>
       <div class="map-tour-evidence-cta" aria-label="発表向け過去災害検証デモ">
-        <span>MAIN DEMO / 2019年台風19号・江戸川区</span>
+        <span>検証資料（別時点） / 2019年台風19号・江戸川区</span>
         <strong>原本の照合・判断保留・誤処理の検出</strong>
                 <button id="mapStoryOpen" type="button" aria-controls="storyPanel" aria-expanded="false">▶ 55秒で検証の流れを再生する</button>
         <button id="mapHistoricalEvidenceDemo" type="button" aria-controls="mapEvidenceReplayPanel" aria-expanded="false">詳細90秒版：地図上で3つの検証パターンを再生</button>
@@ -362,6 +369,52 @@
       </div>
       <p id="storyLoadStatus" class="story-loading" role="status">正本データの読み込みを確認しています。</p>
     </section>
+    <section id="filterDemoPanel" class="filter-demo-panel" role="region"
+      aria-label="施設の条件抽出と根拠を確認する発表デモ" hidden>
+      <div class="filter-demo-head">
+        <div><span>HINANEX / CURRENT D SOURCE</span><strong>条件に合う施設を、根拠と一緒に探す。</strong></div>
+        <button id="filterDemoClose" type="button" aria-label="条件抽出デモを閉じる">×</button>
+      </div>
+      <p id="filterDemoStatus" class="filter-demo-status" role="status" aria-live="polite">施設情報を確認中です。</p>
+      <div id="filterDemoContent" hidden>
+        <div class="filter-demo-scene"><span id="filterDemoStep">STEP 1/5</span><strong id="filterDemoClock">8秒</strong></div>
+        <h2 id="filterDemoTitle">施設の情報を条件で探す</h2>
+        <p id="filterDemoCaption">D出力の元データを使い、確認する施設を絞り込みます。</p>
+        <div class="filter-demo-metrics">
+          <div><span>元の取得件数</span><strong id="filterDemoTotal">—</strong></div>
+          <span aria-hidden="true">→</span>
+          <div><span>条件に一致・座標あり</span><strong id="filterDemoMatched">—</strong></div>
+        </div>
+        <div class="filter-demo-criterion">
+          <span>指定した条件</span>
+          <strong id="filterDemoCriterion"></strong>
+          <small id="filterDemoCriterionNote"></small>
+        </div>
+        <section id="filterDemoEvidence" class="filter-demo-evidence" aria-label="選択した施設と条件の照合" hidden>
+          <span>抽出結果を、実際のD原データで確認</span>
+          <h3 id="filterDemoFacility"></h3>
+          <dl>
+            <div><dt>抽出条件</dt><dd id="filterDemoEvidenceCriterion"></dd></div>
+            <div><dt>データの該当値</dt><dd id="filterDemoEvidenceValue"></dd></div>
+            <div><dt>洪水対応分類</dt><dd id="filterDemoDecision"></dd></div>
+            <div><dt>判定の根拠</dt><dd id="filterDemoReason"></dd></div>
+          </dl>
+          <a id="filterDemoSourceLink" target="_blank" rel="noopener noreferrer" hidden>施設の出典を見る ↗</a>
+        </section>
+        <div id="filterDemoFuture" class="filter-demo-future" hidden>
+          <strong>現在：属性で抽出して、原文と照合できる</strong>
+          <p>将来：災害の状況・施設の利用条件などを根拠付きで組み合わせ、避難先選定の支援へ発展させる。</p>
+        </div>
+        <p class="filter-demo-warning">表示された施設 ≠ 避難先として適切な施設。分類値 CANDIDATE・EXCLUDED も安全性や開設を証明しません。未判定・位置未確認は推測で補いません。</p>
+        <div class="filter-demo-progress"><span id="filterDemoProgress" aria-hidden="true"></span></div>
+        <div class="filter-demo-actions" role="group" aria-label="発表デモを操作">
+          <button id="filterDemoPlay" type="button">▶ 再生</button>
+          <button id="filterDemoPause" type="button">一時停止</button>
+          <button id="filterDemoNext" type="button">次の場面 →</button>
+          <button id="filterDemoRestart" type="button">↺ 最初から</button>
+        </div>
+      </div>
+    </section>
     <section id="mapSharePanel" class="map-share-panel" role="region" aria-label="観客向けHINANEX共有" hidden>
       <div class="map-share-heading">
         <div><strong>HINANEXを体験する</strong><p>QRコードまたはURLを使って、ご自身のスマホから操作できます。</p></div>
@@ -480,12 +533,13 @@
 <script src="js/facility_list.js"></script>
 <!-- Discovery API remains v14; map UI-only consumer has a separate cache-busting key. -->
 <script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v14"></script>
-<script src="js/map.js?v=d-decision-filter-20261010-v1"></script>
+<script src="js/map.js?v=d-source-filter-presenter-20261014-v1"></script>
 <script src="js/map_first_ui.js?v=map-first-20261009-v3"></script>
 <script src="js/audience_share.js?v=audience-share-20261010-v1"></script>
 <script src="js/guided_tour.js?v=guided-tour-three-region-comparison-20261013-v1"></script>
 <script src="js/evidence_replay.js?v=spatial-evidence-20261014-v2"></script>
 <script src="js/presentation_story.js?v=presenter-55s-20261014-v1"></script>
+<script src="js/filter_demo.js?v=d-source-criteria-20261014-v1"></script>
 <script src="js/evidence_sheet.js?v=evidence-sheet-20261010-v1"></script>
 </body>
 </html>
