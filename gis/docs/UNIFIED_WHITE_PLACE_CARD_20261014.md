@@ -14,7 +14,7 @@ The user's accepted staging screenshot has a compact white GSI popup beside a mu
 ## Follow-up QA (2026-10-14)
 - Keep raw `UNKNOWN` in source data/technical trace, but show `未判定` rather than internal enums in the primary facility summary; explicitly warn that missing judgment does not mean danger.
 - Make D-presenter copy natural; remove remaining engineering-only badges and English display headings.
-- Small-screen presenter mode keeps a capped, scrollable place card above the bottom-anchored demo sheet instead of making the selected place inaccessible.
+- Small-screen presenter mode gives the selected-place shell a definite capped height, clips its outer overflow and scrolls content inside. While a demo and place card are both open, the demo's scrollable height shrinks to leave a separation gap between the two surfaces (no change to playback or safety classifications).
 - Update the map asset regression to the new UI-only cache key; the discovery module's compatibility signature is unchanged.
 
 ## Acceptance
