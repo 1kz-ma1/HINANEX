@@ -11,6 +11,23 @@ const mapCode = fs.readFileSync(path.join(root, "map.js"), "utf8");
 const discoveryCode = fs.readFileSync(path.join(root, "flood_discovery.js"), "utf8");
 const referenceCode = fs.readFileSync(path.join(root, "reference_data.js"), "utf8");
 
+// Ensure the independent REAL-browser predeploy smoke remains syntactically
+// runnable and follows the current GIS consumer copy after white-card changes.
+// Chromium itself is deliberately NOT implied by this static CI validation.
+for (const filename of ["demo_20261022_browser_smoke.js",
+  "guided_tour_compare_browser_smoke.cjs"]) {
+  const script = fs.readFileSync(path.join(__dirname, filename), "utf8");
+  new vm.Script(script, { filename });
+  assert.doesNotMatch(script, /includes\("D出力読込済"\)/,
+    "browser smoke must follow the current dataset chip label");
+}
+const actualBrowserSmoke = fs.readFileSync(
+  path.join(__dirname, "demo_20261022_browser_smoke.js"), "utf8");
+assert.match(actualBrowserSmoke, /white card body must scroll within its shell/);
+assert.match(actualBrowserSmoke, /white card and presenter must not intersect/);
+assert.match(actualBrowserSmoke, /UI_TEST_ONLY/);
+
+
 function payload(code, name, records) {
   return {
     region: { code, name },
@@ -332,7 +349,7 @@ nagoya.scenarios = [{
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.equal(fileFetchCalls, 0);
   assert.match(fileCase.elements.datasetStatus.textContent, /file:\/\//);
-  assert.match(fileCase.elements.status.textContent, /手動読込/);
+  assert.match(fileCase.elements.status.textContent, /手動で読込/);
 
   // Two independent UI tabs operate on ONE map, never on two data pipelines.
   assert.equal(fileCase.elements.gisLayout.getAttribute("data-ui-mode"), "normal");
@@ -418,7 +435,7 @@ nagoya.scenarios = [{
   assert.equal(httpCase.elements.facilityDisplayMode.value, "region");
   assert.equal(httpCase.L.__map.hasLayer(httpCase.L.__groups[1]), true);
   assert.equal(httpCase.L.__map.hasLayer(httpCase.L.__groups[3]), false);
-  assert.match(httpCase.elements.facilityDisplayModeDescription.textContent, /選択地域のD施設/);
+  assert.match(httpCase.elements.facilityDisplayModeDescription.textContent, /地域の避難施設/);
   assert.equal(httpCase.elements.mapOriginShortcut.getAttribute("aria-pressed"), "false");
   assert.match(httpCase.elements.mapOriginShortcutStatus.textContent, /地図/);
   assert.match(httpCase.elements.floodDiscoveryResults.innerHTML, /地図から出発地点/);
@@ -504,7 +521,7 @@ nagoya.scenarios = [{
   assert.equal(httpCase.L.__map.hasLayer(httpCase.L.__groups[0]), false);
   assert.equal(httpCase.L.__map.hasLayer(httpCase.L.__groups[3]), true);
   assert.equal(httpCase.elements.shelter.disabled, true);
-  assert.match(httpCase.elements.facilityDisplayModeDescription.textContent, /周辺の検証済みGSI/);
+  assert.match(httpCase.elements.facilityDisplayModeDescription.textContent, /周辺で確認済みの公式掲載地点/);
   assert.match(httpCase.elements.originStatus.textContent, /端末内だけ/);
   assert.equal(httpCase.elements.coordinateSearchInput.value, "35.70000, 139.88000");
   assert.match(httpCase.elements.details.innerHTML, /35.70000, 139.88000/);
@@ -611,7 +628,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "gsi-flood-origin-20261014-v3");
+  assert.equal(mapAsset[1], "unified-place-card-20261014-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -647,7 +664,7 @@ nagoya.scenarios = [{
     }
   });
   await new Promise(resolve => setTimeout(resolve, 0));
-  assert.match(missingDCase.elements.datasetStatus.textContent, /D RegionExportを読み込めません/);
+  assert.match(missingDCase.elements.datasetStatus.textContent, /地域の施設データを読み込めません/);
   assert.match(missingDCase.elements.datasetStatus.textContent, /GSI公式地点探索は別データ/);
   assert.equal(missingDCase.elements.mapOriginShortcut.disabled, false);
   assert.equal(missingDCase.elements.mapOriginShortcut.getAttribute("aria-pressed"), "false");
@@ -706,8 +723,18 @@ nagoya.scenarios = [{
   // only the Source's raw floor wording and D UNKNOWN, never flood safety.
   const niigataMarker = httpCase.L.__groups[1].items[0];
   niigataMarker.handlers.click({});
+  // One compact white information card, with every original technical value
+  // preserved under a native keyboard-accessible disclosure.
+  const selectedCard = httpCase.elements.details.innerHTML;
+  assert.match(selectedCard, /<span class="badge">地域の避難施設<\/span>/);
+  assert.match(selectedCard, /class="place-card-summary"/);
+  assert.match(selectedCard, /<details class="place-card-disclosure"><summary>詳しい情報を見る/);
+  const topRows = selectedCard.split('<details class="place-card-disclosure">')[0];
+  assert.doesNotMatch(topRows, /施設ID|緯度|経度|source_record_trace|出典の記録位置|UNKNOWN|D施設/);
+  assert.match(topRows, /未判定/);
+  assert.match(selectedCard, /出典の記録位置|施設ID/);
   assert.match(httpCase.elements.details.innerHTML, /2階以上/);
-  assert.match(httpCase.elements.details.innerHTML, /元データ記載の災害（適合性未検証）/);
+  assert.match(httpCase.elements.details.innerHTML, /資料に記載された災害種別/);
   assert.match(httpCase.elements.details.innerHTML, /UNKNOWN/);
   assert.match(httpCase.elements.details.innerHTML, /安全性|安全/);
   assert.doesNotMatch(httpCase.elements.details.innerHTML, /javascript:/i);
@@ -728,7 +755,7 @@ nagoya.scenarios = [{
   httpCase.elements.facilityDisplayMode.value = "region";
   httpCase.elements.facilityDisplayMode.listeners.change({ target: httpCase.elements.facilityDisplayMode });
 
-  assert.match(httpCase.elements.mapUnavailableMessage.textContent, /位置を推測しません/);
+  assert.match(httpCase.elements.mapUnavailableMessage.textContent, /位置は推測しません/);
   assert.equal(httpCase.elements.facilityListPanel.hidden, false);
   assert.equal(httpCase.elements.mapUnavailable.className, "map-unavailable has-facility-list");
   assert.match(httpCase.elements.mapUnavailableTitle.textContent, /施設一覧を検索できます/);
@@ -891,14 +918,19 @@ nagoya.scenarios = [{
   assert.ok(acceptedPin.options.icon.html.includes("reference-site-marker"));
   assert.match(acceptedPin.options.icon.html, /aria-label="GSI公式掲載地点・安全性未判定"/);
   assert.doesNotMatch(acceptedPin.options.icon.html, />[1-5]<|GSI公式掲載参考地点[1-5]/);
-  assert.match(acceptedPin.popupHtml, /GSI公式掲載地点（参考情報）/);
+  assert.match(acceptedPin.popupHtml, /GSI公式掲載地点（参考）/);
   assert.doesNotMatch(acceptedPin.popupHtml, /GSI公式掲載（参考\s*[0-9]|番号は|順位/);
   assert.ok(acceptedPin.popupHtml.includes("未判定"));
   assert.ok(acceptedPin.popupHtml.includes("&lt;unsafe&gt;"));
   assert.ok(!acceptedPin.popupHtml.includes("<unsafe>"));
   acceptedPin.handlers.click({});
-  assert.match(acceptedCase.elements.details.innerHTML, /GSI公式掲載/);
-  assert.match(acceptedCase.elements.details.innerHTML, /未推奨/);
+  assert.match(acceptedCase.elements.details.innerHTML, /洪水に関する公式掲載地点/);
+  assert.match(acceptedCase.elements.details.innerHTML, /place-card-disclosure/);
+  assert.match(acceptedCase.elements.details.innerHTML, /公式の出典を確認/);
+  assert.doesNotMatch(
+    acceptedCase.elements.details.innerHTML.split('<details class="place-card-disclosure">')[0],
+    /feature_index=0|raw行/, "raw source trace belongs in the collapsed detail section");
+  assert.match(acceptedCase.elements.details.innerHTML, /安全性・現在の開設状況は確認できていません/);
   assert.doesNotMatch(acceptedCase.elements.details.innerHTML, /番号は表示順序/);
   const pageSource = fs.readFileSync(path.resolve(__dirname, "../gis/index.html"), "utf8");
   assert.match(pageSource, /紫：公式掲載地点（安全性未判定/);
@@ -907,13 +939,24 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
   assert.match(pageSource, /current_theme[.]css[?]v=gis-facility-drawer-20261009-v6/);
   assert.match(pageSource, /map_first[.]css[?]v=guided-tour-three-region-comparison-20261013-v1/);
+  assert.match(pageSource, /place_card[.]css[?]v=place-card-20261014-v2/);
+  const cardCss = fs.readFileSync(path.resolve(__dirname, "../gis/css/place_card.css"), "utf8");
+  assert.match(cardCss, /top:142px;right:18px/);
+  assert.match(cardCss, /place-card-disclosure/);
+  assert.match(cardCss, /height:min\(22%,160px\);max-height:none;overflow:hidden/, "mobile demo must cap the card and clip overflow");
+  assert.match(cardCss, /height:100%;max-height:none;overflow-y:auto/, "mobile card contents must scroll within the card");
+  assert.match(cardCss, /calc\(100% - 144px - min\(22%,160px\)\)/, "mobile presenter must leave room above for its place card");
+  assert.match(cardCss, /data-right-panel="closed"/);
+  assert.match(pageSource, /地域の避難施設データ/);
+  assert.doesNotMatch(pageSource, /D施設|地域D|DのUNKNOWN|CURRENT D SOURCE|GIS \/ RegionExport|CANDIDATE・EXCLUDED|UNKNOWN・資料不足|洪水Scenario/);
+
   assert.match(pageSource, /id="toggleLeftPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="toggleRightPanel"[^>]*aria-expanded="false"/);
   assert.match(pageSource, /id="gisLeftPanel"/);
   assert.match(pageSource, /gis-side-shell gis-side-shell--left/);
   assert.match(pageSource, /gis-side-shell gis-side-shell--right/);
   assert.match(pageSource, /aria-label="左メニューを開く"/);
-  assert.match(pageSource, /aria-label="右詳細を開く"/);
+  assert.match(pageSource, /aria-label="地点情報カードを閉じる"/);
   assert.equal((pageSource.match(/id="map"/g) || []).length, 1);
   assert.equal((pageSource.match(/id="toggleLeftPanel"/g) || []).length, 1);
   assert.equal((pageSource.match(/id="toggleRightPanel"/g) || []).length, 1);
@@ -967,7 +1010,7 @@ nagoya.scenarios = [{
     sidebar.indexOf('id="layerDisclosure"'), "raster warning cannot be hidden in layer options");
   assert.match(sidebar, /安全な避難先や現在の開設状況を保証しません/);
   assert.match(sidebar, /座標未確認/);
-  assert.match(sidebar, /UNKNOWNを施設IDで照合/);
+  assert.match(sidebar, /未判定の施設情報を施設IDで照合/);
   const theme = fs.readFileSync(path.resolve(__dirname, "../gis/css/current_theme.css"), "utf8");
   assert.match(theme, /--bg:#07131e/);
   assert.match(theme, /--cyan:#4ed7dc/);
@@ -1025,7 +1068,7 @@ nagoya.scenarios = [{
     "comparison fits clicked origin + certified GSI pin + both D coordinates");
   assert.equal(acceptedCase.L.__map.lastBounds.points[0][0], 35.7);
   assert.equal(acceptedCase.L.__map.lastBounds.points[0][1], 139.88);
-  assert.match(acceptedCase.elements.toggleDMarkers.textContent, /周辺/);
+  assert.match(acceptedCase.elements.toggleDMarkers.textContent, /公式掲載地点だけ表示/);
   acceptedCase.elements.toggleDMarkers.listeners.click();
   assert.equal(acceptedCase.elements.facilityDisplayMode.value, "nearby");
   assert.equal(acceptedCase.L.__map.hasLayer(acceptedCase.L.__groups[1]), false);
@@ -2167,7 +2210,7 @@ nagoya.scenarios = [{
   assert.match(html, /id="mapEvidencePanel"[^>]*hidden/);
   assert.match(html, /js\/evidence_sheet[.]js[?]v=evidence-sheet-20261010-v1/);
   assert.match(html, /css\/map_first[.]css[?]v=guided-tour-three-region-comparison-20261013-v1/);
-  assert.match(html, /D施設とGSI公式掲載地点は別情報源/);
+  assert.match(html, /地域の避難施設と国土地理院の公式掲載地点は別情報源/);
   assert.match(style, /\.map-evidence-panel\[hidden\]\{display:none\}/);
   assert.doesNotMatch(source, /fetch\(|getCurrentPosition|geolocation|setView\(|flyTo|sendBeacon/);
   assert.doesNotMatch(source, /innerHTML\s*=/,
@@ -2387,7 +2430,7 @@ nagoya.scenarios = [{
   assert.match(page,/id="mapDDecisionFilter"/);
   assert.match(page,/value="classified"/);
   assert.match(page,/value="unclassified"/);
-  assert.match(page,/gsi-flood-origin-20261014-v3/);
+  assert.match(page,/unified-place-card-20261014-v1/);
   assert.match(css,/\.shelter-icon\.d-status-unknown/);
   assert.match(css,/\.d-facility-cluster\.d-status-mixed/);
   console.log("D flood assessment display-only filter and legend: OK");

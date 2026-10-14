@@ -25,7 +25,7 @@
       ? "座標あり " + mapped + "件／座標未確認 " + missing + "件"
       : "元座標を確認できていません";
     // GSI displayed counts are ONLY the verified tiles around an explicitly
-    // selected reference location. Never confuse with D RegionExport counts.
+    // selected reference location. Never confuse with 地域の施設データ counts.
     const gsiPanel = id("referenceMapSummary");
     id("mapEvidenceGSI").textContent = gsiPanel?.hidden
       ? "地点未指定・未照合、または掲載を確認できない範囲"
@@ -42,7 +42,7 @@
     const viewport = id("mapViewportDStatus");
     id("mapEvidenceViewport").textContent = viewport?.textContent?.trim()
       ? "閲覧範囲の表示状態：" + viewport.textContent.trim()
-      : "閲覧範囲の追加D施設は未確認です。未表示は施設なしを意味しません。";
+      : "閲覧範囲の追加地域の避難施設は未確認です。未表示は施設なしを意味しません。";
   }
   function setOpen(open) {
     panel.hidden = !open;

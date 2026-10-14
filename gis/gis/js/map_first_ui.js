@@ -159,8 +159,8 @@
     layout.setAttribute("data-right-panel", "open");
     const button = id("toggleRightPanel");
     button.setAttribute("aria-expanded", "true");
-    button.setAttribute("aria-label", "右詳細を閉じる");
-    button.setAttribute("title", "右詳細を閉じる");
+    button.setAttribute("aria-label", "地点情報カードを閉じる");
+    button.setAttribute("title", "地点情報カードを閉じる");
   }
   function showRasterWarning(message) {
     const notice = id("mapRasterNotice");

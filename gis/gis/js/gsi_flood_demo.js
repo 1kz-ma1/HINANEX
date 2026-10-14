@@ -15,10 +15,10 @@
     "ここから、避難先選定を支える仕組みへ"
   ];
   const explanations=[
-    "D施設の一覧と、国土地理院の災害種別ごとの指定緊急避難場所は別の情報源です。",
+    "地域の避難施設の一覧と、国土地理院の災害種別ごとの指定緊急避難場所は別の情報源です。",
     "GSIが洪水向けに公開したskhb01だけを地図に表示。これは全避難所からの安全ランキングではありません。",
     "掲載地点の名称・住所・原文の行を確認。disaster1=1は洪水について指定があることを示します。",
-    "GSIで指定を確認できても、Dの未判定を勝手に確定できません。両データは未照合です。",
+    "GSIで指定を確認できても、施設情報の未判定を勝手に確定できません。両データは未照合です。",
     "今は公式指定と出典を確認する基盤。開設・浸水・経路等を統合した避難先選定支援は今後の構想です。"
   ];
   function stopClock(){if(clock!==null)window.clearInterval(clock);clock=null;}
@@ -36,7 +36,7 @@
     get("gsiFloodDemoFallback").hidden=false;
     get("gsiFloodDemoFallbackReason").textContent=
       "GSI洪水指定の掲載情報は未確認です。現在の安全性は判断できません。"+
-      "D施設の属性絞り込みは別データで実行できます。";
+      "地域の避難施設の属性絞り込みは別データで実行できます。";
   }
   function value(v){return v==null||v===""?"未確認":String(v);}
   function render(){
@@ -63,9 +63,9 @@
     }
     if(scene===3){
       get("gsiFloodDemoDStatus").textContent=dStatus?.state==="separate-source"
-        ?"D施設の元座標あり "+dStatus.mapped+"件のうち洪水対応未判定 "+
+        ?"地域の避難施設の元座標あり "+dStatus.mapped+"件のうち洪水対応未判定 "+
           dStatus.unclassified+"件。GSI掲載地点との同一施設照合は未実施。"
-        :"D施設の判定情報は未取得。0件や危険とは断定できません。";
+        :"地域の避難施設の判定情報は未取得。0件や危険とは断定できません。";
     }
     get("gsiFloodDemoProgress").style.width=Math.round(elapsed/50*100)+"%";
     get("gsiFloodDemoPlay").disabled=state==="playing"||state==="complete";

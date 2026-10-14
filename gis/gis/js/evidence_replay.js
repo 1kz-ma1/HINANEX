@@ -47,7 +47,7 @@
     mapSession = true;
     mapReady = false;
     get("mapEvidenceReplayMapLabel").hidden = false;
-    mapStatus("現行D施設の元座標を確認中。2019年当日の避難先ではありません。");
+    mapStatus("現行地域の避難施設の元座標を確認中。2019年当日の避難先ではありません。");
   }
   async function focusMapContext() {
     if (!mapSession || panel.hidden || !deck) return;
@@ -55,7 +55,7 @@
     const token = ++mapRequest;
     mapMovePending = true;
     mapReady = false;
-    mapStatus("江戸川区の現行D施設を確認して地図を移動中。2019年の避難先は特定しません。");
+    mapStatus("江戸川区の現行地域の避難施設を確認して地図を移動中。2019年の避難先は特定しません。");
     let result;
     try {
       const reduced = !!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
@@ -70,13 +70,13 @@
       Number.isSafeInteger(result.mapped) && result.total >= result.mapped &&
       result.mapped > 0) {
       mapReady = true;
-      mapStatus("現行D施設：取得 " + result.total + "件／元座標あり " +
+      mapStatus("現行地域の避難施設：取得 " + result.total + "件／元座標あり " +
         result.mapped + "件／位置未確認 " + (result.total - result.mapped) +
         "件。地図マークは2019年当日の避難先ではありません。");
     } else if (result?.state === "unlocated") {
-      mapStatus("現行D施設を取得しましたが確認済み座標がありません。地図は移動していません。");
+      mapStatus("現行地域の避難施設を取得しましたが確認済み座標がありません。地図は移動していません。");
     } else {
-      mapStatus("現行D施設の位置を確認できず、地図移動は未実施です。未取得は施設不存在を意味しません。");
+      mapStatus("現行地域の避難施設の位置を確認できず、地図移動は未実施です。未取得は施設不存在を意味しません。");
     }
   }
   function endMapSession() {
@@ -190,7 +190,7 @@
     get("mapEvidenceReplayFinding").textContent = stage === 3 ? item.review_label :
       "検証工程を確認中 — 結果を先に確定しません";
     get("mapEvidenceReplayTakeaway").textContent = stage === 3 ? item.takeaway :
-      "Cの記録を順番に表示しています。画面上の再生は新たな判定を実行しません。";
+      "検証資料を順番に表示しています。画面上の再生は新たな判定を実行しません。";
     displaySources(item);
     get("mapEvidenceReplayPlay").disabled = state === "playing" || state === "loading";
     get("mapEvidenceReplayPause").disabled = state !== "playing";
@@ -236,7 +236,7 @@
     clearClock();
     if (mapMovePending) {
       stopMapMovement();
-      mapStatus("地図移動を一時停止。再生すると現行D施設の位置確認を再開します。");
+      mapStatus("地図移動を一時停止。再生すると現行地域の避難施設の位置確認を再開します。");
     }
     state = "paused";
     setStatus("一時停止中。ケースを選ぶか、再生ボタンで続けられます。");
@@ -250,7 +250,7 @@
     stage = 0;
     remaining = lengths[0];
     state = "paused";
-    setStatus("ケース " + (caseIndex + 1) + " を選択。地図は現行D施設の参考位置です。");
+    setStatus("ケース " + (caseIndex + 1) + " を選択。地図は現行地域の避難施設の参考位置です。");
     render();
     void focusMapContext();
   }
@@ -308,7 +308,7 @@
     deck = null;
     get("mapEvidenceReplayContent").hidden = true;
     get("mapEvidenceReplayMapLabel").hidden = true;
-    mapStatus("現行D施設の位置情報はまだ取得していません。");
+    mapStatus("現行地域の避難施設の位置情報はまだ取得していません。");
     tabs.forEach(b => { b.disabled = true; });
     setStatus("Cが固定した説明データを取得中です。未取得を検証成功として表示しません。");
     const request = ++generation;
