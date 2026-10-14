@@ -45,7 +45,7 @@ test("primary demo is source-attribute GIS presentation; historical demos remain
  assert.match(html,/id="mapFilterDemoOpen" type="button"/);
  assert.match(html,/id="mapStoryOpen" type="button"/);
  assert.match(html,/id="mapHistoricalEvidenceDemo" type="button"/);
- assert.match(html,/js\/filter_demo[.]js[?]v=d-source-criteria-20261014-v1/);
+ assert.match(html,/js\/filter_demo[.]js[?]v=unified-place-card-20261014-v2/);
  assert.match(css,/@media\(max-width:780px\)/);
  assert.match(html,/表示された施設 ≠ 避難先として適切な施設/);
 });
