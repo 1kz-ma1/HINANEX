@@ -138,13 +138,25 @@ async function screenshot(page, name) {
     assert.equal(gestureConfig.debounce, 135);
     assert.equal(gestureConfig.basemapDuringZoom, false);
     assert.equal(gestureConfig.floodDuringZoom, false);
-    const beforeWheel = await page.evaluate(() => map.getZoom());
+    const beforeWheel = await page.evaluate(() => {
+      window.__wheelZoomCalls = 0;
+      const oldZoomAround = map.setZoomAround.bind(map);
+      map.setZoomAround = (...args) => {
+        window.__wheelZoomCalls++;
+        return oldZoomAround(...args);
+      };
+      return map.getZoom();
+    });
     await page.locator("#map").hover();
-    await page.mouse.wheel(0, -48);
-    await page.waitForTimeout(400);
+    await page.mouse.wheel(0, -16);
+    await page.mouse.wheel(0, -16);
+    await page.mouse.wheel(0, -16);
+    await page.waitForTimeout(700);
     const afterWheel = await page.evaluate(() => map.getZoom());
     assert.ok(afterWheel > beforeWheel,
-      "wheel input must visibly zoom into the map with new default settings");
+      "wheel input must zoom toward the target with new default settings");
+    assert.equal(await page.evaluate(() => window.__wheelZoomCalls), 1,
+      "a short wheel gesture should animate once, not per wheel step");
     await page.evaluate(z => map.setZoom(z, {animate:false}), beforeWheel);
     await page.waitForTimeout(160);
 
