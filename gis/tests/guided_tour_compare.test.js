@@ -89,7 +89,7 @@ test("three distinct labeled cases and safe comparison exist in responsive GIS p
     assert.match(html, new RegExp('id="mapTourCompare' + code + '"'));
   }
   assert.match(html, /id="mapTourStart"[^>]*>3地域を連続再生/);
-  assert.match(html, /js\/guided_tour[.]js[?]v=guided-tour-three-region-comparison-20261013-v1/);
+  assert.match(html, /js\/guided_tour[.]js[?]v=interactive-presenter-20261014-v1/);
   assert.match(html, /css\/map_first[.]css[?]v=guided-tour-three-region-comparison-20261013-v1/);
   assert.match(html, /未取得は0件ではありません/);
   assert.match(css, /\.map-tour-case button\[aria-pressed="true"\]/);
