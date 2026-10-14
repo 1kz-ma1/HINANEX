@@ -138,6 +138,11 @@ async function screenshot(page, name) {
     assert.equal(gestureConfig.debounce, 135);
     assert.equal(gestureConfig.basemapDuringZoom, false);
     assert.equal(gestureConfig.floodDuringZoom, false);
+    // The CSS preview updates immediately; the geographic destination/tile
+    // switch should start ~70ms after the final wheel event rather than 135ms.
+    assert.deepEqual(await page.evaluate(() => [
+      WHEEL_GESTURE_IDLE_MS, WHEEL_PREVIEW_TRANSITION_MS
+    ]),[70,40]);
     const wheelPreview = await page.evaluate(() => {
       window.__wheelZoomCalls = 0;
       const oldZoomAround = map.setZoomAround.bind(map);
@@ -168,7 +173,7 @@ async function screenshot(page, name) {
       "map image preview must respond before wheel idle timer expires");
     assert.equal(wheelPreview.calls,0,
       "no Leaflet destination update while previewing");
-    await page.waitForTimeout(450);
+    await page.waitForTimeout(250);
     const afterWheel = await page.evaluate(() => map.getZoom());
     assert.ok(afterWheel>wheelPreview.before,
       "final wheel target must zoom into the map");
