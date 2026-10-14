@@ -286,6 +286,7 @@
     if (panel.hidden) return;
     generation++;
     clearClock();
+    endMapSession();
     state = "idle";
     panel.hidden = true;
     opener.setAttribute("aria-expanded", "false");
@@ -304,6 +305,8 @@
     state = "loading";
     deck = null;
     get("mapEvidenceReplayContent").hidden = true;
+    get("mapEvidenceReplayMapLabel").hidden = true;
+    mapStatus("現行D施設の位置情報はまだ取得していません。");
     tabs.forEach(b => { b.disabled = true; });
     setStatus("Cが固定した説明データを取得中です。未取得を検証成功として表示しません。");
     const request = ++generation;
@@ -316,6 +319,7 @@
       deck = verified;
       tabs.forEach(b => { b.disabled = false; });
       get("mapEvidenceReplayContent").hidden = false;
+      beginMapSession();
       restart();
     } catch (error) {
       if (request !== generation || panel.hidden) return;
@@ -355,6 +359,13 @@
     }
   }, true);
   document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); });
-  get("map").addEventListener("pointerdown", () => { if (!panel.hidden) pause(); }, { passive: true });
-  get("map").addEventListener("wheel", () => { if (!panel.hidden) pause(); }, { passive: true });
+  function onManualMapGesture() {
+    if (panel.hidden) return;
+    mapRestore = false; // Do not undo the viewer's manual navigation on close.
+    pause();
+    stopMapMovement();
+  }
+  for (const type of ["pointerdown", "wheel", "touchstart"]) {
+    get("map").addEventListener(type, onManualMapGesture, { passive: true });
+  }
 })();
