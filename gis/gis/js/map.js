@@ -640,9 +640,9 @@ function applyDisplayMode() {
   document.getElementById("facilityDisplayMode").value = displayMode;
   document.getElementById("facilityDisplayModeDescription").textContent =
     displayMode === "region"
-      ? "地域の避難施設を表示。GSIの照合結果は地図で非表示（再切替で復帰）。"
+      ? "地域の避難施設を表示。公式掲載地点の確認結果は地図で非表示（再切替で復帰）。"
       : displayMode === "nearby"
-        ? "選択地点周辺の検証済みGSI掲載地点だけを表示。安全性・開設は未判定。"
+        ? "選択地点周辺で確認済みの公式掲載地点だけを表示。安全性・開設は未判定。"
         : !hasMappedD
           ? "地域の避難施設の位置情報が未読込・座標欠損のため比較範囲を表示できません。GSIは別データです。"
           : "地域の避難施設（緑）と公式掲載地点（紫）を比較。異なる出典の情報です。";
@@ -716,7 +716,7 @@ function renderReferenceMap(discovery) {
   // Five display pins, not 6,656. No lines, routing or safety ranking.
   discovery.sites.forEach(site => {
     const sourceLink = safeExternalUrl(site.sourceUrl);
-    const popup = '<div class="reference-site-popup"><strong>GSI公式掲載地点（参考情報）</strong>' +
+    const popup = '<div class="reference-site-popup"><strong>GSI公式掲載地点（参考）</strong>' +
       '<p>' + escapeHtml(site.name) + '</p>' +
       '<p>直線距離：' + escapeHtml(site.distanceMetres.toLocaleString("ja-JP")) +
       'm（経路距離ではありません）</p>' +
@@ -916,7 +916,7 @@ function showRegionWaitingDetail() {
   detail(
     currentRegion().label,
     [
-      ["状態", "D RegionExport 未読込"],
+      ["状態", "地域の施設情報は未読込"],
       ["探索先", currentRegion().autoUrl],
       ["Contract", "RegionExport 0.9"]
     ],
@@ -1104,8 +1104,8 @@ function drawIndividualDMarker(record, summary) {
           {
             href: summary.floodScenario?.byId.get(record.id)?.sourceUrl || record.detail_url,
             note: summary.floodScenario?.byId.has(record.id)
-              ? "洪水Scenarioの状態は公式原文を追跡するためのD判定値です。UNKNOWNは危険・候補外ではありません。公式記号の意味、実際の開設、建物・経路の安全性は未確認です。"
-              : "null は未確認 / 判定不能を意味します。E側で値を補完・推測していません。"
+              ? "洪水対応の確認状態は、出典を追える形で記録したものです。未判定は危険・候補外を意味しません。公式記号の意味、実際の開設、建物・経路の安全性は未確認です。"
+              : "空欄は未確認または判定できない情報です。値を推測で埋めていません。"
           }
         );
       });
@@ -1426,7 +1426,7 @@ window.HINANEX_FACILITY_PRESENTER = Object.freeze({
       return {state:"unavailable",region:config.label};
     if (summary !== currentShelterSummary) {
       // Validated D adapter output, shared with the ordinary GIS view.
-      renderShelterSummary(summary, "D RegionExport（発表用確認）");
+      renderShelterSummary(summary, "地域の施設データ（発表用確認）");
     }
     const condition = presenterChooseCondition(summary);
     session.summary=summary;
@@ -1773,7 +1773,7 @@ function parseRegionExport(payload, sourceLabel) {
         ["読込元", sourceLabel]
       ],
       "D RegionExport",
-      { note: "E側では別datasetから避難所を推測しません。" }
+      { note: "不足した施設情報を別の資料から推測して補っていません。" }
     );
     return;
   }
@@ -1798,7 +1798,7 @@ async function tryAutoLoad() {
       "warning"
     );
     showRegionWaitingDetail();
-    setStatus(`${config.label}｜D RegionExport は手動読込`, "warning");
+    setStatus(`${config.label}｜地域の施設情報は手動で読込`, "warning");
     return;
   }
 
@@ -1824,7 +1824,7 @@ async function tryAutoLoad() {
       "warning"
     );
     showRegionWaitingDetail();
-    setStatus(`${config.label}｜D RegionExport 未読込`, "warning");
+    setStatus(`${config.label}｜地域の施設情報は未読込`, "warning");
   }
 }
 
@@ -1859,10 +1859,10 @@ function selectRegion(regionCode) {
   setDisplayMode("region");
   setMapAvailability(
     hasBoundary,
-    `${currentRegion().label} は境界fixtureがありません。Dの座標付きRegionExportを読み込むまで、地図位置を選択地域として扱いません。`
+    `${currentRegion().label} は境界fixtureがありません。座標付きの施設データを読み込むまで、地図位置を選択地域として扱いません。`
   );
   showRegionWaitingDetail();
-  setStatus(`${currentRegion().label}｜D RegionExport を読み込みます`);
+  setStatus(`${currentRegion().label}｜地域の施設情報を読み込みます`);
   tryAutoLoad();
   if (hasBoundary) fitCurrentRegion();
   if (viewportTriggered) renderViewportD();

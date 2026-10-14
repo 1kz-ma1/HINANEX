@@ -23,8 +23,8 @@
     ],descriptions=[
       "最初に取得レコード数と、地図に置ける元座標の数を確認します。",
       "データから確認できた属性を使い、実際に地図上の施設マーカーを絞り込みます。",
-      "条件に一致したD施設の元座標へ移動し、その施設の情報を確認します。",
-      "なぜ表示されたかを条件とDの原値で照合。未判定の情報もそのまま示します。",
+      "条件に一致した地域の避難施設の元座標へ移動し、その施設の情報を確認します。",
+      "なぜ表示されたかを条件と元データの値で照合。未判定の情報もそのまま示します。",
       "将来は災害状況や施設の利用条件を組み合わせる構想。現時点では安全な避難先の推奨ではありません。"
     ];
     el("filterDemoStep").textContent="STEP "+(scene+1)+" / 5";
@@ -126,7 +126,7 @@
     el("filterDemoContent").hidden=true;
     summary=null;detail=null;scene=0;elapsed=0;remaining=durations[0];
     restore=true;state="loading";clearTimer();
-    status("現行D RegionExportを確認しています。根拠不明の施設は絞り込みません。");
+    status("現在の施設情報 RegionExportを確認しています。根拠不明の施設は絞り込みません。");
     try {
       const r=await api.begin();
       if(token!==request||panel.hidden)return;

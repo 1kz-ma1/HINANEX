@@ -12,7 +12,7 @@
     },
     {
       code: "15100", title: "新潟市｜別の地域の実データ",
-      description: "新潟市の元座標付きD施設を表示します。洪水適合に関するODSの記号・階数条件は未確定（UNKNOWN）です。"
+      description: "新潟市の元座標付き地域の避難施設を表示します。洪水適合に関するODSの記号・階数条件は未確定（UNKNOWN）です。"
     },
     {
       code: "23100", title: "名古屋市｜座標がない施設一覧",
@@ -83,7 +83,7 @@
       get("mapTourTitle").textContent = "選択したデモを終了しました";
       get("mapTourDescription").textContent = "下の3地域の取得結果を比較し、どれでも個別再生できます。";
       get("mapTourSourceStatus").textContent =
-        "表示数は取得できたDデータの数です。避難先の安全性や開設状況は判定していません。";
+        "表示数は取得できた施設データの数です。避難先の安全性や開設状況は判定していません。";
       renderState();
       return;
     }
@@ -120,7 +120,7 @@
     }
   }
   function startRun(nextCodes) {
-    // Only literal, known D RegionExport cases; never take coordinates, raw
+    // Only literal, known 地域の施設データ cases; never take coordinates, raw
     // source URLs or custom disaster descriptions from the UI.
     if (!nextCodes.length || nextCodes.some(code => !codes.includes(code))) return;
     clearTimer();

@@ -98,7 +98,7 @@
         <div><span>地図表示</span><strong id="mappedCount">—</strong></div>
         <div><span>座標未確認</span><strong id="missingCoordinateCount">—</strong></div>
       </div>
-      <small id="datasetStatus">ローカルHTTP起動時は選択地域に対応する `pipeline/data/output/{region}.json` を自動探索します。生成物はGit管理外です。見つからない場合は元のworktreeからコピーするかJSONを選択してください。公式GSIの地点探索は施設データなしでも利用できます。</small>
+      <small id="datasetStatus">ローカルHTTP起動時は選択地域に対応する `pipeline/data/output/{region}.json` を自動探索します。生成物はGit管理外です。見つからない場合は元のworktreeからコピーするかJSONを選択してください。公式国土地理院の地点探索は施設データなしでも利用できます。</small>
       <details class="sidebar-disclosure" id="dataDisclosure">
         <summary>JSON読込・データの詳細</summary>
         <div class="sidebar-disclosure-body">
@@ -181,7 +181,7 @@
 <button class="map-tool-action" id="mapScenarioSelectOrigin" type="button">地図上の地点を選択</button><p class="map-tool-note">災害条件・時間変化のシナリオは今後実装予定です。</p></div></details>
       <details class="map-tool map-tool--marks" id="mapToolMarks"><summary><span class="map-tool-symbol" aria-hidden="true">⌖</span><span>マーク</span><span class="map-tool-arrow" aria-hidden="true">⌄</span></summary><div class="map-tool-panel"><label class="map-tool-check"><input id="mapShowShelter" type="checkbox" checked>表示範囲の地域の避難施設マーク</label><p class="map-tool-note">施設の表示切替は出典ごとに扱います。安全性・開設は未判定です。</p>      <label for="facilityDisplayMode" class="display-mode-label">地図に表示する施設</label>
       <select id="facilityDisplayMode" aria-label="表示する施設データ">
-        <option value="region">地域の地域の避難施設</option>
+        <option value="region">地域の避難施設</option>
         <option value="nearby">選択地点周辺のGSI公式掲載</option>
         <option value="both">地域の施設情報と周辺GSIを比較</option>
       </select>
@@ -236,7 +236,7 @@
         <strong>洪水の公式指定 → 掲載地点 → 出典 → 未判定との違い</strong>
         <button id="mapGsiFloodDemoOpen" type="button" aria-controls="gsiFloodDemoPanel"
           aria-expanded="false">▶ 50秒：洪水の指定がある場所を公式データで確認</button>
-        <p>GSIの検証済み洪水用データを使います。避難先の推奨や、地域の避難施設への同一建物判定はしません。</p>
+        <p>国土地理院の検証済み洪水用データを使います。避難先の推奨や、地域の避難施設への同一建物判定はしません。</p>
       </div>
       <div class="map-tour-filter-cta" aria-label="実データを条件で絞り込む発表デモ">
         <span>参考：地域の避難施設の属性絞り込み</span>
@@ -262,7 +262,7 @@
           <p id="mapTourCompare13123">未再生</p>
         </div>
         <div class="map-tour-case">
-          <button id="mapTourCase15100" type="button" aria-pressed="false" aria-describedby="mapTourCompare15100">▶ 新潟市を再生 <small>別地域の地域の避難施設</small></button>
+          <button id="mapTourCase15100" type="button" aria-pressed="false" aria-describedby="mapTourCompare15100">▶ 新潟市を再生 <small>別地域の避難施設</small></button>
           <p id="mapTourCompare15100">未再生</p>
         </div>
         <div class="map-tour-case">
@@ -423,7 +423,7 @@
             hidden>GSI公式GeoJSONを確認 ↗</a>
         </section>
         <section id="gsiFloodDemoContrast" class="gsi-demo-contrast" hidden>
-          <strong>GSIの公式指定と、地域の避難施設の未判定は別の情報</strong>
+          <strong>国土地理院の公式指定と、地域の避難施設の未判定は別の情報</strong>
           <p id="gsiFloodDemoDStatus"></p>
           <p>同じ名前・近い座標だけで、GSI地点と地域の避難施設を同一建物とは判断しません。</p>
         </section>
@@ -605,8 +605,8 @@
 <script src="js/facility_list.js"></script>
 <!-- Discovery API remains v14; map UI-only consumer has a separate cache-busting key. -->
 <script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v14"></script>
-<script src="js/map.js?v=gsi-flood-origin-20261014-v3"></script>
-<script src="js/map_first_ui.js?v=map-first-20261009-v3"></script>
+<script src="js/map.js?v=unified-place-card-20261014-v1"></script>
+<script src="js/map_first_ui.js?v=unified-place-card-20261014-v1"></script>
 <script src="js/audience_share.js?v=audience-share-20261010-v1"></script>
 <script src="js/guided_tour.js?v=guided-tour-three-region-comparison-20261013-v1"></script>
 <script src="js/evidence_replay.js?v=spatial-evidence-20261014-v2"></script>
