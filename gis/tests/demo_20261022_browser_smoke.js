@@ -166,6 +166,30 @@ async function screenshot(page, name) {
     assert.deepEqual(await page.evaluate(() => [
       WHEEL_GESTURE_IDLE_MS, WHEEL_PREVIEW_TRANSITION_MS
     ]),[70,40]);
+    // Browser-only test marker. Its position comes from Leaflet's existing
+    // viewport projection, NOT from a real or inferred shelter record.
+    // Disable transition on this probe so pixel geometry can be asserted
+    // synchronously before the 70ms wheel-to-commit timer expires.
+    const probeBefore = await page.evaluate(() => {
+      const point = L.point(map.getSize().x * 0.7, map.getSize().y * 0.34);
+      const stylesheet = document.createElement("style");
+      stylesheet.id = "hinanex-wheel-geometry-probe-style";
+      stylesheet.textContent =
+        ".hinanex-wheel-geometry-probe { transition: none !important; }";
+      document.head.appendChild(stylesheet);
+      window.__wheelGeometryProbe = L.marker(map.containerPointToLatLng(point), {
+        pane: "shelterPane",
+        icon: L.divIcon({
+          className: "hinanex-wheel-geometry-probe",
+          iconSize: [24, 24], iconAnchor: [12, 12]
+        })
+      }).addTo(map);
+      const box = window.__wheelGeometryProbe.getElement().getBoundingClientRect();
+      return { x: box.left + box.width / 2, y: box.top + box.height / 2,
+        width: box.width, height: box.height };
+    });
+    assert.equal(probeBefore.width, 24);
+    assert.equal(probeBefore.height, 24);
     const wheelPreview = await page.evaluate(() => {
       window.__wheelZoomCalls = 0;
       const oldZoomAround = map.setZoomAround.bind(map);
@@ -187,6 +211,14 @@ async function screenshot(page, name) {
         before,
         immediateZoom:map.getZoom(),
         cssScale:map.getPane("tilePane").style.scale,
+        cursor: { x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2 },
+        probe: (() => {
+          const el = window.__wheelGeometryProbe.getElement();
+          const box = el.getBoundingClientRect();
+          return { x: box.left + box.width / 2, y: box.top + box.height / 2,
+            width: box.width, height: box.height, translate: el.style.translate };
+        })(),
         markerPaneScale:map.getPanes().mapPane.style.scale,
         floodScale:map.getPane("officialFloodPane").style.scale,
         boundaryScale:map.getPane("boundaryPane").style.scale,
@@ -217,9 +249,29 @@ async function screenshot(page, name) {
       "official boundary vector geometry must track the raster immediately");
     assert.equal(wheelPreview.footprintScale,wheelPreview.cssScale,
       "source-backed footprints must track the same visible zoom");
+    assert.ok(wheelPreview.markerTranslations.length > 0,
+      "the marker translation check must not vacuously pass without any markers");
     assert.ok(wheelPreview.markerTranslations.every(item=>
       item.translate!=="" && item.width>0 && item.height>0),
       "existing source point markers should move without scaling their icons");
+    // Inspect rendered DOM pixels, not just the inline CSS translate string.
+    // For a zoom anchored at the cursor, the source point must move by the
+    // same affine projection as the visible official background raster.
+    const visualScale = Number(wheelPreview.cssScale);
+    const expectedProbeX = wheelPreview.cursor.x +
+      (probeBefore.x - wheelPreview.cursor.x) * visualScale;
+    const expectedProbeY = wheelPreview.cursor.y +
+      (probeBefore.y - wheelPreview.cursor.y) * visualScale;
+    assert.ok(Math.abs(wheelPreview.probe.x - expectedProbeX) < 2,
+      "visible source marker x-coordinate must track the raster scale");
+    assert.ok(Math.abs(wheelPreview.probe.y - expectedProbeY) < 2,
+      "visible source marker y-coordinate must track the raster scale");
+    assert.equal(wheelPreview.probe.width, 24,
+      "preview must preserve the source marker's rendered width");
+    assert.equal(wheelPreview.probe.height, 24,
+      "preview must preserve the source marker's rendered height");
+    assert.notEqual(wheelPreview.probe.translate, "",
+      "off-center source marker must receive a temporary geographic translation");
     assert.ok(Number(wheelPreview.floodScale)>1,
       "official flood raster must visually follow map preview scale");
     assert.equal(wheelPreview.calls,0,
@@ -232,6 +284,35 @@ async function screenshot(page, name) {
       "one wheel burst must produce exactly one Leaflet view commit");
     assert.equal(await page.evaluate(() => map.getPane("tilePane").style.scale),"",
       "temporary image scaling must be fully cleared after commit");
+    // After geographic commit, Leaflet should own the exact projected
+    // location again. No CSS preview offsets may remain on the marker.
+    const probeAfterCommit = await page.evaluate(() => {
+      const layer = window.__wheelGeometryProbe;
+      const element = layer.getElement();
+      const box = element.getBoundingClientRect();
+      const viewport = map.getContainer().getBoundingClientRect();
+      const projected = map.latLngToContainerPoint(layer.getLatLng());
+      return {
+        x: box.left + box.width / 2, y: box.top + box.height / 2,
+        expectedX: viewport.left + projected.x,
+        expectedY: viewport.top + projected.y,
+        width: box.width, height: box.height,
+        translate: element.style.translate
+      };
+    });
+    assert.ok(Math.abs(probeAfterCommit.x - probeAfterCommit.expectedX) < 2,
+      "marker x-anchor must return to Leaflet after the final geographic commit");
+    assert.ok(Math.abs(probeAfterCommit.y - probeAfterCommit.expectedY) < 2,
+      "marker y-anchor must return to Leaflet after the final geographic commit");
+    assert.equal(probeAfterCommit.width, 24);
+    assert.equal(probeAfterCommit.height, 24);
+    assert.equal(probeAfterCommit.translate, "",
+      "no transient marker translation may survive commit");
+    await page.evaluate(() => {
+      map.removeLayer(window.__wheelGeometryProbe);
+      delete window.__wheelGeometryProbe;
+      document.getElementById("hinanex-wheel-geometry-probe-style").remove();
+    });
     await page.evaluate(z => map.setZoom(z, {animate:false}), wheelPreview.before);
     await page.waitForTimeout(160);
 
