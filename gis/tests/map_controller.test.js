@@ -1067,7 +1067,7 @@ nagoya.scenarios = [{
   assert.match(pageSource,/id="mapFloodRefreshStatus"/);
   assert.match(pageSource,/map_first[.]css[?]v=flood-refresh-status-20261015-v1/);
   const floodCss=fs.readFileSync(path.resolve(__dirname,"../gis/css/map_first.css"),"utf8");
-  assert.match(floodCss,/\\.map-flood-refresh-status\\[hidden\\]\\{display:none\\}/);
+  assert.match(floodCss,/\.map-flood-refresh-status\[hidden\]\{display:none\}/);
   assert.match(floodCss,/pointer-events:none/);
   assert.match(floodCss,/data-state="partial"/);
 
