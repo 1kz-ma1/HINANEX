@@ -10,14 +10,14 @@
   const titles=[
     "洪水の指定は、どの資料で確認する？",
     "洪水用に指定された掲載地点だけを表示",
-    "１つ選んで、公式データを確認",
+    "お好きな紫色のピンを選んでください",
     "確認できたことと、未判定を分ける",
     "ここから、避難先選定を支える仕組みへ"
   ];
   const explanations=[
     "地域の避難施設の一覧と、国土地理院の災害種別ごとの指定緊急避難場所は別の情報源です。",
     "GSIが洪水向けに公開したskhb01だけを地図に表示。これは全避難所からの安全ランキングではありません。",
-    "掲載地点の名称・住所・原文の行を確認。disaster1=1は洪水について指定があることを示します。",
+    "地図上の紫のピンをタップ／クリックしてください。選んだ地点の名称・住所・公式原文を表示します。",
     "GSIで指定を確認できても、施設情報の未判定を勝手に確定できません。両データは未照合です。",
     "今は公式指定と出典を確認する基盤。開設・浸水・経路等を統合した避難先選定支援は今後の構想です。"
   ];
@@ -47,7 +47,9 @@
     get("gsiFloodDemoMessage").textContent=explanations[scene];
     get("gsiFloodDemoCount").textContent=String(data.total);
     get("gsiFloodDemoShown").textContent=String(data.shown);
+    const awaitingPin=scene===2&&!item;
     get("gsiFloodDemoEvidence").hidden=scene<2||!item;
+    get("gsiFloodDemoPickHint").hidden=!awaiting;
     get("gsiFloodDemoContrast").hidden=scene!==3;
     get("gsiFloodDemoFuture").hidden=scene!==4;
     if(item){
@@ -68,11 +70,12 @@
         :"地域の避難施設の判定情報は未取得。0件や危険とは断定できません。";
     }
     get("gsiFloodDemoProgress").style.width=Math.round(elapsed/50*100)+"%";
-    get("gsiFloodDemoPlay").disabled=state==="playing"||state==="complete";
+    get("gsiFloodDemoPlay").disabled=state==="playing"||state==="complete"||awaitingPin;
     get("gsiFloodDemoPause").disabled=state!=="playing";
-    get("gsiFloodDemoNext").disabled=state==="complete";
+    get("gsiFloodDemoNext").disabled=state==="complete"||awaitingPin;
     get("gsiFloodDemoRestart").disabled=false;
-    writeStatus((state==="complete"?"再生完了":state==="paused"?"一時停止中":"再生中")+
+    writeStatus((awaitingPin?"操作待ち：地図の紫色のピンを選んでください":
+      state==="complete"?"再生完了":state==="paused"?"一時停止中":"再生中")+
       "｜公式に検証済み "+data.verifiedTiles+"/"+data.requestedTiles+
       " タイル。掲載地点 "+data.total+"件（選択した自治体全体の件数ではありません）。");
   }
@@ -84,10 +87,9 @@
       proof=api.show();
       if(proof?.state!=="shown"||proof.count!==data.total) return false;
     }else if(next===2){
-      proof=api.inspect();
-      if(proof?.state!=="inspected"||!proof.name||proof.disaster1Raw!==1||
-          !proof.sourceTrace||!proof.sourceUrl) return false;
-      item=proof;
+      // Visitors, not the presenter, choose an actual verified GSI pin.
+      // Never auto-inspect the first record or fabricate a convenient site.
+      item=null;
     }else if(next===3){
       dStatus=api.compareD(); // does not assert D/GSI identity
     }else if(next===0){
@@ -96,6 +98,7 @@
     scene=next;
     remaining=timings[next];
     elapsed=timings.slice(0,next).reduce((a,b)=>a+b,0);
+    if(next===2){stopClock();state="awaiting-pin";}
     render();return true;
   }
   function advance(){
@@ -129,8 +132,9 @@
     api?.end(restore);
     panel.hidden=true;data=null;item=null;dStatus=null;
     opener.setAttribute("aria-expanded","false");
-    get("mapTourOpen").click();
-    opener.focus();
+    // A shared-link visitor should return to the map, never be sent to
+    // another presenter/menu after completing the one supported demo.
+    get("map").focus?.();
   }
   async function open(){
     if(!panel.hidden)return;
@@ -178,6 +182,17 @@
   get("gsiFloodDemoPause").addEventListener("click",()=>{pause();api?.halt();});
   get("gsiFloodDemoNext").addEventListener("click",()=>{pause();advance();});
   get("gsiFloodDemoRestart").addEventListener("click",()=>{close();void open();});
+  window.addEventListener?.("hinanex:gsi-verified-pin",event=>{
+    if(panel.hidden||!data||scene!==2)return;
+    const proof=event.detail;
+    if(proof?.state!=="inspected"||proof.disaster1Raw!==1||
+       !proof.name||!proof.sourceTrace||!proof.sourceUrl)return;
+    item=proof;
+    remaining=timings[scene];
+    state="paused";
+    render();
+    play(); // Resume the elapsed-time presentation only after real selection.
+  });
   document.addEventListener("visibilitychange",()=>{if(document.hidden){pause();api?.halt();}});
   document.addEventListener("keydown",event=>{
     if(panel.hidden)return;
