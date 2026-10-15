@@ -434,9 +434,98 @@ function copyRenderedRaster(layer) {
   source.parentElement.appendChild(ghost);
   return ghost;
 }
+
+// Temporary *visual* zoom must use one geographic frame for the basemap,
+// official flood imagery, verified boundaries and source-backed point anchors.
+// Raster/vector panes may be scaled, but marker ICONS must retain their
+// physical size: move their Leaflet screen anchors, not their icon graphics.
+const PREVIEW_VECTOR_PANES = ["boundaryPane","referenceFootprintPane"];
+function previewVectorTargets(event) {
+  if (legacyWholePanePreview) return [];
+  const targets=[];
+  for(const name of PREVIEW_VECTOR_PANES) {
+    const pane=map.getPane?.(name);
+    if (!pane?.style || !("scale" in pane.style) ||
+        !pane.getBoundingClientRect) continue;
+    const rect=pane.getBoundingClientRect();
+    const x=Number(event.clientX)-rect.left;
+    const y=Number(event.clientY)-rect.top;
+    if (!Number.isFinite(x)||!Number.isFinite(y)) continue;
+    const original={
+      scale:pane.style.scale,
+      transformOrigin:pane.style.transformOrigin,
+      transition:pane.style.transition,
+      willChange:pane.style.willChange
+    };
+    pane.style.transformOrigin=`${x}px ${y}px`;
+    pane.style.transition=`scale ${WHEEL_PREVIEW_TRANSITION_MS}ms ease-out`;
+    pane.style.willChange="scale";
+    targets.push({pane,original});
+  }
+  return targets;
+}
+function previewGeographicMarkers(visualScale) {
+  if (!wheelPreview || legacyWholePanePreview ||
+      typeof map.eachLayer !== "function" ||
+      typeof map.latLngToContainerPoint !== "function") return;
+  const point=pendingWheelPoint;
+  if (!point) return;
+  map.eachLayer(layer=>{
+    if (typeof layer.getLatLng !== "function" ||
+        typeof layer.getElement !== "function") return;
+    const node=layer.getElement();
+    if (!node?.style || !("translate" in node.style)) return;
+    const screen=map.latLngToContainerPoint(layer.getLatLng());
+    if (!Number.isFinite(screen?.x)||!Number.isFinite(screen?.y))return;
+    if (!wheelPreview.markerStyles.has(node)) {
+      wheelPreview.markerStyles.set(node,{
+        translate:node.style.translate,
+        transition:node.style.transition,
+        willChange:node.style.willChange
+      });
+    }
+    const dx=(screen.x-point.x)*(visualScale-1);
+    const dy=(screen.y-point.y)*(visualScale-1);
+    // CSS individual translate composes with, but does not overwrite,
+    // Leaflet's native translate3d position and icon anchoring. This keeps
+    // every confirmed source point at its true previewed projected position.
+    node.style.translate=`${dx.toFixed(3)}px ${dy.toFixed(3)}px`;
+    node.style.transition=`translate ${WHEEL_PREVIEW_TRANSITION_MS}ms ease-out`;
+    node.style.willChange="translate";
+  });
+}
+function previewGeographicOverlays(scale) {
+  if (!wheelPreview || legacyWholePanePreview) return;
+  for (const {pane} of wheelPreview.vectorTargets) pane.style.scale=String(scale);
+  // Cluster membership is presentation-only. Re-group at *visible* zoom
+  // bucket boundaries instead of waiting for new raster tiles or final zoom.
+  const visibleZoom=map.getZoom()+Math.log2(scale);
+  const bucket=visibleZoom>=13 ? "individual" : Math.floor(visibleZoom);
+  if (bucket!==lastDMarkerZoomBucket) {
+    renderDMarkers(visibleZoom);
+    wheelPreview.regrouped=true;
+  }
+  previewGeographicMarkers(scale);
+}
+function restoreGeographicOverlays(preview) {
+  if (!preview) return;
+  for (const {pane,original} of preview.vectorTargets || []) {
+    pane.style.scale=original.scale;
+    pane.style.transformOrigin=original.transformOrigin;
+    pane.style.transition=original.transition;
+    pane.style.willChange=original.willChange;
+  }
+  for(const [node,original] of preview.markerStyles || []) {
+    node.style.translate=original.translate;
+    node.style.transition=original.transition;
+    node.style.willChange=original.willChange;
+  }
+}
+
 function restoreWheelPreview() {
   if (!wheelPreview) return [];
   const previews = wheelPreview.targets;
+  restoreGeographicOverlays(wheelPreview);
   for (const {pane,original} of previews) {
     pane.style.scale = original.scale;
     pane.style.transformOrigin = original.transformOrigin;
@@ -447,6 +536,7 @@ function restoreWheelPreview() {
   return previews;
 }
 function clearPendingWheel() {
+  const regrouped=Boolean(wheelPreview?.regrouped);
   targetCoverGeneration++;
   removeTargetCover();
   if (wheelGestureTimer !== null) clearTimeout(wheelGestureTimer);
@@ -457,6 +547,7 @@ function clearPendingWheel() {
   wheelIntentStartedAt = null;
   discardRetainedRaster();
   discardPredictedTiles();
+  if (regrouped) renderDMarkers();
 }
 // For zoom-outs, old loaded tiles do not necessarily cover newly exposed
 // geography. Limit the cosmetic shrink to coverage actually present, while
@@ -522,6 +613,9 @@ function updateWheelPreview(event) {
     const viewport = map.getContainer()?.getBoundingClientRect?.();
     wheelPreview = {
       targets,
+      vectorTargets:previewVectorTargets(event),
+      markerStyles:new Map(),
+      regrouped:false,
       coverage:oldRasterCoverage(),
       viewport,
       origin:{x:Number(event.clientX),y:Number(event.clientY)}
@@ -533,6 +627,7 @@ function updateWheelPreview(event) {
     wheelPreview.coverage,wheelPreview.origin,wheelPreview.viewport);
   const visualScale = String(Number(displayed.toFixed(5)));
   for (const {pane} of wheelPreview.targets) pane.style.scale = visualScale;
+  previewGeographicOverlays(Number(visualScale));
 }
 function retainUntilRasterReady(previews) {
   for (const item of previews) {
@@ -603,6 +698,7 @@ function flushSingleTargetWheel() {
     if (!point || Math.abs(targetZoom - map.getZoom()) < 0.001) {
       previews.forEach(({ghost}) => ghost?.remove?.());
       removeTargetCover();
+      renderDMarkers(); // restore preview-only clustering if no zoom committed
       return;
     }
     previews.forEach((item,i) => {
@@ -629,6 +725,7 @@ function flushSingleTargetWheel() {
     committingWheelZoom = true;
     try { map.setZoomAround(point,targetZoom,{animate:false}); }
     finally { committingWheelZoom = false; }
+    renderDMarkers(); // no delay for native markers once geographic view commits
     positionTargetCover();
     alignRetainedRaster();
     if (debugMapPerf && startedAt !== null) {
@@ -1901,7 +1998,7 @@ function drawDClusterMarker(records, regionLabel = currentRegion().label,
   });
 }
 
-function renderDMarkers() {
+function renderDMarkers(previewZoom) {
   const startedAt = debugMapPerf ? perfTime() : 0;
   const summary = currentShelterSummary;
   if (summary !== visibleDMarkerSummary) {
@@ -1918,7 +2015,7 @@ function renderDMarkers() {
     return;
   }
   const visibleRecords = summary.mappableRecords.filter(record => dRecordVisible(summary, record));
-  const zoom = map.getZoom();
+  const zoom = Number.isFinite(previewZoom) ? previewZoom : map.getZoom();
   // High detail uses source markers, always. At lower zoom levels fix the
   // visual-only grid within each integer zoom band to avoid flickering
   // centroid/cluster changes on every tiny fractional zoom delta.
