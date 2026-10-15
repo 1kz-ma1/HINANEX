@@ -197,7 +197,12 @@ function predictedGsiTileCoords() {
 // computed only at the *final* zoom, from Leaflet's projected source position.
 // Do not repeat/extrapolate tiles beyond official Web-Mercator coverage.
 const TARGET_COVER_MAX_TILES = 48;
-const TARGET_COVER_WAIT_MS = 650;
+const TARGET_COVER_WAIT_MS = 650; // legacy complete-screen A/B fallback
+// Default: do not hold a verified center while one slow peripheral tile
+// delays the entire screen. Actual Leaflet tiles still load independently.
+const TARGET_CENTER_WAIT_MS = 180;
+const TARGET_TILE_FADE_MS = 90;
+const fullCoverHandoff = new URL(window.location.href).searchParams.get("coverHandoff") === "full";
 const TARGET_COVER_HOLD_MS = 1300;
 const TARGET_COVER_FADE_MS = 120;
 let targetCoverGeneration = 0;
@@ -368,6 +373,10 @@ function removeTargetCover() {
   if (!targetCover) return;
   clearTimeout(targetCover.timeout);
   targetCover.layer?.off?.("load", targetCover.finish);
+  for (const [img,onload,onerror] of targetCover.listeners || []) {
+    img.removeEventListener?.("load",onload);
+    img.removeEventListener?.("error",onerror);
+  }
   targetCover.node?.remove?.();
   targetCover = null;
 }
@@ -392,32 +401,48 @@ function presentTargetCover(grid, images) {
   }
   if (!pane?.appendChild) return false;
   removeTargetCover();
-  pane.style.zIndex = "205"; // above GSI base, BELOW official flood and points
+  pane.style.zIndex = "205"; // above original GSI, BELOW flood/vector/points
   pane.style.pointerEvents = "none";
   const node = document.createElement("div");
   node.className = "hinanex-target-tile-cover";
   node.setAttribute("aria-hidden","true");
-  Object.assign(node.style, {
+  Object.assign(node.style,{
     position:"absolute",width:`${grid.width}px`,height:`${grid.height}px`,
     overflow:"hidden",pointerEvents:"none",zIndex:"1"
   });
-  // One decoded, authorized official tile per *distinct geographic tile*.
-  // No stretching an unrelated old tile to fabricate new map coverage.
-  for (let i=0; i<grid.tiles.length; i++) {
-    const tile = grid.tiles[i];
-    const img = document.createElement("img");
+  const entry = {node,pane,layer:baseMap,timeout:null,finish:null,listeners:[]};
+  targetCover = entry;
+  // The image objects are the SAME exact GSI URLs already requested by the
+  // center-first preloader. Move them into the independent atlas to avoid a
+  // second network request and reveal each source tile only once decoded.
+  for (let i=0;i<grid.tiles.length;i++) {
+    const tile = grid.tiles[i], source = images[i];
+    const reusable = source?.style && source?.setAttribute &&
+      typeof source.addEventListener === "function";
+    const img = reusable ? source : document.createElement("img");
     Object.assign(img.style,{
       position:"absolute",left:`${tile.left}px`,top:`${tile.top}px`,
       width:`${tile.size}px`,height:`${tile.size}px`,
-      maxWidth:"none",pointerEvents:"none"
+      maxWidth:"none",pointerEvents:"none",visibility:"hidden",opacity:"0",
+      transition:`opacity ${TARGET_TILE_FADE_MS}ms ease-out`
     });
     img.alt = "";
-    img.src = tile.url;
+    if (!reusable) img.src = tile.url;
+    const reveal = () => {
+      if (targetCover !== entry || !map.hasLayer(baseMap) ||
+          document.getElementById("basemap")?.checked === false ||
+          !(img.naturalWidth > 0)) return;
+      img.style.visibility = "visible";
+      img.style.opacity = "1";
+    };
+    const onError = () => { if (targetCover===entry) img.remove?.(); };
+    img.addEventListener?.("load",reveal);
+    img.addEventListener?.("error",onError);
+    entry.listeners.push([img,reveal,onError]);
     node.appendChild(img);
+    if (img.complete && img.naturalWidth > 0) reveal();
   }
   pane.appendChild(node);
-  const entry = {node,pane,layer:baseMap,timeout:null,finish:null};
-  targetCover = entry;
   positionTargetCover();
   let finished = false;
   entry.finish = () => {
@@ -431,9 +456,22 @@ function presentTargetCover(grid, images) {
       if (targetCover === entry) removeTargetCover();
     }, TARGET_COVER_FADE_MS + 25);
   };
-  entry.layer.on?.("load", entry.finish);
+  entry.layer.on?.("load",entry.finish);
   entry.timeout = setTimeout(entry.finish, TARGET_COVER_HOLD_MS);
   return true;
+}
+// Central screen is the user's principal focus. The destination atlas is
+// source-geographically exact across the full viewport, but center tiles may
+// enter first instead of waiting for the slowest peripheral official image.
+// No mid-gesture geographic frame change and no fabricated pixels.
+function targetCenterTileIndices(grid) {
+  if (!grid?.tiles?.length) return [];
+  const left=grid.width*.25,right=grid.width*.75;
+  const top=grid.height*.25,bottom=grid.height*.75;
+  return grid.tiles.map((tile,index) => ({
+    index,inside:tile.left<right && tile.left+tile.size>left &&
+      tile.top<bottom && tile.top+tile.size>top
+  })).filter(item=>item.inside).map(item=>item.index);
 }
 function prepareTargetCover(point,targetZoom,generation,done) {
   // The atlas is independently inserted into a DOM pane. It must never
@@ -443,8 +481,6 @@ function prepareTargetCover(point,targetZoom,generation,done) {
     done(false);
     return;
   }
-  // No source-safe complete atlas possible: retain normal Leaflet rendering,
-  // never create filled/incorrect geographic imagery.
   const grid = targetZoom < map.getZoom() - 0.15 ?
     destinationTileGrid(point,targetZoom) : null;
   if (!grid || !grid.tiles.length ||
@@ -453,6 +489,7 @@ function prepareTargetCover(point,targetZoom,generation,done) {
     done(false);
     return;
   }
+  const startedAt = debugMapPerf ? perfTime() : 0;
   const images = grid.tiles.map(tile => {
     let image = predictedTileImages.get(tile.url);
     if (!image) {
@@ -463,41 +500,66 @@ function prepareTargetCover(point,targetZoom,generation,done) {
     }
     return image;
   });
-  let complete = false;
-  const finish = ok => {
-    if (complete) return;
-    complete = true;
-    clearTimeout(timeout);
-    for (const [img,loaded,failed] of listeners) {
-      img.removeEventListener?.("load",loaded);
-      img.removeEventListener?.("error",failed);
-    }
-    if (generation === targetCoverGeneration) {
-      const stillEnabled = map.hasLayer(baseMap) &&
-        document.getElementById("basemap")?.checked !== false;
-      const displayed = ok && stillEnabled && presentTargetCover(grid,images);
-      done(Boolean(displayed));
-    }
-  };
+  const centerIndices = targetCenterTileIndices(grid);
+  const ready = img => img?.complete && img.naturalWidth > 0;
+  let completed = false, timeout = null;
   const listeners = [];
-  let awaiting = 0, failed = false;
+  const finish = reason => {
+    if (completed) return;
+    completed = true;
+    clearTimeout(timeout);
+    for (const [img,onload,onerror] of listeners) {
+      img.removeEventListener?.("load",onload);
+      img.removeEventListener?.("error",onerror);
+    }
+    if (generation !== targetCoverGeneration) return;
+    const stillEnabled = map.hasLayer(baseMap) &&
+      document.getElementById("basemap")?.checked !== false;
+    const allReady = images.every(ready);
+    const visible = stillEnabled && images.some(ready);
+    // Partial atlas deliberately leaves missing positions TRANSPARENT.
+    // The previously registered raster clone underneath remains present
+    // until Leaflet's final native tiles complete (or its safety timeout).
+    const presented = visible && presentTargetCover(grid,images);
+    if (debugMapPerf) console.info("[HINANEX map perf] target handoff",{
+      waitMs:Math.round(perfTime()-startedAt),reason,centerTiles:centerIndices.length,
+      readyTiles:images.filter(ready).length,totalTiles:images.length,
+      fullCoverage:allReady,partialCoverage:Boolean(presented && !allReady)
+    });
+    done(Boolean(presented && allReady));
+  };
+  let missingCenter = false;
   for (const image of images) {
-    if (image.complete && image.naturalWidth > 0) continue;
+    if (ready(image)) continue;
     if (image.complete && image.naturalWidth === 0) {
-      failed = true;break;
+      missingCenter=true;continue;
     }
     if (typeof image.addEventListener !== "function") {
-      failed = true;break;
+      missingCenter=true;continue;
     }
-    awaiting++;
-    const loaded = () => { awaiting--; if (!awaiting) finish(!failed); };
-    const error = () => {failed=true;finish(false);};
-    image.addEventListener("load",loaded);
-    image.addEventListener("error",error);
-    listeners.push([image,loaded,error]);
+    const onload = () => {
+      if (centerIndices.length && centerIndices.every(i=>ready(images[i])))
+        finish("center-ready");
+      else if (images.every(ready)) finish("full-ready");
+    };
+    const onerror = () => { missingCenter=true; };
+    image.addEventListener("load",onload);
+    image.addEventListener("error",onerror);
+    listeners.push([image,onload,onerror]);
   }
-  const timeout = setTimeout(() => finish(false),TARGET_COVER_WAIT_MS);
-  if (failed || !awaiting) finish(!failed);
+  if (images.every(ready)) {
+    finish("full-cached");
+    return;
+  }
+  if (!fullCoverHandoff && centerIndices.length &&
+      centerIndices.every(i=>ready(images[i]))) {
+    finish("center-cached");
+    return;
+  }
+  // Same hard deadline for missing imagery and stalled network. With the
+  // old fullCover A/B mode, retain the historical up-to-650ms wait.
+  timeout=setTimeout(() => finish(missingCenter ? "missing-tile" : "deadline"),
+    fullCoverHandoff ? TARGET_COVER_WAIT_MS : TARGET_CENTER_WAIT_MS);
 }
 
 function warmPredictedTiles() {
