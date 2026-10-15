@@ -1924,7 +1924,8 @@ nagoya.scenarios = [{
     fetchImpl: async () => ({ ok: false, status: 404, json: async () => ({}) })
   });
   assert.equal(L.__tiles[0].options.keepBuffer, 4);
-  assert.equal(L.__tiles[1].options.keepBuffer, 3);
+  assert.equal(L.__tiles[1].options.keepBuffer, 4,
+    "retain real official flood tiles natively without stale raster clones");
   assert.equal(L.__tiles[0].options.updateInterval, 220,
     "throttle mid-animation base-tile requests");
   assert.equal(L.__tiles[0].options.updateWhenZooming, false,
