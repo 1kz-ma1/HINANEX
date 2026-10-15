@@ -745,7 +745,10 @@ const officialFloodLayer = L.tileLayer(FLOOD_REFERENCE_URL, {
   maxZoom: 18,
   maxNativeZoom: 17,
   opacity: 0.58,
-  keepBuffer: 3,
+  // Retain a slightly wider native Leaflet tile cache through fast zooms.
+  // Leaflet alone keeps each official raster tile at its real coordinates;
+  // the old flood clone is never overlaid after the geographic view changes.
+  keepBuffer: 4,
   // Larger verified hazard-raster requests are delayed until zoom end so
   // the faster base map never triggers a flood-tile network storm.
   updateWhenZooming: false,
