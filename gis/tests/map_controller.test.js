@@ -2258,6 +2258,96 @@ nagoya.scenarios = [{
    vm.runInContext("clearPendingWheel()",conservative.context);
  }
 
+// User visibility is authoritative over all GIS transient rasters. A
+// disabled layer must not reappear via an old clone, target atlas or halo,
+// even when the map keeps accepting zoom gestures and final tile requests.
+{
+  const makeVisibilityCase = () => {
+    const fixture=makeContext({
+      protocol:"http:",
+      fetchImpl:async()=>({ok:false,status:404,json:async()=>({})})
+    });
+    const {L,elements}=fixture;
+    const wheelEvent=(deltaY=120)=>({
+      deltaY,deltaMode:0,clientX:310,clientY:210,target:{},
+      preventDefault(){},stopImmediatePropagation(){}
+    });
+    const toggle=(id,checked)=>{
+      elements[id].checked=checked;
+      elements[id].listeners.change({target:elements[id]});
+    };
+    return {...fixture, wheelEvent, toggle,
+      wheel:L.__map.container.listeners.wheel.fn,
+      base:L.__tiles[0],flood:L.__tiles[1],
+      tilePane:L.__map.getPane("tilePane"),
+      floodPane:L.__map.getPane("officialFloodPane")};
+  };
+  for(const [baseOn,floodOn] of [[false,true],[true,false],[false,false]]) {
+    const t=makeVisibilityCase();
+    const {context,L,elements,map:unused,tilePane,floodPane}=t;
+    t.toggle("basemap",baseOn);
+    t.toggle("officialFlood",floodOn);
+    assert.equal(L.__map.hasLayer(t.base),baseOn);
+    assert.equal(L.__map.hasLayer(t.flood),floodOn);
+    const previouslyCopiedBase=t.base.sourceParent.ghosts.length;
+    const previouslyCopiedFlood=t.flood.sourceParent.ghosts.length;
+    t.wheel(t.wheelEvent());
+    assert.equal(t.base.sourceParent.ghosts.length-previouslyCopiedBase,
+      baseOn ? 1 : 0,"OFF basemap must not create a private old-raster clone");
+    assert.equal(t.flood.sourceParent.ghosts.length-previouslyCopiedFlood,
+      floodOn ? 1 : 0,"OFF official flood must not create a private old-raster clone");
+    assert.equal(tilePane.style.scale,baseOn ? tilePane.style.scale : "",
+      "OFF basemap raster pane has no preview transform");
+    assert.equal(floodPane.style.scale,floodOn ? floodPane.style.scale : "",
+      "OFF official flood raster pane has no preview transform");
+    const atlasResult=vm.runInContext(
+      "(() => { let done=null; prepareTargetCover({x:310,y:210}, 10, targetCoverGeneration, ok => done=ok); return done; })()",context);
+    if(!baseOn) {
+      assert.equal(atlasResult,false,
+        "disabled basemap cannot initiate final official tile atlas");
+      assert.equal(vm.runInContext("predictedGsiTileCoords().length",context),0);
+    }
+    vm.runInContext("flushSingleTargetWheel()",context);
+    assert.equal(L.__map.hasLayer(t.base),baseOn);
+    assert.equal(L.__map.hasLayer(t.flood),floodOn);
+    assert.equal(elements.basemap.checked,baseOn);
+    assert.equal(elements.officialFlood.checked,floodOn);
+    if (!baseOn) {
+      assert.equal(vm.runInContext("targetCover===null",context),true);
+      assert.equal(vm.runInContext("zoomOutHalo===null",context),true);
+    }
+    t.toggle("basemap",true);
+    t.toggle("officialFlood",true);
+    assert.equal(L.__map.hasLayer(t.base),true);
+    assert.equal(L.__map.hasLayer(t.flood),true);
+  }
+
+  // Disable both raster controls DURING zoom preview; their cloned DOM
+  // elements must be removed even if Leaflet itself no longer owns them.
+  {
+    const t=makeVisibilityCase();
+    t.wheel(t.wheelEvent(-120));
+    const baseGhost=t.base.sourceParent.ghosts.at(-1);
+    const floodGhost=t.flood.sourceParent.ghosts.at(-1);
+    assert.ok(baseGhost && floodGhost,"fixture cloned both enabled layers");
+    t.toggle("officialFlood",false);
+    assert.equal(floodGhost.removed,true);
+    assert.equal(baseGhost.removed,true,
+      "canceling a gesture discards all detached geographic previews");
+    assert.equal(t.floodPane.style.scale,"");
+    assert.equal(vm.runInContext("wheelPreview===null",t.context),true);
+    t.wheel(t.wheelEvent(120));
+    assert.equal(t.flood.sourceParent.ghosts.at(-1),floodGhost,
+      "new gestures must not recreate a disabled flood clone");
+    t.toggle("basemap",false);
+    assert.equal(t.tilePane.style.scale,"");
+    assert.equal(vm.runInContext("zoomOutHalo===null",t.context),true);
+    assert.equal(vm.runInContext("targetCover===null",t.context),true);
+    assert.equal(vm.runInContext("predictedTileImages.size",t.context),0);
+  }
+  console.log("zoom raster layer-toggle OFF persistence and preview cancellation: OK");
+}
+
 // Official GSI zoom-out halo: at rest, preload a bounded lower-detail
 // georeferenced tile grid covering every possible cursor-centered shrink.
 // It must stay behind live tiles, never fetch flood imagery or alter markers.
