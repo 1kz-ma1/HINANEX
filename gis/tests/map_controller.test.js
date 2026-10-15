@@ -2362,6 +2362,9 @@ nagoya.scenarios = [{
       fetchImpl:async()=>({ok:false,status:404,json:async()=>({})})
     });
     const {L,context,elements}=t;
+    // The fixture's startup region fit may be near minimum zoom, where
+    // an outward atlas is intentionally not generated.
+    L.__map.zoom=13;
     L.__map.container.listeners.wheel.fn({
       deltaY:280,deltaMode:0,clientX:340,clientY:220,target:{},
       preventDefault(){},stopImmediatePropagation(){}
