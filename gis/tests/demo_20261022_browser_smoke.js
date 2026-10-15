@@ -308,6 +308,72 @@ async function screenshot(page, name) {
     assert.equal(probeAfterCommit.height, 24);
     assert.equal(probeAfterCommit.translate, "",
       "no transient marker translation may survive commit");
+    // Run the opposite gesture against the SAME Leaflet marker and same
+    // raster pane. Offline GSI imagery may be missing: this is precisely the
+    // case where the old coverage limiter froze zoom-out until final commit.
+    await page.evaluate(z => map.setZoom(z, {animate:false}), wheelPreview.before);
+    await page.waitForTimeout(160);
+    const zoomOutPreview = await page.evaluate(() => {
+      const layer = window.__wheelGeometryProbe;
+      const icon = layer.getElement();
+      const beforeBox = icon.getBoundingClientRect();
+      const el = map.getContainer();
+      const rect = el.getBoundingClientRect();
+      const cursor = {x:rect.left+rect.width/2,y:rect.top+rect.height/2};
+      const before = {
+        zoom:map.getZoom(),
+        x:beforeBox.left+beforeBox.width/2,
+        y:beforeBox.top+beforeBox.height/2
+      };
+      for (let i=0;i<3;i++) {
+        el.dispatchEvent(new WheelEvent("wheel", {
+          bubbles:true,cancelable:true,
+          clientX:cursor.x,clientY:cursor.y,deltaMode:0,deltaY:16
+        }));
+      }
+      const afterBox=icon.getBoundingClientRect();
+      return {
+        before,cursor,
+        nativeZoom:map.getZoom(),
+        scale:Number(map.getPane("tilePane").style.scale),
+        boundaryScale:Number(map.getPane("boundaryPane").style.scale),
+        floodScale:Number(map.getPane("officialFloodPane").style.scale),
+        footprintScale:Number(map.getPane("referenceFootprintPane").style.scale),
+        expectedScale:Math.pow(2,wheelDestinationZoom()-map.getZoom()),
+        iconX:afterBox.left+afterBox.width/2,
+        iconY:afterBox.top+afterBox.height/2,
+        iconWidth:afterBox.width,iconHeight:afterBox.height,
+        wheelCalls:window.__wheelZoomCalls
+      };
+    });
+    assert.ok(zoomOutPreview.scale>0 && zoomOutPreview.scale<1,
+      "zoom-out must visibly shrink old raster BEFORE destination image updates");
+    assert.ok(Math.abs(zoomOutPreview.scale-zoomOutPreview.expectedScale)<0.00001,
+      "zoom-out must use intended visual zoom, not old tile-coverage clamp");
+    assert.equal(zoomOutPreview.nativeZoom,zoomOutPreview.before.zoom,
+      "native geographic zoom changes only after existing raster shrinks");
+    assert.equal(zoomOutPreview.wheelCalls,1,
+      "zoom-out preview must not commit while the wheel is still active");
+    assert.equal(zoomOutPreview.boundaryScale,zoomOutPreview.scale);
+    assert.equal(zoomOutPreview.floodScale,zoomOutPreview.scale);
+    assert.equal(zoomOutPreview.footprintScale,zoomOutPreview.scale);
+    assert.ok(Math.abs(zoomOutPreview.iconX-
+      (zoomOutPreview.cursor.x+(zoomOutPreview.before.x-zoomOutPreview.cursor.x)*
+        zoomOutPreview.scale))<2,
+      "zoom-out must keep the source marker's rendered x-coordinate aligned");
+    assert.ok(Math.abs(zoomOutPreview.iconY-
+      (zoomOutPreview.cursor.y+(zoomOutPreview.before.y-zoomOutPreview.cursor.y)*
+        zoomOutPreview.scale))<2,
+      "zoom-out must keep the source marker's rendered y-coordinate aligned");
+    assert.equal(zoomOutPreview.iconWidth,24);
+    assert.equal(zoomOutPreview.iconHeight,24);
+    await page.waitForTimeout(850);
+    assert.equal(await page.evaluate(() => window.__wheelZoomCalls),2,
+      "one additional geographic commit completes the outward gesture");
+    assert.ok(await page.evaluate(() => map.getZoom())<zoomOutPreview.before.zoom);
+    assert.equal(await page.evaluate(() => map.getPane("tilePane").style.scale),"");
+    assert.equal(await page.evaluate(() =>
+      window.__wheelGeometryProbe.getElement().style.translate),"");
     await page.evaluate(() => {
       map.removeLayer(window.__wheelGeometryProbe);
       delete window.__wheelGeometryProbe;
@@ -315,6 +381,36 @@ async function screenshot(page, name) {
     });
     await page.evaluate(z => map.setZoom(z, {animate:false}), wheelPreview.before);
     await page.waitForTimeout(160);
+
+    // Targeted CI profile: execute BOTH real-Chromium wheel directions and
+    // exact marker pixel assertions, without conflating this gate with the
+    // independent full UI/presenter smoke later in this file.
+    if (process.env.HINANEX_WHEEL_ONLY === "1") {
+      assert.deepEqual(errors, [], "no GIS page errors during real zoom gestures");
+      fs.writeFileSync(path.join(out, "wheel_browser_audit.json"),
+        JSON.stringify({
+          status: "GIS_CHROMIUM_WHEEL_BOTH_DIRECTIONS_PASS",
+          browser: "Playwright Chromium / real Leaflet 1.9.4",
+          asserted: [
+            "ZOOM_IN_CSS_PREVIEW_BEFORE_COMMIT",
+            "ZOOM_OUT_CSS_PREVIEW_BEFORE_COMMIT",
+            "BOUNDARIES_AND_FLOOD_TRACK_PREVIEW",
+            "SOURCE_MARKER_RENDERED_PIXELS_TRACK_RASTER",
+            "SOURCE_MARKER_ICON_SIZE_STABLE",
+            "NATIVE_LEAFLET_FINAL_COMMIT_AND_CSS_CLEANUP"
+          ],
+          current_D_exports_contract_valid: report.all_local_contracts_valid,
+          external_GSI_and_flood_raster_requests_blocked: true,
+          full_GIS_UI_and_live_staging_verified: false,
+          physical_Safari_trackpad_verified: false,
+          actual_shelter_safety_approved: false
+        }, null, 2) + "\n", "utf8");
+      process.stdout.write(
+        "GIS_CHROMIUM_WHEEL_BOTH_DIRECTIONS_PASS: real DOM geometry, " +
+        "not live GSI raster/physical device acceptance.\n");
+      await context.close();
+      return;
+    }
 
     // Exercise the assembled Leaflet popup with UI-only synthetic content.
     await page.evaluate(() => window.detail("カードUI表示テスト", [
@@ -371,12 +467,17 @@ async function screenshot(page, name) {
       anchor: [35.70,139.88],
       note: "表示確認用で、公式の避難施設判定ではありません。"
     }));
-    assert.equal(await speech.locator(".place-card-summary .row").count(), 0);
-    assert.match(await speech.innerText(), /自治体境界（参考）/);
-    assert.equal(await speech.locator(".place-card-disclosure").count(), 1);
-    assert.equal(await speech.evaluate(el => el.classList.contains("place-bubble--boundary")), true);
-    await speech.locator(".leaflet-popup-close-button").click();
-    assert.equal(await speech.isVisible(), false);
+    // Leaflet removes/replaces the previous point popup across transition
+    // frames. Wait for the NEW boundary popup specifically, rather than
+    // counting leftover rows from the previous source-point popup.
+    const boundarySpeech = page.locator(".hinanex-place-popup.place-bubble--boundary");
+    await boundarySpeech.waitFor({ state: "visible" });
+    assert.equal(await boundarySpeech.locator(".place-card-summary .row").count(), 0,
+      "boundary fixture must keep technical/source rows behind disclosure");
+    assert.match(await boundarySpeech.innerText(), /自治体境界（参考）/);
+    assert.equal(await boundarySpeech.locator(".place-card-disclosure").count(), 1);
+    await boundarySpeech.locator(".leaflet-popup-close-button").click();
+    await boundarySpeech.waitFor({ state: "hidden" });
 
     // Prove real D marker/cluster drawing, not merely an HTTP resource check.
     const clusters = page.locator(".d-facility-cluster");
