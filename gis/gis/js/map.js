@@ -561,6 +561,12 @@ function prepareTargetCover(point,targetZoom,generation,done) {
     finish("full-cached");
     return;
   }
+  // Unsupported Image mocks / runtimes expose no pending load events. Do
+  // not stall a valid Leaflet zoom for a promise that cannot ever resolve.
+  if (!listeners.length && !images.some(ready)) {
+    finish("source-unavailable");
+    return;
+  }
   if (!fullCoverHandoff && centerIndices.length &&
       centerIndices.every(i=>ready(images[i]))) {
     finish("center-cached");
