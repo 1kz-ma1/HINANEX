@@ -2299,7 +2299,7 @@ nagoya.scenarios = [{
   assert.equal(vm.runInContext("zoomOutHaloGrid()",context),null);
   map.zoom=13;
   const oldSize=map.getSize;
-  map.getSize=()=>({x:24000,y:16000});
+  map.getSize=()=>({x:2000000,y:1000000});
   assert.equal(vm.runInContext("zoomOutHaloGrid()",context),null,
     "giant viewport must not violate the strict tile/network budget");
   map.getSize=oldSize;
