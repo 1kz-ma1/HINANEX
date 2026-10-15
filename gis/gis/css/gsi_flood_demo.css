@@ -113,8 +113,8 @@
 .gsi-demo-pick-hint strong{font-size:clamp(17px,2.2vw,23px);line-height:1.45;color:#b0fff6}
 .gsi-demo-pick-hint span{font-size:13px;line-height:1.6}
 .gsi-demo-pick-hint small{font-size:10px;line-height:1.5;color:#d1e3ec}
-@media(max-width:780px){.gsi-demo-pick-hint{top:23%;width:min(320px,calc(100% - 22px));padding:12px}
- .gsi-demo-pick-hint strong{font-size:16px}.gsi-demo-pick-hint span{font-size:11px}}
+/* Mobile picker position is set in the main map-first dock media query:
+   safely between the upper map toolbar and bottom presenter. */
 @media(prefers-reduced-motion:reduce){.gsi-demo-pick-hint{animation:none}}
 /* Hidden legacy fallbacks stay hidden even against existing button styles. */
 #gsiFloodDemoFallbackD[hidden]{display:none!important}
