@@ -53,6 +53,7 @@ jobs:
         shell: bash
         env:
           NODE_OPTIONS: --unhandled-rejections=strict
+          HINANEX_WHEEL_ONLY: "1"
         run: |
           set -euo pipefail
           export NODE_PATH="$RUNNER_TEMP/hinanex-gis-browser-deps/node_modules"
@@ -78,6 +79,8 @@ jobs:
           # raster requests are blocked by the E-owned smoke only; absent
           # tiles are NOT treated as safe/no hazard.
           node gis/tests/demo_20261022_browser_smoke.js "$dist" "$audit"
+          test -s "$audit/wheel_browser_audit.json"
+          grep -q "GIS_CHROMIUM_WHEEL_BOTH_DIRECTIONS_PASS" "$audit/wheel_browser_audit.json"
 
       - name: Upload isolated browser evidence
         if: ${{ always() }}
@@ -94,7 +97,8 @@ jobs:
         run: |
           {
             echo "### HINANEX GIS browser acceptance"
-            echo "- This job runs the E-authored real Chromium smoke with current D exports and pinned Leaflet."
+            echo "- This job runs the E-authored two-direction wheel-only real Chromium smoke with current D exports and pinned Leaflet."
+            echo "- Full presentation/GIS UI smoke outside wheel continuity is NOT executed by this focused job."
             echo "- External GSI background and official flood tile requests are blocked **only inside the test browser**."
             echo "- Marker geography is observed from the actual Leaflet DOM, not a Python projection mock."
             echo "- The result is NOT confirmation of production tile coverage, network speed, physical trackpad smoothness, Safari, actual shelter availability, or disaster safety."
