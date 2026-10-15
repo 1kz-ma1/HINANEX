@@ -2365,11 +2365,13 @@ nagoya.scenarios = [{
     // The fixture's startup region fit may be near minimum zoom, where
     // an outward atlas is intentionally not generated.
     L.__map.zoom=13;
-    L.__map.container.listeners.wheel.fn({
-      deltaY:280,deltaMode:0,clientX:340,clientY:220,target:{},
-      preventDefault(){},stopImmediatePropagation(){}
-    });
-    vm.runInContext("flushSingleTargetWheel()",context);
+    assert.ok(vm.runInContext(
+      "destinationTileGrid({x:340,y:220},12)",context),
+      "controlled final zoom has a valid official destination grid");
+    // Invoke the same final-zoom loader directly with an unsettled image:
+    // the test targets async atlas cancellation, not wheel sensitivity.
+    vm.runInContext(
+      "prepareTargetCover({x:340,y:220},12,targetCoverGeneration,()=>{})",context);
     assert.ok(loaded.length>0,
       "the independent destination atlas has a pending official GSI image batch");
     assert.equal(vm.runInContext("targetCover===null",context),true);
