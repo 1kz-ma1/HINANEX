@@ -943,6 +943,15 @@ nagoya.scenarios = [{
   assert.equal(gp.show().state,"shown");
   assert.equal(gsiPresenterCase.elements.facilityDisplayMode.value,"nearby");
   assert.equal(gsiPresenterCase.L.__map.hasLayer(gsiPresenterCase.L.__groups[3]),true);
+  const candidate=vm.runInContext("gsiPresenterSession.sites[0]",gsiPresenterCase.context);
+  assert.equal(gp.selectFromMap({...candidate,sourceUrl:"https://example.invalid/fake"}).state,
+    "unavailable","other-source marker may not unlock a verified GSI presentation");
+  assert.equal(gp.selectFromMap({...candidate,latitude:candidate.latitude+.01}).state,
+    "unavailable","nearby but different coordinates must not masquerade as official pin");
+  const acceptedPin=gp.selectFromMap(candidate);
+  assert.equal(acceptedPin.state,"inspected");
+  assert.equal(acceptedPin.sourceTrace,candidate.trace,
+    "selected source evidence is grounded in the exact verified source row");
   const verifiedSite=gp.inspect();
   assert.equal(verifiedSite.disaster1Raw,1);
   assert.equal(verifiedSite.sourceTrace,"feature_index=0");
