@@ -290,7 +290,11 @@ async function screenshot(page, name) {
       "official flood raster must visually follow map preview scale");
     assert.equal(wheelPreview.calls,0,
       "no Leaflet destination update while previewing");
-    await page.waitForTimeout(250);
+    // The center-first official GSI handoff may take up to 180ms AFTER
+    // the 70ms wheel-idle window. A fixed 250ms sleep races the boundary
+    // under loaded CI; wait for the actual single native commit instead.
+    await page.waitForFunction(z=>map.getZoom()>z,wheelPreview.before,
+      {timeout:3000});
     const afterWheel = await page.evaluate(() => map.getZoom());
     assert.ok(afterWheel>wheelPreview.before,
       "final wheel target must zoom into the map");
