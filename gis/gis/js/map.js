@@ -529,7 +529,8 @@ function prepareTargetCover(point,targetZoom,generation,done) {
     // Partial atlas deliberately leaves missing positions TRANSPARENT.
     // The previously registered raster clone underneath remains present
     // until Leaflet's final native tiles complete (or its safety timeout).
-    const presented = visible && presentTargetCover(grid,images);
+    const presented = visible && (!fullCoverHandoff || allReady) &&
+      presentTargetCover(grid,images);
     if (debugMapPerf) console.info("[HINANEX map perf] target handoff",{
       waitMs:Math.round(perfTime()-startedAt),reason,centerTiles:centerIndices.length,
       readyTiles:images.filter(ready).length,totalTiles:images.length,
