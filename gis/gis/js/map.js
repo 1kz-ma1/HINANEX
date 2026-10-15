@@ -490,7 +490,17 @@ function prepareTargetCover(point,targetZoom,generation,done) {
     return;
   }
   const startedAt = debugMapPerf ? perfTime() : 0;
-  const images = grid.tiles.map(tile => {
+  const centerIndices = targetCenterTileIndices(grid);
+  // Request official center tiles BEFORE fringe tiles. Browser connection
+  // limits should not let far corners starve the currently viewed center.
+  const centerSet = new Set(centerIndices);
+  const requestOrder = [
+    ...centerIndices,
+    ...grid.tiles.map((_,i)=>i).filter(i=>!centerSet.has(i))
+  ];
+  const images = new Array(grid.tiles.length);
+  for (const i of requestOrder) {
+    const tile=grid.tiles[i];
     let image = predictedTileImages.get(tile.url);
     if (!image) {
       image = new window.Image();
@@ -498,9 +508,8 @@ function prepareTargetCover(point,targetZoom,generation,done) {
       predictedTileImages.set(tile.url,image);
       image.src = tile.url;
     }
-    return image;
-  });
-  const centerIndices = targetCenterTileIndices(grid);
+    images[i]=image;
+  }
   const ready = img => img?.complete && img.naturalWidth > 0;
   let completed = false, timeout = null;
   const listeners = [];
@@ -538,7 +547,8 @@ function prepareTargetCover(point,targetZoom,generation,done) {
       missingCenter=true;continue;
     }
     const onload = () => {
-      if (centerIndices.length && centerIndices.every(i=>ready(images[i])))
+      if (!fullCoverHandoff && centerIndices.length &&
+          centerIndices.every(i=>ready(images[i])))
         finish("center-ready");
       else if (images.every(ready)) finish("full-ready");
     };
