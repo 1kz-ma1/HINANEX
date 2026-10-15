@@ -33,6 +33,10 @@ const slowZoomFeel = zoomFeelMode === "slow";
 const progressiveZoomFeel = zoomFeelMode === "progressive";
 const singleTargetWheel = !["native", "previous", "slow", "progressive"].includes(zoomFeelMode);
 const legacyWheelPreview = zoomFeelMode === "preview135";
+// Diagnostic fallback: preserve the old coverage-clamped zoom-out for A/B.
+// Default wheel input moves the existing source raster immediately in BOTH
+// directions; exact destination imagery is still acquired only on commit.
+const coverageSafeZoomFeel = zoomFeelMode === "coverageSafe";
 const legacyWholePanePreview = zoomFeelMode === "preview135" || zoomFeelMode === "wholePane";
 // Persist only gesture preferences in this browser. Never persist map/GPS
 // coordinates, source data, or disaster/safety assessments.
@@ -549,9 +553,12 @@ function clearPendingWheel() {
   discardPredictedTiles();
   if (regrouped) renderDMarkers();
 }
-// For zoom-outs, old loaded tiles do not necessarily cover newly exposed
-// geography. Limit the cosmetic shrink to coverage actually present, while
-// waiting for the full, geographically correct destination atlas.
+// Historical conservative zoom-out preview, opt-in via zoomFeel=coverageSafe.
+// It prevented temporary uncovered margins, but often clamped the raster scale
+// to 1 and made zoom-out appear frozen until the final destination tiles loaded.
+// Default preview now shrinks immediately. Missing surrounding source tiles
+// remain visibly UNRENDERED, never filled with fabricated geographic content.
+// The existing geographically correct destination atlas still handles commit.
 function oldRasterCoverage() {
   const container = baseMap?.getContainer?.();
   const tiles = container?.querySelectorAll?.("img.leaflet-tile-loaded");
@@ -616,15 +623,18 @@ function updateWheelPreview(event) {
       vectorTargets:previewVectorTargets(event),
       markerStyles:new Map(),
       regrouped:false,
-      coverage:oldRasterCoverage(),
+      coverage:coverageSafeZoomFeel ? oldRasterCoverage() : null,
       viewport,
       origin:{x:Number(event.clientX),y:Number(event.clientY)}
     };
   }
   const change = wheelDestinationZoom() - map.getZoom();
   const wanted = Math.pow(2,change);
-  const displayed = coverageLimitedScale(wanted,
-    wheelPreview.coverage,wheelPreview.origin,wheelPreview.viewport);
+  // Match zoom-in: respond on the FIRST wheel event before the geographic
+  // zoom level or destination raster is committed. Do not wait for atlas fetch.
+  // Only the explicit diagnostic fallback retains the old coverage clamp.
+  const displayed = coverageSafeZoomFeel ? coverageLimitedScale(wanted,
+    wheelPreview.coverage,wheelPreview.origin,wheelPreview.viewport) : wanted;
   const visualScale = String(Number(displayed.toFixed(5)));
   for (const {pane} of wheelPreview.targets) pane.style.scale = visualScale;
   previewGeographicOverlays(Number(visualScale));
