@@ -156,6 +156,10 @@ function discardPredictedTiles() {
   predictedTileZoom = null;
 }
 function predictedGsiTileCoords() {
+  // UI-visible layers are the only source of raster pixels, including caches.
+  // A disabled basemap must never emit speculative requests.
+  if (!map.hasLayer(baseMap) ||
+      document.getElementById("basemap")?.checked === false) return [];
   const point = pendingWheelPoint;
   if (!point || typeof map.containerPointToLatLng !== "function" ||
       typeof map.getSize !== "function") return [];
@@ -307,6 +311,7 @@ function buildZoomOutHalo() {
   // Inactive map, comparison modes, and unsupported DOM all fail closed.
   if (!singleTargetWheel || coverageSafeZoomFeel || pendingWheelPoint ||
       wheelPreview || !map.hasLayer(baseMap) ||
+      document.getElementById("basemap")?.checked === false ||
       typeof window.Image !== "function") return;
   const pane = map.getPane?.("tilePane");
   const viewport = map.getContainer?.().getBoundingClientRect?.();
@@ -376,6 +381,8 @@ function positionTargetCover() {
   node.style.top = `${a.top - p.top}px`;
 }
 function presentTargetCover(grid, images) {
+  if (!map.hasLayer(baseMap) ||
+      document.getElementById("basemap")?.checked === false) return false;
   if (typeof document.createElement !== "function" ||
       typeof map.createPane !== "function") return false;
   let pane = map.getPane?.("wheelCoverPane");
@@ -429,6 +436,13 @@ function presentTargetCover(grid, images) {
   return true;
 }
 function prepareTargetCover(point,targetZoom,generation,done) {
+  // The atlas is independently inserted into a DOM pane. It must never
+  // resurrect a basemap the user has switched OFF, including in-flight loads.
+  if (!map.hasLayer(baseMap) ||
+      document.getElementById("basemap")?.checked === false) {
+    done(false);
+    return;
+  }
   // No source-safe complete atlas possible: retain normal Leaflet rendering,
   // never create filled/incorrect geographic imagery.
   const grid = targetZoom < map.getZoom() - 0.15 ?
@@ -459,8 +473,10 @@ function prepareTargetCover(point,targetZoom,generation,done) {
       img.removeEventListener?.("error",failed);
     }
     if (generation === targetCoverGeneration) {
-      if (ok) presentTargetCover(grid,images);
-      done(ok);
+      const stillEnabled = map.hasLayer(baseMap) &&
+        document.getElementById("basemap")?.checked !== false;
+      const displayed = ok && stillEnabled && presentTargetCover(grid,images);
+      done(Boolean(displayed));
     }
   };
   const listeners = [];
@@ -486,6 +502,8 @@ function prepareTargetCover(point,targetZoom,generation,done) {
 
 function warmPredictedTiles() {
   predictedTileTimer = null;
+  if (!map.hasLayer(baseMap) ||
+      document.getElementById("basemap")?.checked === false) return;
   // The browser must use the *same* GSI URL and image request mode as the
   // existing Leaflet TileLayer for shared HTTP caching.
   const ImageCtor = window.Image;
@@ -511,6 +529,8 @@ function warmPredictedTiles() {
 }
 function schedulePredictedTileWarmup() {
   clearPredictedTileTimer();
+  if (!map.hasLayer(baseMap) ||
+      document.getElementById("basemap")?.checked === false) return;
   if(predictedTileImages.size>=GSI_PREFETCH_MAX_TILES)return;
   predictedTileTimer=setTimeout(warmPredictedTiles,GSI_PREFETCH_PAUSE_MS);
 }
@@ -540,9 +560,12 @@ function rasterTargets() {
     return pane ? [{pane, layer:null, legacy:true}] : [];
   }
   return [
-    {pane:map.getPane?.("tilePane") || map.getPanes?.().tilePane,layer:baseMap},
-    {pane:map.getPane?.("officialFloodPane"),layer:officialFloodLayer,flood:true}
-  ].filter(item => item.pane?.style);
+    {pane:map.getPane?.("tilePane") || map.getPanes?.().tilePane,layer:baseMap,
+      control:"basemap"},
+    {pane:map.getPane?.("officialFloodPane"),layer:officialFloodLayer,flood:true,
+      control:"officialFlood"}
+  ].filter(item => item.pane?.style && map.hasLayer(item.layer) &&
+    document.getElementById(item.control)?.checked !== false);
 }
 function copyRenderedRaster(layer) {
   const source = layer?.getContainer?.();
@@ -760,7 +783,10 @@ function updateWheelPreview(event) {
     wheelPreview.coverage,wheelPreview.origin,wheelPreview.viewport) : wanted;
   const visualScale = String(Number(displayed.toFixed(5)));
   if (zoomOutHalo)
-    zoomOutHalo.node.style.visibility = displayed < 1 ? "visible" : "hidden";
+    zoomOutHalo.node.style.visibility = displayed < 1 &&
+      map.hasLayer(baseMap) &&
+      document.getElementById("basemap")?.checked !== false
+      ? "visible" : "hidden";
   for (const {pane} of wheelPreview.targets) pane.style.scale = visualScale;
   previewGeographicOverlays(Number(visualScale));
 }
@@ -768,6 +794,14 @@ function retainUntilRasterReady(previews) {
   for (const item of previews) {
     const {ghost,pane,layer,flood} = item;
     if (!ghost || !layer) continue;
+    // The clone is outside Leaflet's visibility lifecycle: never retain a
+    // snapshot of imagery belonging to a user-disabled source layer.
+    const control = flood ? "officialFlood" : "basemap";
+    if (!map.hasLayer(layer) ||
+        document.getElementById(control)?.checked === false) {
+      ghost.remove?.();
+      continue;
+    }
     // Preserve the current raster frame while Leaflet commits geographic zoom.
     // A ghost is scoped to its original *raster* pane, underneath real markers.
     const before = ghost.getBoundingClientRect?.();
@@ -984,7 +1018,12 @@ map.on("zoomend", scheduleZoomOutHalo);
 map.on("moveend", scheduleZoomOutHalo);
 map.on("movestart", discardZoomOutHalo);
 map.on("layerremove", event => {
-  if (event.layer === baseMap) discardZoomOutHalo();
+  if (event.layer === baseMap) {
+    // Leaflet removes its own tile container but not our detached snapshot,
+    // target atlas or preview halo; cancel those explicitly.
+    clearPendingWheel();
+    discardZoomOutHalo();
+  }
 });
 map.on("layeradd", event => {
   if (event.layer === baseMap) scheduleZoomOutHalo();
@@ -1074,6 +1113,8 @@ map.on("zoomstart", beginFloodRefresh);
 map.on("zoomend", settleFloodRefreshSoon);
 map.on("layerremove", event => {
   if (event.layer === officialFloodLayer) {
+    // A detached old official flood clone must never survive OFF.
+    clearPendingWheel();
     floodRefreshSequence++;
     floodRefreshPending = false;
     showFloodRefresh("ready");
@@ -2867,8 +2908,18 @@ function selectRegion(regionCode) {
 
 function bindToggle(id, layer) {
   document.getElementById(id).addEventListener("change", event => {
-    if (event.target.checked) map.addLayer(layer);
-    else map.removeLayer(layer);
+    if (event.target.checked) {
+      map.addLayer(layer);
+    } else {
+      // The view preference wins over any pending image load or zoom
+      // animation. Explicitly discard our out-of-band cloned DOM tiles
+      // BEFORE Leaflet removes the real layer.
+      clearPendingWheel();
+      removeTargetCover();
+      discardZoomOutHalo();
+      discardRetainedRaster();
+      map.removeLayer(layer);
+    }
     if (layer === officialFloodLayer) {
       if (event.target.checked) beginFloodRefresh();
       else {
