@@ -815,13 +815,6 @@ officialFloodLayer.on("load", () => {
   // completeness of official hazard coverage, merely readiness of this view.
   settleFloodRefreshSoon();
 });
-officialFloodLayer.on("tileerror", () => {
-  floodRefreshErrors++;
-  if (floodRasterEnabled()) {
-    floodRefreshPending = true;
-    showFloodRefresh("partial");
-  }
-});
 map.on("zoomstart", beginFloodRefresh);
 map.on("zoomend", settleFloodRefreshSoon);
 map.on("layerremove", event => {
@@ -2819,6 +2812,11 @@ function reportExternalTileError(sourceName, event) {
     externalTileSampleCounts.set(sourceName, samples + 1);
   }
   if (sourceName === "公的洪水ラスタ") {
+    floodRefreshErrors++;
+    if (floodRasterEnabled()) {
+      floodRefreshPending = true;
+      showFloodRefresh("partial");
+    }
     // D load/region navigation may later overwrite the generic status line.
     // Preserve an independent and visible fail-closed notice near the raster
     // toggle; it applies to observed missing imagery only, NOT to shelters.
