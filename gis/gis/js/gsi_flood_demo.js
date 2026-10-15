@@ -4,22 +4,20 @@
   const get=id=>document.getElementById(id);
   const panel=get("gsiFloodDemoPanel"),opener=get("mapGsiFloodDemoOpen");
   const api=window.HINANEX_GSI_FLOOD_PRESENTER;
-  const timings=[7,12,12,12,7]; // 50 presenter seconds exactly
+  const timings=[7,12,12,12]; // 43 seconds plus unbounded human pin selection
   let sequence=0,state="idle",clock=null,scene=0,remaining=7,elapsed=0,
       data=null,item=null,dStatus=null,restore=true;
   const titles=[
     "洪水の指定は、どの資料で確認する？",
     "洪水用に指定された掲載地点だけを表示",
     "お好きな紫色のピンを選んでください",
-    "確認できたことと、未判定を分ける",
-    "ここから、避難先選定を支える仕組みへ"
+    "確認できたことと、未判定を分ける"
   ];
   const explanations=[
     "地域の避難施設の一覧と、国土地理院の災害種別ごとの指定緊急避難場所は別の情報源です。",
     "GSIが洪水向けに公開したskhb01だけを地図に表示。これは全避難所からの安全ランキングではありません。",
     "地図上の紫のピンをタップ／クリックしてください。選んだ地点の名称・住所・公式原文を表示します。",
-    "GSIで指定を確認できても、施設情報の未判定を勝手に確定できません。両データは未照合です。",
-    "今は公式指定と出典を確認する基盤。開設・浸水・経路等を統合した避難先選定支援は今後の構想です。"
+    "GSIで指定を確認できても、施設情報の未判定を勝手に確定できません。両データは未照合です。"
   ];
   function stopClock(){if(clock!==null)window.clearInterval(clock);clock=null;}
   function writeStatus(s){get("gsiFloodDemoStatus").textContent=s;}
@@ -41,7 +39,7 @@
   function value(v){return v==null||v===""?"未確認":String(v);}
   function render(){
     if(!data)return;
-    get("gsiFloodDemoPhase").textContent=String(scene+1).padStart(2,"0")+" / 05";
+    get("gsiFloodDemoPhase").textContent=String(scene+1).padStart(2,"0")+" / 04";
     get("gsiFloodDemoClock").textContent=state==="complete"?"終了":
       scene===2&&!item?"操作待ち":remaining+"秒";
     get("gsiFloodDemoTitle").textContent=titles[scene];
@@ -52,7 +50,7 @@
     get("gsiFloodDemoEvidence").hidden=scene<2||!item;
     get("gsiFloodDemoPickHint").hidden=!awaitingPin;
     get("gsiFloodDemoContrast").hidden=scene!==3;
-    get("gsiFloodDemoFuture").hidden=scene!==4;
+    get("gsiFloodDemoFuture").hidden=true; // archived, outside public four-scene demo
     if(item){
       get("gsiFloodDemoName").textContent=item.name;
       get("gsiFloodDemoAddress").textContent=value(item.address);
@@ -70,7 +68,7 @@
           dStatus.unclassified+"件。GSI掲載地点との同一施設照合は未実施。"
         :"地域の避難施設の判定情報は未取得。0件や危険とは断定できません。";
     }
-    get("gsiFloodDemoProgress").style.width=Math.round(elapsed/50*100)+"%";
+    get("gsiFloodDemoProgress").style.width=Math.round(elapsed/43*100)+"%";
     get("gsiFloodDemoPlay").disabled=state==="playing"||state==="complete"||awaitingPin;
     get("gsiFloodDemoPause").disabled=state!=="playing";
     get("gsiFloodDemoNext").disabled=state==="complete"||awaitingPin;
@@ -103,7 +101,7 @@
     render();return true;
   }
   function advance(){
-    if(scene===4){stopClock();state="complete";elapsed=50;remaining=0;render();return;}
+    if(scene===3){stopClock();state="complete";elapsed=43;remaining=0;render();return;}
     if(!changeScene(scene+1)){
       stopClock();state="paused";
       writeStatus("公式データの表示や根拠の確認に失敗したため再生を停止しました。");
@@ -112,11 +110,11 @@
   function tick(){
     if(state!=="playing"||panel.hidden)return;
     remaining=Math.max(0,remaining-1);
-    elapsed=Math.min(50,elapsed+1);
+    elapsed=Math.min(43,elapsed+1);
     if(!remaining)advance();
     else{
       get("gsiFloodDemoClock").textContent=remaining+"秒";
-      get("gsiFloodDemoProgress").style.width=Math.round(elapsed/50*100)+"%";
+      get("gsiFloodDemoProgress").style.width=Math.round(elapsed/43*100)+"%";
     }
   }
   function play(){
