@@ -102,3 +102,19 @@ After a short 70ms input-debounce, the already-running 8-image hint cache is exp
 This improves geographic coverage during handoff, not upstream GSI network speeds. If source images cannot fill the screen inside the wait, it falls back to native Leaflet rather than manufacturing map data. At high zoom on very wide screens the strict 48-tile budget may also trigger fallback. The base tiles must be visibly attributable to their official GSI source; the official flood/reference layer remains independent and may legitimately have gaps in its own official coverage. No disaster absence/suitability inference is made from a missing raster pixel.
 
 Deterministic GIS controller tests cover exact viewport edges across several zooms/pointer positions, strict source URL and tile budget, rejection of a giant display, layer z-order and cleanup. Independent real-browser smoke checks the geometric coverage using Leaflet itself, but required CI only validates its syntax and controller behavior. **Before asserting visual acceptance**, replay the user's recorded wide-to-close-to-wide gesture in actual Chromium/Safari and measure uncovered pixels and tile network timings. Rollback is one E-only commit; no D/RegionExport/schema/GSI provenance changes.
+
+## Official flood raster display handoff (2026-10-15)
+
+A follow-up screen recording showed the pale pink official flood reference raster visibly flashing/fading independently from the GSI basemap. This is **not** evidence that the flood classification or actual inundation changed. The official flood raster is a separate source and must never be interpreted as zero inundation merely because tiles are absent, delayed or fail.
+
+For wheel-preview interactions, the raster may be cosmetically scaled while the **geographic view is still unchanged**, but its read-only old PNG clone is **removed before committing a new geographic zoom**, rather than being left above the new source coordinates. Leaflet's actual officialFloodLayer retains sole control over the correctly placed raster tiles, opacity and official classification. The GSI basemap's independent geographic coverage atlas remains unchanged.
+
+A separate, pointer-transparent, accessible status appears on the map during official flood tile loading or zoom change. States:
+- **loading:** Official flood imagery updating; missing display is not evidence of no inundation.
+- **partial:** At least one source tile failed during the current batch; blank regions cannot be interpreted as flood-free. The existing independent persistent source-error notice remains visible after other status changes.
+- **ready:** Current tile-request batch finished without recorded errors; the transient message disappears. This is **not** proof that the tile provider has geographic coverage for every pixel or that any point is safe.
+- **disabled:** User intentionally disabled the flood layer; transient loading message hides. The public evidence/safety caveat remains.
+
+Tile `loading`/`load`/`tileerror` and map `zoomstart`/`zoomend` signals control the state, rather than a hardcoded 650ms artificial disappearance of old official hazard imagery. The 100ms end-of-transition check handles fully cached destination views. A later verified-error-free batch may clear its transient status without removing the historical error log. No new raster URLs, GIS coordinate inference, flood suitability assessment, D data merge, risk recolor, forced layer hiding or fabricated "safe" tiles are introduced.
+
+Required CI checks state transitions, tile errors, toggling, no stale hazard clone across a geographic zoom, and the independent new UI/cache assets. It does not replay the actual recorded wheel animation or measure whether perceived flood raster flicker is completely gone in Chrome/Safari. Staging visual acceptance remains a separate gate before concluding user-facing resolution.
