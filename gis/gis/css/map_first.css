@@ -479,3 +479,25 @@ footer{display:none}
 .map-tour-evidence-cta>a:focus-visible{outline:3px solid var(--text);outline-offset:3px}
 .map-tour-evidence-cta>p{font-size:11px;line-height:1.6;color:var(--muted);margin:0}
 .map-tour-panel .map-tour-legacy-label{font-size:11px;color:var(--muted);margin:10px 0 2px}
+
+
+/* Official flood raster loading is distinct from "no inundation" and from
+   D/GSI source status. The notice never captures map pointer gestures. */
+.map-flood-refresh-status {
+  position:absolute;z-index:1392;right:14px;bottom:14px;
+  box-sizing:border-box;margin:0;max-width:min(350px,calc(100% - 28px));
+  padding:7px 11px;border:1px solid #d9a54c;border-radius:9px;
+  background:rgba(46,39,22,.94);color:#fff0d2;
+  font-size:11px;font-weight:650;line-height:1.5;
+  pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.23);
+}
+.map-flood-refresh-status[data-state="partial"]{
+  background:rgba(64,29,23,.95);border-color:#e39a78;color:#fff0e8;
+}
+.map-flood-refresh-status[hidden]{display:none}
+@media(max-width:680px){
+  .map-flood-refresh-status{
+    right:8px;bottom:8px;max-width:min(300px,calc(100% - 16px));
+    font-size:10px;
+  }
+}

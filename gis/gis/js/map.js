@@ -615,6 +615,14 @@ function flushSingleTargetWheel() {
           item.ghost.remove?.();
           item.ghost = null;
         }
+        // An old flood image belongs to the *prior geographic view*. Never
+        // retain it through the new Leaflet zoom, where colors might appear
+        // at an incorrect coordinate. Show a visible "updating / unverified"
+        // state until official tile loading settles instead.
+        if (item.flood) {
+          item.ghost.remove?.();
+          item.ghost = null;
+        }
       }
     });
     retainUntilRasterReady(previews);
@@ -737,12 +745,91 @@ const officialFloodLayer = L.tileLayer(FLOOD_REFERENCE_URL, {
   maxZoom: 18,
   maxNativeZoom: 17,
   opacity: 0.58,
-  keepBuffer: 3,
+  // Retain a slightly wider native Leaflet tile cache through fast zooms.
+  // Leaflet alone keeps each official raster tile at its real coordinates;
+  // the old flood clone is never overlaid after the geographic view changes.
+  keepBuffer: 4,
   // Larger verified hazard-raster requests are delayed until zoom end so
   // the faster base map never triggers a flood-tile network storm.
   updateWhenZooming: false,
   attribution: '出典：<a href="https://disaportal.gsi.go.jp/" target="_blank" rel="noopener">ハザードマップポータルサイト</a>'
 }).addTo(map);
+
+// Official flood imagery has independent loading/coverage semantics.
+// A blank or temporarily missing raster never means "no inundation".
+// Keep this local map status separate from D facility records and the
+// persistent source-error banner. Do NOT keep old flood PNGs misregistered
+// after committing a different geographic zoom.
+const floodRefreshStatus = document.getElementById("mapFloodRefreshStatus");
+let floodRefreshSequence = 0;
+let floodRefreshPending = false;
+let floodRefreshErrors = 0;
+let floodRefreshCheck = null;
+function floodRasterEnabled() {
+  return map.hasLayer(officialFloodLayer) &&
+    document.getElementById("officialFlood")?.checked !== false;
+}
+function showFloodRefresh(state) {
+  if (!floodRefreshStatus) return;
+  if (!floodRasterEnabled() || state === "ready") {
+    floodRefreshStatus.hidden = true;
+    floodRefreshStatus.textContent = "";
+    delete floodRefreshStatus.dataset.state;
+    return;
+  }
+  floodRefreshStatus.hidden = false;
+  floodRefreshStatus.dataset.state = state;
+  floodRefreshStatus.textContent = state === "partial"
+    ? "洪水参照画像の一部を確認できません。未表示・空白は「浸水なし」を意味しません。"
+    : "公的洪水画像を更新中です。表示されない場所も「浸水なし」とは判断できません。";
+}
+function beginFloodRefresh() {
+  if (!floodRasterEnabled()) {
+    showFloodRefresh("ready");
+    return;
+  }
+  floodRefreshSequence++;
+  floodRefreshPending = true;
+  floodRefreshErrors = 0;
+  if (floodRefreshCheck !== null) clearTimeout(floodRefreshCheck);
+  floodRefreshCheck = null;
+  showFloodRefresh("loading");
+}
+function completeFloodRefresh() {
+  if (!floodRefreshPending || !floodRasterEnabled()) {
+    showFloodRefresh("ready");
+    return;
+  }
+  if (officialFloodLayer.isLoading?.()) return;
+  floodRefreshPending = false;
+  showFloodRefresh(floodRefreshErrors > 0 ? "partial" : "ready");
+}
+function settleFloodRefreshSoon() {
+  const sequence = floodRefreshSequence;
+  if (floodRefreshCheck !== null) clearTimeout(floodRefreshCheck);
+  floodRefreshCheck = setTimeout(() => {
+    floodRefreshCheck = null;
+    if (sequence === floodRefreshSequence) completeFloodRefresh();
+  }, 100);
+}
+officialFloodLayer.on("loading", beginFloodRefresh);
+officialFloodLayer.on("load", () => {
+  // A resolved Leaflet batch means requests stopped; it does not certify
+  // completeness of official hazard coverage, merely readiness of this view.
+  settleFloodRefreshSoon();
+});
+map.on("zoomstart", beginFloodRefresh);
+map.on("zoomend", settleFloodRefreshSoon);
+map.on("layerremove", event => {
+  if (event.layer === officialFloodLayer) {
+    floodRefreshSequence++;
+    floodRefreshPending = false;
+    showFloodRefresh("ready");
+  }
+});
+map.on("layeradd", event => {
+  if (event.layer === officialFloodLayer) beginFloodRefresh();
+});
 
 // Opt-in, local-only timing. ?debugMapPerf=1 logs tile-batch completion
 // latency and visible D marker changes; no coordinates, network telemetry or
@@ -2530,6 +2617,14 @@ function bindToggle(id, layer) {
   document.getElementById(id).addEventListener("change", event => {
     if (event.target.checked) map.addLayer(layer);
     else map.removeLayer(layer);
+    if (layer === officialFloodLayer) {
+      if (event.target.checked) beginFloodRefresh();
+      else {
+        floodRefreshSequence++;
+        floodRefreshPending = false;
+        showFloodRefresh("ready");
+      }
+    }
   });
 }
 
@@ -2720,6 +2815,11 @@ function reportExternalTileError(sourceName, event) {
     externalTileSampleCounts.set(sourceName, samples + 1);
   }
   if (sourceName === "公的洪水ラスタ") {
+    floodRefreshErrors++;
+    if (floodRasterEnabled()) {
+      floodRefreshPending = true;
+      showFloodRefresh("partial");
+    }
     // D load/region navigation may later overwrite the generic status line.
     // Preserve an independent and visible fail-closed notice near the raster
     // toggle; it applies to observed missing imagery only, NOT to shelters.

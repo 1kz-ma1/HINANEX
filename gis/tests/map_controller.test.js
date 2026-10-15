@@ -313,6 +313,7 @@ function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = nul
     "mapDDecisionFilter", "mapDDecisionFilterStatus",
     "coordinateSearchForm", "coordinateSearchInput", "coordinateSearchButton",
     "coordinateSearchHelp", "coordinateSearchStatus", "externalFloodTileNotice",
+    "mapFloodRefreshStatus",
     "gisLayout", "uiTabNormal", "uiTabScenario", "scenarioIntro",
     "toggleLeftPanel", "toggleRightPanel", "mapViewportDStatus"
   ];
@@ -702,7 +703,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "complete-target-grid-handoff-20261015-v1");
+  assert.equal(mapAsset[1], "flood-refresh-coverage-20261015-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -1061,8 +1062,15 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="uiTabScenario"[^>]*role="tab"/);
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
   assert.match(pageSource, /current_theme[.]css[?]v=gis-facility-drawer-20261009-v6/);
-  assert.match(pageSource, /map_first[.]css[?]v=guided-tour-three-region-comparison-20261013-v1/);
+  assert.match(pageSource, /map_first[.]css[?]v=flood-refresh-status-20261015-v1/);
   assert.match(pageSource, /place_card[.]css[?]v=zoom-compact-popup-20261014-v1/);
+  assert.match(pageSource,/id="mapFloodRefreshStatus"/);
+  assert.match(pageSource,/map_first[.]css[?]v=flood-refresh-status-20261015-v1/);
+  const floodCss=fs.readFileSync(path.resolve(__dirname,"../gis/css/map_first.css"),"utf8");
+  assert.match(floodCss,/\.map-flood-refresh-status\[hidden\]\{display:none\}/);
+  assert.match(floodCss,/pointer-events:none/);
+  assert.match(floodCss,/data-state="partial"/);
+
   const dPinCss = fs.readFileSync(path.resolve(__dirname, "../gis/css/style.css"), "utf8");
   assert.match(dPinCss, /\.leaflet-shelter-pane \.leaflet-marker-icon/);
   assert.match(dPinCss, /animation: hinanex-d-marker-appear 140ms ease-out both/);
@@ -1462,6 +1470,20 @@ nagoya.scenarios = [{
   assert.ok(Math.abs(clusterCase.L.__groups[1].items[0].latlng[0] - 35.7001) < 0.00000001);
   assert.ok(Math.abs(clusterCase.L.__groups[1].items[0].latlng[1] - 139.8801) < 0.00000001);
 
+  // Flood tile status never infers "no inundation" while loading.
+  const floodNotice=clusterCase.elements.mapFloodRefreshStatus;
+  const floodLayer=clusterCase.L.__tiles[1];
+  vm.runInContext("beginFloodRefresh()",clusterCase.context);
+  assert.equal(floodNotice.hidden,false);
+  assert.equal(floodNotice.dataset.state,"loading");
+  assert.match(floodNotice.textContent,/更新中/);
+  assert.match(floodNotice.textContent,/浸水なし/);
+  assert.equal(clusterCase.elements.externalFloodTileNotice.hidden,true);
+  floodLayer.isLoading=()=>false;
+  vm.runInContext("completeFloodRefresh()",clusterCase.context);
+  assert.equal(floodNotice.hidden,true);
+  floodLayer.isLoading=()=>true;
+  vm.runInContext("beginFloodRefresh()",clusterCase.context);
   // External flood raster availability is separate from certified GSI
   // skhb01 shelter reference coverage. Tileerror does not prove HTTP404,
   // zero inundation, missing shelters or lack of D RegionExport.
@@ -1472,8 +1494,11 @@ nagoya.scenarios = [{
   assert.match(clusterCase.elements.status.textContent, /公的洪水ラスタ/);
   assert.match(clusterCase.elements.status.textContent, /浸水の有無・安全性は判定できません/);
   assert.doesNotMatch(clusterCase.elements.status.textContent, /Dデータは利用可能|浸水なし|安全な避難先/);
-  assert.equal(clusterCase.elements.externalFloodTileNotice.hidden, false);
-  assert.match(clusterCase.elements.externalFloodTileNotice.textContent, /浸水なし/);
+  assert.equal(clusterCase.elements.externalFloodTileNotice.hidden,false);
+  assert.equal(floodNotice.hidden,false);
+  assert.equal(floodNotice.dataset.state,"partial");
+  assert.match(floodNotice.textContent,/一部を確認できません/);
+  assert.match(clusterCase.elements.externalFloodTileNotice.textContent,/浸水なし/);
   assert.match(clusterCase.elements.externalFloodTileNotice.textContent, /別データ/);
   // Later D status updates must not erase the independently visible raster warning.
   vm.runInContext('setStatus("D出力を更新しました", "success")', clusterCase.context);
@@ -1481,6 +1506,26 @@ nagoya.scenarios = [{
   assert.equal(clusterCase.elements.externalFloodTileNotice.hidden, false);
   assert.match(clusterCase.elements.externalFloodTileNotice.textContent, /公的洪水ラスタ/);
   assert.equal(clusterCase.elements.recordCount.textContent, 3);
+  floodLayer.isLoading=()=>false;
+  vm.runInContext("completeFloodRefresh()",clusterCase.context);
+  assert.equal(floodNotice.dataset.state,"partial",
+    "failed flood tile must not be overwritten by load-complete");
+  vm.runInContext("beginFloodRefresh()",clusterCase.context);
+  vm.runInContext("completeFloodRefresh()",clusterCase.context);
+  assert.equal(floodNotice.hidden,true,
+    "new successful batch clears transient banner, not failure history");
+  assert.equal(clusterCase.elements.externalFloodTileNotice.hidden,false);
+  vm.runInContext("beginFloodRefresh()",clusterCase.context);
+  clusterCase.elements.officialFlood.checked=false;
+  clusterCase.elements.officialFlood.listeners.change({
+    target:clusterCase.elements.officialFlood
+  });
+  assert.equal(floodNotice.hidden,true);
+  clusterCase.elements.officialFlood.checked=true;
+  clusterCase.elements.officialFlood.listeners.change({
+    target:clusterCase.elements.officialFlood
+  });
+  assert.equal(floodNotice.dataset.state,"loading");
 
   // A wrong tile file on the correct static path is NOT a permitted fallback.
   const substituted = makeContext({
@@ -1879,7 +1924,8 @@ nagoya.scenarios = [{
     fetchImpl: async () => ({ ok: false, status: 404, json: async () => ({}) })
   });
   assert.equal(L.__tiles[0].options.keepBuffer, 4);
-  assert.equal(L.__tiles[1].options.keepBuffer, 3);
+  assert.equal(L.__tiles[1].options.keepBuffer, 4,
+    "retain real official flood tiles natively without stale raster clones");
   assert.equal(L.__tiles[0].options.updateInterval, 220,
     "throttle mid-animation base-tile requests");
   assert.equal(L.__tiles[0].options.updateWhenZooming, false,
@@ -2030,8 +2076,11 @@ nagoya.scenarios = [{
    assert.equal(L.__tiles[0].sourceParent.ghosts.length,1,
      "a read-only copy of rendered map tiles is preserved during final loading");
    assert.equal(L.__tiles[0].sourceParent.ghosts[0].removed,undefined);
-   assert.equal(L.__tiles[1].sourceParent.ghosts.length,1,
-     "official raster is held independently, not merged into a fake risk layer");
+   assert.equal(L.__tiles[1].sourceParent.ghosts.length,1);
+   assert.equal(L.__tiles[1].sourceParent.ghosts[0].removed,true,
+     "stale flood image must be discarded before geographic zoom changes");
+   assert.equal(L.__tiles[0].sourceParent.ghosts[0].removed,undefined,
+     "basemap's independently aligned old tiles may still be retained");
    assert.equal(tilePane.style.transformOrigin,"");
    assert.equal(map.zoomAroundCalls.length,1,
      "one gesture resolves to one animated destination");
@@ -2395,7 +2444,7 @@ nagoya.scenarios = [{
   assert.match(page, /id="mapShareURL"[^>]*readonly value="https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
   assert.match(page, /id="mapAudienceIntro"[^>]*hidden/);
   assert.match(page, /js\/audience_share[.]js[?]v=audience-share-20261010-v1/);
-  assert.match(page, /css\/map_first[.]css[?]v=guided-tour-three-region-comparison-20261013-v1/);
+  assert.match(page, /css\/map_first[.]css[?]v=flood-refresh-status-20261015-v1/);
   assert.match(styles, /\.map-share-panel\[hidden\],\.map-audience-intro\[hidden\]\{display:none\}/);
   assert.match(shareSource, /const AUDIENCE_URL = "https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
   assert.doesNotMatch(shareSource, /geolocation|getCurrentPosition|flyTo|map\.setView|fetch\(|sendBeacon|XMLHttpRequest|<iframe/);
@@ -2634,7 +2683,7 @@ nagoya.scenarios = [{
   assert.match(html, /id="mapEvidenceOpen"[^>]*aria-controls="mapEvidencePanel"/);
   assert.match(html, /id="mapEvidencePanel"[^>]*hidden/);
   assert.match(html, /js\/evidence_sheet[.]js[?]v=evidence-sheet-20261010-v1/);
-  assert.match(html, /css\/map_first[.]css[?]v=guided-tour-three-region-comparison-20261013-v1/);
+  assert.match(html, /css\/map_first[.]css[?]v=flood-refresh-status-20261015-v1/);
   assert.match(html, /地域の避難施設と国土地理院の公式掲載地点は別情報源/);
   assert.match(style, /\.map-evidence-panel\[hidden\]\{display:none\}/);
   assert.doesNotMatch(source, /fetch\(|getCurrentPosition|geolocation|setView\(|flyTo|sendBeacon/);

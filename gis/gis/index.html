@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="css/style.css?v=d-marker-entrance-20261015-v1">
   <link rel="stylesheet" href="css/current_theme.css?v=gis-facility-drawer-20261009-v6">
-  <link rel="stylesheet" href="css/map_first.css?v=guided-tour-three-region-comparison-20261013-v1">
+  <link rel="stylesheet" href="css/map_first.css?v=flood-refresh-status-20261015-v1">
   <link rel="stylesheet" href="css/evidence_replay.css?v=spatial-evidence-20261014-v2">
   <link rel="stylesheet" href="css/presentation_story.css?v=presenter-55s-20261014-v1">
   <link rel="stylesheet" href="css/filter_demo.css?v=d-source-criteria-20261014-v1">
@@ -208,6 +208,7 @@
     </button>
     <p id="mapGpsFeedback" class="map-gps-feedback" role="status" hidden></p>
     <p id="mapRasterBanner" class="map-raster-banner" role="status" hidden></p>
+    <p id="mapFloodRefreshStatus" class="map-flood-refresh-status" role="status" aria-live="polite" hidden></p>
     <p id="mapViewportDStatus" class="map-viewport-d-status" role="status" aria-live="polite" hidden></p>
     <section id="mapEvidencePanel" class="map-evidence-panel" role="region" aria-label="表示情報の根拠・確認状況" hidden>
       <div class="map-evidence-heading">
@@ -605,7 +606,7 @@
 <script src="js/facility_list.js"></script>
 <!-- Discovery API remains v14; map UI-only consumer has a separate cache-busting key. -->
 <script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v14"></script>
-<script src="js/map.js?v=complete-target-grid-handoff-20261015-v1"></script>
+<script src="js/map.js?v=flood-refresh-coverage-20261015-v1"></script>
 <script src="js/map_first_ui.js?v=anchored-point-bubble-20261014-v1"></script>
 <script src="js/audience_share.js?v=audience-share-20261010-v1"></script>
 <script src="js/guided_tour.js?v=interactive-presenter-20261014-v1"></script>
