@@ -1844,6 +1844,9 @@ function renderReferenceMap(discovery) {
       })
     }).on("click", event => {
       L.DomEvent.stopPropagation(event);
+      // The presenter may accept only a pin belonging to its independently
+      // verified current GSI catalog, never a generic map/D shelter marker.
+      window.HINANEX_GSI_FLOOD_PRESENTER?.selectFromMap?.(site);
       detail(site.name, [
         ["出典", "GSI skhb01 洪水指定緊急避難場所（参照のみ）"],
         ["直線距離（経路距離ではない）", site.distanceMetres + "m"],
@@ -2700,10 +2703,13 @@ window.HINANEX_GSI_FLOOD_PRESENTER = Object.freeze({
     return {state:"shown",count:s.discovery.total,shown:s.sites.length,
       partial:s.discovery.partialCoverage};
   },
-  inspect() {
+  inspect(sourceTrace=null) {
     const s=gsiPresenterSession;
     if(!s?.discovery||s.sourceCode!==selectedRegionCode)return {state:"unavailable"};
-    const item=s.sites[0]; // existing strictly verified, non-recommended record
+    const item=sourceTrace===null ? s.sites[0] :
+      s.sites.find(site=>site.trace===sourceTrace);
+    if(!item) return {state:"unavailable",reason:"UNVERIFIED_SITE"};
+    // Only an existing strictly verified, non-recommended catalog record.
     if(typeof map.flyTo==="function")
       map.flyTo([item.latitude,item.longitude],14,{duration:1.2});
     else map.setView([item.latitude,item.longitude],14,{animate:false});
@@ -2716,6 +2722,23 @@ window.HINANEX_GSI_FLOOD_PRESENTER = Object.freeze({
       // Source tiles do not establish a municipality or current opening status.
       municipalityVerified:false,openingVerified:false,safeRouteVerified:false
     };
+  },
+  selectFromMap(site) {
+    const s=gsiPresenterSession;
+    if(!s?.discovery||s.sourceCode!==selectedRegionCode||
+       !["nearby","both"].includes(displayMode))return {state:"unavailable"};
+    const verified=s.sites.find(record=>
+      record.trace===site?.trace && record.sourceUrl===site?.sourceUrl &&
+      record.latitude===site?.latitude && record.longitude===site?.longitude &&
+      record.name===site?.name);
+    if(!verified)return {state:"unavailable",reason:"UNVERIFIED_SITE"};
+    const proof=this.inspect(verified.trace);
+    if(proof.state==="inspected" && typeof window.dispatchEvent==="function" &&
+       typeof window.CustomEvent==="function")
+      window.dispatchEvent(new window.CustomEvent("hinanex:gsi-verified-pin",{
+        detail:proof
+      }));
+    return proof;
   },
   compareD() {
     const s=gsiPresenterSession;
