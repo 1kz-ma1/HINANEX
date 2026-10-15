@@ -164,8 +164,21 @@ async function screenshot(page, name) {
     // The CSS preview updates immediately; the geographic destination/tile
     // switch should start ~70ms after the final wheel event rather than 135ms.
     assert.deepEqual(await page.evaluate(() => [
-      WHEEL_GESTURE_IDLE_MS, WHEEL_PREVIEW_TRANSITION_MS
-    ]),[70,40]);
+      WHEEL_GESTURE_IDLE_MS, WHEEL_PREVIEW_TRANSITION_MS,
+      TARGET_CENTER_WAIT_MS, TARGET_COVER_WAIT_MS,
+      fullCoverHandoff
+    ]),[70,40,180,650,false]);
+    const centralTarget = await page.evaluate(() => {
+      const size=map.getSize(), point=L.point(size.x/2,size.y/2);
+      const grid=destinationTileGrid(point,Math.max(map.getMinZoom(),map.getZoom()-1));
+      const central=targetCenterTileIndices(grid);
+      return {count:grid?.tiles.length||0,central:central.length,
+        fullyOfficial:central.every(i=>grid.tiles[i].url.startsWith(
+          "https://cyberjapandata.gsi.go.jp/xyz/std/"))};
+    });
+    assert.ok(centralTarget.count>=centralTarget.central &&
+      centralTarget.central>0,"central geographic grid subset is nonempty");
+    assert.equal(centralTarget.fullyOfficial,true);
     // Browser-only test marker. Its position comes from Leaflet's existing
     // viewport projection, NOT from a real or inferred shelter record.
     // Disable transition on this probe so pixel geometry can be asserted
@@ -195,6 +208,7 @@ async function screenshot(page, name) {
       const oldZoomAround = map.setZoomAround.bind(map);
       map.setZoomAround = (...args) => {
         window.__wheelZoomCalls++;
+        window.__wheelLastCommitAt=performance.now();
         return oldZoomAround(...args);
       };
       const before = map.getZoom();
@@ -359,6 +373,7 @@ async function screenshot(page, name) {
         x:beforeBox.left+beforeBox.width/2,
         y:beforeBox.top+beforeBox.height/2
       };
+      window.__wheelOutStartAt=performance.now();
       for (let i=0;i<3;i++) {
         el.dispatchEvent(new WheelEvent("wheel", {
           bubbles:true,cancelable:true,
@@ -413,6 +428,11 @@ async function screenshot(page, name) {
     assert.equal(await page.evaluate(() => window.__wheelZoomCalls),2,
       "one additional geographic commit completes the outward gesture");
     assert.ok(await page.evaluate(() => map.getZoom())<zoomOutPreview.before.zoom);
+    const commitDelay=await page.evaluate(
+      ()=>window.__wheelLastCommitAt-window.__wheelOutStartAt);
+    assert.ok(commitDelay>0 && commitDelay<550,
+      "with external GSI tiles unavailable, native zoom must commit within "+
+      "the short center-first deadline rather than waiting for 650ms atlas");
     assert.equal(await page.evaluate(() => map.getPane("tilePane").style.scale),"");
     const afterHalo = await page.evaluate(() => ({
       oldStillConnected:Boolean(window.__oldWheelHaloNode?.isConnected),
