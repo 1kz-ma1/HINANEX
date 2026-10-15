@@ -2345,6 +2345,45 @@ nagoya.scenarios = [{
     assert.equal(vm.runInContext("targetCover===null",t.context),true);
     assert.equal(vm.runInContext("predictedTileImages.size",t.context),0);
   }
+  // Simulate a real delayed final-basemap PNG batch: switching OFF before
+  // its load events fire must invalidate the pending independent GSI atlas.
+  {
+    const loaded=[];
+    class PendingImage {
+      constructor() {this.complete=false;this.naturalWidth=0;this.listeners={};}
+      set src(url) {this.url=url;loaded.push(this);}
+      addEventListener(event,listener) {this.listeners[event]=listener;}
+      removeEventListener(event,listener) {
+        if(this.listeners[event]===listener)delete this.listeners[event];
+      }
+    }
+    const t=makeContext({
+      protocol:"http:",ImageCtor:PendingImage,
+      fetchImpl:async()=>({ok:false,status:404,json:async()=>({})})
+    });
+    const {L,context,elements}=t;
+    L.__map.container.listeners.wheel.fn({
+      deltaY:280,deltaMode:0,clientX:340,clientY:220,target:{},
+      preventDefault(){},stopImmediatePropagation(){}
+    });
+    vm.runInContext("flushSingleTargetWheel()",context);
+    assert.ok(loaded.length>0,
+      "the independent destination atlas has a pending official GSI image batch");
+    assert.equal(vm.runInContext("targetCover===null",context),true);
+    elements.basemap.checked=false;
+    elements.basemap.listeners.change({target:elements.basemap});
+    const oldCount=loaded.length;
+    for(const image of loaded) {
+      image.complete=true;
+      image.naturalWidth=256;
+      image.listeners.load?.();
+    }
+    assert.equal(vm.runInContext("targetCover===null",context),true,
+      "late GSI tile load after OFF cannot reinsert the finished atlas");
+    assert.equal(L.__map.hasLayer(L.__tiles[0]),false);
+    assert.equal(loaded.length,oldCount,
+      "OFF must not restart any speculative official basemap preload");
+  }
   console.log("zoom raster layer-toggle OFF persistence and preview cancellation: OK");
 }
 
