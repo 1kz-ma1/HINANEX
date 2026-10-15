@@ -306,7 +306,8 @@ function discardZoomOutHalo() {
 function buildZoomOutHalo() {
   // Inactive map, comparison modes, and unsupported DOM all fail closed.
   if (!singleTargetWheel || coverageSafeZoomFeel || pendingWheelPoint ||
-      wheelPreview || typeof window.Image !== "function") return;
+      wheelPreview || !map.hasLayer(baseMap) ||
+      typeof window.Image !== "function") return;
   const pane = map.getPane?.("tilePane");
   const viewport = map.getContainer?.().getBoundingClientRect?.();
   const paneRect = pane?.getBoundingClientRect?.();
@@ -982,6 +983,12 @@ baseMap.on("load", scheduleZoomOutHalo);
 map.on("zoomend", scheduleZoomOutHalo);
 map.on("moveend", scheduleZoomOutHalo);
 map.on("movestart", discardZoomOutHalo);
+map.on("layerremove", event => {
+  if (event.layer === baseMap) discardZoomOutHalo();
+});
+map.on("layeradd", event => {
+  if (event.layer === baseMap) scheduleZoomOutHalo();
+});
 scheduleZoomOutHalo();
 
 const officialFloodLayer = L.tileLayer(FLOOD_REFERENCE_URL, {
