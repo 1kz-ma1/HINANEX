@@ -4,22 +4,20 @@
   const get=id=>document.getElementById(id);
   const panel=get("gsiFloodDemoPanel"),opener=get("mapGsiFloodDemoOpen");
   const api=window.HINANEX_GSI_FLOOD_PRESENTER;
-  const timings=[7,12,12,12,7]; // 50 presenter seconds exactly
+  const timings=[7,12,12,12]; // 43 seconds plus unbounded human pin selection
   let sequence=0,state="idle",clock=null,scene=0,remaining=7,elapsed=0,
       data=null,item=null,dStatus=null,restore=true;
   const titles=[
     "洪水の指定は、どの資料で確認する？",
     "洪水用に指定された掲載地点だけを表示",
-    "１つ選んで、公式データを確認",
-    "確認できたことと、未判定を分ける",
-    "ここから、避難先選定を支える仕組みへ"
+    "お好きな紫色のピンを選んでください",
+    "確認できたことと、未判定を分ける"
   ];
   const explanations=[
     "地域の避難施設の一覧と、国土地理院の災害種別ごとの指定緊急避難場所は別の情報源です。",
     "GSIが洪水向けに公開したskhb01だけを地図に表示。これは全避難所からの安全ランキングではありません。",
-    "掲載地点の名称・住所・原文の行を確認。disaster1=1は洪水について指定があることを示します。",
-    "GSIで指定を確認できても、施設情報の未判定を勝手に確定できません。両データは未照合です。",
-    "今は公式指定と出典を確認する基盤。開設・浸水・経路等を統合した避難先選定支援は今後の構想です。"
+    "地図上の紫のピンをタップ／クリックしてください。選んだ地点の名称・住所・公式原文を表示します。",
+    "GSIで指定を確認できても、施設情報の未判定を勝手に確定できません。両データは未照合です。"
   ];
   function stopClock(){if(clock!==null)window.clearInterval(clock);clock=null;}
   function writeStatus(s){get("gsiFloodDemoStatus").textContent=s;}
@@ -36,20 +34,23 @@
     get("gsiFloodDemoFallback").hidden=false;
     get("gsiFloodDemoFallbackReason").textContent=
       "GSI洪水指定の掲載情報は未確認です。現在の安全性は判断できません。"+
-      "地域の避難施設の属性絞り込みは別データで実行できます。";
+      "デモを閉じて地図を確認してください。";
   }
   function value(v){return v==null||v===""?"未確認":String(v);}
   function render(){
     if(!data)return;
-    get("gsiFloodDemoPhase").textContent=String(scene+1).padStart(2,"0")+" / 05";
-    get("gsiFloodDemoClock").textContent=state==="complete"?"終了":remaining+"秒";
+    get("gsiFloodDemoPhase").textContent=String(scene+1).padStart(2,"0")+" / 04";
+    get("gsiFloodDemoClock").textContent=state==="complete"?"終了":
+      scene===2&&!item?"操作待ち":remaining+"秒";
     get("gsiFloodDemoTitle").textContent=titles[scene];
     get("gsiFloodDemoMessage").textContent=explanations[scene];
     get("gsiFloodDemoCount").textContent=String(data.total);
     get("gsiFloodDemoShown").textContent=String(data.shown);
+    const awaitingPin=scene===2&&!item;
     get("gsiFloodDemoEvidence").hidden=scene<2||!item;
+    get("gsiFloodDemoPickHint").hidden=!awaitingPin;
     get("gsiFloodDemoContrast").hidden=scene!==3;
-    get("gsiFloodDemoFuture").hidden=scene!==4;
+    get("gsiFloodDemoFuture").hidden=true; // archived, outside public four-scene demo
     if(item){
       get("gsiFloodDemoName").textContent=item.name;
       get("gsiFloodDemoAddress").textContent=value(item.address);
@@ -67,12 +68,13 @@
           dStatus.unclassified+"件。GSI掲載地点との同一施設照合は未実施。"
         :"地域の避難施設の判定情報は未取得。0件や危険とは断定できません。";
     }
-    get("gsiFloodDemoProgress").style.width=Math.round(elapsed/50*100)+"%";
-    get("gsiFloodDemoPlay").disabled=state==="playing"||state==="complete";
+    get("gsiFloodDemoProgress").style.width=Math.round(elapsed/43*100)+"%";
+    get("gsiFloodDemoPlay").disabled=state==="playing"||state==="complete"||awaitingPin;
     get("gsiFloodDemoPause").disabled=state!=="playing";
-    get("gsiFloodDemoNext").disabled=state==="complete";
+    get("gsiFloodDemoNext").disabled=state==="complete"||awaitingPin;
     get("gsiFloodDemoRestart").disabled=false;
-    writeStatus((state==="complete"?"再生完了":state==="paused"?"一時停止中":"再生中")+
+    writeStatus((awaitingPin?"操作待ち：地図の紫色のピンを選んでください":
+      state==="complete"?"再生完了":state==="paused"?"一時停止中":"再生中")+
       "｜公式に検証済み "+data.verifiedTiles+"/"+data.requestedTiles+
       " タイル。掲載地点 "+data.total+"件（選択した自治体全体の件数ではありません）。");
   }
@@ -84,10 +86,9 @@
       proof=api.show();
       if(proof?.state!=="shown"||proof.count!==data.total) return false;
     }else if(next===2){
-      proof=api.inspect();
-      if(proof?.state!=="inspected"||!proof.name||proof.disaster1Raw!==1||
-          !proof.sourceTrace||!proof.sourceUrl) return false;
-      item=proof;
+      // Visitors, not the presenter, choose an actual verified GSI pin.
+      // Never auto-inspect the first record or fabricate a convenient site.
+      item=null;
     }else if(next===3){
       dStatus=api.compareD(); // does not assert D/GSI identity
     }else if(next===0){
@@ -96,10 +97,11 @@
     scene=next;
     remaining=timings[next];
     elapsed=timings.slice(0,next).reduce((a,b)=>a+b,0);
+    if(next===2){stopClock();state="awaiting-pin";}
     render();return true;
   }
   function advance(){
-    if(scene===4){stopClock();state="complete";elapsed=50;remaining=0;render();return;}
+    if(scene===3){stopClock();state="complete";elapsed=43;remaining=0;render();return;}
     if(!changeScene(scene+1)){
       stopClock();state="paused";
       writeStatus("公式データの表示や根拠の確認に失敗したため再生を停止しました。");
@@ -108,11 +110,11 @@
   function tick(){
     if(state!=="playing"||panel.hidden)return;
     remaining=Math.max(0,remaining-1);
-    elapsed=Math.min(50,elapsed+1);
+    elapsed=Math.min(43,elapsed+1);
     if(!remaining)advance();
     else{
       get("gsiFloodDemoClock").textContent=remaining+"秒";
-      get("gsiFloodDemoProgress").style.width=Math.round(elapsed/50*100)+"%";
+      get("gsiFloodDemoProgress").style.width=Math.round(elapsed/43*100)+"%";
     }
   }
   function play(){
@@ -129,8 +131,9 @@
     api?.end(restore);
     panel.hidden=true;data=null;item=null;dStatus=null;
     opener.setAttribute("aria-expanded","false");
-    get("mapTourOpen").click();
-    opener.focus();
+    // A shared-link visitor should return to the map, never be sent to
+    // another presenter/menu after completing the one supported demo.
+    get("map").focus?.();
   }
   async function open(){
     if(!panel.hidden)return;
@@ -178,6 +181,17 @@
   get("gsiFloodDemoPause").addEventListener("click",()=>{pause();api?.halt();});
   get("gsiFloodDemoNext").addEventListener("click",()=>{pause();advance();});
   get("gsiFloodDemoRestart").addEventListener("click",()=>{close();void open();});
+  window.addEventListener?.("hinanex:gsi-verified-pin",event=>{
+    if(panel.hidden||!data||scene!==2)return;
+    const proof=event.detail;
+    if(proof?.state!=="inspected"||proof.disaster1Raw!==1||
+       !proof.name||!proof.sourceTrace||!proof.sourceUrl)return;
+    item=proof;
+    remaining=timings[scene];
+    state="paused";
+    render();
+    play(); // Resume the elapsed-time presentation only after real selection.
+  });
   document.addEventListener("visibilitychange",()=>{if(document.hidden){pause();api?.halt();}});
   document.addEventListener("keydown",event=>{
     if(panel.hidden)return;

@@ -7,11 +7,11 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="css/style.css?v=d-marker-entrance-20261015-v1">
   <link rel="stylesheet" href="css/current_theme.css?v=gis-facility-drawer-20261009-v6">
-  <link rel="stylesheet" href="css/map_first.css?v=flood-refresh-status-20261015-v1">
+  <link rel="stylesheet" href="css/map_first.css?v=audience-main-entry-20261015-v1">
   <link rel="stylesheet" href="css/evidence_replay.css?v=spatial-evidence-20261014-v2">
   <link rel="stylesheet" href="css/presentation_story.css?v=presenter-55s-20261014-v1">
   <link rel="stylesheet" href="css/filter_demo.css?v=d-source-criteria-20261014-v1">
-  <link rel="stylesheet" href="css/gsi_flood_demo.css?v=gsi-flood-fallback-20261014-v2">
+  <link rel="stylesheet" href="css/gsi_flood_demo.css?v=audience-map-pick-20261015-v1">
   <link rel="stylesheet" href="css/place_card.css?v=zoom-compact-popup-20261014-v1">
 </head>
 <body>
@@ -164,7 +164,7 @@
 
   <p class="gis-view-caption">同じ地図とデータを使って情報を確認します。<span>災害の時間経過予測ではありません。</span></p>
 </nav><label class="map-tool-field" for="mapRegionQuickSelect">地域へ移動（ショートカット）</label><select id="mapRegionQuickSelect" aria-label="表示する地域"><option value="13123">東京都 江戸川区</option><option value="15100">新潟県 新潟市</option><option value="23100">愛知県 名古屋市</option></select><p class="map-tool-note">災害シミュレーション／災害後シミュレーション／避難経路シミュレーションは今後実装予定です。予測結果を表示していません。</p>
-<button id="mapTourOpen" class="map-tool-action" type="button" aria-controls="mapTourPanel">発表用ガイド付きデモ</button>
+<button id="mapTourOpen" class="map-tool-action" type="button" aria-controls="mapTourPanel">公式洪水デモ</button>
 <button id="mapOpenAdvanced" class="map-tool-action" type="button" aria-controls="gisLeftPanel">詳細設定・公式データの確認</button></div></details>
       <details class="map-tool map-tool--scenario" id="mapToolScenario"><summary><span class="map-tool-symbol" aria-hidden="true">☷</span><span>シナリオ</span><span class="map-tool-arrow" aria-hidden="true">⌄</span></summary><div class="map-tool-panel"><p class="map-tool-note">現在利用可能：公式掲載地点の参考探索（シミュレーション予測ではありません）。</p><label class="map-tool-field" for="coordinateSearchInput">地点を指定して参考情報を照合</label>      <form id="coordinateSearchForm" class="coordinate-search-form" novalidate>
         <label for="coordinateSearchInput">緯度・経度で地点を指定</label>
@@ -229,17 +229,20 @@
     </section>
     <section id="mapTourPanel" class="map-tour-panel" role="region" aria-label="HINANEXガイド付きデモ" hidden>
       <div class="map-tour-heading">
-        <div><strong>ガイド付きデモ</strong><p>取得済み施設データと未確認事項を順番に紹介します。</p></div>
+        <div><strong>公式洪水デモ</strong><p>洪水の公式指定 → 掲載地点 → 出典 → 未判定との違い。実際のピン操作で確認します。</p></div>
         <button id="mapTourClose" type="button" aria-label="ガイド付きデモを閉じる">×</button>
       </div>
       <div class="map-tour-gsi-cta" aria-label="公式洪水指定に基づく本番デモ">
         <span>MAIN DEMO / GSI公式指定緊急避難場所</span>
         <strong>洪水の公式指定 → 掲載地点 → 出典 → 未判定との違い</strong>
         <button id="mapGsiFloodDemoOpen" type="button" aria-controls="gsiFloodDemoPanel"
-          aria-expanded="false">▶ 50秒：洪水の指定がある場所を公式データで確認</button>
+          aria-expanded="false">▶ 約43秒＋ピン操作：洪水の公式指定と出典を確認</button>
         <p>国土地理院の検証済み洪水用データを使います。避難先の推奨や、地域の避難施設への同一建物判定はしません。</p>
       </div>
-      <div class="map-tour-filter-cta" aria-label="実データを条件で絞り込む発表デモ">
+      <!-- Former presenter cases remain available to existing test fixtures,
+     but are deliberately not offered to visitors in the single-demo path. -->
+       <div class="map-tour-other-demos" hidden>
+       <div class="map-tour-filter-cta" aria-label="実データを条件で絞り込む発表デモ">
         <span>参考：施設の属性絞り込み</span>
         <strong>条件で抽出 → 地図で確認 → 元データと照合</strong>
         <button id="mapFilterDemoOpen" type="button" aria-controls="filterDemoPanel" aria-expanded="false">▶ 52秒：施設を条件で絞り込んで確認する</button>
@@ -279,6 +282,7 @@
         <button id="mapTourStop" type="button" disabled>停止・元の位置へ</button>
       </div>
       <p class="map-tour-caution">発表用の閲覧演出です。安全な避難先・現在の開設状況・災害進行を示すものではありません。手動で地図を動かすと停止できます。</p>
+       </div>
     </section>
     <div id="mapEvidenceReplayMapLabel" class="replay-map-label" role="note" hidden>
       <strong>現在の地域施設の位置（参考表示）</strong>
@@ -390,11 +394,11 @@
       <section id="gsiFloodDemoFallback" class="gsi-demo-fallback" aria-label="公式データ未確認時の代替案" hidden>
         <strong>公式の洪水指定は、現在の配信データでは確認できません</strong>
         <p id="gsiFloodDemoFallbackReason">未確認の指定情報を表示しません。</p>
-        <button id="gsiFloodDemoFallbackD" type="button">施設の属性絞り込みデモを見る（公式洪水指定ではありません） →</button>
+        <button id="gsiFloodDemoFallbackD" type="button" hidden>旧デモ（非公開）</button>
       </section>
       <div id="gsiFloodDemoContent" hidden>
         <div class="gsi-demo-step">
-          <span id="gsiFloodDemoPhase">01 / 05</span>
+          <span id="gsiFloodDemoPhase">01 / 04</span>
           <strong id="gsiFloodDemoClock">7秒</strong>
         </div>
         <h2 id="gsiFloodDemoTitle"></h2>
@@ -442,6 +446,11 @@
         </div>
       </div>
     </section>
+    <div id="gsiFloodDemoPickHint" class="gsi-demo-pick-hint" role="status" aria-live="polite" hidden>
+      <strong>お好きな紫色のピンを選んでください</strong>
+      <span>地図のピンをタップ／クリックして、公式の掲載情報を確認しましょう。</span>
+      <small>指定の掲載は、現在の安全性や開設中を保証するものではありません。</small>
+    </div>
     <section id="filterDemoPanel" class="filter-demo-panel" role="region"
       aria-label="施設の条件抽出と根拠を確認する発表デモ" hidden>
       <div class="filter-demo-head">
@@ -504,7 +513,8 @@
     </section>
     <section id="mapAudienceIntro" class="map-audience-intro" aria-label="HINANEXの使い方" hidden>
       <div class="map-audience-intro-head"><strong>HINANEXへようこそ</strong><button id="mapAudienceIntroClose" type="button" aria-label="案内を閉じる">×</button></div>
-      <p>地図を動かし、施設マークをタップすると出典を確認できます。「シナリオ」から地点を指定すると、確認済みの公式掲載情報を参考表示します。</p>
+      <p>洪水の公式指定緊急避難場所を、実際にピンを選びながら確認できます。掲載地点・出典・まだ判定できない情報の違いを体験してください。</p>
+       <button id="mapAudienceIntroStart" class="map-audience-intro-start" type="button">▶ デモを開始する</button>
       <p>※施設が表示されないことは、安全・施設なしの意味ではありません。避難先の推奨やリアルタイム情報ではありません。</p>
     </section>
     <section id="mapSettingsPanel" class="map-settings-sheet" aria-label="地図の操作設定" hidden>
@@ -606,14 +616,14 @@
 <script src="js/facility_list.js"></script>
 <!-- Discovery API remains v14; map UI-only consumer has a separate cache-busting key. -->
 <script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v14"></script>
-<script src="js/map.js?v=wheel-center-first-20261015-v1"></script>
+<script src="js/map.js?v=audience-main-pin-20261015-v1"></script>
 <script src="js/map_first_ui.js?v=anchored-point-bubble-20261014-v1"></script>
-<script src="js/audience_share.js?v=audience-share-20261010-v1"></script>
+<script src="js/audience_share.js?v=audience-main-entry-20261015-v1"></script>
 <script src="js/guided_tour.js?v=interactive-presenter-20261014-v1"></script>
 <script src="js/evidence_replay.js?v=spatial-evidence-20261014-v2"></script>
 <script src="js/presentation_story.js?v=presenter-55s-20261014-v2"></script>
 <script src="js/filter_demo.js?v=interactive-presenter-20261014-v1"></script>
-<script src="js/gsi_flood_demo.js?v=interactive-presenter-20261014-v1"></script>
+<script src="js/gsi_flood_demo.js?v=audience-map-pick-20261015-v1"></script>
 <script src="js/evidence_sheet.js?v=evidence-sheet-20261010-v1"></script>
 </body>
 </html>

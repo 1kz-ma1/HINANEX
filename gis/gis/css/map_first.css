@@ -501,3 +501,12 @@ footer{display:none}
     font-size:10px;
   }
 }
+
+/* Shared-link visitor CTA: one deliberate action reaches the verified map. */
+.map-audience-intro-start{display:block;width:100%;margin:10px 0 12px;padding:13px 16px;min-height:50px;
+ border:1px solid #8df7f1;border-radius:12px;background:#73e6e3;color:#062a34;
+ font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 5px 14px #0e5e6855}
+.map-audience-intro-start:hover{background:#9bf6ed}
+.map-audience-intro-start:focus-visible{outline:3px solid #fff;outline-offset:3px}
+/* Keep legacy code testable but remove all alternate demos from distribution UI. */
+.map-tour-other-demos[hidden]{display:none!important}

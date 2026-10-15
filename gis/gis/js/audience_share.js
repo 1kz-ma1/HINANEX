@@ -86,6 +86,13 @@
 
   const intro = id("mapAudienceIntro");
   id("mapAudienceIntroClose").addEventListener("click", () => { intro.hidden = true; });
+  id("mapAudienceIntroStart").addEventListener("click", () => {
+    // A deliberate visitor action, not QR-driven autoplay or location access.
+    // The single public MAIN DEMO owns its verified-source loading/fallback.
+    intro.hidden = true;
+    setOpen(false);
+    id("mapGsiFloodDemoOpen").click();
+  });
   const audienceMode = new URL(window.location.href).searchParams.get("demo") === "audience";
   if (audienceMode) {
     let shown = false;

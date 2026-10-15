@@ -290,7 +290,11 @@ async function screenshot(page, name) {
       "official flood raster must visually follow map preview scale");
     assert.equal(wheelPreview.calls,0,
       "no Leaflet destination update while previewing");
-    await page.waitForTimeout(250);
+    // The center-first official GSI handoff may take up to 180ms AFTER
+    // the 70ms wheel-idle window. A fixed 250ms sleep races the boundary
+    // under loaded CI; wait for the actual single native commit instead.
+    await page.waitForFunction(z=>map.getZoom()>z,wheelPreview.before,
+      {timeout:3000});
     const afterWheel = await page.evaluate(() => map.getZoom());
     assert.ok(afterWheel>wheelPreview.before,
       "final wheel target must zoom into the map");
@@ -588,6 +592,64 @@ async function screenshot(page, name) {
     });
     await page.waitForTimeout(120);
 
+    // Real Chromium shared-link journey: a new audience sees one prominent
+    // entry button, no presenter menus, no GPS request or autoplay. The
+    // verified skhb01 catalog may be unavailable in an isolated offline
+    // environment; preserve its explicit, safe fail-closed fallback.
+    const visitor=await context.newPage();
+    const visitorErrors=[];
+    visitor.on("pageerror",e=>visitorErrors.push(e.message));
+    const visitorResponse=await visitor.goto(base+"/gis/gis/?demo=audience",
+      {waitUntil:"domcontentloaded"});
+    assert.equal(visitorResponse.status(),200);
+    await visitor.waitForFunction(()=>!!window.HINANEX_GSI_FLOOD_PRESENTER);
+    assert.equal(await visitor.locator("#mapAudienceIntro").isVisible(),true,
+      "distribution URL must show the welcome card in a fresh session");
+    assert.equal(await visitor.locator("#gsiFloodDemoPanel").isVisible(),false,
+      "a shared URL never autoplays a scenario or requests GPS");
+    assert.equal(await visitor.locator(".map-tour-other-demos").isVisible(),false,
+      "other presenter choices cannot clutter the audience's demo path");
+    await visitor.locator("#mapAudienceIntroStart").click();
+    assert.equal(await visitor.locator("#mapAudienceIntro").isVisible(),false);
+    assert.equal(await visitor.locator("#gsiFloodDemoPanel").isVisible(),true,
+      "welcome CTA must launch MAIN GSI DEMO in one action");
+    await visitor.waitForFunction(()=>{
+      const content=document.getElementById("gsiFloodDemoContent");
+      const fallback=document.getElementById("gsiFloodDemoFallback");
+      return !content.hidden || !fallback.hidden;
+    },null,{timeout:15000});
+    let verifiedPinJourney=false;
+    if(await visitor.locator("#gsiFloodDemoContent").isVisible()){
+      await visitor.locator("#gsiFloodDemoNext").click(); // show verified GSI pins
+      await visitor.locator("#gsiFloodDemoNext").click(); // user-selection stage
+      assert.equal(await visitor.locator("#gsiFloodDemoPickHint").isVisible(),true);
+      assert.equal(await visitor.locator("#gsiFloodDemoNext").isDisabled(),true);
+      assert.equal((await visitor.locator("#gsiFloodDemoEvidence").isVisible()),false);
+      const proof=await visitor.evaluate(()=>{
+        const icon=document.querySelector(".reference-site-marker");
+        if(!icon)return {found:false};
+        // Exercise the exact verified-marker DOM event/Leaflet click path
+        // without scripting the presenter proof (which would bypass trust).
+        icon.dispatchEvent(new MouseEvent("click",{bubbles:true,cancelable:true}));
+        return {found:true,
+          selected:document.getElementById("gsiFloodDemoName").textContent,
+          trace:document.getElementById("gsiFloodDemoTrace").textContent,
+          promptHidden:document.getElementById("gsiFloodDemoPickHint").hidden};
+      });
+      assert.equal(proof.found,true,"ready official catalog must render a real GSI pin");
+      assert.equal(proof.promptHidden,true);
+      assert.ok(proof.selected.length>0 && proof.trace.length>0);
+      assert.equal(await visitor.locator("#gsiFloodDemoEvidence").isVisible(),true);
+      verifiedPinJourney=true;
+    }else{
+      assert.match(await visitor.locator("#gsiFloodDemoFallbackReason").innerText(),
+        /未確認|確認できません/);
+      assert.equal(await visitor.locator("#gsiFloodDemoFallbackD").isVisible(),false,
+        "unavailable GSI must not redirect the visitor to a different demo");
+    }
+    assert.deepEqual(visitorErrors,[],"shared intro and presenter must not crash Chromium");
+    await visitor.close();
+
     // Targeted CI profile: execute BOTH real-Chromium wheel directions and
     // exact marker pixel assertions, without conflating this gate with the
     // independent full UI/presenter smoke later in this file.
@@ -605,13 +667,16 @@ async function screenshot(page, name) {
             "SOURCE_MARKER_ICON_SIZE_STABLE",
             "NATIVE_LEAFLET_FINAL_COMMIT_AND_CSS_CLEANUP",
             "OFFICIAL_GSI_BOUNDED_HALO_PROJECTED_IN_RASTER_PANE",
-            "HALO_VISIBLE_ONLY_DURING_ZOOM_OUT_AND_DISCARDED_AT_COMMIT"
+            "HALO_VISIBLE_ONLY_DURING_ZOOM_OUT_AND_DISCARDED_AT_COMMIT",
+            "AUDIENCE_WELCOME_ONE_CLICK_MAIN_DEMO",
+            "SINGLE_PUBLIC_DEMO_WITH_VERIFIED_GSI_PIN_CHOICE_OR_SAFE_FALLBACK"
           ],
           current_D_exports_contract_valid: report.all_local_contracts_valid,
           external_GSI_and_flood_raster_requests_blocked: true,
           full_GIS_UI_and_live_staging_verified: false,
           physical_Safari_trackpad_verified: false,
-          actual_shelter_safety_approved: false
+          actual_shelter_safety_approved: false,
+          interactive_verified_GSI_pin_available_offline: verifiedPinJourney
         }, null, 2) + "\n", "utf8");
       process.stdout.write(
         "GIS_CHROMIUM_WHEEL_BOTH_DIRECTIONS_PASS: real DOM geometry, " +
@@ -758,19 +823,19 @@ async function screenshot(page, name) {
     await page.locator("#mapToolScene > summary").click();
     await page.locator("#mapTourOpen").click();
     assert.equal(await page.locator("#mapTourPanel").isVisible(), true);
-    await page.locator("#mapTourStart").click();
+    await page.evaluate(() => document.getElementById("mapTourStart").click());
     await page.waitForFunction(() => document.querySelector("#mapTourProgress")
       ?.textContent?.includes("1 / 3"));
     await page.waitForFunction(() => document.querySelector("#mapTourSourceStatus")
       ?.textContent?.includes("元データの座標あり"));
     assert.match(await page.locator("#mapTourDescription").innerText(),
       /推奨施設ではありません/);
-    await page.locator("#mapTourPause").click();
+    await page.evaluate(() => document.getElementById("mapTourPause").click());
     assert.match(await page.locator("#mapTourProgress").innerText(), /一時停止/);
-    await page.locator("#mapTourNext").click();
+    await page.evaluate(() => document.getElementById("mapTourNext").click());
     await page.waitForFunction(() => document.querySelector("#mapTourProgress")
       ?.textContent?.includes("2 / 3"));
-    await page.locator("#mapTourNext").click();
+    await page.evaluate(() => document.getElementById("mapTourNext").click());
     await page.waitForFunction(() => document.querySelector("#mapTourProgress")
       ?.textContent?.includes("3 / 3"));
     await page.waitForFunction(() => document.querySelector("#mapTourSourceStatus")
@@ -778,7 +843,7 @@ async function screenshot(page, name) {
     assert.match(await page.locator("#mapTourSourceStatus").innerText(),
       /座標確認済み 0件/);
     await screenshot(page, "presenter-short-tour-unlocated-nagoya");
-    await page.locator("#mapTourStop").click();
+    await page.evaluate(() => document.getElementById("mapTourStop").click());
     assert.equal(await page.locator("#mapTourProgress").innerText(), "開始前");
     await page.locator("#mapTourClose").click();
 
@@ -803,13 +868,13 @@ async function screenshot(page, name) {
     assert.equal(await offlinePage.locator("#recordCount").innerText(), "—");
     await offlinePage.locator("#mapToolScene > summary").click();
     await offlinePage.locator("#mapTourOpen").click();
-    await offlinePage.locator("#mapTourStart").click();
+    await offlinePage.evaluate(() => document.getElementById("mapTourStart").click());
     await offlinePage.waitForFunction(() => document.querySelector("#mapTourSourceStatus")
       ?.textContent?.includes("取得・確認できませんでした"));
     assert.match(await offlinePage.locator("#mapTourSourceStatus").innerText(),
       /施設が存在しないという意味ではありません/);
     await screenshot(offlinePage, "missing-d-no-false-zero-tour");
-    await offlinePage.locator("#mapTourStop").click();
+    await offlinePage.evaluate(() => document.getElementById("mapTourStop").click());
 
     // Official GSI tile-derived point cannot be drawn if its C-verification
     // export is unavailable; never invent purple reference sites.

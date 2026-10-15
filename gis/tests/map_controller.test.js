@@ -711,7 +711,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "wheel-center-first-20261015-v1");
+  assert.equal(mapAsset[1], "audience-main-pin-20261015-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -943,6 +943,15 @@ nagoya.scenarios = [{
   assert.equal(gp.show().state,"shown");
   assert.equal(gsiPresenterCase.elements.facilityDisplayMode.value,"nearby");
   assert.equal(gsiPresenterCase.L.__map.hasLayer(gsiPresenterCase.L.__groups[3]),true);
+  const candidate=vm.runInContext("gsiPresenterSession.sites[0]",gsiPresenterCase.context);
+  assert.equal(gp.selectFromMap({...candidate,sourceUrl:"https://example.invalid/fake"}).state,
+    "unavailable","other-source marker may not unlock a verified GSI presentation");
+  assert.equal(gp.selectFromMap({...candidate,latitude:candidate.latitude+.01}).state,
+    "unavailable","nearby but different coordinates must not masquerade as official pin");
+  const chosenVerifiedGsiPin=gp.selectFromMap(candidate);
+  assert.equal(chosenVerifiedGsiPin.state,"inspected");
+  assert.equal(chosenVerifiedGsiPin.sourceTrace,candidate.trace,
+    "selected source evidence is grounded in the exact verified source row");
   const verifiedSite=gp.inspect();
   assert.equal(verifiedSite.disaster1Raw,1);
   assert.equal(verifiedSite.sourceTrace,"feature_index=0");
@@ -1070,10 +1079,10 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="uiTabScenario"[^>]*role="tab"/);
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
   assert.match(pageSource, /current_theme[.]css[?]v=gis-facility-drawer-20261009-v6/);
-  assert.match(pageSource, /map_first[.]css[?]v=flood-refresh-status-20261015-v1/);
+  assert.match(pageSource, /map_first[.]css[?]v=audience-main-entry-20261015-v1/);
   assert.match(pageSource, /place_card[.]css[?]v=zoom-compact-popup-20261014-v1/);
   assert.match(pageSource,/id="mapFloodRefreshStatus"/);
-  assert.match(pageSource,/map_first[.]css[?]v=flood-refresh-status-20261015-v1/);
+  assert.match(pageSource,/map_first[.]css[?]v=audience-main-entry-20261015-v1/);
   const floodCss=fs.readFileSync(path.resolve(__dirname,"../gis/css/map_first.css"),"utf8");
   assert.match(floodCss,/\.map-flood-refresh-status\[hidden\]\{display:none\}/);
   assert.match(floodCss,/pointer-events:none/);
@@ -2871,8 +2880,8 @@ nagoya.scenarios = [{
   assert.match(page, /id="mapSharePanel"[^>]*hidden/);
   assert.match(page, /id="mapShareURL"[^>]*readonly value="https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
   assert.match(page, /id="mapAudienceIntro"[^>]*hidden/);
-  assert.match(page, /js\/audience_share[.]js[?]v=audience-share-20261010-v1/);
-  assert.match(page, /css\/map_first[.]css[?]v=flood-refresh-status-20261015-v1/);
+  assert.match(page, /js\/audience_share[.]js[?]v=audience-main-entry-20261015-v1/);
+  assert.match(page, /css\/map_first[.]css[?]v=audience-main-entry-20261015-v1/);
   assert.match(styles, /\.map-share-panel\[hidden\],\.map-audience-intro\[hidden\]\{display:none\}/);
   assert.match(shareSource, /const AUDIENCE_URL = "https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
   assert.doesNotMatch(shareSource, /geolocation|getCurrentPosition|flyTo|map\.setView|fetch\(|sendBeacon|XMLHttpRequest|<iframe/);
@@ -2959,6 +2968,15 @@ nagoya.scenarios = [{
   const b = harness("https://hinanex-staging.onrender.com/gis/gis/?demo=audience", new Map());
   assert.equal(b.element("mapAudienceIntro").hidden, false);
   assert.equal(b.element("mapSharePanel").hidden, true);
+  let starts=0;
+  b.element("mapGsiFloodDemoOpen").addEventListener("click",()=>starts++);
+  assert.equal(starts,0,"shared link must never autoplay a map/demo");
+  b.element("mapAudienceIntroStart").click();
+  assert.equal(b.element("mapAudienceIntro").hidden,true);
+  assert.equal(starts,1,"welcome start directly launches MAIN DEMO, without menus");
+  assert.equal(b.element("mapSharePanel").hidden,true);
+  assert.equal(b.element("mapShareQR").children.length,0,
+    "visitor does not see presenter QR or unrelated demo options");
 }
 
 // 10/22 guided presentation tour API uses only actual source coordinates;
@@ -3111,7 +3129,7 @@ nagoya.scenarios = [{
   assert.match(html, /id="mapEvidenceOpen"[^>]*aria-controls="mapEvidencePanel"/);
   assert.match(html, /id="mapEvidencePanel"[^>]*hidden/);
   assert.match(html, /js\/evidence_sheet[.]js[?]v=evidence-sheet-20261010-v1/);
-  assert.match(html, /css\/map_first[.]css[?]v=flood-refresh-status-20261015-v1/);
+  assert.match(html, /css\/map_first[.]css[?]v=audience-main-entry-20261015-v1/);
   assert.match(html, /地域の避難施設と国土地理院の公式掲載地点は別情報源/);
   assert.match(style, /\.map-evidence-panel\[hidden\]\{display:none\}/);
   assert.doesNotMatch(source, /fetch\(|getCurrentPosition|geolocation|setView\(|flyTo|sendBeacon/);
