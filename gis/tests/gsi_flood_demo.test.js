@@ -71,6 +71,7 @@ test("43 playback seconds + real audience-selected GSI pin -> exact source proof
  assert.equal(m.timers.size,1);
  m.tick(12);assert.ok(m.calls.includes("compare"));
  assert.match(m.get("gsiFloodDemoDStatus").textContent,/未判定 152件/);
+ m.tick(12); // complete the final verified GSI/D contrast scene
  assert.equal(m.timers.size,0,"verified D/GSI contrast completes the four-scene story");
  assert.equal(m.get("gsiFloodDemoFuture").hidden,true,
    "future concept is not part of the public source-evidence demo");
@@ -88,7 +89,7 @@ test("source absent or incorrect raw value refuses to animate",async()=>{
   m.get("gsiFloodDemoClose").click();
  }
 });
-test("gesture keeps 50-second demo animating and does not restore manual map pan",async()=>{
+test("gesture keeps demo animating and does not restore manual map pan",async()=>{
  const m=mount();await m.open();m.pan();assert.equal(m.timers.size,1);
  assert.ok(!m.calls.includes("halt"));
  m.tick(1);assert.equal(m.timers.size,1);
