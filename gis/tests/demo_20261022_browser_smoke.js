@@ -366,6 +366,7 @@ async function screenshot(page, name) {
         }));
       }
       const afterBox=icon.getBoundingClientRect();
+      window.__oldWheelHaloNode=zoomOutHalo?.node || null;
       return {
         before,cursor,
         nativeZoom:map.getZoom(),
@@ -413,9 +414,18 @@ async function screenshot(page, name) {
       "one additional geographic commit completes the outward gesture");
     assert.ok(await page.evaluate(() => map.getZoom())<zoomOutPreview.before.zoom);
     assert.equal(await page.evaluate(() => map.getPane("tilePane").style.scale),"");
-    assert.equal(await page.evaluate(() =>
-      document.querySelectorAll(".hinanex-zoom-out-halo").length),0,
-      "obsolete underlay must be removed before Leaflet geographic zoom commit");
+    const afterHalo = await page.evaluate(() => ({
+      oldStillConnected:Boolean(window.__oldWheelHaloNode?.isConnected),
+      nextHaloVisibility:zoomOutHalo?.node?.style.visibility || null,
+      nextHaloIsOld:zoomOutHalo?.node===window.__oldWheelHaloNode
+    }));
+    assert.equal(afterHalo.oldStillConnected,false,
+      "old geographic halo must be discarded before source coordinates change");
+    assert.equal(afterHalo.nextHaloIsOld,false,
+      "post-commit cache regeneration must not reuse stale source pixels");
+    assert.ok(afterHalo.nextHaloVisibility===null ||
+      afterHalo.nextHaloVisibility==="hidden",
+      "freshly prepared next-gesture halo must remain invisible at rest");
     assert.equal(await page.evaluate(() =>
       window.__wheelGeometryProbe.getElement().style.translate),"");
     await page.evaluate(() => {
