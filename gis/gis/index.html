@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="css/evidence_replay.css?v=spatial-evidence-20261014-v2">
   <link rel="stylesheet" href="css/presentation_story.css?v=presenter-55s-20261014-v1">
   <link rel="stylesheet" href="css/filter_demo.css?v=d-source-criteria-20261014-v1">
-  <link rel="stylesheet" href="css/gsi_flood_demo.css?v=audience-map-pick-20261015-v1">
+  <link rel="stylesheet" href="css/gsi_flood_demo.css?v=mobile-dock-20261015-v1">
   <link rel="stylesheet" href="css/place_card.css?v=zoom-compact-popup-20261014-v1">
 </head>
 <body>
@@ -388,7 +388,10 @@
       <div class="gsi-demo-top">
         <div><span>HINANEX / VERIFIED GSI SOURCE</span>
           <strong>「洪水」の指定を、出典から確かめる。</strong></div>
-        <button id="gsiFloodDemoClose" type="button" aria-label="洪水指定デモを閉じる">×</button>
+        <div class="gsi-demo-top-actions">
+          <button id="gsiFloodDemoExpand" type="button" aria-expanded="false" aria-controls="gsiFloodDemoContent">詳細を見る</button>
+          <button id="gsiFloodDemoClose" type="button" aria-label="洪水指定デモを閉じる">×</button>
+        </div>
       </div>
       <p id="gsiFloodDemoStatus" role="status" aria-live="polite">検証済みの公式データを確認しています。</p>
       <section id="gsiFloodDemoFallback" class="gsi-demo-fallback" aria-label="公式データ未確認時の代替案" hidden>
@@ -438,12 +441,12 @@
         </section>
         <p class="gsi-demo-notice">公式掲載 ≠ 現在安全・開設中・避難推奨。掲載データは未更新・未掲載の場合があり、自治体の最新情報が優先です。未検証タイル・未判定の施設情報は「該当施設なし」ではありません。</p>
         <div class="gsi-demo-progress" aria-hidden="true"><span id="gsiFloodDemoProgress"></span></div>
-        <div class="gsi-demo-actions">
-          <button id="gsiFloodDemoPlay" type="button">▶ 再生</button>
-          <button id="gsiFloodDemoPause" type="button">一時停止</button>
-          <button id="gsiFloodDemoNext" type="button">次へ →</button>
-          <button id="gsiFloodDemoRestart" type="button">↺ 最初から</button>
-        </div>
+      </div>
+      <div id="gsiFloodDemoActions" class="gsi-demo-actions" hidden>
+        <button id="gsiFloodDemoPlay" type="button">▶ 再生</button>
+        <button id="gsiFloodDemoPause" type="button">一時停止</button>
+        <button id="gsiFloodDemoNext" type="button">次へ →</button>
+        <button id="gsiFloodDemoRestart" type="button">↺ 最初から</button>
       </div>
     </section>
     <div id="gsiFloodDemoPickHint" class="gsi-demo-pick-hint" role="status" aria-live="polite" hidden>
@@ -618,12 +621,12 @@
 <script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v14"></script>
 <script src="js/map.js?v=audience-main-pin-20261015-v1"></script>
 <script src="js/map_first_ui.js?v=anchored-point-bubble-20261014-v1"></script>
-<script src="js/audience_share.js?v=audience-main-entry-20261015-v1"></script>
+<script src="js/audience_share.js?v=audience-replay-welcome-20261015-v1"></script>
 <script src="js/guided_tour.js?v=interactive-presenter-20261014-v1"></script>
 <script src="js/evidence_replay.js?v=spatial-evidence-20261014-v2"></script>
 <script src="js/presentation_story.js?v=presenter-55s-20261014-v2"></script>
 <script src="js/filter_demo.js?v=interactive-presenter-20261014-v1"></script>
-<script src="js/gsi_flood_demo.js?v=audience-map-pick-20261015-v1"></script>
+<script src="js/gsi_flood_demo.js?v=mobile-dock-20261015-v1"></script>
 <script src="js/evidence_sheet.js?v=evidence-sheet-20261010-v1"></script>
 </body>
 </html>
