@@ -1062,7 +1062,7 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="uiTabScenario"[^>]*role="tab"/);
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
   assert.match(pageSource, /current_theme[.]css[?]v=gis-facility-drawer-20261009-v6/);
-  assert.match(pageSource, /map_first[.]css[?]v=guided-tour-three-region-comparison-20261013-v1/);
+  assert.match(pageSource, /map_first[.]css[?]v=flood-refresh-status-20261015-v1/);
   assert.match(pageSource, /place_card[.]css[?]v=zoom-compact-popup-20261014-v1/);
   assert.match(pageSource,/id="mapFloodRefreshStatus"/);
   assert.match(pageSource,/map_first[.]css[?]v=flood-refresh-status-20261015-v1/);
@@ -2443,7 +2443,7 @@ nagoya.scenarios = [{
   assert.match(page, /id="mapShareURL"[^>]*readonly value="https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
   assert.match(page, /id="mapAudienceIntro"[^>]*hidden/);
   assert.match(page, /js\/audience_share[.]js[?]v=audience-share-20261010-v1/);
-  assert.match(page, /css\/map_first[.]css[?]v=guided-tour-three-region-comparison-20261013-v1/);
+  assert.match(page, /css\/map_first[.]css[?]v=flood-refresh-status-20261015-v1/);
   assert.match(styles, /\.map-share-panel\[hidden\],\.map-audience-intro\[hidden\]\{display:none\}/);
   assert.match(shareSource, /const AUDIENCE_URL = "https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
   assert.doesNotMatch(shareSource, /geolocation|getCurrentPosition|flyTo|map\.setView|fetch\(|sendBeacon|XMLHttpRequest|<iframe/);
@@ -2682,7 +2682,7 @@ nagoya.scenarios = [{
   assert.match(html, /id="mapEvidenceOpen"[^>]*aria-controls="mapEvidencePanel"/);
   assert.match(html, /id="mapEvidencePanel"[^>]*hidden/);
   assert.match(html, /js\/evidence_sheet[.]js[?]v=evidence-sheet-20261010-v1/);
-  assert.match(html, /css\/map_first[.]css[?]v=guided-tour-three-region-comparison-20261013-v1/);
+  assert.match(html, /css\/map_first[.]css[?]v=flood-refresh-status-20261015-v1/);
   assert.match(html, /地域の避難施設と国土地理院の公式掲載地点は別情報源/);
   assert.match(style, /\.map-evidence-panel\[hidden\]\{display:none\}/);
   assert.doesNotMatch(source, /fetch\(|getCurrentPosition|geolocation|setView\(|flyTo|sendBeacon/);
