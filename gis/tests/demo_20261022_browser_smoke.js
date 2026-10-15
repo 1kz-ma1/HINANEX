@@ -308,6 +308,72 @@ async function screenshot(page, name) {
     assert.equal(probeAfterCommit.height, 24);
     assert.equal(probeAfterCommit.translate, "",
       "no transient marker translation may survive commit");
+    // Run the opposite gesture against the SAME Leaflet marker and same
+    // raster pane. Offline GSI imagery may be missing: this is precisely the
+    // case where the old coverage limiter froze zoom-out until final commit.
+    await page.evaluate(z => map.setZoom(z, {animate:false}), wheelPreview.before);
+    await page.waitForTimeout(160);
+    const zoomOutPreview = await page.evaluate(() => {
+      const layer = window.__wheelGeometryProbe;
+      const icon = layer.getElement();
+      const beforeBox = icon.getBoundingClientRect();
+      const el = map.getContainer();
+      const rect = el.getBoundingClientRect();
+      const cursor = {x:rect.left+rect.width/2,y:rect.top+rect.height/2};
+      const before = {
+        zoom:map.getZoom(),
+        x:beforeBox.left+beforeBox.width/2,
+        y:beforeBox.top+beforeBox.height/2
+      };
+      for (let i=0;i<3;i++) {
+        el.dispatchEvent(new WheelEvent("wheel", {
+          bubbles:true,cancelable:true,
+          clientX:cursor.x,clientY:cursor.y,deltaMode:0,deltaY:16
+        }));
+      }
+      const afterBox=icon.getBoundingClientRect();
+      return {
+        before,cursor,
+        nativeZoom:map.getZoom(),
+        scale:Number(map.getPane("tilePane").style.scale),
+        boundaryScale:Number(map.getPane("boundaryPane").style.scale),
+        floodScale:Number(map.getPane("officialFloodPane").style.scale),
+        footprintScale:Number(map.getPane("referenceFootprintPane").style.scale),
+        expectedScale:Math.pow(2,wheelDestinationZoom()-map.getZoom()),
+        iconX:afterBox.left+afterBox.width/2,
+        iconY:afterBox.top+afterBox.height/2,
+        iconWidth:afterBox.width,iconHeight:afterBox.height,
+        wheelCalls:window.__wheelZoomCalls
+      };
+    });
+    assert.ok(zoomOutPreview.scale>0 && zoomOutPreview.scale<1,
+      "zoom-out must visibly shrink old raster BEFORE destination image updates");
+    assert.ok(Math.abs(zoomOutPreview.scale-zoomOutPreview.expectedScale)<0.00001,
+      "zoom-out must use intended visual zoom, not old tile-coverage clamp");
+    assert.equal(zoomOutPreview.nativeZoom,zoomOutPreview.before.zoom,
+      "native geographic zoom changes only after existing raster shrinks");
+    assert.equal(zoomOutPreview.wheelCalls,1,
+      "zoom-out preview must not commit while the wheel is still active");
+    assert.equal(zoomOutPreview.boundaryScale,zoomOutPreview.scale);
+    assert.equal(zoomOutPreview.floodScale,zoomOutPreview.scale);
+    assert.equal(zoomOutPreview.footprintScale,zoomOutPreview.scale);
+    assert.ok(Math.abs(zoomOutPreview.iconX-
+      (zoomOutPreview.cursor.x+(zoomOutPreview.before.x-zoomOutPreview.cursor.x)*
+        zoomOutPreview.scale))<2,
+      "zoom-out must keep the source marker's rendered x-coordinate aligned");
+    assert.ok(Math.abs(zoomOutPreview.iconY-
+      (zoomOutPreview.cursor.y+(zoomOutPreview.before.y-zoomOutPreview.cursor.y)*
+        zoomOutPreview.scale))<2,
+      "zoom-out must keep the source marker's rendered y-coordinate aligned");
+    assert.equal(zoomOutPreview.iconWidth,24);
+    assert.equal(zoomOutPreview.iconHeight,24);
+    await page.waitForTimeout(850);
+    assert.equal(await page.evaluate(() => window.__wheelZoomCalls),2,
+      "one additional geographic commit completes the outward gesture");
+    assert.ok(await page.evaluate(() => map.getZoom())<zoomOutPreview.before.zoom);
+    assert.equal(await page.evaluate(() => map.getPane("tilePane").style.scale),"");
+    assert.equal(await page.evaluate(() =>
+      window.__wheelGeometryProbe.getElement().style.translate),"");
     await page.evaluate(() => {
       map.removeLayer(window.__wheelGeometryProbe);
       delete window.__wheelGeometryProbe;
