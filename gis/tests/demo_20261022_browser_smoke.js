@@ -382,6 +382,36 @@ async function screenshot(page, name) {
     await page.evaluate(z => map.setZoom(z, {animate:false}), wheelPreview.before);
     await page.waitForTimeout(160);
 
+    // Targeted CI profile: execute BOTH real-Chromium wheel directions and
+    // exact marker pixel assertions, without conflating this gate with the
+    // independent full UI/presenter smoke later in this file.
+    if (process.env.HINANEX_WHEEL_ONLY === "1") {
+      assert.deepEqual(errors, [], "no GIS page errors during real zoom gestures");
+      fs.writeFileSync(path.join(out, "wheel_browser_audit.json"),
+        JSON.stringify({
+          status: "GIS_CHROMIUM_WHEEL_BOTH_DIRECTIONS_PASS",
+          browser: "Playwright Chromium / real Leaflet 1.9.4",
+          asserted: [
+            "ZOOM_IN_CSS_PREVIEW_BEFORE_COMMIT",
+            "ZOOM_OUT_CSS_PREVIEW_BEFORE_COMMIT",
+            "BOUNDARIES_AND_FLOOD_TRACK_PREVIEW",
+            "SOURCE_MARKER_RENDERED_PIXELS_TRACK_RASTER",
+            "SOURCE_MARKER_ICON_SIZE_STABLE",
+            "NATIVE_LEAFLET_FINAL_COMMIT_AND_CSS_CLEANUP"
+          ],
+          current_D_exports_contract_valid: report.all_local_contracts_valid,
+          external_GSI_and_flood_raster_requests_blocked: true,
+          full_GIS_UI_and_live_staging_verified: false,
+          physical_Safari_trackpad_verified: false,
+          actual_shelter_safety_approved: false
+        }, null, 2) + "\n", "utf8");
+      process.stdout.write(
+        "GIS_CHROMIUM_WHEEL_BOTH_DIRECTIONS_PASS: real DOM geometry, " +
+        "not live GSI raster/physical device acceptance.\n");
+      await context.close();
+      return;
+    }
+
     // Exercise the assembled Leaflet popup with UI-only synthetic content.
     await page.evaluate(() => window.detail("カードUI表示テスト", [
       ["種別", "表示テスト"], ["住所", "住所の推定ではありません"],
