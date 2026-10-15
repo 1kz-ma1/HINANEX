@@ -2647,8 +2647,20 @@ window.HINANEX_GSI_FLOOD_PRESENTER = Object.freeze({
     // "source origin" for the currently selected municipality. Choose an
     // actual D record coordinate solely as geographic context, not as a
     // recommended shelter or evidence of a GSI/D building identity.
-    const sourceSummary=currentShelterSummary?.region.code===selectedRegionCode
+    const requestedCode=selectedRegionCode, requestedEpoch=gsiPresenterEpoch;
+    let sourceSummary=currentShelterSummary?.region.code===selectedRegionCode
       ? currentShelterSummary : viewportDCache.get(selectedRegionCode)?.summary;
+    if(!selectedOrigin && !sourceSummary &&
+       window.location.protocol!=="file:") {
+      // Visitors may press Start before the normal UI's initial RegionExport
+      // download finishes. Await the existing E/D read-only consumer instead
+      // of incorrectly refusing an otherwise verified official GSI demo.
+      await fetchViewportDOnce(currentRegion());
+      if(requestedCode!==selectedRegionCode ||
+         requestedEpoch!==gsiPresenterEpoch)return {state:"cancelled"};
+      sourceSummary=currentShelterSummary?.region.code===selectedRegionCode
+        ? currentShelterSummary : viewportDCache.get(selectedRegionCode)?.summary;
+    }
     const sourcePoint=sourceSummary?.mappableRecords?.[0] || null;
     const origin=selectedOrigin || (sourcePoint && {
       latitude:sourcePoint.latitude,longitude:sourcePoint.longitude
