@@ -948,9 +948,9 @@ nagoya.scenarios = [{
     "unavailable","other-source marker may not unlock a verified GSI presentation");
   assert.equal(gp.selectFromMap({...candidate,latitude:candidate.latitude+.01}).state,
     "unavailable","nearby but different coordinates must not masquerade as official pin");
-  const acceptedPin=gp.selectFromMap(candidate);
-  assert.equal(acceptedPin.state,"inspected");
-  assert.equal(acceptedPin.sourceTrace,candidate.trace,
+  const chosenVerifiedGsiPin=gp.selectFromMap(candidate);
+  assert.equal(chosenVerifiedGsiPin.state,"inspected");
+  assert.equal(chosenVerifiedGsiPin.sourceTrace,candidate.trace,
     "selected source evidence is grounded in the exact verified source row");
   const verifiedSite=gp.inspect();
   assert.equal(verifiedSite.disaster1Raw,1);
