@@ -711,7 +711,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "wheel-instant-zoom-out-20261015-v1");
+  assert.equal(mapAsset[1], "wheel-gsi-halo-20261015-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -2257,6 +2257,108 @@ nagoya.scenarios = [{
      "coverageSafe comparison preserves the previous near-frozen source-extent guard");
    vm.runInContext("clearPendingWheel()",conservative.context);
  }
+
+// Official GSI zoom-out halo: at rest, preload a bounded lower-detail
+// georeferenced tile grid covering every possible cursor-centered shrink.
+// It must stay behind live tiles, never fetch flood imagery or alter markers.
+{
+  const requests=[];
+  class HaloImage {
+    constructor() {this.style={};this.naturalWidth=256;}
+    set src(url) {this.url=url;requests.push(url);}
+    get src() {return this.url;}
+    remove() {this.removed=true;}
+  }
+  const {context,L}=makeContext({
+    protocol:"http:",ImageCtor:HaloImage,
+    fetchImpl:async()=>({ok:false,status:404,json:async()=>({})})
+  });
+  const map=L.__map, pane=map.getPane("tilePane");
+  const grid=vm.runInContext("zoomOutHaloGrid()",context);
+  assert.ok(grid && grid.tiles.length>0 && grid.tiles.length<=24,
+    "only a small number of real official GSI halo tiles may be warmed");
+  assert.ok(grid.sourceZoom<map.getZoom() && grid.sourceZoom>=2);
+  assert.ok(grid.tiles.every(tile => /^https:\/\/cyberjapandata[.]gsi[.]go[.]jp\/xyz\/std\/\d+\/\d+\/\d+[.]png$/.test(tile.url)));
+  const near=Math.pow(2,-2.75);
+  const minX=Math.min(...grid.tiles.map(tile=>tile.left));
+  const maxX=Math.max(...grid.tiles.map(tile=>tile.left+tile.size));
+  const minY=Math.min(...grid.tiles.map(tile=>tile.top));
+  const maxY=Math.max(...grid.tiles.map(tile=>tile.top+tile.size));
+  for (const cursor of [{x:0,y:0},{x:1024,y:768},{x:512,y:384}]) {
+    const left=cursor.x + (0-cursor.x)/near;
+    const right=cursor.x + (1024-cursor.x)/near;
+    const top=cursor.y + (0-cursor.y)/near;
+    const bottom=cursor.y + (768-cursor.y)/near;
+    assert.ok(minX<=left+0.01 && maxX>=right-0.01,
+      "official halo must include newly exposed geographic x range");
+    assert.ok(minY<=top+0.01 && maxY>=bottom-0.01,
+      "official halo must include newly exposed geographic y range");
+  }
+  // At or below minimum source zoom no substitute is invented.
+  map.zoom=2;
+  assert.equal(vm.runInContext("zoomOutHaloGrid()",context),null);
+  map.zoom=13;
+  const oldSize=map.getSize;
+  map.getSize=()=>({x:2000000,y:1000000});
+  assert.equal(vm.runInContext("zoomOutHaloGrid()",context),null,
+    "giant viewport must not violate the strict tile/network budget");
+  map.getSize=oldSize;
+
+  map.container.getBoundingClientRect=()=>({
+    left:110,top:70,right:1134,bottom:838,width:1024,height:768
+  });
+  pane.getBoundingClientRect=()=>({left:90,top:60});
+  const nodes=[];
+  pane.insertBefore=(node,before)=>{nodes.push({node,before});};
+  context.document.createElement=tag=>{
+    assert.equal(tag,"div","halo uses DOM images rather than canvas-fabricated geographic pixels");
+    return {
+      className:"",style:{},children:[],
+      setAttribute(key,value){this[key]=value;},
+      appendChild(child){this.children.push(child);},
+      remove(){this.removed=true;}
+    };
+  };
+  vm.runInContext("buildZoomOutHalo()",context);
+  assert.equal(nodes.length,1);
+  const node=nodes[0].node;
+  assert.equal(node.className,"hinanex-zoom-out-halo");
+  assert.equal(node["aria-hidden"],"true");
+  assert.equal(node.style.visibility,"hidden","never hide normal basemap at rest");
+  assert.equal(node.style.left,"20px");
+  assert.equal(node.style.top,"10px");
+  assert.equal(requests.length,grid.tiles.length);
+  assert.ok(requests.length<=24);
+  assert.equal(node.children[0].style.visibility,"hidden",
+    "image is not presented before official tile load");
+  node.children[0].onload();
+  assert.equal(node.children[0].style.visibility,"visible");
+  // No additional official requests for cosmetic wheel events.
+  const requestCount=requests.length;
+  const event={deltaY:144,deltaMode:0,clientX:370,clientY:280,target:{},
+    preventDefault(){},stopImmediatePropagation(){}};
+  map.container.listeners.wheel.fn(event);
+  assert.equal(requests.length,requestCount);
+  assert.equal(node.style.visibility,"visible",
+    "loaded georeferenced halo appears ONLY underneath a zoom-out preview");
+  assert.ok(Number(pane.style.scale)<1);
+  vm.runInContext("flushSingleTargetWheel()",context);
+  assert.equal(node.removed,true,
+    "stale geographic halo must disappear before Leaflet commits destination");
+  assert.equal(vm.runInContext("zoomOutHalo===null",context),true);
+  // Turning the basemap off must not silently reintroduce official GSI
+  // imagery via the private wheel halo.
+  map.removeLayer(L.__tiles[0]);
+  vm.runInContext("buildZoomOutHalo()",context);
+  assert.equal(vm.runInContext("zoomOutHalo===null",context),true);
+  assert.equal(nodes.length,1,"no halo behind intentionally disabled basemap");
+  map.addLayer(L.__tiles[0]);
+  assert.equal(pane.style.scale,"");
+  assert.equal(vm.runInContext("ZOOM_OUT_HALO_MAX_TILES",context),24);
+  assert.ok(!requests.some(url=>url.includes("flood") || url.includes("disaportal")),
+    "never prefetch, substitute or fabricate independent official flood pixels");
+  console.log("GSI zoom-out halo georeferenced prefetch: OK");
+}
 
 // Full target-zoom geographic coverage: verify layout in viewport pixels,
 // no interpolated hazard/source features and a strict fallback for missing grid.

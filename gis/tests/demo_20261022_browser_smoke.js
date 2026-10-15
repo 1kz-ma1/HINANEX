@@ -313,6 +313,40 @@ async function screenshot(page, name) {
     // case where the old coverage limiter froze zoom-out until final commit.
     await page.evaluate(z => map.setZoom(z, {animate:false}), wheelPreview.before);
     await page.waitForTimeout(160);
+    // External GSI imagery is deliberately blocked by this runner. The DOM
+    // must nevertheless have a bounded, geographically projected official
+    // underlay; loading of the true pixels is an independent live-network gate.
+    const haloBefore = await page.evaluate(() => {
+      buildZoomOutHalo();
+      const grid=zoomOutHaloGrid(), entry=zoomOutHalo;
+      if (!entry || !grid) return null;
+      const first=entry.node.querySelector("img");
+      const firstTile=grid.tiles[0];
+      const pane=map.getPane("tilePane");
+      const viewport=map.getContainer().getBoundingClientRect();
+      const paneRect=pane.getBoundingClientRect();
+      return {
+        count:grid.tiles.length,
+        sourceZoom:grid.sourceZoom, currentZoom:map.getZoom(),
+        urlsValid:grid.tiles.every(t=>t.url.startsWith(
+          "https://cyberjapandata.gsi.go.jp/xyz/std/")),
+        sourceMatched:first?.src===firstTile.url,
+        tilePositionX:parseFloat(entry.node.style.left)+parseFloat(first.style.left),
+        tilePositionY:parseFloat(entry.node.style.top)+parseFloat(first.style.top),
+        expectedX:viewport.left-paneRect.left+firstTile.left,
+        expectedY:viewport.top-paneRect.top+firstTile.top,
+        underNormalTiles:pane.firstChild===entry.node,
+        idleVisibility:entry.node.style.visibility
+      };
+    });
+    assert.ok(haloBefore && haloBefore.count>0 && haloBefore.count<=24);
+    assert.ok(haloBefore.sourceZoom<haloBefore.currentZoom);
+    assert.equal(haloBefore.urlsValid,true);
+    assert.equal(haloBefore.sourceMatched,true);
+    assert.ok(Math.abs(haloBefore.tilePositionX-haloBefore.expectedX)<0.01);
+    assert.ok(Math.abs(haloBefore.tilePositionY-haloBefore.expectedY)<0.01);
+    assert.equal(haloBefore.underNormalTiles,true);
+    assert.equal(haloBefore.idleVisibility,"hidden");
     const zoomOutPreview = await page.evaluate(() => {
       const layer = window.__wheelGeometryProbe;
       const icon = layer.getElement();
@@ -332,6 +366,7 @@ async function screenshot(page, name) {
         }));
       }
       const afterBox=icon.getBoundingClientRect();
+      window.__oldWheelHaloNode=zoomOutHalo?.node || null;
       return {
         before,cursor,
         nativeZoom:map.getZoom(),
@@ -343,9 +378,16 @@ async function screenshot(page, name) {
         iconX:afterBox.left+afterBox.width/2,
         iconY:afterBox.top+afterBox.height/2,
         iconWidth:afterBox.width,iconHeight:afterBox.height,
-        wheelCalls:window.__wheelZoomCalls
+        wheelCalls:window.__wheelZoomCalls,
+        haloVisibility:zoomOutHalo?.node?.style.visibility,
+        haloSamePane:zoomOutHalo?.node?.parentElement===
+          map.getPane("tilePane")
       };
     });
+    assert.equal(zoomOutPreview.haloVisibility,"visible",
+      "the preloaded source-accurate halo must show under shrinking old GSI tiles");
+    assert.equal(zoomOutPreview.haloSamePane,true,
+      "the halo must share the precise source raster affine zoom transform");
     assert.ok(zoomOutPreview.scale>0 && zoomOutPreview.scale<1,
       "zoom-out must visibly shrink old raster BEFORE destination image updates");
     assert.ok(Math.abs(zoomOutPreview.scale-zoomOutPreview.expectedScale)<0.00001,
@@ -372,6 +414,18 @@ async function screenshot(page, name) {
       "one additional geographic commit completes the outward gesture");
     assert.ok(await page.evaluate(() => map.getZoom())<zoomOutPreview.before.zoom);
     assert.equal(await page.evaluate(() => map.getPane("tilePane").style.scale),"");
+    const afterHalo = await page.evaluate(() => ({
+      oldStillConnected:Boolean(window.__oldWheelHaloNode?.isConnected),
+      nextHaloVisibility:zoomOutHalo?.node?.style.visibility || null,
+      nextHaloIsOld:zoomOutHalo?.node===window.__oldWheelHaloNode
+    }));
+    assert.equal(afterHalo.oldStillConnected,false,
+      "old geographic halo must be discarded before source coordinates change");
+    assert.equal(afterHalo.nextHaloIsOld,false,
+      "post-commit cache regeneration must not reuse stale source pixels");
+    assert.ok(afterHalo.nextHaloVisibility===null ||
+      afterHalo.nextHaloVisibility==="hidden",
+      "freshly prepared next-gesture halo must remain invisible at rest");
     assert.equal(await page.evaluate(() =>
       window.__wheelGeometryProbe.getElement().style.translate),"");
     await page.evaluate(() => {
@@ -397,7 +451,9 @@ async function screenshot(page, name) {
             "BOUNDARIES_AND_FLOOD_TRACK_PREVIEW",
             "SOURCE_MARKER_RENDERED_PIXELS_TRACK_RASTER",
             "SOURCE_MARKER_ICON_SIZE_STABLE",
-            "NATIVE_LEAFLET_FINAL_COMMIT_AND_CSS_CLEANUP"
+            "NATIVE_LEAFLET_FINAL_COMMIT_AND_CSS_CLEANUP",
+            "OFFICIAL_GSI_BOUNDED_HALO_PROJECTED_IN_RASTER_PANE",
+            "HALO_VISIBLE_ONLY_DURING_ZOOM_OUT_AND_DISCARDED_AT_COMMIT"
           ],
           current_D_exports_contract_valid: report.all_local_contracts_valid,
           external_GSI_and_flood_raster_requests_blocked: true,

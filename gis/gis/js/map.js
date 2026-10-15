@@ -237,6 +237,128 @@ function destinationTileGrid(point, targetZoom) {
   }
   return {tiles, width:size.x, height:size.y};
 }
+// A small *preloaded*, source-accurate GSI background halo fills regions
+// that appear when the current viewport is scaled down. A low-detail official
+// tile may be blurred briefly, but must NEVER be a fabricated geographic
+// image or an official flood-risk raster. No requests are made mid-gesture.
+const ZOOM_OUT_HALO_MAX_TILES = 24;
+const ZOOM_OUT_HALO_IDLE_MS = 360;
+const ZOOM_OUT_HALO_EXTENT = Math.pow(2, MAX_WHEEL_PREVIEW_LEVELS) - 1;
+let zoomOutHalo = null;
+let zoomOutHaloTimer = null;
+function zoomOutHaloGrid() {
+  if (typeof map.getSize !== "function" ||
+      typeof map.containerPointToLatLng !== "function") return null;
+  const size = map.getSize();
+  const zoom = map.getZoom();
+  if (!(size?.x > 0 && size?.y > 0) || !(zoom > 2)) return null;
+  const center = {x:size.x / 2, y:size.y / 2};
+  const latlng = map.containerPointToLatLng(center);
+  // Every pointer location inside the viewport fits in this overscan up to
+  // MAX_WHEEL_PREVIEW_LEVELS zoom-out. Do not assume the pointer is centered.
+  const minX = -ZOOM_OUT_HALO_EXTENT * size.x;
+  const maxX = (1 + ZOOM_OUT_HALO_EXTENT) * size.x;
+  const minY = -ZOOM_OUT_HALO_EXTENT * size.y;
+  const maxY = (1 + ZOOM_OUT_HALO_EXTENT) * size.y;
+  for (let z = Math.min(18, Math.floor(zoom) - 3); z >= 2; z--) {
+    const world = Math.pow(2, z);
+    const projected = map.project(latlng, z);
+    if (!Number.isFinite(projected?.x) || !Number.isFinite(projected?.y))
+      return null;
+    const ratio = Math.pow(2, z - zoom);
+    const left = projected.x - center.x * ratio;
+    const top = projected.y - center.y * ratio;
+    const xStart = Math.floor((left + minX * ratio) / 256);
+    const xEnd = Math.floor((left + maxX * ratio - 0.001) / 256);
+    const yStart = Math.max(0, Math.floor((top + minY * ratio) / 256));
+    const yEnd = Math.min(world - 1,
+      Math.floor((top + maxY * ratio - 0.001) / 256));
+    const count = (xEnd-xStart+1) * (yEnd-yStart+1);
+    if (!(count > 0 && count <= ZOOM_OUT_HALO_MAX_TILES)) continue;
+    const tiles = [];
+    for (let y = yStart; y <= yEnd; y++) {
+      for (let x = xStart; x <= xEnd; x++) {
+        const wrappedX = ((x % world) + world) % world;
+        tiles.push({
+          url:`${GSI_PREFETCH_ROOT}/${z}/${wrappedX}/${y}.png`,
+          left:(x * 256 - left) / ratio,
+          top:(y * 256 - top) / ratio,
+          size:256 / ratio
+        });
+      }
+    }
+    return {tiles,sourceZoom:z,width:size.x,height:size.y};
+  }
+  return null; // sparse/remote globe edge, giant viewport, or budget exceeded
+}
+function discardZoomOutHalo() {
+  if (zoomOutHaloTimer !== null) clearTimeout(zoomOutHaloTimer);
+  zoomOutHaloTimer = null;
+  if (zoomOutHalo) {
+    for (const img of zoomOutHalo.images) {
+      img.onload = null;
+      img.onerror = null;
+    }
+    zoomOutHalo.node.remove?.();
+    zoomOutHalo = null;
+  }
+}
+function buildZoomOutHalo() {
+  // Inactive map, comparison modes, and unsupported DOM all fail closed.
+  if (!singleTargetWheel || coverageSafeZoomFeel || pendingWheelPoint ||
+      wheelPreview || !map.hasLayer(baseMap) ||
+      typeof window.Image !== "function") return;
+  const pane = map.getPane?.("tilePane");
+  const viewport = map.getContainer?.().getBoundingClientRect?.();
+  const paneRect = pane?.getBoundingClientRect?.();
+  if (!pane?.insertBefore || !viewport || !paneRect ||
+      typeof document.createElement !== "function") return;
+  const grid = zoomOutHaloGrid();
+  if (!grid) return;
+  discardZoomOutHalo();
+  const node = document.createElement("div");
+  node.className = "hinanex-zoom-out-halo";
+  node.setAttribute("aria-hidden", "true");
+  Object.assign(node.style,{
+    position:"absolute",left:`${viewport.left-paneRect.left}px`,
+    top:`${viewport.top-paneRect.top}px`,
+    width:"0",height:"0",overflow:"visible",pointerEvents:"none",
+    visibility:"hidden",zIndex:"0"
+  });
+  // Insert BELOW Leaflet's normal GSI tiles in the SAME native tile pane.
+  // Its exact pixel positions consequently follow the existing CSS zoom
+  // around the pointer; official hazard/vector/marker panes remain separate.
+  pane.insertBefore(node, pane.firstChild);
+  const halo = {node,images:[]};
+  zoomOutHalo = halo;
+  for (const tile of grid.tiles) {
+    const img = new window.Image();
+    img.alt = "";
+    img.decoding = "async";
+    Object.assign(img.style, {
+      position:"absolute",left:`${tile.left}px`,top:`${tile.top}px`,
+      width:`${tile.size}px`,height:`${tile.size}px`,
+      maxWidth:"none",pointerEvents:"none",visibility:"hidden"
+    });
+    img.onload = () => {
+      if (zoomOutHalo === halo && img.naturalWidth > 0)
+        img.style.visibility = "visible";
+    };
+    img.onerror = () => { img.remove?.(); };
+    halo.images.push(img);
+    node.appendChild(img);
+    img.src = tile.url;
+  }
+}
+function scheduleZoomOutHalo() {
+  if (!singleTargetWheel || coverageSafeZoomFeel) return;
+  if (zoomOutHaloTimer !== null) clearTimeout(zoomOutHaloTimer);
+  zoomOutHaloTimer = setTimeout(() => {
+    zoomOutHaloTimer = null;
+    buildZoomOutHalo();
+  }, ZOOM_OUT_HALO_IDLE_MS);
+}
+
 function removeTargetCover() {
   if (!targetCover) return;
   clearTimeout(targetCover.timeout);
@@ -527,6 +649,7 @@ function restoreGeographicOverlays(preview) {
 }
 
 function restoreWheelPreview() {
+  if (zoomOutHalo) zoomOutHalo.node.style.visibility = "hidden";
   if (!wheelPreview) return [];
   const previews = wheelPreview.targets;
   restoreGeographicOverlays(wheelPreview);
@@ -636,6 +759,8 @@ function updateWheelPreview(event) {
   const displayed = coverageSafeZoomFeel ? coverageLimitedScale(wanted,
     wheelPreview.coverage,wheelPreview.origin,wheelPreview.viewport) : wanted;
   const visualScale = String(Number(displayed.toFixed(5)));
+  if (zoomOutHalo)
+    zoomOutHalo.node.style.visibility = displayed < 1 ? "visible" : "hidden";
   for (const {pane} of wheelPreview.targets) pane.style.scale = visualScale;
   previewGeographicOverlays(Number(visualScale));
 }
@@ -732,6 +857,9 @@ function flushSingleTargetWheel() {
       }
     });
     retainUntilRasterReady(previews);
+    // Native zoom changes the geographic frame. Never let a prior-view GSI
+    // halo remain visible after Leaflet takes back coordinate ownership.
+    discardZoomOutHalo();
     committingWheelZoom = true;
     try { map.setZoomAround(point,targetZoom,{animate:false}); }
     finally { committingWheelZoom = false; }
@@ -760,6 +888,8 @@ function captureSingleTargetWheel(event) {
   event.stopImmediatePropagation?.();
   const scale = event.deltaMode === 1 ? 20 : event.deltaMode === 2 ? 60 : 1;
   if (!pendingWheelPoint) {
+    if (zoomOutHaloTimer !== null) clearTimeout(zoomOutHaloTimer);
+    zoomOutHaloTimer = null;
     // New gesture, new bounded budget. Previous prefetched images have already
     // served (or expired) and must not prevent warmup at another destination.
     discardPredictedTiles();
@@ -845,6 +975,21 @@ const baseMap = L.tileLayer(GSI_PREFETCH_ROOT + "/{z}/{x}/{y}.png", {
   updateInterval: 220,
   attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>'
 }).addTo(map);
+
+// Low-resolution official GSI imagery is opportunistically cached at rest,
+// never fetched for every wheel delta. Native map movement invalidates its
+// geographic frame; the next settled view schedules a new bounded halo.
+baseMap.on("load", scheduleZoomOutHalo);
+map.on("zoomend", scheduleZoomOutHalo);
+map.on("moveend", scheduleZoomOutHalo);
+map.on("movestart", discardZoomOutHalo);
+map.on("layerremove", event => {
+  if (event.layer === baseMap) discardZoomOutHalo();
+});
+map.on("layeradd", event => {
+  if (event.layer === baseMap) scheduleZoomOutHalo();
+});
+scheduleZoomOutHalo();
 
 const officialFloodLayer = L.tileLayer(FLOOD_REFERENCE_URL, {
   pane: "officialFloodPane",
