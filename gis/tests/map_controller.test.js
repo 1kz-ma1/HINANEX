@@ -2365,6 +2365,9 @@ nagoya.scenarios = [{
     // The fixture's startup region fit may be near minimum zoom, where
     // an outward atlas is intentionally not generated.
     L.__map.zoom=13;
+    // The controller fixture intentionally lacks browser DOM creation;
+    // the real atlas gate requires it before scheduling image requests.
+    context.document.createElement=()=>({style:{}});
     assert.ok(vm.runInContext(
       "destinationTileGrid({x:340,y:220},12)",context),
       "controlled final zoom has a valid official destination grid");
