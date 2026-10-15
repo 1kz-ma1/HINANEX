@@ -711,7 +711,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "wheel-respect-layer-off-20261015-v1");
+  assert.equal(mapAsset[1], "wheel-center-first-20261015-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
