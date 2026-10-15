@@ -2551,7 +2551,7 @@ nagoya.scenarios = [{
     "no request beyond one geographically accurate destination tile grid");
   assert.deepEqual(
     allImages.slice(0,center.length).map(img=>img.url),
-    center.map(i=>grid.tiles[i].url),
+    Array.from(center, i=>grid.tiles[i].url),
     "issue official CENTER tile requests before any peripheral tiles");
   assert.equal(context.window.__centerHandoff.length,0,
     "withhold native commit while the first visible source tiles are loading");
