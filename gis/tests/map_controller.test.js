@@ -1064,6 +1064,13 @@ nagoya.scenarios = [{
   assert.match(pageSource, /current_theme[.]css[?]v=gis-facility-drawer-20261009-v6/);
   assert.match(pageSource, /map_first[.]css[?]v=guided-tour-three-region-comparison-20261013-v1/);
   assert.match(pageSource, /place_card[.]css[?]v=zoom-compact-popup-20261014-v1/);
+  assert.match(pageSource,/id="mapFloodRefreshStatus"/);
+  assert.match(pageSource,/map_first[.]css[?]v=flood-refresh-status-20261015-v1/);
+  const floodCss=fs.readFileSync(path.resolve(__dirname,"../gis/css/map_first.css"),"utf8");
+  assert.match(floodCss,/\\.map-flood-refresh-status\\[hidden\\]\\{display:none\\}/);
+  assert.match(floodCss,/pointer-events:none/);
+  assert.match(floodCss,/data-state="partial"/);
+
   const dPinCss = fs.readFileSync(path.resolve(__dirname, "../gis/css/style.css"), "utf8");
   assert.match(dPinCss, /\.leaflet-shelter-pane \.leaflet-marker-icon/);
   assert.match(dPinCss, /animation: hinanex-d-marker-appear 140ms ease-out both/);
