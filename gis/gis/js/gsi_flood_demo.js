@@ -36,20 +36,21 @@
     get("gsiFloodDemoFallback").hidden=false;
     get("gsiFloodDemoFallbackReason").textContent=
       "GSI洪水指定の掲載情報は未確認です。現在の安全性は判断できません。"+
-      "地域の避難施設の属性絞り込みは別データで実行できます。";
+      "デモを閉じて地図を確認してください。";
   }
   function value(v){return v==null||v===""?"未確認":String(v);}
   function render(){
     if(!data)return;
     get("gsiFloodDemoPhase").textContent=String(scene+1).padStart(2,"0")+" / 05";
-    get("gsiFloodDemoClock").textContent=state==="complete"?"終了":remaining+"秒";
+    get("gsiFloodDemoClock").textContent=state==="complete"?"終了":
+      scene===2&&!item?"操作待ち":remaining+"秒";
     get("gsiFloodDemoTitle").textContent=titles[scene];
     get("gsiFloodDemoMessage").textContent=explanations[scene];
     get("gsiFloodDemoCount").textContent=String(data.total);
     get("gsiFloodDemoShown").textContent=String(data.shown);
     const awaitingPin=scene===2&&!item;
     get("gsiFloodDemoEvidence").hidden=scene<2||!item;
-    get("gsiFloodDemoPickHint").hidden=!awaiting;
+    get("gsiFloodDemoPickHint").hidden=!awaitingPin;
     get("gsiFloodDemoContrast").hidden=scene!==3;
     get("gsiFloodDemoFuture").hidden=scene!==4;
     if(item){
