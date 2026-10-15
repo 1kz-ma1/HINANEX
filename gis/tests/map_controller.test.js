@@ -2346,6 +2346,13 @@ nagoya.scenarios = [{
   assert.equal(node.removed,true,
     "stale geographic halo must disappear before Leaflet commits destination");
   assert.equal(vm.runInContext("zoomOutHalo===null",context),true);
+  // Turning the basemap off must not silently reintroduce official GSI
+  // imagery via the private wheel halo.
+  map.removeLayer(L.__tiles[0]);
+  vm.runInContext("buildZoomOutHalo()",context);
+  assert.equal(vm.runInContext("zoomOutHalo===null",context),true);
+  assert.equal(nodes.length,1,"no halo behind intentionally disabled basemap");
+  map.addLayer(L.__tiles[0]);
   assert.equal(pane.style.scale,"");
   assert.equal(vm.runInContext("ZOOM_OUT_HALO_MAX_TILES",context),24);
   assert.ok(!requests.some(url=>url.includes("flood") || url.includes("disaportal")),
