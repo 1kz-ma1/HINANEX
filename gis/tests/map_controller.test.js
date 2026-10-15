@@ -711,7 +711,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "wheel-geometry-overlay-sync-20261015-v1");
+  assert.equal(mapAsset[1], "wheel-instant-zoom-out-20261015-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -2193,6 +2193,69 @@ nagoya.scenarios = [{
    assert.equal(images.length,coords.length,"duplicate URLs reused in one burst");
    vm.runInContext("clearPendingWheel()",context);
    assert.equal(vm.runInContext("predictedTileImages.size",context),0);
+ }
+
+
+ // Regression: zoom-out previews the OLD source raster immediately, just like
+ // zoom-in. The historical coverage-limited fallback previously forced scale
+ // to 1 when already-loaded tiles only covered the old viewport.
+ {
+   const makeZoomOutCase = href => {
+     const fixture=makeContext({
+       protocol:"http:",href,
+       fetchImpl:async()=>({ok:false,status:404,json:async()=>({})})
+     });
+     const map=fixture.L.__map;
+     map.container.getBoundingClientRect=()=>({
+       left:0,top:0,right:1024,bottom:768,width:1024,height:768
+     });
+     fixture.L.__tiles[0].getContainer().querySelectorAll=()=>[{
+       getBoundingClientRect:()=>({left:0,top:0,right:1024,bottom:768,width:1024,height:768})
+     }];
+     const icon={style:{translate:"",transition:"",willChange:""}};
+     map.addLayer({getLatLng:()=>[35.7,139.9],getElement:()=>icon});
+     const event={
+       deltaY:96,deltaMode:0,clientX:280,clientY:210,target:{},
+       preventDefault(){},stopImmediatePropagation(){}
+     };
+     map.container.listeners.wheel.fn(event);
+     return {...fixture,map,icon};
+   };
+   const immediate=makeZoomOutCase("http://test/gis/gis/?region=13123");
+   const map=immediate.map, context=immediate.context;
+   const tile=map.getPane("tilePane");
+   const flood=map.getPane("officialFloodPane");
+   const boundary=map.getPane("boundaryPane");
+   const footprint=map.getPane("referenceFootprintPane");
+   assert.ok(Number(tile.style.scale)<1,
+     "zoom-out must shrink OLD imagery before network tiles or Leaflet zoom commit");
+   const expectedScale=vm.runInContext(
+     "Math.pow(2,wheelDestinationZoom()-map.getZoom())",context);
+   assert.ok(Math.abs(Number(tile.style.scale)-expectedScale)<0.00001,
+     "outward movement must not be clamped by the old source raster coverage");
+   assert.equal(flood.style.scale,tile.style.scale);
+   assert.equal(boundary.style.scale,tile.style.scale);
+   assert.equal(footprint.style.scale,tile.style.scale);
+   assert.ok(immediate.icon.style.translate.startsWith("-"),
+     "source marker moves geometrically with shrinking raster without icon scaling");
+   assert.equal(map.getPanes().mapPane.style.scale,"");
+   assert.equal(map.getZoom(),13,"still old native abstraction during visual shrink");
+   assert.equal(map.zoomAroundCalls?.length||0,0,"no premature geographic commit");
+   vm.runInContext("flushSingleTargetWheel()",context);
+   assert.equal(map.zoomAroundCalls.length,1);
+   assert.ok(map.getZoom()<13,"commit once to the final lower zoom level");
+   assert.equal(tile.style.scale,"");
+   assert.equal(flood.style.scale,"");
+   assert.equal(boundary.style.scale,"");
+   assert.equal(footprint.style.scale,"");
+   assert.equal(immediate.icon.style.translate,"");
+
+   // A/B rollback remains available without reverting the production mode.
+   const conservative=makeZoomOutCase(
+     "http://test/gis/gis/?region=13123&zoomFeel=coverageSafe");
+   assert.equal(Number(conservative.map.getPane("tilePane").style.scale),1,
+     "coverageSafe comparison preserves the previous source-extent guard");
+   vm.runInContext("clearPendingWheel()",conservative.context);
  }
 
 // Full target-zoom geographic coverage: verify layout in viewport pixels,
