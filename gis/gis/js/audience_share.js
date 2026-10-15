@@ -94,14 +94,10 @@
     id("mapGsiFloodDemoOpen").click();
   });
   const audienceMode = new URL(window.location.href).searchParams.get("demo") === "audience";
-  if (audienceMode) {
-    let shown = false;
-    try {
-      shown = window.sessionStorage?.getItem("hinanex.demo.audience.welcome.v1") === "yes";
-      if (!shown) window.sessionStorage?.setItem("hinanex.demo.audience.welcome.v1", "yes");
-    } catch (_) { /* private mode: show a dismissible non-blocking guide */ }
-    intro.hidden = shown;
-  }
+  // Each explicit visit or browser refresh of the distributed audience URL
+  // is a new demonstration opportunity. Closing the card affects this loaded
+  // document only; a later navigation or reload shows it again. No storage.
+  intro.hidden = !audienceMode;
   // A visitor is never automatically GPS-tracked or autoplayed. This module
   // does not request geo permissions, infer safety or change the map camera.
 })();
