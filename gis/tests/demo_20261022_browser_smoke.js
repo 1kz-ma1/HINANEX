@@ -517,6 +517,47 @@ async function screenshot(page, name) {
       }
       if (!floodEnabled) assert.equal(after.floodGhost,0);
     }
+    // The independent vector/point layer switches must survive the same
+    // geographic zoom and clustering refresh; OFF never means hidden only
+    // until the next zoom bucket is computed.
+    await page.evaluate(() => {
+      for (const id of ["boundary","shelter"]) {
+        const el=document.getElementById(id);
+        el.checked=false;
+        el.dispatchEvent(new Event("change",{bubbles:true}));
+      }
+      const rect=map.getContainer().getBoundingClientRect();
+      map.getContainer().dispatchEvent(new WheelEvent("wheel",{
+        bubbles:true,cancelable:true,
+        clientX:rect.left+rect.width/2,
+        clientY:rect.top+rect.height/2,
+        deltaMode:0,deltaY:-90
+      }));
+    });
+    await page.waitForTimeout(950);
+    const vectorState=await page.evaluate(() => ({
+      boundaryChecked:document.getElementById("boundary").checked,
+      shelterChecked:document.getElementById("shelter").checked,
+      boundary:map.hasLayer(boundaryGroup),
+      shelters:map.hasLayer(shelterGroup),
+      viewportD:map.hasLayer(viewportDGroup)
+    }));
+    assert.equal(vectorState.boundaryChecked,false);
+    assert.equal(vectorState.shelterChecked,false);
+    assert.equal(vectorState.boundary,false,
+      "OFF municipality boundary must not reappear after zoom update");
+    assert.equal(vectorState.shelters,false,
+      "OFF facility markers must not reappear after zoom bucket update");
+    assert.equal(vectorState.viewportD,false,
+      "OFF shelter choice must also hide the viewport D overlay");
+    await page.evaluate(() => {
+      for (const id of ["boundary","shelter"]) {
+        const el=document.getElementById(id);
+        el.checked=true;
+        el.dispatchEvent(new Event("change",{bubbles:true}));
+      }
+    });
+
     // Restore user-visible controls for the broader GIS page journey.
     await page.evaluate(() => {
       for (const id of ["basemap","officialFlood"]) {
