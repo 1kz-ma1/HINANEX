@@ -437,12 +437,17 @@ async function screenshot(page, name) {
       anchor: [35.70,139.88],
       note: "表示確認用で、公式の避難施設判定ではありません。"
     }));
-    assert.equal(await speech.locator(".place-card-summary .row").count(), 0);
-    assert.match(await speech.innerText(), /自治体境界（参考）/);
-    assert.equal(await speech.locator(".place-card-disclosure").count(), 1);
-    assert.equal(await speech.evaluate(el => el.classList.contains("place-bubble--boundary")), true);
-    await speech.locator(".leaflet-popup-close-button").click();
-    assert.equal(await speech.isVisible(), false);
+    // Leaflet removes/replaces the previous point popup across transition
+    // frames. Wait for the NEW boundary popup specifically, rather than
+    // counting leftover rows from the previous source-point popup.
+    const boundarySpeech = page.locator(".hinanex-place-popup.place-bubble--boundary");
+    await boundarySpeech.waitFor({ state: "visible" });
+    assert.equal(await boundarySpeech.locator(".place-card-summary .row").count(), 0,
+      "boundary fixture must keep technical/source rows behind disclosure");
+    assert.match(await boundarySpeech.innerText(), /自治体境界（参考）/);
+    assert.equal(await boundarySpeech.locator(".place-card-disclosure").count(), 1);
+    await boundarySpeech.locator(".leaflet-popup-close-button").click();
+    await boundarySpeech.waitFor({ state: "hidden" });
 
     // Prove real D marker/cluster drawing, not merely an HTTP resource check.
     const clusters = page.locator(".d-facility-cluster");
