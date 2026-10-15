@@ -50,7 +50,7 @@ test("one public MAIN DEMO, other presenters retained only behind hidden wrapper
  assert.match(html,/gsi_flood_demo[.]js[?]v=audience-map-pick-20261015-v1/);
  assert.match(html,/公式掲載 ≠ 現在安全・開設中・避難推奨/);
 });
-test("50 playback seconds + real audience-selected GSI pin -> exact source proof",async()=>{
+test("43 playback seconds + real audience-selected GSI pin -> exact source proof",async()=>{
  const m=mount();await m.open();assert.equal(m.get("gsiFloodDemoContent").hidden,false);
  m.tick(7);assert.ok(m.calls.includes("show"));
  m.tick(12);
@@ -71,8 +71,10 @@ test("50 playback seconds + real audience-selected GSI pin -> exact source proof
  assert.equal(m.timers.size,1);
  m.tick(12);assert.ok(m.calls.includes("compare"));
  assert.match(m.get("gsiFloodDemoDStatus").textContent,/未判定 152件/);
- m.tick(12);assert.equal(m.get("gsiFloodDemoFuture").hidden,false);
- m.tick(7);assert.equal(m.timers.size,0);
+ assert.equal(m.timers.size,0,"verified D/GSI contrast completes the four-scene story");
+ assert.equal(m.get("gsiFloodDemoFuture").hidden,true,
+   "future concept is not part of the public source-evidence demo");
+ assert.equal(m.get("gsiFloodDemoPhase").textContent,"04 / 04");
  assert.equal(m.get("gsiFloodDemoProgress").style.width,"100%");
 });
 test("source absent or incorrect raw value refuses to animate",async()=>{
