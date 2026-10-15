@@ -436,6 +436,138 @@ async function screenshot(page, name) {
     await page.evaluate(z => map.setZoom(z, {animate:false}), wheelPreview.before);
     await page.waitForTimeout(160);
 
+    // Real-Leaflet regression for the reported user bug: switching OFF the
+    // basemap, official flood raster or both must survive instant CSS preview,
+    // final native zoom, async tile completion and the next halo warm-up.
+    for (const [baseEnabled,floodEnabled] of [
+      [false,true],[true,false],[false,false]
+    ]) {
+      const immediate = await page.evaluate(([showBase,showFlood]) => {
+        const set=(id,checked)=>{
+          const el=document.getElementById(id);
+          el.checked=checked;
+          el.dispatchEvent(new Event("change",{bubbles:true}));
+        };
+        set("basemap",showBase);
+        set("officialFlood",showFlood);
+        const rect=map.getContainer().getBoundingClientRect();
+        map.getContainer().dispatchEvent(new WheelEvent("wheel",{
+          bubbles:true,cancelable:true,
+          clientX:rect.left+rect.width/2,
+          clientY:rect.top+rect.height/2,
+          deltaMode:0,deltaY:80
+        }));
+        return {
+          checkedBase:document.getElementById("basemap").checked,
+          checkedFlood:document.getElementById("officialFlood").checked,
+          mapBase:map.hasLayer(baseMap),
+          mapFlood:map.hasLayer(officialFloodLayer),
+          previewSourceNames:(wheelPreview?.targets||[]).map(t=>
+            t.layer===baseMap ? "basemap" :
+            t.layer===officialFloodLayer ? "officialFlood" : "other"),
+          basemapRetained:map.getPane("tilePane")
+            .querySelectorAll(".hinanex-raster-retained").length,
+          floodRetained:map.getPane("officialFloodPane")
+            .querySelectorAll(".hinanex-raster-retained").length,
+          destinationCover:document.querySelectorAll(".hinanex-target-tile-cover").length,
+          halo:document.querySelectorAll(".hinanex-zoom-out-halo").length
+        };
+      },[baseEnabled,floodEnabled]);
+      assert.equal(immediate.checkedBase,baseEnabled);
+      assert.equal(immediate.checkedFlood,floodEnabled);
+      assert.equal(immediate.mapBase,baseEnabled);
+      assert.equal(immediate.mapFlood,floodEnabled);
+      assert.equal(immediate.previewSourceNames.includes("basemap"),baseEnabled);
+      assert.equal(immediate.previewSourceNames.includes("officialFlood"),floodEnabled);
+      if (!baseEnabled) {
+        assert.equal(immediate.basemapRetained,0,
+          "disabled basemap must never be cloned during wheel preview");
+        assert.equal(immediate.destinationCover,0,
+          "separate GSI target atlas cannot bypass basemap OFF control");
+        assert.equal(immediate.halo,0,
+          "preloaded zoom-out halo must respect disabled basemap");
+      }
+      if (!floodEnabled) {
+        assert.equal(immediate.floodRetained,0,
+          "disabled official flood must never be cloned during wheel preview");
+      }
+      await page.waitForTimeout(900);
+      const after=await page.evaluate(() => ({
+        checkedBase:document.getElementById("basemap").checked,
+        checkedFlood:document.getElementById("officialFlood").checked,
+        mapBase:map.hasLayer(baseMap),
+        mapFlood:map.hasLayer(officialFloodLayer),
+        baseGhost:map.getPane("tilePane")
+          .querySelectorAll(".hinanex-raster-retained").length,
+        floodGhost:map.getPane("officialFloodPane")
+          .querySelectorAll(".hinanex-raster-retained").length,
+        targetCover:document.querySelectorAll(".hinanex-target-tile-cover").length,
+        halo:document.querySelectorAll(".hinanex-zoom-out-halo").length
+      }));
+      assert.equal(after.checkedBase,baseEnabled);
+      assert.equal(after.checkedFlood,floodEnabled);
+      assert.equal(after.mapBase,baseEnabled);
+      assert.equal(after.mapFlood,floodEnabled);
+      if (!baseEnabled) {
+        assert.equal(after.baseGhost,0);
+        assert.equal(after.targetCover,0,
+          "OFF state must persist through post-zoom async atlas loading");
+        assert.equal(after.halo,0,
+          "OFF state must persist through idle halo refresh");
+      }
+      if (!floodEnabled) assert.equal(after.floodGhost,0);
+    }
+    // The independent vector/point layer switches must survive the same
+    // geographic zoom and clustering refresh; OFF never means hidden only
+    // until the next zoom bucket is computed.
+    await page.evaluate(() => {
+      for (const id of ["boundary","shelter"]) {
+        const el=document.getElementById(id);
+        el.checked=false;
+        el.dispatchEvent(new Event("change",{bubbles:true}));
+      }
+      const rect=map.getContainer().getBoundingClientRect();
+      map.getContainer().dispatchEvent(new WheelEvent("wheel",{
+        bubbles:true,cancelable:true,
+        clientX:rect.left+rect.width/2,
+        clientY:rect.top+rect.height/2,
+        deltaMode:0,deltaY:-90
+      }));
+    });
+    await page.waitForTimeout(950);
+    const vectorState=await page.evaluate(() => ({
+      boundaryChecked:document.getElementById("boundary").checked,
+      shelterChecked:document.getElementById("shelter").checked,
+      boundary:map.hasLayer(boundaryGroup),
+      shelters:map.hasLayer(shelterGroup),
+      viewportD:map.hasLayer(viewportDGroup)
+    }));
+    assert.equal(vectorState.boundaryChecked,false);
+    assert.equal(vectorState.shelterChecked,false);
+    assert.equal(vectorState.boundary,false,
+      "OFF municipality boundary must not reappear after zoom update");
+    assert.equal(vectorState.shelters,false,
+      "OFF facility markers must not reappear after zoom bucket update");
+    assert.equal(vectorState.viewportD,false,
+      "OFF shelter choice must also hide the viewport D overlay");
+    await page.evaluate(() => {
+      for (const id of ["boundary","shelter"]) {
+        const el=document.getElementById(id);
+        el.checked=true;
+        el.dispatchEvent(new Event("change",{bubbles:true}));
+      }
+    });
+
+    // Restore user-visible controls for the broader GIS page journey.
+    await page.evaluate(() => {
+      for (const id of ["basemap","officialFlood"]) {
+        const el=document.getElementById(id);
+        el.checked=true;
+        el.dispatchEvent(new Event("change",{bubbles:true}));
+      }
+    });
+    await page.waitForTimeout(120);
+
     // Targeted CI profile: execute BOTH real-Chromium wheel directions and
     // exact marker pixel assertions, without conflating this gate with the
     // independent full UI/presenter smoke later in this file.
