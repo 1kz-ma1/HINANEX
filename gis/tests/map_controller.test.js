@@ -162,6 +162,8 @@ function makeLeafletStub() {
     getSize() { return {x:1024,y:768}; },
     containerPointToLatLng() { return [35.704,139.882]; },
     getPanes() { return {mapPane,tilePane}; },
+    eachLayer(callback) { for(const layer of mapLayers)callback(layer); },
+    latLngToContainerPoint() { return {x:420,y:275}; },
     mouseEventToContainerPoint(e) { return {x:e.clientX,y:e.clientY}; },
     setZoomAround(anchor, zoom, options) {
       this.zoomAroundCalls = [...(this.zoomAroundCalls || []), {anchor,zoom,options}];
@@ -703,7 +705,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "flood-refresh-coverage-20261015-v1");
+  assert.equal(mapAsset[1], "wheel-geometry-overlay-sync-20261015-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -2040,6 +2042,10 @@ nagoya.scenarios = [{
    const mapPane=map.getPanes().mapPane;
    const tilePane=map.getPanes().tilePane;
    const floodPane=map.getPane("officialFloodPane");
+   const boundaryPane=map.getPane("boundaryPane");
+   const footprintPane=map.getPane("referenceFootprintPane");
+   const icon={style:{translate:"",transition:"",willChange:""}};
+   map.addLayer({getLatLng:()=>[35.7,139.9],getElement:()=>icon});
    assert.equal(vm.runInContext("WHEEL_GESTURE_IDLE_MS",context),70,
      "new wheel image update starts 65ms earlier than prior preview");
    assert.equal(vm.runInContext("WHEEL_PREVIEW_TRANSITION_MS",context),40);
@@ -2059,6 +2065,15 @@ nagoya.scenarios = [{
      "reuse background raster without scaling the geographic marker pane");
    assert.ok(Number(floodPane.style.scale)>1,
      "official flood raster follows the same preview geometry");
+   assert.equal(boundaryPane.style.scale,tilePane.style.scale,
+     "verified boundaries track the PREVIEW before new raster loads");
+   assert.equal(footprintPane.style.scale,tilePane.style.scale,
+     "source geographic footprints follow the same raster projection");
+   assert.match(boundaryPane.style.transformOrigin,/220px 175px/);
+   assert.equal(icon.style.translate,
+     `${((420-220)*(Number(tilePane.style.scale)-1)).toFixed(3)}px ${((275-175)*(Number(tilePane.style.scale)-1)).toFixed(3)}px`,
+     "source-backed marker anchor follows the image while physical icon size stays fixed");
+   assert.equal(icon.style.transition,"translate 40ms ease-out");
    assert.equal(mapPane.style.scale,"",
      "mapPane must not scale pins, cluster icons and location bubbles");
    assert.equal(tilePane.style.transition,"scale 40ms ease-out",
@@ -2071,6 +2086,12 @@ nagoya.scenarios = [{
    assert.equal(tilePane.style.scale,"",
      "commit restores background layer CSS preview");
    assert.equal(floodPane.style.scale,"");
+   assert.equal(boundaryPane.style.scale,"",
+     "new true geographic view clears cosmetic boundary enlargement");
+   assert.equal(footprintPane.style.scale,"");
+   assert.equal(icon.style.translate,"",
+     "Leaflet regains ownership of geographic marker placement at commit");
+   assert.equal(icon.style.transition,"");
    assert.equal(mapPane.style.scale,"",
      "marker and popup panes remain unscaled throughout wheel gesture");
    assert.equal(L.__tiles[0].sourceParent.ghosts.length,1,
@@ -2112,6 +2133,9 @@ nagoya.scenarios = [{
    assert.ok(Number(tilePane.style.scale)>1);
    map.handlers.dragstart();
    assert.equal(tilePane.style.scale,"");
+   assert.equal(boundaryPane.style.scale,"");
+   assert.equal(footprintPane.style.scale,"");
+   assert.equal(icon.style.translate,"");
    assert.equal(mapPane.style.scale,"");
    vm.runInContext("flushSingleTargetWheel()",context);
    assert.equal(map.zoomAroundCalls.length,2);

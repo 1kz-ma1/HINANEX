@@ -189,6 +189,21 @@ async function screenshot(page, name) {
         cssScale:map.getPane("tilePane").style.scale,
         markerPaneScale:map.getPanes().mapPane.style.scale,
         floodScale:map.getPane("officialFloodPane").style.scale,
+        boundaryScale:map.getPane("boundaryPane").style.scale,
+        footprintScale:map.getPane("referenceFootprintPane").style.scale,
+        markerTranslations:(()=>{
+          const markers=[];
+          map.eachLayer(layer=>{
+            if(layer.getLatLng && layer.getElement) {
+              const elem=layer.getElement();
+              if (elem?.style && markers.length<8)
+                markers.push({translate:elem.style.translate,
+                  width:elem.getBoundingClientRect().width,
+                  height:elem.getBoundingClientRect().height});
+            }
+          });
+          return markers;
+        })(),
         calls:window.__wheelZoomCalls
       };
     });
@@ -197,7 +212,14 @@ async function screenshot(page, name) {
     assert.ok(Number(wheelPreview.cssScale)>1,
       "map image preview must respond before wheel idle timer expires");
     assert.equal(wheelPreview.markerPaneScale,"",
-      "facility markers/popups must retain constant on-screen dimensions");
+      "facility marker parent must never be uniformly enlarged");
+    assert.equal(wheelPreview.boundaryScale,wheelPreview.cssScale,
+      "official boundary vector geometry must track the raster immediately");
+    assert.equal(wheelPreview.footprintScale,wheelPreview.cssScale,
+      "source-backed footprints must track the same visible zoom");
+    assert.ok(wheelPreview.markerTranslations.every(item=>
+      item.translate!=="" && item.width>0 && item.height>0),
+      "existing source point markers should move without scaling their icons");
     assert.ok(Number(wheelPreview.floodScale)>1,
       "official flood raster must visually follow map preview scale");
     assert.equal(wheelPreview.calls,0,
