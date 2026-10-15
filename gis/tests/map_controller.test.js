@@ -26,6 +26,12 @@ const actualBrowserSmoke = fs.readFileSync(
 assert.match(actualBrowserSmoke, /long point details must scroll in speech bubble/);
 assert.match(actualBrowserSmoke, /anchored bubble must fit mobile width/);
 assert.match(actualBrowserSmoke, /UI_TEST_ONLY/);
+assert.match(actualBrowserSmoke, /__wheelGeometryProbe/,
+  "standalone browser smoke must check rendered source-marker anchor geometry");
+assert.match(actualBrowserSmoke, /markerTranslations.length > 0/,
+  "standalone smoke must reject empty marker enumerations");
+assert.match(actualBrowserSmoke, /probeAfterCommit/,
+  "standalone smoke must check that Leaflet regains exact coordinate ownership");
 
 
 function payload(code, name, records) {
