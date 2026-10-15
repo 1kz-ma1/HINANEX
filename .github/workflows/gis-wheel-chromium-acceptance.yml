@@ -1,0 +1,111 @@
+name: HINANEX GIS wheel Chromium acceptance
+
+"on":
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - ".github/workflows/gis-wheel-chromium-acceptance.yml"
+      - "gis/gis/index.html"
+      - "gis/gis/js/**"
+      - "gis/gis/css/**"
+      - "gis/tests/demo_20261022_browser_smoke.js"
+      - "gis/tests/map_controller.test.js"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gis-real-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Generate current D RegionExports and offline Render-equivalent static distribution
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -r pipeline/requirements.txt
+          # The GIS smoke consumes actual D-generated RegionExports, not
+          # fabricated facility coordinates. No official GSI image publication.
+          python deploy/build_staging.py --skip-gsi --output "$RUNNER_TEMP/hinanex-gis-dist"
+          node gis/tests/inspect_local_region_exports.js --output-dir \
+            "$RUNNER_TEMP/hinanex-gis-dist/pipeline/data/output"
+
+      - name: Install pinned isolated browser dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          browser_deps="$RUNNER_TEMP/hinanex-gis-browser-deps"
+          mkdir -p "$browser_deps"
+          npm install --prefix "$browser_deps" --no-save --no-package-lock \
+            playwright@1.56.1 leaflet@1.9.4
+          "$browser_deps/node_modules/.bin/playwright" install chromium
+
+      - name: Run real Chromium wheel zoom-in / zoom-out and geographic registration
+        shell: bash
+        env:
+          NODE_OPTIONS: --unhandled-rejections=strict
+          HINANEX_WHEEL_ONLY: "1"
+        run: |
+          set -euo pipefail
+          export NODE_PATH="$RUNNER_TEMP/hinanex-gis-browser-deps/node_modules"
+          export HINANEX_TEST_LEAFLET_DIST="$NODE_PATH/leaflet/dist"
+          dist="$RUNNER_TEMP/hinanex-gis-dist"
+          audit="$RUNNER_TEMP/hinanex-gis-wheel-browser-audit"
+          mkdir -p "$audit"
+          # Localhost only: no staging mutation, no GPS, no upload of data.
+          python -m http.server 8765 --bind 127.0.0.1 --directory "$dist" \
+            > "$audit/http-server.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for i in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:8765/gis/gis/ >/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          test "$ready" -eq 1
+          # Real Playwright Chromium loads real Leaflet 1.9.4. External GSI
+          # raster requests are blocked by the E-owned smoke only; absent
+          # tiles are NOT treated as safe/no hazard.
+          node gis/tests/demo_20261022_browser_smoke.js "$dist" "$audit"
+          test -s "$audit/wheel_browser_audit.json"
+          grep -q "GIS_CHROMIUM_WHEEL_BOTH_DIRECTIONS_PASS" "$audit/wheel_browser_audit.json"
+
+      - name: Upload isolated browser evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: HINANEX-E-WHEEL-CHROMIUM-${{ github.run_id }}
+          path: ${{ runner.temp }}/hinanex-gis-wheel-browser-audit/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Clarify test limitations
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          {
+            echo "### HINANEX GIS browser acceptance"
+            echo "- This job runs the E-authored two-direction wheel-only real Chromium smoke with current D exports and pinned Leaflet."
+            echo "- Full presentation/GIS UI smoke outside wheel continuity is NOT executed by this focused job."
+            echo "- External GSI background and official flood tile requests are blocked **only inside the test browser**."
+            echo "- Marker geography is observed from the actual Leaflet DOM, not a Python projection mock."
+            echo "- The result is NOT confirmation of production tile coverage, network speed, physical trackpad smoothness, Safari, actual shelter availability, or disaster safety."
+            echo "- The separate main-branch merge and Render staging human acceptance remain required."
+          } >> "$GITHUB_STEP_SUMMARY"
