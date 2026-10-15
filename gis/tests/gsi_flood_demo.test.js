@@ -9,6 +9,7 @@ function mount(reply={state:"ready",source:"GSI_SKHB01_FLOOD",rawDisaster1:1,tot
  class Node{constructor(id){this.id=id;this.hidden=["gsiFloodDemoPanel","gsiFloodDemoContent","gsiFloodDemoEvidence","gsiFloodDemoContrast","gsiFloodDemoFuture","gsiFloodDemoOfficial","filterDemoPanel","storyPanel","mapEvidenceReplayPanel"].includes(id);this.textContent="";this.style={};this.disabled=false;this.attrs={};this.listeners={};this.href="";}
  addEventListener(k,f){this.listeners[k]=f;}click(){this.listeners.click?.({});}
  focus(){doc.activeElement=this;}setAttribute(k,v){this.attrs[k]=String(v);}
+ getAttribute(k){return this.attrs[k]??null;}
  removeAttribute(k){delete this.attrs[k];}
  querySelectorAll(){return [get("gsiFloodDemoClose"),get("gsiFloodDemoPlay")];}}
  const get=id=>{if(!nodes.has(id))nodes.set(id,new Node(id));return nodes.get(id);};
@@ -47,9 +48,32 @@ test("one public MAIN DEMO, other presenters retained only behind hidden wrapper
  assert.match(html,/class="map-tour-other-demos" hidden/);
  assert.match(html,/id="mapAudienceIntroStart"[^>]*>▶ デモを開始する/);
  assert.match(html,/id="gsiFloodDemoPickHint"[^>]*hidden/);
- assert.match(html,/gsi_flood_demo[.]js[?]v=audience-map-pick-20261015-v1/);
+ assert.match(html,/gsi_flood_demo[.]js[?]v=mobile-dock-20261015-v1/);
  assert.match(html,/公式掲載 ≠ 現在安全・開設中・避難推奨/);
 });
+test("mobile presenter defaults to a compact dock, retains playback controls, and expands only on explicit request",async()=>{
+ const m=mount();await m.open();
+ assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-mobile-expanded"),"false");
+ assert.equal(m.get("gsiFloodDemoActions").hidden,false,
+   "play/next controls are fixed outside scrollable evidence content");
+ assert.equal(m.get("gsiFloodDemoExpand").getAttribute("aria-expanded"),"false");
+ m.get("gsiFloodDemoExpand").click();
+ assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-mobile-expanded"),"true");
+ assert.equal(m.get("gsiFloodDemoExpand").textContent,"地図に戻る");
+ m.tick(7);m.tick(12); // scene 3: wait for an actual source pin
+ assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-mobile-expanded"),"false",
+   "pin selection automatically frees map surface, even from expanded details");
+ assert.equal(m.get("gsiFloodDemoPickHint").hidden,false);
+ m.select();
+ assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-mobile-expanded"),"false");
+ m.get("gsiFloodDemoExpand").click();
+ assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-mobile-expanded"),"true",
+   "original name/address/trace remain available to inspect");
+ m.get("gsiFloodDemoClose").click();
+ assert.equal(m.get("gsiFloodDemoActions").hidden,true);
+ assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-mobile-expanded"),"false");
+});
+
 test("43 playback seconds + real audience-selected GSI pin -> exact source proof",async()=>{
  const m=mount();await m.open();assert.equal(m.get("gsiFloodDemoContent").hidden,false);
  m.tick(7);assert.ok(m.calls.includes("show"));

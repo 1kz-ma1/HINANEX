@@ -20,6 +20,20 @@
     "GSIで指定を確認できても、施設情報の未判定を勝手に確定できません。両データは未照合です。"
   ];
   function stopClock(){if(clock!==null)window.clearInterval(clock);clock=null;}
+  let mobileExpanded=false;
+  function setMobileExpanded(expanded){
+    mobileExpanded=Boolean(expanded);
+    panel.setAttribute("data-mobile-expanded",String(mobileExpanded));
+    const toggle=get("gsiFloodDemoExpand");
+    toggle.setAttribute("aria-expanded",String(mobileExpanded));
+    toggle.textContent=mobileExpanded?"地図に戻る":"詳細を見る";
+    // A collapsed panel always starts with the current evidence scene, not
+    // the scrollbar position from an earlier visit to the details.
+    if(!mobileExpanded){
+      const body=get("gsiFloodDemoContent");
+      if(body)body.scrollTop=0;
+    }
+  }
   function writeStatus(s){get("gsiFloodDemoStatus").textContent=s;}
   function unavailable(reason) {
     // A missing/invalid official catalog is never interpreted as "no
@@ -39,6 +53,7 @@
   function value(v){return v==null||v===""?"未確認":String(v);}
   function render(){
     if(!data)return;
+    panel.setAttribute("data-scene",String(scene+1));
     get("gsiFloodDemoPhase").textContent=String(scene+1).padStart(2,"0")+" / 04";
     get("gsiFloodDemoClock").textContent=state==="complete"?"終了":
       scene===2&&!item?"操作待ち":remaining+"秒";
@@ -97,7 +112,7 @@
     scene=next;
     remaining=timings[next];
     elapsed=timings.slice(0,next).reduce((a,b)=>a+b,0);
-    if(next===2){stopClock();state="awaiting-pin";}
+    if(next===2){stopClock();state="awaiting-pin";setMobileExpanded(false);}
     render();return true;
   }
   function advance(){
@@ -129,7 +144,9 @@
     if(panel.hidden)return;
     ++sequence;stopClock();state="idle";
     api?.end(restore);
-    panel.hidden=true;data=null;item=null;dStatus=null;
+    panel.hidden=true;get("gsiFloodDemoActions").hidden=true;
+    data=null;item=null;dStatus=null;
+    setMobileExpanded(false);
     opener.setAttribute("aria-expanded","false");
     // A shared-link visitor should return to the map, never be sent to
     // another presenter/menu after completing the one supported demo.
@@ -146,8 +163,10 @@
     get("mapTourClose").click();
     const token=++sequence;
     panel.hidden=false;opener.setAttribute("aria-expanded","true");
+    setMobileExpanded(false);
     get("gsiFloodDemoClose").focus();
     get("gsiFloodDemoContent").hidden=true;
+    get("gsiFloodDemoActions").hidden=true;
     get("gsiFloodDemoFallback").hidden=true;
     stopClock();state="loading";scene=0;remaining=timings[0];elapsed=0;
     data=null;item=null;dStatus=null;restore=true;
@@ -163,6 +182,7 @@
       }
       data=result;
       get("gsiFloodDemoContent").hidden=false;
+      get("gsiFloodDemoActions").hidden=false;
       play();
     }catch(error){
       if(token!==sequence||panel.hidden)return;
@@ -171,6 +191,10 @@
     }
   }
   opener.addEventListener("click",open);
+  get("gsiFloodDemoExpand").addEventListener("click",()=>{
+    if(panel.hidden)return;
+    setMobileExpanded(!mobileExpanded);
+  });
   get("gsiFloodDemoClose").addEventListener("click",close);
   get("gsiFloodDemoFallbackD").addEventListener("click",()=>{
     // Hand-off is explicit user action; never pretend this is a GSI result.

@@ -647,6 +647,62 @@ async function screenshot(page, name) {
       assert.equal(await visitor.locator("#gsiFloodDemoFallbackD").isVisible(),false,
         "unavailable GSI must not redirect the visitor to a different demo");
     }
+    // Reopen in the SAME browser session on a narrow handset viewport.
+    // Unlike the old one-time greeting, every audience URL refresh must show
+    // the welcome button and never autoplay. Once opened, the map must remain
+    // largely accessible while the small dock keeps playback buttons visible.
+    await visitor.setViewportSize({width:390,height:844});
+    await visitor.reload({waitUntil:"domcontentloaded"});
+    await visitor.waitForFunction(()=>!!window.HINANEX_GSI_FLOOD_PRESENTER);
+    assert.equal(await visitor.locator("#mapAudienceIntro").isVisible(),true,
+      "reload of ?demo=audience must re-show the intro in the SAME session");
+    assert.equal(await visitor.locator("#gsiFloodDemoPanel").isVisible(),false,
+      "refresh must not autoplay the official presenter");
+    await visitor.locator("#mapAudienceIntroStart").click();
+    await visitor.waitForFunction(()=>{
+      const p=document.getElementById("gsiFloodDemoPanel");
+      return !p.hidden &&
+        (!document.getElementById("gsiFloodDemoContent").hidden ||
+         !document.getElementById("gsiFloodDemoFallback").hidden);
+    },null,{timeout:15000});
+    const compact=await visitor.evaluate(()=>{
+      const mapRect=document.getElementById("map").getBoundingClientRect();
+      const panel=document.getElementById("gsiFloodDemoPanel");
+      const rect=panel.getBoundingClientRect();
+      const controls=document.getElementById("gsiFloodDemoActions");
+      const buttons=controls.getBoundingClientRect();
+      return {
+        mapHeight:mapRect.height, panelHeight:rect.height,
+        uncoveredAbove:(rect.top-mapRect.top)/mapRect.height,
+        panelBottom:rect.bottom,buttonsBottom:buttons.bottom,
+        controlsVisible:!controls.hidden,
+        expanded:panel.getAttribute("data-mobile-expanded"),
+        overflow:getComputedStyle(document.getElementById("gsiFloodDemoContent")).overflowY
+      };
+    });
+    assert.ok(compact.mapHeight>260 && compact.panelHeight<compact.mapHeight*0.45,
+      "compact mobile card must not cover most of the interactive map");
+    assert.ok(compact.uncoveredAbove>0.36,
+      "mobile visitor must have enough unobstructed map to find GSI pins");
+    assert.equal(compact.expanded,"false");
+    if(compact.controlsVisible)assert.ok(compact.buttonsBottom<=compact.panelBottom+1,
+      "play/pause/next/restart controls remain inside the compact dock");
+    assert.equal(compact.overflow,"auto",
+      "original official evidence should remain independently scrollable");
+    const expand=visitor.locator("#gsiFloodDemoExpand");
+    assert.equal(await expand.isVisible(),true);
+    await expand.click();
+    const expandedHeight=await visitor.locator("#gsiFloodDemoPanel").evaluate(
+      el=>el.getBoundingClientRect().height);
+    assert.ok(expandedHeight>compact.panelHeight+20,
+      "source counts, official address and original row can be expanded deliberately");
+    assert.equal(await expand.getAttribute("aria-expanded"),"true");
+    await expand.click();
+    const collapsedHeight=await visitor.locator("#gsiFloodDemoPanel").evaluate(
+      el=>el.getBoundingClientRect().height);
+    assert.ok(Math.abs(collapsedHeight-compact.panelHeight)<2);
+    assert.equal(await expand.getAttribute("aria-expanded"),"false");
+    await screenshot(visitor,"audience-mobile-map-first-dock");
     assert.deepEqual(visitorErrors,[],"shared intro and presenter must not crash Chromium");
     await visitor.close();
 
@@ -669,7 +725,10 @@ async function screenshot(page, name) {
             "OFFICIAL_GSI_BOUNDED_HALO_PROJECTED_IN_RASTER_PANE",
             "HALO_VISIBLE_ONLY_DURING_ZOOM_OUT_AND_DISCARDED_AT_COMMIT",
             "AUDIENCE_WELCOME_ONE_CLICK_MAIN_DEMO",
-            "SINGLE_PUBLIC_DEMO_WITH_VERIFIED_GSI_PIN_CHOICE_OR_SAFE_FALLBACK"
+            "SINGLE_PUBLIC_DEMO_WITH_VERIFIED_GSI_PIN_CHOICE_OR_SAFE_FALLBACK",
+            "AUDIENCE_RELOAD_RESHOWS_WELCOME",
+            "MOBILE_DOCK_DOES_NOT_OBSCURE_INTERACTIVE_MAP",
+            "MOBILE_EXPANDABLE_SOURCE_EVIDENCE_AND_FIXED_CONTROLS"
           ],
           current_D_exports_contract_valid: report.all_local_contracts_valid,
           external_GSI_and_flood_raster_requests_blocked: true,

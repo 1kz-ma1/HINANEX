@@ -2880,7 +2880,7 @@ nagoya.scenarios = [{
   assert.match(page, /id="mapSharePanel"[^>]*hidden/);
   assert.match(page, /id="mapShareURL"[^>]*readonly value="https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
   assert.match(page, /id="mapAudienceIntro"[^>]*hidden/);
-  assert.match(page, /js\/audience_share[.]js[?]v=audience-main-entry-20261015-v1/);
+  assert.match(page, /js\/audience_share[.]js[?]v=audience-replay-welcome-20261015-v1/);
   assert.match(page, /css\/map_first[.]css[?]v=audience-main-entry-20261015-v1/);
   assert.match(styles, /\.map-share-panel\[hidden\],\.map-audience-intro\[hidden\]\{display:none\}/);
   assert.match(shareSource, /const AUDIENCE_URL = "https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
@@ -2962,8 +2962,14 @@ nagoya.scenarios = [{
   v1.element("mapAudienceIntroClose").click();
   assert.equal(v1.element("mapAudienceIntro").hidden, true);
   const v2 = harness(audienceURL, v1.store);
-  assert.equal(v2.element("mapAudienceIntro").hidden, true,
-    "the same browser session does not repeatedly interrupt exploration");
+  assert.equal(v2.element("mapAudienceIntro").hidden, false,
+    "a fresh navigation/refresh of the audience URL ALWAYS restarts the welcome, even in one session");
+
+  const regularAgain = harness("https://hinanex-staging.onrender.com/gis/gis/", v1.store);
+  assert.equal(regularAgain.element("mapAudienceIntro").hidden,true,
+    "ordinary GIS URLs do not display the audience-only welcome");
+  assert.doesNotMatch(shareSource, /sessionStorage|getItem\(|setItem\(/,
+    "audience welcome must not persist dismissal across page reloads");
 
   const b = harness("https://hinanex-staging.onrender.com/gis/gis/?demo=audience", new Map());
   assert.equal(b.element("mapAudienceIntro").hidden, false);
