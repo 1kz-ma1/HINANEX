@@ -69,3 +69,18 @@
 .gsi-demo-fallback p{margin:0;font-size:13px;line-height:1.7;color:#f1e3d2}
 #gsiFloodDemoFallbackD{min-height:49px;padding:10px;border:1px solid #8cd6d7;
  border-radius:9px;background:#69dee1;color:#07333e;font-size:12px;font-weight:850;cursor:pointer}
+
+/* Pause the presentation at the map and invite an actual trusted GSI pin click. */
+.gsi-demo-pick-hint{position:absolute;z-index:1700;top:44%;left:50%;transform:translate(-50%,-50%);
+ width:min(330px,calc(100% - 30px));box-sizing:border-box;display:grid;gap:7px;padding:19px;
+ background:#073044e8;border:2px solid #8ff5e9;border-radius:15px;color:white;
+ box-shadow:0 12px 40px #001724ad;text-align:center;pointer-events:none}
+.gsi-demo-pick-hint[hidden]{display:none!important}
+.gsi-demo-pick-hint strong{font-size:clamp(17px,2.2vw,23px);line-height:1.45;color:#b0fff6}
+.gsi-demo-pick-hint span{font-size:13px;line-height:1.6}
+.gsi-demo-pick-hint small{font-size:10px;line-height:1.5;color:#d1e3ec}
+@media(max-width:780px){.gsi-demo-pick-hint{top:23%;width:min(320px,calc(100% - 22px));padding:12px}
+ .gsi-demo-pick-hint strong{font-size:16px}.gsi-demo-pick-hint span{font-size:11px}}
+@media(prefers-reduced-motion:reduce){.gsi-demo-pick-hint{animation:none}}
+/* Hidden legacy fallbacks stay hidden even against existing button styles. */
+#gsiFloodDemoFallbackD[hidden]{display:none!important}
