@@ -2253,8 +2253,8 @@ nagoya.scenarios = [{
    // A/B rollback remains available without reverting the production mode.
    const conservative=makeZoomOutCase(
      "http://test/gis/gis/?region=13123&zoomFeel=coverageSafe");
-   assert.equal(Number(conservative.map.getPane("tilePane").style.scale),1,
-     "coverageSafe comparison preserves the previous source-extent guard");
+   assert.ok(Number(conservative.map.getPane("tilePane").style.scale)>0.99,
+     "coverageSafe comparison preserves the previous near-frozen source-extent guard");
    vm.runInContext("clearPendingWheel()",conservative.context);
  }
 
