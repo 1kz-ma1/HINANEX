@@ -5,6 +5,11 @@ name: HINANEX GIS wheel Chromium acceptance
     types: [opened, reopened, synchronize]
     paths:
       - ".github/workflows/gis-wheel-chromium-acceptance.yml"
+      - "gis/gis/index.html"
+      - "gis/gis/js/**"
+      - "gis/gis/css/**"
+      - "gis/tests/demo_20261022_browser_smoke.js"
+      - "gis/tests/map_controller.test.js"
   workflow_dispatch:
 
 permissions:
