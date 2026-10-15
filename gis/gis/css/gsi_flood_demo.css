@@ -8,12 +8,18 @@
 #mapGsiFloodDemoOpen{padding:12px 8px;min-height:48px;border:0;border-radius:8px;
   background:#7be8e7;color:#062632;font-weight:850;font-size:13px;cursor:pointer}
 .gsi-demo-panel{position:absolute;z-index:1760;top:12px;right:12px;bottom:12px;
- width:min(430px,calc(100% - 24px));box-sizing:border-box;overflow:auto;
- padding:18px;border-radius:15px;background:linear-gradient(155deg,#082d45,#061e2c);
+ width:min(430px,calc(100% - 24px));box-sizing:border-box;overflow:hidden;
+ display:flex;flex-direction:column;min-height:0;padding:18px;border-radius:15px;background:linear-gradient(155deg,#082d45,#061e2c);
  border:1px solid #62cddc;box-shadow:0 22px 60px #001d35bb;color:#f2faff;
  font-family:system-ui,"Noto Sans JP",sans-serif}
 .gsi-demo-panel[hidden],.gsi-demo-panel [hidden]{display:none!important}
-.gsi-demo-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.gsi-demo-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex:none}
+.gsi-demo-top-actions{display:flex;align-items:center;gap:8px;flex:none}
+#gsiFloodDemoExpand{display:none;border:1px solid #71c6d3;border-radius:8px;
+ background:#134e62;color:white;padding:8px;font-size:11px;font-weight:750;min-height:36px;cursor:pointer}
+#gsiFloodDemoContent{min-height:0;flex:1;overflow-y:auto;overscroll-behavior:contain;
+ padding-right:3px;-webkit-overflow-scrolling:touch}
+#gsiFloodDemoStatus{flex:none}
 .gsi-demo-top>div{display:grid;gap:3px}
 .gsi-demo-top span{font-size:10px;font-weight:900;color:#83e8e9;letter-spacing:.08em}
 .gsi-demo-top strong{font-size:15px}
@@ -51,15 +57,43 @@
 .gsi-demo-notice{font-size:10px;line-height:1.65;color:#c0d2dc;margin:12px 0}
 .gsi-demo-progress{height:6px;background:#275365;border-radius:9px;overflow:hidden}
 .gsi-demo-progress span{display:block;background:#70e4da;width:0;height:100%;transition:width .2s}
-.gsi-demo-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:12px}
+.gsi-demo-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;
+ margin-top:10px;flex:none}
 .gsi-demo-actions button{min-height:42px;padding:6px 3px;background:#1b4e62;border:1px solid #4c8896;
  border-radius:8px;color:white;font-size:11px;font-weight:800;cursor:pointer}
 #gsiFloodDemoPlay{background:#8af0e1;color:#103845}
 .gsi-demo-actions button:disabled{opacity:.42;cursor:not-allowed}
 .gsi-demo-panel :is(a,button):focus-visible,#mapGsiFloodDemoOpen:focus-visible{outline:3px solid #ffe2a1;outline-offset:2px}
-@media(max-width:780px){.gsi-demo-panel{top:auto;left:5px;right:5px;bottom:68px;
- width:calc(100% - 10px);max-height:min(62%,550px);padding:13px}
- .gsi-demo-panel h2{font-size:22px}.gsi-demo-source-count strong{font-size:27px}}
+@media(max-width:780px){
+ /* The map is the primary interaction, not the information card. A compact
+    dock retains one title, its explanation and fixed playback controls.
+    Only an explicit Details tap may expand the panel over more of the map. */
+ .gsi-demo-panel{top:auto;left:7px;right:7px;bottom:68px;
+  width:calc(100% - 14px);height:min(42%,270px);max-height:none;padding:10px 12px}
+ .gsi-demo-panel[data-mobile-expanded="true"]{height:min(72%,550px)}
+ #gsiFloodDemoExpand{display:block}
+ .gsi-demo-top>div>span{display:none}
+ .gsi-demo-top strong{font-size:12px;line-height:1.4}
+ #gsiFloodDemoClose{width:36px;height:36px;font-size:20px}
+ #gsiFloodDemoStatus{font-size:10px;line-height:1.35;margin:4px 0 6px;
+   max-height:28px;overflow:hidden}
+ .gsi-demo-step{margin:3px 0 5px;font-size:11px}
+ .gsi-demo-panel h2{font-size:17px;line-height:1.35;margin:3px 0 6px}
+ #gsiFloodDemoMessage{font-size:12px;line-height:1.5;margin:0 0 8px}
+ /* Counts and raw filter remain available in the explicit expanded view.
+    In compact view, the chosen evidence or D/GSI contrast takes priority. */
+ .gsi-demo-panel[data-mobile-expanded="false"] .gsi-demo-source-count,
+ .gsi-demo-panel[data-mobile-expanded="false"] .gsi-demo-filter{display:none}
+ .gsi-demo-source-count strong{font-size:23px}
+ .gsi-demo-evidence{margin:6px 0;padding:9px}
+ .gsi-demo-evidence h3{font-size:16px}
+ .gsi-demo-actions{margin-top:7px;gap:5px}
+ .gsi-demo-actions button{min-height:38px;padding:5px 2px;font-size:11px}
+ .gsi-demo-pick-hint{top:37%;width:min(290px,calc(100% - 24px));padding:10px}
+ .gsi-demo-pick-hint strong{font-size:15px}
+ .gsi-demo-pick-hint span{font-size:11px}
+ .gsi-demo-pick-hint small{display:none}
+}
 @media(prefers-reduced-motion:reduce){.gsi-demo-progress span{transition:none}}
 
 /* Never leave an unusable empty presenter panel on missing approved GSI input. */
