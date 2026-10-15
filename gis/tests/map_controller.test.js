@@ -2497,6 +2497,102 @@ nagoya.scenarios = [{
   console.log("GSI zoom-out halo georeferenced prefetch: OK");
 }
 
+// Center-first handoff must NOT wait for the slowest peripheral GSI source
+// tile, must preserve exact geography, then progressively reveal loaded tiles.
+// This is deterministic: only test-authored image events, no real hazard data.
+{
+  const allImages=[];
+  class DeferredGsiImage {
+    constructor() {
+      this.complete=false;this.naturalWidth=0;this.style={};
+      this.listeners={load:new Set(),error:new Set()};
+    }
+    set src(url) {this.url=url;allImages.push(this);}
+    get src() {return this.url;}
+    setAttribute(){}
+    addEventListener(name,fn){this.listeners[name]?.add(fn);}
+    removeEventListener(name,fn){this.listeners[name]?.delete(fn);}
+    dispatch(name) {for(const fn of [...this.listeners[name]])fn();}
+    resolve() {this.complete=true;this.naturalWidth=256;this.dispatch("load");}
+    remove() {this.removed=true;}
+  }
+  const fixture=makeContext({
+    protocol:"http:",ImageCtor:DeferredGsiImage,
+    fetchImpl:async()=>({ok:false,status:404,json:async()=>({})})
+  });
+  const {L,context,elements}=fixture, map=L.__map;
+  map.zoom=13;
+  const surface={
+    style:{},children:[],appendChild(item){this.children.push(item);},
+    getBoundingClientRect(){return {left:0,top:0};}
+  };
+  map.createPane=name=>{map.centerHandoffPane=surface;};
+  const originalPane=map.getPane.bind(map);
+  map.getPane=name=>name==="wheelCoverPane"?
+    map.centerHandoffPane:originalPane(name);
+  const createElement=()=>({
+    style:{},children:[],setAttribute(){},
+    appendChild(child){this.children.push(child);},
+    remove(){this.removed=true;}
+  });
+  context.document.createElement=createElement;
+  context.window.__centerHandoff=[];
+  const grid=vm.runInContext("destinationTileGrid({x:512,y:384},12)",context);
+  const center=vm.runInContext(
+    "targetCenterTileIndices(destinationTileGrid({x:512,y:384},12))",context);
+  assert.ok(grid?.tiles.length>center.length && center.length>0,
+    "central tiles are a strict subset of the actual viewport");
+  assert.equal(vm.runInContext("TARGET_CENTER_WAIT_MS",context),180);
+  context.window.__centerHandoffPoint={x:512,y:384};
+  vm.runInContext(
+    "prepareTargetCover(window.__centerHandoffPoint,12,targetCoverGeneration,"+
+    "full => window.__centerHandoff.push(full))",context);
+  assert.equal(allImages.length,grid.tiles.length,
+    "no request beyond one geographically accurate destination tile grid");
+  assert.deepEqual(
+    allImages.slice(0,center.length).map(img=>img.url),
+    center.map(i=>grid.tiles[i].url),
+    "issue official CENTER tile requests before any peripheral tiles");
+  assert.equal(context.window.__centerHandoff.length,0,
+    "withhold native commit while the first visible source tiles are loading");
+  const byUrl=new Map(allImages.map(img=>[img.url,img]));
+  for(const i of center) byUrl.get(grid.tiles[i].url).resolve();
+  assert.deepEqual(context.window.__centerHandoff,[false],
+    "after central tiles load, commit WITHOUT demanding complete peripheral coverage");
+  const entry=vm.runInContext("targetCover",context);
+  assert.ok(entry && surface.children.length===1);
+  assert.equal(entry.node.children.length,grid.tiles.length);
+  assert.ok(entry.node.children.every((img,i)=>img.url===grid.tiles[i].url),
+    "incremental images must keep exact GSI tile positions and identities");
+  for(const i of center) {
+    assert.equal(entry.node.children[i].style.visibility,"visible");
+    assert.equal(entry.node.children[i].style.opacity,"1");
+  }
+  const outer=grid.tiles.findIndex((_,i)=>!center.includes(i));
+  assert.ok(outer>=0);
+  assert.equal(entry.node.children[outer].style.visibility,"hidden",
+    "unloaded peripheral imagery is transparent, never a made-up map tile");
+  byUrl.get(grid.tiles[outer].url).resolve();
+  assert.equal(entry.node.children[outer].style.visibility,"visible",
+    "late official image reveals into the existing geographic atlas");
+  assert.equal(context.window.__centerHandoff.length,1,
+    "center-first handoff must never commit the same wheel event twice");
+  assert.equal(entry.node.children[outer].style.transition,"opacity 90ms ease-out");
+  elements.basemap.checked=false;
+  elements.basemap.listeners.change({target:elements.basemap});
+  assert.equal(vm.runInContext("targetCover===null",context),true,
+    "OFF must immediately discard even partially completed independent atlas");
+  assert.equal(entry.node.removed,true);
+  const later=grid.tiles.findIndex((_,i)=>!center.includes(i) && i!==outer);
+  if(later>=0) {
+    byUrl.get(grid.tiles[later].url).resolve();
+    assert.notEqual(entry.node.children[later].style.visibility,"visible",
+      "late tile after OFF cannot resurrect raster pixels");
+  }
+  assert.ok(allImages.every(img=>/^https:\/\/cyberjapandata[.]gsi[.]go[.]jp\/xyz\/std\/\d+\/\d+\/\d+[.]png$/.test(img.url)));
+  console.log("center-first source-correct progressive GSI handoff: OK");
+}
+
 // Full target-zoom geographic coverage: verify layout in viewport pixels,
 // no interpolated hazard/source features and a strict fallback for missing grid.
 {
