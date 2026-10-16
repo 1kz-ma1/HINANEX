@@ -618,11 +618,26 @@ async function screenshot(page, name) {
       const fallback=document.getElementById("gsiFloodDemoFallback");
       return !content.hidden || !fallback.hidden;
     },null,{timeout:15000});
+    if(await visitor.locator("#gsiFloodDemoContent").isVisible()){
+      const desk=await visitor.evaluate(()=>{
+        const bar=document.getElementById("gsiDemoNarration").getBoundingClientRect();
+        const tools=document.querySelector(".map-toolbar").getBoundingClientRect();
+        const card=document.getElementById("gsiFloodDemoPanel").getBoundingClientRect();
+        return {top:bar.top,bottom:bar.bottom,left:bar.left,right:bar.right,
+          toolbarBottom:tools.bottom,cardLeft:card.left};
+      });
+      assert.ok(desk.top>=desk.toolbarBottom-4 &&
+        desk.bottom<desk.top+180,"desktop narration must remain a slim, readable bar");
+      assert.ok(desk.right<=desk.cardLeft+3,
+        "desktop scene instruction cannot be covered by the source card");
+    }
     let verifiedPinJourney=false;
     if(await visitor.locator("#gsiFloodDemoContent").isVisible()){
       await visitor.locator("#gsiFloodDemoNext").click(); // show verified GSI pins
       await visitor.locator("#gsiFloodDemoNext").click(); // user-selection stage
-      assert.equal(await visitor.locator("#gsiFloodDemoPickHint").isVisible(),true);
+      assert.equal(await visitor.locator("#gsiDemoNarration").isVisible(),true);
+      assert.match(await visitor.locator("#gsiFloodDemoTitle").innerText(),
+        /紫のピンを1つ選んで/,"scene instruction appears under the toolbar");
       assert.equal(await visitor.locator("#gsiFloodDemoNext").isDisabled(),true);
       assert.equal((await visitor.locator("#gsiFloodDemoEvidence").isVisible()),false);
       const proof=await visitor.evaluate(()=>{
@@ -634,10 +649,11 @@ async function screenshot(page, name) {
         return {found:true,
           selected:document.getElementById("gsiFloodDemoName").textContent,
           trace:document.getElementById("gsiFloodDemoTrace").textContent,
-          promptHidden:document.getElementById("gsiFloodDemoPickHint").hidden};
+          narrative:document.getElementById("gsiFloodDemoTitle").textContent};
       });
       assert.equal(proof.found,true,"ready official catalog must render a real GSI pin");
-      assert.equal(proof.promptHidden,true);
+      assert.match(proof.narrative,/選んだピンの公式情報/,
+        "selected verified pin changes upper narration to show what the card contains");
       assert.ok(proof.selected.length>0 && proof.trace.length>0);
       assert.equal(await visitor.locator("#gsiFloodDemoEvidence").isVisible(),true);
       verifiedPinJourney=true;
@@ -689,6 +705,34 @@ async function screenshot(page, name) {
       "play/pause/next/restart controls remain inside the compact dock");
     assert.equal(compact.overflow,"auto",
       "original official evidence should remain independently scrollable");
+    // The four map tabs remain the top landmark. The new explanation lives
+    // immediately below, not inside (or behind) the source/action dock.
+    const narrationGeometry=await visitor.evaluate(()=>{
+      const nav=document.querySelector(".map-toolbar").getBoundingClientRect();
+      const narr=document.getElementById("gsiDemoNarration");
+      const rect=narr.getBoundingClientRect();
+      const panel=document.getElementById("gsiFloodDemoPanel").getBoundingClientRect();
+      const text=narr.querySelector("#gsiFloodDemoTitle").getBoundingClientRect();
+      const css=getComputedStyle(narr);
+      return {shown:!narr.hidden,navBottom:nav.bottom,top:rect.top,bottom:rect.bottom,
+        left:rect.left,right:rect.right,mapRight:document.getElementById("map").getBoundingClientRect().right,
+        panelTop:panel.top,titleHeight:text.height,pointerEvents:css.pointerEvents,
+        ownText:!document.getElementById("gsiFloodDemoPanel")
+          .contains(document.getElementById("gsiFloodDemoMessage"))};
+    });
+    assert.equal(narrationGeometry.shown,true);
+    assert.ok(narrationGeometry.top>=narrationGeometry.navBottom-4 &&
+      narrationGeometry.top<=narrationGeometry.navBottom+35,
+      "mobile narration should sit directly below the 4 map tabs");
+    assert.ok(narrationGeometry.bottom<narrationGeometry.panelTop-8,
+      "narration must leave real tap space for geographic pins between bars");
+    assert.ok(narrationGeometry.titleHeight>10 &&
+      narrationGeometry.right<narrationGeometry.mapRight,
+      "instruction must stay readable and avoid the right zoom controls");
+    assert.equal(narrationGeometry.pointerEvents,"none",
+      "slim explanation cannot intercept real Leaflet marker selection");
+    assert.equal(narrationGeometry.ownText,true,
+      "source panel retains official details/actions, not duplicated instruction");
     const expand=visitor.locator("#gsiFloodDemoExpand");
     assert.equal(await expand.isVisible(),true);
     await expand.click();
@@ -728,7 +772,9 @@ async function screenshot(page, name) {
             "SINGLE_PUBLIC_DEMO_WITH_VERIFIED_GSI_PIN_CHOICE_OR_SAFE_FALLBACK",
             "AUDIENCE_RELOAD_RESHOWS_WELCOME",
             "MOBILE_DOCK_DOES_NOT_OBSCURE_INTERACTIVE_MAP",
-            "MOBILE_EXPANDABLE_SOURCE_EVIDENCE_AND_FIXED_CONTROLS"
+            "MOBILE_EXPANDABLE_SOURCE_EVIDENCE_AND_FIXED_CONTROLS",
+            "SCENE_INSTRUCTION_DIRECTLY_BELOW_MAP_TOOLBAR",
+            "SEPARATE_SOURCE_ACTION_PANEL_FROM_SCENE_NARRATION"
           ],
           current_D_exports_contract_valid: report.all_local_contracts_valid,
           external_GSI_and_flood_raster_requests_blocked: true,
