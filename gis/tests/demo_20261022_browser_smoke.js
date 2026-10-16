@@ -705,8 +705,22 @@ async function screenshot(page, name) {
       "play/pause/next/restart controls remain inside the compact dock");
     assert.equal(compact.overflow,"auto",
       "original official evidence should remain independently scrollable");
-    // The four map tabs remain the top landmark. The new explanation lives
-    // immediately below, not inside (or behind) the source/action dock.
+    // The four map tabs remain the top landmark. Missing verified skhb01
+    // input must fail closed with NO narration. For that isolated CI case,
+    // exercise CSS placement with a clearly labeled layout-only fixture,
+    // never with fabricated official source data or presenter state.
+    if(!compact.controlsVisible){
+      assert.equal(await visitor.locator("#gsiDemoNarration").isVisible(),false,
+        "GSI source unavailable: no misleading scene narration");
+      await visitor.evaluate(()=>{
+        const el=document.getElementById("gsiDemoNarration");
+        el.querySelector("#gsiFloodDemoTitle").textContent=
+          "TEST ONLY / narrow-screen banner placement";
+        el.querySelector("#gsiFloodDemoMessage").textContent=
+          "Offline CSS layout fixture. No official GSI data was verified.";
+        el.hidden=false;
+      });
+    }
     const narrationGeometry=await visitor.evaluate(()=>{
       const nav=document.querySelector(".map-toolbar").getBoundingClientRect();
       const narr=document.getElementById("gsiDemoNarration");
@@ -733,6 +747,11 @@ async function screenshot(page, name) {
       "slim explanation cannot intercept real Leaflet marker selection");
     assert.equal(narrationGeometry.ownText,true,
       "source panel retains official details/actions, not duplicated instruction");
+    if(!compact.controlsVisible){
+      await visitor.evaluate(()=>{
+        document.getElementById("gsiDemoNarration").hidden=true;
+      });
+    }
     const expand=visitor.locator("#gsiFloodDemoExpand");
     assert.equal(await expand.isVisible(),true);
     await expand.click();
