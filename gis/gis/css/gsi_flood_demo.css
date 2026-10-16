@@ -1,4 +1,41 @@
 /* GSI-presenter-only surface. The actual Leaflet/GSI data remains interactive. */
+/* Scene-by-scene reading cue: directly below the four map tabs.
+   This is intentionally separate from the official evidence/actions panel.
+   Pointer events pass through to Leaflet; map markers remain interactive. */
+.gsi-demo-narration{
+ position:absolute;z-index:1540;top:77px;
+ left:max(14px,calc(50% - 375px));
+ right:calc(min(430px,calc(100% - 24px)) + 24px);
+ max-width:780px;box-sizing:border-box;
+ display:flex;gap:12px;align-items:center;
+ padding:11px 15px;border:1px solid #73e7e2;border-radius:12px;
+ background:rgba(6,31,46,.94);color:#f2ffff;
+ box-shadow:0 9px 26px rgba(0,17,28,.46);
+ font-family:system-ui,"Noto Sans JP",sans-serif;pointer-events:none;
+}
+.gsi-demo-narration[hidden]{display:none!important}
+.gsi-demo-narration-phase{font-size:11px;font-weight:900;color:#89f4e9;
+ white-space:nowrap;align-self:flex-start;padding-top:3px}
+.gsi-demo-narration-copy{display:grid;gap:4px;min-width:0}
+.gsi-demo-narration-copy strong{display:block;font-size:15px;font-weight:850;
+ line-height:1.4;overflow-wrap:anywhere}
+.gsi-demo-narration-copy p{font-size:12px;line-height:1.5;color:#d1edf3;margin:0}
+/* Existing flood-raster warning still matters; relocate it so the tour
+   never hides the critical 'unretrieved ≠ no inundation' message. */
+.map-wrap:has(.gsi-demo-narration:not([hidden])) .map-raster-banner{
+ top:172px;left:14px;
+}
+@media(max-width:780px){
+ .gsi-demo-narration{top:73px;left:8px;right:65px;max-width:none;
+  padding:9px 10px;gap:7px;border-radius:10px}
+ .gsi-demo-narration-phase{font-size:10px}
+ .gsi-demo-narration-copy strong{font-size:12px;line-height:1.35}
+ .gsi-demo-narration-copy p{font-size:10.5px;line-height:1.4}
+ .map-wrap:has(.gsi-demo-narration:not([hidden])) .map-raster-banner{
+  top:174px;left:8px;max-width:min(260px,calc(100% - 88px));
+ }
+}
+
 .map-tour-gsi-cta{display:grid;gap:8px;margin:8px 0 12px;padding:14px;
   border-radius:12px;background:linear-gradient(135deg,#092b4d,#1a4b64);
   border:1px solid #7ce4ed}
@@ -7,8 +44,8 @@
 .map-tour-gsi-cta p{color:#d3eaf0;font-size:11px;line-height:1.6;margin:0}
 #mapGsiFloodDemoOpen{padding:12px 8px;min-height:48px;border:0;border-radius:8px;
   background:#7be8e7;color:#062632;font-weight:850;font-size:13px;cursor:pointer}
-.gsi-demo-panel{position:absolute;z-index:1760;top:12px;right:12px;bottom:12px;
- width:min(430px,calc(100% - 24px));box-sizing:border-box;overflow:hidden;
+.gsi-demo-panel{position:absolute;z-index:1760;top:auto;right:12px;bottom:12px;
+ height:min(78%,520px);width:min(380px,calc(100% - 24px));box-sizing:border-box;overflow:hidden;
  display:flex;flex-direction:column;min-height:0;padding:18px;border-radius:15px;background:linear-gradient(155deg,#082d45,#061e2c);
  border:1px solid #62cddc;box-shadow:0 22px 60px #001d35bb;color:#f2faff;
  font-family:system-ui,"Noto Sans JP",sans-serif}
@@ -26,7 +63,7 @@
 #gsiFloodDemoClose{flex:none;width:40px;height:40px;border-radius:50%;border:1px solid #789cb0;
  background:#123e54;color:white;font-size:22px;cursor:pointer}
 #gsiFloodDemoStatus{font-size:11px;line-height:1.6;color:#b1dae6}
-.gsi-demo-step{display:flex;justify-content:space-between;color:#8be9eb;font-size:12px;font-weight:800;margin:14px 0 6px}
+.gsi-demo-step{display:flex;justify-content:space-between;color:#8be9eb;font-size:12px;font-weight:800;margin:9px 0 5px}
 .gsi-demo-panel h2{font-size:clamp(23px,2.6vw,30px);line-height:1.4;margin:6px 0 10px}
 #gsiFloodDemoMessage{font-size:14px;line-height:1.65;color:#daedf3;margin:0 0 12px}
 .gsi-demo-source-count{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
@@ -65,11 +102,10 @@
 .gsi-demo-actions button:disabled{opacity:.42;cursor:not-allowed}
 .gsi-demo-panel :is(a,button):focus-visible,#mapGsiFloodDemoOpen:focus-visible{outline:3px solid #ffe2a1;outline-offset:2px}
 @media(max-width:780px){
- /* The map is the primary interaction, not the information card. A compact
-    dock retains one title, its explanation and fixed playback controls.
-    Only an explicit Details tap may expand the panel over more of the map. */
+ /* Narration is above the map. Mobile dock now contains verified data and
+    fixed controls only; full evidence is available on explicit expansion. */
  .gsi-demo-panel{top:auto;left:7px;right:7px;bottom:68px;
-  width:calc(100% - 14px);height:min(42%,270px);max-height:none;padding:10px 12px}
+  width:calc(100% - 14px);height:min(37%,235px);max-height:none;padding:10px 12px}
  .gsi-demo-panel[data-mobile-expanded="true"]{height:min(72%,550px)}
  #gsiFloodDemoExpand{display:block}
  .gsi-demo-top>div>span{display:none}
@@ -78,8 +114,6 @@
  #gsiFloodDemoStatus{font-size:10px;line-height:1.35;margin:4px 0 6px;
    max-height:28px;overflow:hidden}
  .gsi-demo-step{margin:3px 0 5px;font-size:11px}
- .gsi-demo-panel h2{font-size:17px;line-height:1.35;margin:3px 0 6px}
- #gsiFloodDemoMessage{font-size:12px;line-height:1.5;margin:0 0 8px}
  /* Counts and raw filter remain available in the explicit expanded view.
     In compact view, the chosen evidence or D/GSI contrast takes priority. */
  .gsi-demo-panel[data-mobile-expanded="false"] .gsi-demo-source-count,
@@ -89,10 +123,6 @@
  .gsi-demo-evidence h3{font-size:16px}
  .gsi-demo-actions{margin-top:7px;gap:5px}
  .gsi-demo-actions button{min-height:38px;padding:5px 2px;font-size:11px}
- .gsi-demo-pick-hint{top:37%;width:min(290px,calc(100% - 24px));padding:10px}
- .gsi-demo-pick-hint strong{font-size:15px}
- .gsi-demo-pick-hint span{font-size:11px}
- .gsi-demo-pick-hint small{display:none}
 }
 @media(prefers-reduced-motion:reduce){.gsi-demo-progress span{transition:none}}
 
@@ -104,17 +134,5 @@
 #gsiFloodDemoFallbackD{min-height:49px;padding:10px;border:1px solid #8cd6d7;
  border-radius:9px;background:#69dee1;color:#07333e;font-size:12px;font-weight:850;cursor:pointer}
 
-/* Pause the presentation at the map and invite an actual trusted GSI pin click. */
-.gsi-demo-pick-hint{position:absolute;z-index:1700;top:44%;left:50%;transform:translate(-50%,-50%);
- width:min(330px,calc(100% - 30px));box-sizing:border-box;display:grid;gap:7px;padding:19px;
- background:#073044e8;border:2px solid #8ff5e9;border-radius:15px;color:white;
- box-shadow:0 12px 40px #001724ad;text-align:center;pointer-events:none}
-.gsi-demo-pick-hint[hidden]{display:none!important}
-.gsi-demo-pick-hint strong{font-size:clamp(17px,2.2vw,23px);line-height:1.45;color:#b0fff6}
-.gsi-demo-pick-hint span{font-size:13px;line-height:1.6}
-.gsi-demo-pick-hint small{font-size:10px;line-height:1.5;color:#d1e3ec}
-/* Mobile picker position is set in the main map-first dock media query:
-   safely between the upper map toolbar and bottom presenter. */
-@media(prefers-reduced-motion:reduce){.gsi-demo-pick-hint{animation:none}}
 /* Hidden legacy fallbacks stay hidden even against existing button styles. */
 #gsiFloodDemoFallbackD[hidden]{display:none!important}
