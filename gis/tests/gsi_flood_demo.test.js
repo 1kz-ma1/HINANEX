@@ -6,7 +6,7 @@ const html=fs.readFileSync(path.resolve(__dirname,"../gis/index.html"),"utf8");
 const flush=()=>new Promise(r=>setImmediate(r));
 function mount(reply={state:"ready",source:"GSI_SKHB01_FLOOD",rawDisaster1:1,total:8,shown:5,verifiedTiles:1,requestedTiles:9}){
  const nodes=new Map(),ev=new Map(),timers=new Map(),calls=[],events=new Map();let n=0;
- class Node{constructor(id){this.id=id;this.hidden=["gsiFloodDemoPanel","gsiFloodDemoContent","gsiFloodDemoEvidence","gsiFloodDemoContrast","gsiFloodDemoFuture","gsiFloodDemoOfficial","filterDemoPanel","storyPanel","mapEvidenceReplayPanel"].includes(id);this.textContent="";this.style={};this.disabled=false;this.attrs={};this.listeners={};this.href="";}
+ class Node{constructor(id){this.id=id;this.hidden=["gsiFloodDemoPanel","gsiFloodDemoContent","gsiFloodDemoEvidence","gsiFloodDemoContrast","gsiFloodDemoFuture","gsiFloodDemoOfficial","gsiDemoNarration","filterDemoPanel","storyPanel","mapEvidenceReplayPanel"].includes(id);this.textContent="";this.style={};this.disabled=false;this.attrs={};this.listeners={};this.href="";}
  addEventListener(k,f){this.listeners[k]=f;}click(){this.listeners.click?.({});}
  focus(){doc.activeElement=this;}setAttribute(k,v){this.attrs[k]=String(v);}
  getAttribute(k){return this.attrs[k]??null;}
@@ -47,12 +47,18 @@ test("one public MAIN DEMO, other presenters retained only behind hidden wrapper
  assert.ok(html.indexOf('id="mapGsiFloodDemoOpen"')<html.indexOf('id="mapFilterDemoOpen"'));
  assert.match(html,/class="map-tour-other-demos" hidden/);
  assert.match(html,/id="mapAudienceIntroStart"[^>]*>▶ デモを開始する/);
- assert.match(html,/id="gsiFloodDemoPickHint"[^>]*hidden/);
- assert.match(html,/gsi_flood_demo[.]js[?]v=mobile-dock-20261015-v1/);
+ assert.match(html,/id="gsiDemoNarration"[^>]*aria-live="polite"[^>]*hidden/);
+ assert.doesNotMatch(html,/id="gsiFloodDemoPickHint"/);
+ assert.match(html,/id="gsiFloodDemoTitle"/);
+ assert.equal((html.match(/id="gsiFloodDemoTitle"/g)||[]).length,1);
+ assert.match(html,/gsi_flood_demo[.]js[?]v=top-narration-20261016-v1/);
  assert.match(html,/公式掲載 ≠ 現在安全・開設中・避難推奨/);
 });
 test("mobile presenter defaults to a compact dock, retains playback controls, and expands only on explicit request",async()=>{
  const m=mount();await m.open();
+ assert.equal(m.get("gsiDemoNarration").hidden,false,
+   "scene explanation belongs in a separate banner, not the evidence card");
+ assert.match(m.get("gsiFloodDemoTitle").textContent,/公式指定と、地域の施設一覧/);
  assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-mobile-expanded"),"false");
  assert.equal(m.get("gsiFloodDemoActions").hidden,false,
    "play/next controls are fixed outside scrollable evidence content");
@@ -63,8 +69,11 @@ test("mobile presenter defaults to a compact dock, retains playback controls, an
  m.tick(7);m.tick(12); // scene 3: wait for an actual source pin
  assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-mobile-expanded"),"false",
    "pin selection automatically frees map surface, even from expanded details");
- assert.equal(m.get("gsiFloodDemoPickHint").hidden,false);
+ assert.equal(m.get("gsiDemoNarration").hidden,false);
+ assert.match(m.get("gsiFloodDemoTitle").textContent,/紫のピンを1つ選んで/);
+ assert.match(m.get("gsiFloodDemoMessage").textContent,/右側（スマホでは下部）/);
  m.select();
+ assert.match(m.get("gsiFloodDemoTitle").textContent,/選んだピンの公式情報/);
  assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-mobile-expanded"),"false");
  m.get("gsiFloodDemoExpand").click();
  assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-mobile-expanded"),"true",
@@ -72,6 +81,8 @@ test("mobile presenter defaults to a compact dock, retains playback controls, an
  m.get("gsiFloodDemoClose").click();
  assert.equal(m.get("gsiFloodDemoActions").hidden,true);
  assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-mobile-expanded"),"false");
+ assert.equal(m.get("gsiDemoNarration").hidden,true,
+   "closing the evidence card also removes the story from the map");
 });
 
 test("43 playback seconds + real audience-selected GSI pin -> exact source proof",async()=>{
@@ -79,14 +90,16 @@ test("43 playback seconds + real audience-selected GSI pin -> exact source proof
  m.tick(7);assert.ok(m.calls.includes("show"));
  m.tick(12);
  assert.equal(m.timers.size,0,"interactive scene must stop the clock");
- assert.equal(m.get("gsiFloodDemoPickHint").hidden,false);
+ assert.equal(m.get("gsiDemoNarration").hidden,false);
+ assert.match(m.get("gsiFloodDemoTitle").textContent,/紫のピンを1つ選んで/);
  assert.equal(m.calls.includes("inspect"),false,
    "never preselect first official place for an audience visitor");
  assert.equal(m.get("gsiFloodDemoNext").disabled,true);
  m.rejectedPin();
  assert.equal(m.timers.size,0,"non-verified input cannot unlock the scene");
  m.select("feature_index=1");
- assert.equal(m.get("gsiFloodDemoPickHint").hidden,true);
+ assert.equal(m.get("gsiDemoNarration").hidden,false);
+ assert.match(m.get("gsiFloodDemoTitle").textContent,/選んだピンの公式情報/);
  assert.ok(m.calls.includes("inspect"));
  assert.equal(m.get("gsiFloodDemoName").textContent,"選択した公式掲載地点");
  assert.equal(m.get("gsiFloodDemoTrace").textContent,"feature_index=1");
@@ -100,6 +113,8 @@ test("43 playback seconds + real audience-selected GSI pin -> exact source proof
  assert.equal(m.get("gsiFloodDemoFuture").hidden,true,
    "future concept is not part of the public source-evidence demo");
  assert.equal(m.get("gsiFloodDemoPhase").textContent,"04 / 04");
+ assert.match(m.get("gsiFloodDemoTitle").textContent,/未判定/);
+ assert.match(m.get("gsiFloodDemoMessage").textContent,/施設同一性は未照合/);
  assert.equal(m.get("gsiFloodDemoProgress").style.width,"100%");
 });
 test("source absent or incorrect raw value refuses to animate",async()=>{
@@ -109,6 +124,8 @@ test("source absent or incorrect raw value refuses to animate",async()=>{
   assert.equal(m.timers.size,0);
   assert.match(m.get("gsiFloodDemoStatus").textContent,/確認できません/);
   assert.equal(m.get("gsiFloodDemoFallback").hidden,false);
+  assert.equal(m.get("gsiDemoNarration").hidden,true,
+    "unverified official input must not show a misleading scene explanation");
   assert.match(m.get("gsiFloodDemoFallbackReason").textContent,/未確認/);
   m.get("gsiFloodDemoClose").click();
  }

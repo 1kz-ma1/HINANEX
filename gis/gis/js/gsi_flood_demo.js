@@ -2,22 +2,25 @@
   "use strict";
   // GSI-only presenter. Never invents or joins an actual D building identity.
   const get=id=>document.getElementById(id);
-  const panel=get("gsiFloodDemoPanel"),opener=get("mapGsiFloodDemoOpen");
+  const panel=get("gsiFloodDemoPanel"),opener=get("mapGsiFloodDemoOpen"),
+        narration=get("gsiDemoNarration");
   const api=window.HINANEX_GSI_FLOOD_PRESENTER;
   const timings=[7,12,12,12]; // 43 seconds plus unbounded human pin selection
   let sequence=0,state="idle",clock=null,scene=0,remaining=7,elapsed=0,
       data=null,item=null,dStatus=null,restore=true;
+  // These are map-watching cues, not a duplicate source explanation.
+  // GSI's published designation must never be presented as live safety data.
   const titles=[
-    "洪水の指定は、どの資料で確認する？",
-    "洪水用に指定された掲載地点だけを表示",
-    "お好きな紫色のピンを選んでください",
-    "確認できたことと、未判定を分ける"
+    "洪水の公式指定と、地域の施設一覧は別の資料です。",
+    "地図の紫のピンが、検証できた公式掲載地点です。",
+    "紫のピンを1つ選んで、出典を確認してください。",
+    "公式指定が確認できても、施設の「未判定」は残ります。"
   ];
   const explanations=[
-    "地域の避難施設の一覧と、国土地理院の災害種別ごとの指定緊急避難場所は別の情報源です。",
-    "GSIが洪水向けに公開したskhb01だけを地図に表示。これは全避難所からの安全ランキングではありません。",
-    "地図上の紫のピンをタップ／クリックしてください。選んだ地点の名称・住所・公式原文を表示します。",
-    "GSIで指定を確認できても、施設情報の未判定を勝手に確定できません。両データは未照合です。"
+    "まず国土地理院が公開する洪水用の指定緊急避難場所を確認します。",
+    "検証済みGSIデータの範囲だけを表示中。すべての施設や現在の安全性を示すものではありません。",
+    "選んだ地点の名称・住所・原データは、右側（スマホでは下部）のカードに表示します。",
+    "HINANEXは、確認済みの根拠と未判定の情報を区別します。両資料の施設同一性は未照合です。"
   ];
   function stopClock(){if(clock!==null)window.clearInterval(clock);clock=null;}
   let mobileExpanded=false;
@@ -45,6 +48,7 @@
       UNVERIFIED_SOURCE:"この地点のGSI検証済みデータを読み込めません。配信・検証状態の確認が必要です。"
     };
     writeStatus(messages[reason] || "GSI公式データの検証結果を確認できません。再生を停止しました。");
+    narration.hidden=true;
     get("gsiFloodDemoFallback").hidden=false;
     get("gsiFloodDemoFallbackReason").textContent=
       "GSI洪水指定の掲載情報は未確認です。現在の安全性は判断できません。"+
@@ -54,16 +58,20 @@
   function render(){
     if(!data)return;
     panel.setAttribute("data-scene",String(scene+1));
+    narration.hidden=false;
+    narration.setAttribute("data-scene",String(scene+1));
+    const awaitingPin=scene===2&&!item;
     get("gsiFloodDemoPhase").textContent=String(scene+1).padStart(2,"0")+" / 04";
     get("gsiFloodDemoClock").textContent=state==="complete"?"終了":
       scene===2&&!item?"操作待ち":remaining+"秒";
-    get("gsiFloodDemoTitle").textContent=titles[scene];
-    get("gsiFloodDemoMessage").textContent=explanations[scene];
+    get("gsiFloodDemoTitle").textContent=scene===2&&item
+      ? "選んだピンの公式情報をカードで確かめましょう。" : titles[scene];
+    get("gsiFloodDemoMessage").textContent=scene===2&&item
+      ? "掲載地点の名前・住所・元データを確認できます。現在の安全性や開設を示すものではありません。"
+      : explanations[scene];
     get("gsiFloodDemoCount").textContent=String(data.total);
     get("gsiFloodDemoShown").textContent=String(data.shown);
-    const awaitingPin=scene===2&&!item;
     get("gsiFloodDemoEvidence").hidden=scene<2||!item;
-    get("gsiFloodDemoPickHint").hidden=!awaitingPin;
     get("gsiFloodDemoContrast").hidden=scene!==3;
     get("gsiFloodDemoFuture").hidden=true; // archived, outside public four-scene demo
     if(item){
@@ -144,7 +152,8 @@
     if(panel.hidden)return;
     ++sequence;stopClock();state="idle";
     api?.end(restore);
-    panel.hidden=true;get("gsiFloodDemoActions").hidden=true;
+    panel.hidden=true;narration.hidden=true;
+    get("gsiFloodDemoActions").hidden=true;
     data=null;item=null;dStatus=null;
     setMobileExpanded(false);
     opener.setAttribute("aria-expanded","false");
@@ -162,7 +171,8 @@
     if(!get("mapEvidenceReplayPanel").hidden)get("mapEvidenceReplayClose").click();
     get("mapTourClose").click();
     const token=++sequence;
-    panel.hidden=false;opener.setAttribute("aria-expanded","true");
+    panel.hidden=false;narration.hidden=true;
+    opener.setAttribute("aria-expanded","true");
     setMobileExpanded(false);
     get("gsiFloodDemoClose").focus();
     get("gsiFloodDemoContent").hidden=true;
