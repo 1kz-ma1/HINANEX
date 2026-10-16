@@ -293,8 +293,25 @@ async function screenshot(page, name) {
     // The center-first official GSI handoff may take up to 180ms AFTER
     // the 70ms wheel-idle window. A fixed 250ms sleep races the boundary
     // under loaded CI; wait for the actual single native commit instead.
-    await page.waitForFunction(z=>map.getZoom()>z,wheelPreview.before,
-      {timeout:3000});
+    try {
+      await page.waitForFunction(z=>map.getZoom()>z,wheelPreview.before,
+        {timeout:3000});
+    }catch(error){
+      const diagnostic=await page.evaluate(()=>({
+        currentZoom:map.getZoom(), minZoom:map.getMinZoom(),
+        maxZoom:map.getMaxZoom(), pendingWheelPixels,
+        pendingPoint:pendingWheelPoint, previewActive:!!wheelPreview,
+        wheelTimerActive:wheelGestureTimer!==null,
+        currentGeneration:targetCoverGeneration,
+        coverActive:!!targetCover, singleTargetWheel,
+        wheelCommitCalls:window.__wheelZoomCalls,
+        mapAnimating:!!map._animatingZoom,
+        gsiNarrationHidden:document.getElementById("gsiDemoNarration").hidden,
+        gestureSettings:window.HINANEX_MAP_GESTURES.getSettings()
+      }));
+      throw new Error("Wheel zoom did not commit (real Leaflet invariant): "+
+        JSON.stringify(diagnostic)+"; "+error.message);
+    }
     const afterWheel = await page.evaluate(() => map.getZoom());
     assert.ok(afterWheel>wheelPreview.before,
       "final wheel target must zoom into the map");
