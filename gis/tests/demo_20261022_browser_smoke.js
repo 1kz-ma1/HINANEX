@@ -622,6 +622,12 @@ async function screenshot(page, name) {
     await visitor.waitForFunction(()=>!!window.HINANEX_GSI_FLOOD_PRESENTER);
     assert.equal(await visitor.locator("#mapAudienceIntro").isVisible(),true,
       "distribution URL must show the welcome card in a fresh session");
+    const introCopy=await visitor.locator("#mapAudienceIntro").innerText();
+    assert.match(introCopy,/データ基盤が、どこまで実装されたか/,
+      "visitors should understand the purpose of the demo before starting");
+    assert.match(introCopy,/未判定.*推測で埋めない/s);
+    assert.match(introCopy,/避難先の安全判断・推奨はまだ行いません/,
+      "foundation completion must not be mistaken for live evacuation guidance");
     assert.equal(await visitor.locator("#gsiFloodDemoPanel").isVisible(),false,
       "a shared URL never autoplays a scenario or requests GPS");
     assert.equal(await visitor.locator(".map-tour-other-demos").isVisible(),false,

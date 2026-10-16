@@ -346,6 +346,8 @@ footer{display:none}
 .map-share-heading,.map-audience-intro-head{display:flex;justify-content:space-between;align-items:start;gap:9px}
 .map-share-heading strong,.map-audience-intro-head strong{font-size:15px}
 .map-share-heading p,.map-share-note,.map-audience-intro p{font-size:11px;line-height:1.55;color:var(--muted);margin:7px 0 11px}
+/* State the demo's scope before a visitor starts without growing a new card. */
+.map-audience-intro-purpose strong{display:block;font-size:13px;line-height:1.5;color:#b0faf0;font-weight:850}
 .map-share-close,.map-audience-intro-head button{
   flex-shrink:0;width:42px;height:42px;border-radius:50%;
   border:1px solid var(--line-strong);background:var(--surface-raised);

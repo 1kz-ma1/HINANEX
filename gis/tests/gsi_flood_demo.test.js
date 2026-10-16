@@ -47,6 +47,9 @@ test("one public MAIN DEMO, other presenters retained only behind hidden wrapper
  assert.ok(html.indexOf('id="mapGsiFloodDemoOpen"')<html.indexOf('id="mapFilterDemoOpen"'));
  assert.match(html,/class="map-tour-other-demos" hidden/);
  assert.match(html,/id="mapAudienceIntroStart"[^>]*>▶ デモを開始する/);
+ assert.match(html,/将来の避難支援につながるデータ基盤が、どこまで実装されたか/);
+ assert.match(html,/検証できたGSI公式掲載地点を出典までたどり/);
+ assert.match(html,/避難先の安全判断・推奨はまだ行いません/);
  assert.match(html,/id="gsiDemoNarration"[^>]*aria-live="polite"[^>]*hidden/);
  assert.doesNotMatch(html,/id="gsiFloodDemoPickHint"/);
  assert.match(html,/id="gsiFloodDemoTitle"/);
@@ -58,7 +61,8 @@ test("mobile presenter defaults to a compact dock, retains playback controls, an
  const m=mount();await m.open();
  assert.equal(m.get("gsiDemoNarration").hidden,false,
    "scene explanation belongs in a separate banner, not the evidence card");
- assert.match(m.get("gsiFloodDemoTitle").textContent,/公式指定と、地域の施設一覧/);
+ assert.match(m.get("gsiFloodDemoTitle").textContent,/根拠を扱うデータ基盤/);
+ assert.match(m.get("gsiFloodDemoMessage").textContent,/出典を追い、未判定を推測で埋めない/);
  assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-mobile-expanded"),"false");
  assert.equal(m.get("gsiFloodDemoActions").hidden,false,
    "play/next controls are fixed outside scrollable evidence content");
