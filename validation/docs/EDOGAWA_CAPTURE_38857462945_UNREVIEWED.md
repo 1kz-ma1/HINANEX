@@ -1,3 +1,5 @@
+> **2026-10-19 later operator checkpoint:** The actual merged C two-archive CLI has since run on the Oct14/Oct16 originals. Its resulting report SHA256 `ec7215818b79f0bd8680470e650103c2f09ddf928807819a8c5ea7886560f418` matches the supplied receipt; independent report/receipt/raw data consistency **16/16 PASS**. Changed original sources **1/7**, human site approvals **0**, new flood classifications **0**. Full current status and outstanding A/C signoffs: [formal C report handoff](EDOGAWA_REAL_C_COMPARATOR_HANDOFF_20261019.md). Earlier “NOT TESTED” statements below belong to the prior evidence checkpoint, not the current operator state.
+
 # C source review checkpoint — actual Edogawa capture run 38857462945
 
 **Status (2026-10-19): SOURCE_BYTES_AND_CONTENT_SHAPE_PASS / TWO_ACTUAL_RUN_SHA_DELTA_RECHECKED / HUMAN_SOURCE_REVIEW_PENDING.**
