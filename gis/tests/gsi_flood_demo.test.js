@@ -4,7 +4,7 @@ const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm");
 const code=fs.readFileSync(path.resolve(__dirname,"../gis/js/gsi_flood_demo.js"),"utf8");
 const html=fs.readFileSync(path.resolve(__dirname,"../gis/index.html"),"utf8");
 const flush=()=>new Promise(r=>setImmediate(r));
-function mount(reply={state:"ready",source:"GSI_SKHB01_FLOOD",rawDisaster1:1,total:8,shown:5,verifiedTiles:1,requestedTiles:9}){
+function mount(reply={state:"ready",source:"GSI_SKHB01_FLOOD",rawDisaster1:1,total:8,shown:5,verifiedTiles:1,requestedTiles:9},mobile=false){
  const nodes=new Map(),ev=new Map(),timers=new Map(),calls=[],events=new Map();let n=0;
  class Node{constructor(id){this.id=id;this.hidden=["gsiFloodDemoPanel","gsiFloodDemoContent","gsiFloodDemoEvidence","gsiFloodDemoContrast","gsiFloodDemoFuture","gsiFloodDemoOfficial","gsiDemoNarration","filterDemoPanel","storyPanel","mapEvidenceReplayPanel"].includes(id);this.textContent="";this.style={};this.disabled=false;this.attrs={};this.listeners={};this.href="";}
  addEventListener(k,f){this.listeners[k]=f;}click(){this.listeners.click?.({});}
@@ -28,6 +28,7 @@ function mount(reply={state:"ready",source:"GSI_SKHB01_FLOOD",rawDisaster1:1,tot
  compareD(){calls.push("compare");return {state:"separate-source",mapped:152,unclassified:152};},
  halt(){calls.push("halt");},end(b){calls.push("end:"+b);}};
  const win={HINANEX_GSI_FLOOD_PRESENTER:api,
+ matchMedia(q){assert.equal(q,"(max-width: 780px)");return {matches:mobile};},
  addEventListener(name,cb){events.set(name,cb);},
  setInterval(f,ms){assert.equal(ms,1000);timers.set(++n,f);return n;},
  clearInterval(k){timers.delete(k);}};
@@ -54,41 +55,45 @@ test("one public MAIN DEMO, other presenters retained only behind hidden wrapper
  assert.doesNotMatch(html,/id="gsiFloodDemoPickHint"/);
  assert.match(html,/id="gsiFloodDemoTitle"/);
  assert.equal((html.match(/id="gsiFloodDemoTitle"/g)||[]).length,1);
- assert.match(html,/gsi_flood_demo[.]js[?]v=top-narration-20261016-v1/);
+ assert.match(html,/gsi_flood_demo[.]js[?]v=mobile-only-narration-20261019-v1/);
+  assert.match(html,/id="gsiDemoMobileToggle"[^>]*type="button"/);
+  assert.match(html,/id="gsiDemoMobileClose"[^>]*type="button"/);
  assert.match(html,/公式掲載 ≠ 現在安全・開設中・避難推奨/);
 });
-test("mobile presenter defaults to a compact dock, retains playback controls, and expands only on explicit request",async()=>{
- const m=mount();await m.open();
- assert.equal(m.get("gsiDemoNarration").hidden,false,
-   "scene explanation belongs in a separate banner, not the evidence card");
- assert.match(m.get("gsiFloodDemoTitle").textContent,/根拠を扱うデータ基盤/);
- assert.match(m.get("gsiFloodDemoMessage").textContent,/出典を追い、未判定を推測で埋めない/);
- assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-mobile-expanded"),"false");
- assert.equal(m.get("gsiFloodDemoActions").hidden,false,
-   "play/next controls are fixed outside scrollable evidence content");
- assert.equal(m.get("gsiFloodDemoExpand").getAttribute("aria-expanded"),"false");
- m.get("gsiFloodDemoExpand").click();
- assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-mobile-expanded"),"true");
- assert.equal(m.get("gsiFloodDemoExpand").textContent,"地図に戻る");
- m.tick(7);m.tick(12); // scene 3: wait for an actual source pin
- assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-mobile-expanded"),"false",
-   "pin selection automatically frees map surface, even from expanded details");
+test("mobile keeps only an upper narration with working pause and close",async()=>{
+ const m=mount(undefined,true);await m.open();
  assert.equal(m.get("gsiDemoNarration").hidden,false);
- assert.match(m.get("gsiFloodDemoTitle").textContent,/紫のピンを1つ選んで/);
- assert.match(m.get("gsiFloodDemoMessage").textContent,/右側（スマホでは下部）/);
+ assert.equal(m.get("gsiDemoNarration").getAttribute("data-source-state"),"verified");
+ assert.equal(m.get("gsiDemoMobileToggle").textContent,"一時停止");
+ m.get("gsiDemoMobileToggle").click();
+ assert.equal(m.timers.size,0);
+ assert.equal(m.get("gsiDemoMobileToggle").textContent,"再生");
+ assert.ok(m.calls.includes("halt"));
+ m.get("gsiDemoMobileToggle").click();
+ assert.equal(m.timers.size,1);
+ m.tick(7);m.tick(12);
+ assert.equal(m.timers.size,0,"verified pin selection must remain mandatory");
+ assert.equal(m.get("gsiDemoMobileToggle").disabled,true);
+ assert.equal(m.get("gsiDemoMobileToggle").textContent,"ピンを選択");
  m.select();
- assert.match(m.get("gsiFloodDemoTitle").textContent,/選んだピンの公式情報/);
- assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-mobile-expanded"),"false");
- m.get("gsiFloodDemoExpand").click();
- assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-mobile-expanded"),"true",
-   "original name/address/trace remain available to inspect");
- m.get("gsiFloodDemoClose").click();
- assert.equal(m.get("gsiFloodDemoActions").hidden,true);
- assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-mobile-expanded"),"false");
- assert.equal(m.get("gsiDemoNarration").hidden,true,
-   "closing the evidence card also removes the story from the map");
+ assert.match(m.get("gsiFloodDemoTitle").textContent,/地図で確認/);
+ assert.equal(m.get("gsiDemoMobileToggle").disabled,false);
+ m.get("gsiDemoMobileClose").click();
+ assert.equal(m.get("gsiDemoNarration").hidden,true);
+ assert.equal(m.get("gsiFloodDemoPanel").hidden,true);
+ assert.equal(m.timers.size,0);
 });
-
+test("mobile missing official GSI keeps explicit fail-closed upper message",async()=>{
+ const m=mount({state:"unavailable",reason:"UNVERIFIED_SOURCE"},true);await m.open();
+ assert.equal(m.get("gsiFloodDemoFallback").hidden,false);
+ assert.equal(m.get("gsiDemoNarration").hidden,false);
+ assert.equal(m.get("gsiDemoNarration").getAttribute("data-source-state"),"unavailable");
+ assert.match(m.get("gsiFloodDemoTitle").textContent,/確認できません/);
+ assert.match(m.get("gsiFloodDemoMessage").textContent,/安全であることを意味しません/);
+ assert.equal(m.get("gsiDemoMobileToggle").hidden,true);
+ m.get("gsiDemoMobileClose").click();
+ assert.equal(m.get("gsiDemoNarration").hidden,true);
+});
 test("43 playback seconds + real audience-selected GSI pin -> exact source proof",async()=>{
  const m=mount();await m.open();assert.equal(m.get("gsiFloodDemoContent").hidden,false);
  m.tick(7);assert.ok(m.calls.includes("show"));
@@ -128,8 +133,8 @@ test("source absent or incorrect raw value refuses to animate",async()=>{
   assert.equal(m.timers.size,0);
   assert.match(m.get("gsiFloodDemoStatus").textContent,/確認できません/);
   assert.equal(m.get("gsiFloodDemoFallback").hidden,false);
-  assert.equal(m.get("gsiDemoNarration").hidden,true,
-    "unverified official input must not show a misleading scene explanation");
+  assert.equal(m.get("gsiDemoNarration").getAttribute("data-source-state"),"unavailable");
+   assert.match(m.get("gsiFloodDemoTitle").textContent,/確認できません/);
   assert.match(m.get("gsiFloodDemoFallbackReason").textContent,/未確認/);
   m.get("gsiFloodDemoClose").click();
  }
