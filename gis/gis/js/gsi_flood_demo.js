@@ -51,6 +51,7 @@
   }
   function writeStatus(s){get("gsiFloodDemoStatus").textContent=s;}
   function unavailable(reason) {
+    stopClock();state="unavailable"; // Fail closed for both desktop fallback and mobile controls.
     // A missing/invalid official catalog is never interpreted as "no
     // designated sites". Offer the already working D-only presentation,
     // clearly labeled as a different source and a different capability.
