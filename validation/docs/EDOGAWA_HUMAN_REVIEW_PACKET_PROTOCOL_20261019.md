@@ -1,3 +1,5 @@
+> **2026-10-19 current operating mode — ONE human owner + AI:** A/C/D are logical system responsibilities, not different people. The prior 7+3 human-entry form described below remains available for detailed source audits, but there is now a single-operator four-topic review packet that references the original seven A sources and separately checked C comparisons, rather than requiring fictitious A-versus-C human identities. See [single-owner workflow](SINGLE_OPERATOR_4_DECISION_WORKFLOW_20261019.md) and `validation/validation/build_single_operator_review.py`. Even one owner documenting all four items does **not** unlock D, grant joins, or establish hazard status. Scope-specific authorization and external authenticated signoff are separate.
+
 # 江戸川区原本：A/C 人間レビュー記録プロトコル（2026-10-19）
 
 **状態：C技術比較 PASS／A・C人間レビュー未承認／D引継ぎ HOLD。** これは新しい承認ロジックではなく、既存の [2実取得回比較仕様](FINAL_SOURCE_RECAPTURE_20261016.md) と [C正式JSON引継ぎ](EDOGAWA_REAL_C_COMPARATOR_HANDOFF_20261019.md) に対する**署名・判断材料を揃えるための書類検査**。防災施設の同一性、指定状況、現在の開設・安全性は判定しない。
