@@ -88,6 +88,15 @@ def _one_summary(export: object, source: Path) -> dict:
             missing_coords += 1
     if len(ids) != len(set(ids)):
         raise ReplayComparisonError("Duplicate location record identifiers")
+    # Stable per-record content fingerprints: unchanged IDs/record counts cannot
+    # conceal changed coordinates, names, addresses, or original raw fields.
+    ordered_records = sorted(dataset.records, key=lambda item: item["id"])
+    location_records_sha256 = _digest_object(ordered_records)
+    location_coordinates_sha256 = _digest_object([
+        {"id": item["id"], "latitude": item.get("latitude"),
+         "longitude": item.get("longitude")}
+        for item in ordered_records
+    ])
     evidence = [e.model_dump(mode="json") for ds in export.datasets for e in ds.evidence]
     if not evidence:
         raise ReplayComparisonError("RegionExport contains no source Evidence")
@@ -109,6 +118,12 @@ def _one_summary(export: object, source: Path) -> dict:
             "facility_status_counts": dict(sorted(counts.items())),
             "join_status_counts": dict(sorted(joins.items())),
             "record_count": len(scenario.facility_results),
+            # Aggregated UNKNOWN counts cannot detect swapping two individual
+            # facility results. Hash full, ID-sorted per-facility facts instead.
+            "facility_results_sha256": _digest_object(sorted(
+                (item.model_dump(mode="json") for item in scenario.facility_results),
+                key=lambda item: item["facility_id"],
+            )),
         }
     return {
         "artifact_sha256": _sha256(source),
@@ -116,6 +131,8 @@ def _one_summary(export: object, source: Path) -> dict:
         "schema_version": export.meta.schema_version,
         "location_records": len(ids),
         "location_record_ids_sha256": _digest_object(sorted(ids)),
+        "location_records_sha256": location_records_sha256,
+        "location_coordinates_sha256": location_coordinates_sha256,
         "missing_location_coordinates": missing_coords,
         "source_evidence_count": len(evidence),
         "source_evidence_metadata_sha256": _digest_object(sorted(evidence, key=lambda e: json.dumps(e, sort_keys=True))),
@@ -126,6 +143,33 @@ def _one_summary(export: object, source: Path) -> dict:
         "scenarios": dict(sorted(scenarios.items())),
         "generated_at": export.meta.generated_at.isoformat(),
     }
+
+
+def _status_transitions(before_export: object, after_export: object) -> dict:
+    """Aggregate status changes by *same facility ID* without publishing IDs."""
+    previous = {
+        scenario.scenario_id: {item.facility_id: item.status.value
+                               for item in scenario.facility_results}
+        for scenario in before_export.scenarios
+    }
+    current = {
+        scenario.scenario_id: {item.facility_id: item.status.value
+                               for item in scenario.facility_results}
+        for scenario in after_export.scenarios
+    }
+    transitions = {}
+    for scenario_id in sorted(set(previous) | set(current)):
+        earlier = previous.get(scenario_id, {})
+        later = current.get(scenario_id, {})
+        changed = Counter()
+        for facility_id in set(earlier) | set(later):
+            old = earlier.get(facility_id, "ABSENT")
+            new = later.get(facility_id, "ABSENT")
+            if old != new:
+                changed[f"{old}->{new}"] += 1
+        if changed:
+            transitions[scenario_id] = dict(sorted(changed.items()))
+    return transitions
 
 
 def compare_replays(before: Path, after: Path, report: Path | None = None) -> dict:
@@ -141,11 +185,15 @@ def compare_replays(before: Path, after: Path, report: Path | None = None) -> di
             raise ReplayComparisonError(f"{key}: source region identity changed")
         checks = {}
         for field in ("schema_version", "location_records", "location_record_ids_sha256",
+                      "location_records_sha256", "location_coordinates_sha256",
                       "missing_location_coordinates", "source_evidence_count", "source_evidence_metadata_sha256",
                       "assessment_metric_scores", "capability_statuses", "gap_count", "recommendation_count",
                       "scenarios", "artifact_sha256"):
             if old[field] != new[field]:
                 checks[field] = {"before": old[field], "after": new[field]}
+        transitions = _status_transitions(earlier[key][0], later[key][0])
+        if transitions:
+            checks["facility_status_transitions"] = transitions
         regions[key] = {"before": old, "after": new, "observed_changes": checks}
     return {
         "status": "UNREVIEWED_REQUIRES_INDEPENDENT_C_AUDIT",
@@ -159,6 +207,7 @@ def compare_replays(before: Path, after: Path, report: Path | None = None) -> di
             "Export artifact SHA256 is NOT original publisher source SHA256",
             "Source Evidence fields are metadata; raw-row and source-version checks require independent C review",
             "Numeric counts and status changes are observations, never hazard or safety approvals",
+            "Per-facility SHA256 fingerprints and status transitions flag review leads, not verified physical-site identities",
             "This read-only report never certifies A/C human signoffs or authorizes data deployment",
         ],
     }
