@@ -1,7 +1,7 @@
 # C source review checkpoint — actual Edogawa capture run 38857462945
 
-**Status (2026-10-19): SOURCE_BYTES_AND_CONTENT_SHAPE_PASS / HUMAN_SOURCE_REVIEW_PENDING / TWO_RUN_DELTA_NOT_TESTED.**
-This is a reproducibility checkpoint for final-presentation Phase 1, not certification of publisher identity, source-effective dates, individual physical facilities, disaster suitability, or whether a destination is currently open. See #264 (A), #265 (C), #268 (combined).
+**Status (2026-10-19): SOURCE_BYTES_AND_CONTENT_SHAPE_PASS / TWO_ACTUAL_RUN_SHA_DELTA_RECHECKED / HUMAN_SOURCE_REVIEW_PENDING.**
+This is a two-capture source reproducibility checkpoint for final-presentation Phase 1, not certification of publisher identity, source-effective dates, individual physical facilities, disaster suitability, or whether a destination is currently open. See #264 (A), #265 (C), #268 (combined).
 
 ## Exact provenance
 
@@ -12,7 +12,7 @@ This is a reproducibility checkpoint for final-presentation Phase 1, not certifi
 - Artifacts expire **2026-10-23T05:46:04Z** and **2026-10-23T05:46:03Z** respectively (unless preserved privately beforehand). **Do not commit captured raw bytes to Git/Render.**
 - Independently, local review of the downloaded original archive confirmed each payload matches its manifest SHA256/byte size, aggregate original bytes **229,156**. No unexpected archive files or missing source payloads were seen.
 
-## Original-byte inventory — exact run, not authoritative source-version signoff
+## Original-byte inventory — 2026-10-16 run, not authoritative source-version signoff
 
 | C source key | Bytes | SHA256 of original response |
 |---|---:|---|
@@ -65,7 +65,10 @@ The authoritative manifest **still has `official_publication_or_effective_date: 
   `publisher_authenticity_independently_attested=false` in the isolated verification output.
 - Distinguish municipal `水害時待避施設` rows, municipal locations CSV and GSI `skhb01` (洪水指定緊急避難場所): **no automatic join** and **no claim of open/currently safe destinations**.
 - Official source-content/version approval and old/current site identity remain A/C manual tasks (#264).
-- **No second real archived capture** was found in the current Actions workflow history as of 2026-10-19. Thus the new comparator in #267 **has not run on two distinct actual snapshots**, and no real old→new SHA deltas can be claimed. To enable that report, obtain a newer independent capture before the earlier seven-day artifact expires, keep both archives separately outside Git, and run the [read-only comparison procedure](FINAL_SOURCE_RECAPTURE_20261016.md).
+- A prior real hosted capture **was found in existing program Issue #268** (the previous review had overlooked it): [Actions #38505232094](https://github.com/1kz-ma1/HINANEX/actions/runs/38505232094), 2026-10-14T03:14:55.694183Z, commit `4559b06c46372e22edca388450606128047f099f`. Its [originals artifact #11867253502](https://github.com/1kz-ma1/HINANEX/actions/runs/38505232094/artifacts/11867253502) expires **2026-10-21T03:14:57Z** (so secure the private copy promptly); [C content report #11866799523](https://github.com/1kz-ma1/HINANEX/actions/runs/38505232094/artifacts/11866799523) expires one second earlier.
+- Both downloaded original ZIP archives were independently rechecked: all seven payload SHA256 hashes/byte lengths match each archive's manifest, and the two separately generated C content-preflight reports have matching structure (111 water rows, 152 location CSV rows, former/current schools kept distinct, no C approvals).
+- **Actual SHA comparison is 6 byte-identical originals and 1 changed original**. Only `tokyo_kasaikoka_school_access` differs: original SHA256 `b6fe6b0f831d9c328896a5a76f806bd3325a68972371c800e6c549bedb034ba5` → `8836084122ced9c7018e4440e23f4a404ae08dd268676874b592d8ad8c24cef0`; total original bytes are 229,156 at both timestamps. The exact original HTML bytes become equal when **only** the `<meta name="date" content="…">` time string is normalized. The printed meta dates are `2026-10-14T10:11:31+09:00` → `2026-10-14T15:39:11+09:00`. This is a source HTML metadata change, **not** evidence that any facility location, access, designated flood policy or publication/effective date changed.
+- This independently reran the **byte comparisons on actual ZIP payloads**, rather than merely relying on a previous issue statement. The specific new C command `compare_edogawa_source_snapshots.py` has **not yet been run in this isolated container**; its deterministic synthetic tests did pass in merged PR #267. The separate human A/C semantic source revision and time-validity review remains pending.
 - D's three-region real replay (#266), any new source-to-D acceptance and user-facing final release are **NOT TESTED** by this C snapshot run.
 
 ## Acceptance ledger
@@ -76,6 +79,7 @@ The authoritative manifest **still has `official_publication_or_effective_date: 
 | Seven raw bytes/manifest integrity | PASS | Runner verify output + separate downloaded ZIP SHA comparison |
 | Live original content/CSV shape | PASS | `edogawa-C-content-UNREVIEWED-38857462945` |
 | Human approval of source context/date | NOT TESTED | All seven manifest effective dates null |
-| Two distinct real-time archives compared | NOT TESTED | Only one identified actual hosted capture |
+| Two actual archived runs' seven SHA hashes compared | PASS | Downloaded ZIPs from Actions #38505232094 and #38857462945; 6 unchanged / 1 metadata-only SHA change |
+| New C comparator CLI applied to these two archives | NOT TESTED | Independent ZIP byte comparison done; production CLI with original archive directories still to be run |
 | Physical facility identity approvals | NOT TESTED | 0 approved; C/A review pending |
 | Flood safety, opening, or GSI↔D joins | NOT TESTED | No data semantics or application inference |
