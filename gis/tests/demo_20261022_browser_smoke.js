@@ -704,91 +704,67 @@ async function screenshot(page, name) {
         (!document.getElementById("gsiFloodDemoContent").hidden ||
          !document.getElementById("gsiFloodDemoFallback").hidden);
     },null,{timeout:15000});
-    const compact=await visitor.evaluate(()=>{
-      const mapRect=document.getElementById("map").getBoundingClientRect();
+    // The mobile MAIN DEMO shows ONLY the scene narration card. The full
+    // source/actions presenter still runs internally but must not occupy map pixels.
+    const mobileLayout=await visitor.evaluate(()=>{
+      const narr=document.getElementById("gsiDemoNarration");
       const panel=document.getElementById("gsiFloodDemoPanel");
-      const rect=panel.getBoundingClientRect();
-      const controls=document.getElementById("gsiFloodDemoActions");
-      const buttons=controls.getBoundingClientRect();
+      const nav=document.querySelector(".map-toolbar").getBoundingClientRect();
+      const mapRect=document.getElementById("map").getBoundingClientRect();
+      const r=narr.getBoundingClientRect();
+      const toggle=document.getElementById("gsiDemoMobileToggle");
+      const close=document.getElementById("gsiDemoMobileClose");
+      const rTitle=document.getElementById("gsiFloodDemoTitle").getBoundingClientRect();
       return {
-        mapHeight:mapRect.height, panelHeight:rect.height,
-        uncoveredAbove:(rect.top-mapRect.top)/mapRect.height,
-        panelBottom:rect.bottom,buttonsBottom:buttons.bottom,
-        controlsVisible:!controls.hidden,
-        expanded:panel.getAttribute("data-mobile-expanded"),
-        overflow:getComputedStyle(document.getElementById("gsiFloodDemoContent")).overflowY
+        sourceState:narr.getAttribute("data-source-state"),
+        narrationShown:!narr.hidden && getComputedStyle(narr).display!=="none",
+        mapHeight:mapRect.height,navBottom:nav.bottom,
+        top:r.top,bottom:r.bottom,left:r.left,right:r.right,
+        titleHeight:rTitle.height,
+        narrationPointerEvents:getComputedStyle(narr).pointerEvents,
+        panelDisplay:getComputedStyle(panel).display,
+        panelHidden:panel.hidden,
+        toggleHidden:toggle.hidden,
+        closeDisplayed:getComputedStyle(close).display,
+        togglePointerEvents:getComputedStyle(toggle).pointerEvents
       };
     });
-    assert.ok(compact.mapHeight>260 && compact.panelHeight<compact.mapHeight*0.45,
-      "compact mobile card must not cover most of the interactive map");
-    assert.ok(compact.uncoveredAbove>0.36,
-      "mobile visitor must have enough unobstructed map to find GSI pins");
-    assert.equal(compact.expanded,"false");
-    if(compact.controlsVisible)assert.ok(compact.buttonsBottom<=compact.panelBottom+1,
-      "play/pause/next/restart controls remain inside the compact dock");
-    assert.equal(compact.overflow,"auto",
-      "original official evidence should remain independently scrollable");
-    // The four map tabs remain the top landmark. Missing verified skhb01
-    // input must fail closed with NO narration. For that isolated CI case,
-    // exercise CSS placement with a clearly labeled layout-only fixture,
-    // never with fabricated official source data or presenter state.
-    if(!compact.controlsVisible){
-      assert.equal(await visitor.locator("#gsiDemoNarration").isVisible(),false,
-        "GSI source unavailable: no misleading scene narration");
-      await visitor.evaluate(()=>{
-        const el=document.getElementById("gsiDemoNarration");
-        el.querySelector("#gsiFloodDemoTitle").textContent=
-          "TEST ONLY / narrow-screen banner placement";
-        el.querySelector("#gsiFloodDemoMessage").textContent=
-          "Offline CSS layout fixture. No official GSI data was verified.";
-        el.hidden=false;
-      });
+    assert.equal(mobileLayout.panelHidden,false,"presenter logic must stay active");
+    assert.equal(mobileLayout.panelDisplay,"none",
+      "the mobile source/action dock MUST NOT cover the actual Leaflet map");
+    assert.equal(mobileLayout.narrationShown,true,
+      "mobile supports both verified step narration and explicit source-unavailable state");
+    assert.ok(mobileLayout.top>=mobileLayout.navBottom-4 &&
+      mobileLayout.top<=mobileLayout.navBottom+35,
+      "scene banner must start immediately below the four map tabs");
+    assert.ok(mobileLayout.bottom-mobileLayout.top<mobileLayout.mapHeight*0.32,
+      "scene explanation should not occupy a third of the visible map");
+    assert.ok(mobileLayout.right<=390 &&
+      mobileLayout.titleHeight>10,
+      "mobile narration title must be readable and remain inside the map viewport");
+    assert.equal(mobileLayout.narrationPointerEvents,"none",
+      "the text background must not intercept actual marker taps");
+    assert.equal(mobileLayout.closeDisplayed,"block",
+      "upper card owns the accessible close action");
+    assert.equal(mobileLayout.togglePointerEvents,"auto",
+      "upper card play/pause control must accept a real tap");
+    if(mobileLayout.sourceState==="verified"){
+      assert.equal(mobileLayout.toggleHidden,false);
+      await visitor.locator("#gsiDemoMobileToggle").click();
+      assert.match(await visitor.locator("#gsiDemoMobileToggle").textContent(),/再生/);
+      await visitor.locator("#gsiDemoMobileToggle").click();
+      assert.match(await visitor.locator("#gsiDemoMobileToggle").textContent(),/一時停止/);
+    }else{
+      assert.equal(mobileLayout.sourceState,"unavailable",
+        "when GSI data cannot be proven the only allowed mobile scene is a clear unavailable notice");
+      assert.equal(mobileLayout.toggleHidden,true,
+        "a failed source must not expose fake playback");
+      assert.match(await visitor.locator("#gsiFloodDemoTitle").textContent(),/確認できません/);
     }
-    const narrationGeometry=await visitor.evaluate(()=>{
-      const nav=document.querySelector(".map-toolbar").getBoundingClientRect();
-      const narr=document.getElementById("gsiDemoNarration");
-      const rect=narr.getBoundingClientRect();
-      const panel=document.getElementById("gsiFloodDemoPanel").getBoundingClientRect();
-      const text=narr.querySelector("#gsiFloodDemoTitle").getBoundingClientRect();
-      const css=getComputedStyle(narr);
-      return {shown:!narr.hidden,navBottom:nav.bottom,top:rect.top,bottom:rect.bottom,
-        left:rect.left,right:rect.right,mapRight:document.getElementById("map").getBoundingClientRect().right,
-        panelTop:panel.top,titleHeight:text.height,pointerEvents:css.pointerEvents,
-        ownText:!document.getElementById("gsiFloodDemoPanel")
-          .contains(document.getElementById("gsiFloodDemoMessage"))};
-    });
-    assert.equal(narrationGeometry.shown,true);
-    assert.ok(narrationGeometry.top>=narrationGeometry.navBottom-4 &&
-      narrationGeometry.top<=narrationGeometry.navBottom+35,
-      "mobile narration should sit directly below the 4 map tabs");
-    assert.ok(narrationGeometry.bottom<narrationGeometry.panelTop-8,
-      "narration must leave real tap space for geographic pins between bars");
-    assert.ok(narrationGeometry.titleHeight>10 &&
-      narrationGeometry.right<narrationGeometry.mapRight,
-      "instruction must stay readable and avoid the right zoom controls");
-    assert.equal(narrationGeometry.pointerEvents,"none",
-      "slim explanation cannot intercept real Leaflet marker selection");
-    assert.equal(narrationGeometry.ownText,true,
-      "source panel retains official details/actions, not duplicated instruction");
-    if(!compact.controlsVisible){
-      await visitor.evaluate(()=>{
-        document.getElementById("gsiDemoNarration").hidden=true;
-      });
-    }
-    const expand=visitor.locator("#gsiFloodDemoExpand");
-    assert.equal(await expand.isVisible(),true);
-    await expand.click();
-    const expandedHeight=await visitor.locator("#gsiFloodDemoPanel").evaluate(
-      el=>el.getBoundingClientRect().height);
-    assert.ok(expandedHeight>compact.panelHeight+20,
-      "source counts, official address and original row can be expanded deliberately");
-    assert.equal(await expand.getAttribute("aria-expanded"),"true");
-    await expand.click();
-    const collapsedHeight=await visitor.locator("#gsiFloodDemoPanel").evaluate(
-      el=>el.getBoundingClientRect().height);
-    assert.ok(Math.abs(collapsedHeight-compact.panelHeight)<2);
-    assert.equal(await expand.getAttribute("aria-expanded"),"false");
-    await screenshot(visitor,"audience-mobile-map-first-dock");
+    await screenshot(visitor,"audience-mobile-narration-only");
+    await visitor.locator("#gsiDemoMobileClose").click();
+    assert.equal(await visitor.locator("#gsiDemoNarration").isVisible(),false,
+      "mobile close must dismiss the remaining explanation without keeping the demo running");
     assert.deepEqual(visitorErrors,[],"shared intro and presenter must not crash Chromium");
     await visitor.close();
 
