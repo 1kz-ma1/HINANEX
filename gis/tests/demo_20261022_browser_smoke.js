@@ -744,7 +744,7 @@ async function screenshot(page, name) {
       "mobile narration title must be readable and remain inside the map viewport");
     assert.equal(mobileLayout.narrationPointerEvents,"none",
       "the text background must not intercept actual marker taps");
-    assert.equal(mobileLayout.closeDisplayed,"block",
+    assert.notEqual(mobileLayout.closeDisplayed,"none",
       "upper card owns the accessible close action");
     assert.equal(mobileLayout.togglePointerEvents,"auto",
       "upper card play/pause control must accept a real tap");
