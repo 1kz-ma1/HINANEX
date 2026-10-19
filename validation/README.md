@@ -2,7 +2,7 @@
 
 ## 本番発表向け Phase 1：公式原本の差分を独立検証
 
-公式原本を再取得する際は、[Cの原本比較手順](docs/FINAL_SOURCE_RECAPTURE_20261016.md)を参照してください。
+公式原本を再取得する際は、[Cの原本比較手順](docs/FINAL_SOURCE_RECAPTURE_20261016.md)と[2026-10-16実取得・未承認の監査記録](docs/EDOGAWA_CAPTURE_38857462945_UNREVIEWED.md)を参照してください。
 既存の7資料取得・byte検証・内容preflightを**両方の取得回**に実施した後、
 `compare_edogawa_source_snapshots.py` でSHA256・取得時刻・元資料件数の変化を比較します。
 変更が検出されても施設同一性・災害種別は**自動承認しません**。

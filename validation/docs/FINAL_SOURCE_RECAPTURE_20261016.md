@@ -1,6 +1,6 @@
 # Final-presentation Phase 1: Edogawa original-source recapture and C delta review
 
-Status: **tooling under review, no new official sources captured by this PR**, no C human approval, no D or GIS source/status changes. Related: #89, #221, #264 (A), #265 (C), #266 (D).
+Status as of **2026-10-19**: C comparator tooling integrated via #267. Two **actual** archived captures (2026-10-14 #38505232094 and 2026-10-16 #38857462945) were retrieved and independently SHA/byte/shape reviewed: **6 identical files, 1 HTML metadata-only change**. The merged C CLI has not yet been run against those two archives in the isolated operator environment; **human source-time/identity review remains unapproved**. See [the pinned two-capture review](EDOGAWA_CAPTURE_38857462945_UNREVIEWED.md). No D/GIS source/status changes. Related: #89, #221, #264 (A), #265 (C), #266 (D).
 
 ## Ground truth / reusing existing work
 
