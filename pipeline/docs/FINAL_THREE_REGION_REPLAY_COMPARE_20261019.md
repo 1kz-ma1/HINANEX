@@ -37,3 +37,11 @@ CLIは**比較のみ**を行い、データ取得・Dワークフロー・Render
 **テスト:** `cd pipeline && python -m unittest discover -s tests -p 'test_compare_three_region_replays.py' -v`。オフラインfixture、12ケース。`python -m unittest discover -s tests -v` と required CI `test` も別途確認。
 
 **未実施:** A/Cの人間承認、最新原本のD再生成、3地域実データ検証、公開・本番反映。条件未達のままこのCLIで生成される比較レポートを、Cの受入代替に使用しない。
+
+## C独立レビューで追加した検出（2026-10-19）
+
+同じ施設ID、同じ件数、同じ座標欠損数でも、**位置の緯度経度が実際に変わった場合**は `location_coordinates_sha256`、施設名・住所などのレコード内容が変わった場合は `location_records_sha256` で差分として残す。ID順に正規化するので、JSON配列の並び替え自体は意味的差分としない（ただし原本出力JSONのハッシュは変わる）。
+
+Scenarioの集計件数だけでなく施設ID順で原値・根拠・位置を含む `scenarios[].facility_results_sha256` を残す。**施設ID単位の状態差**がある場合は `facility_status_transitions` に IDを公開せず件数だけを出す。既存 `assert_valid_region_export` による `UNKNOWN` 未承認状態の検査は維持する。
+
+これらのSHAは**比較用の出力内容ハッシュ**であって自治体の公式原本、施設同一性、実災害指定状態の証明ではない。差分があればCの原本・行単位監査へ返す。
