@@ -13,6 +13,8 @@
  box-shadow:0 9px 26px rgba(0,17,28,.46);
  font-family:system-ui,"Noto Sans JP",sans-serif;pointer-events:none;
 }
+/* Mobile-only controls live in the narration itself. Desktop stays source-card based. */
+.gsi-demo-mobile-controls{display:none}
 .gsi-demo-narration[hidden]{display:none!important}
 .gsi-demo-narration-phase{font-size:11px;font-weight:900;color:#89f4e9;
  white-space:nowrap;align-self:flex-start;padding-top:3px}
@@ -136,3 +138,52 @@
 
 /* Hidden legacy fallbacks stay hidden even against existing button styles. */
 #gsiFloodDemoFallbackD[hidden]{display:none!important}
+
+
+/* Mobile GSI main demo: one slim narrative surface, no persistent bottom card.
+   The presenter state still lives in the original panel DOM; CSS hides it.
+   Pointer events remain transparent except for the two explicit touch controls. */
+@media(max-width:780px){
+  .gsi-demo-panel{display:none!important}
+  .gsi-demo-narration,
+  .gsi-demo-narration[data-source-state="loading"],
+  .gsi-demo-narration[data-source-state="unavailable"]{
+    top:73px;left:8px;right:8px;max-width:none;
+    display:grid;grid-template-columns:minmax(0,1fr) auto;
+    grid-template-rows:auto auto;gap:5px 9px;align-items:start;
+    padding:9px 11px;max-height:min(31dvh,230px);
+    overflow:auto;overscroll-behavior:contain;
+    border-radius:10px;pointer-events:none;
+  }
+  .gsi-demo-narration-phase{grid-column:1;grid-row:1;padding-top:6px}
+  .gsi-demo-narration-copy{grid-column:1/-1;grid-row:2;min-width:0;gap:4px}
+  .gsi-demo-narration-copy strong{font-size:13px;line-height:1.4}
+  .gsi-demo-narration-copy p{font-size:11px;line-height:1.5}
+  .gsi-demo-mobile-controls{
+    grid-column:2;grid-row:1;display:flex;gap:6px;align-items:center;
+    pointer-events:auto;
+  }
+  .gsi-demo-mobile-controls button{
+    box-sizing:border-box;min-height:36px;min-width:36px;
+    padding:6px 9px;border:1px solid #84cfd5;border-radius:8px;
+    background:#135368;color:#efffff;font-size:12px;font-weight:800;
+    cursor:pointer;touch-action:manipulation;
+  }
+  #gsiDemoMobileClose{font-size:18px;line-height:1.1}
+  .gsi-demo-mobile-controls button:disabled{opacity:.58;cursor:default}
+  .gsi-demo-mobile-controls button:focus-visible{
+    outline:3px solid #ffe2a1;outline-offset:2px
+  }
+  .gsi-demo-mobile-controls button[hidden]{display:none!important}
+  /* Preserve flood raster status, but prevent it from covering the narration. */
+  .map-wrap:has(.gsi-demo-narration:not([hidden])) .map-raster-banner{
+    top:auto;bottom:76px;left:8px;
+    max-width:min(300px,calc(100% - 16px));
+  }
+}
+@media(min-width:781px){
+  /* Until official GSI sources are verified, desktop only uses its existing
+     explicit fallback card; do not show a second 'verified' narration. */
+  .gsi-demo-narration[data-source-state="loading"],
+  .gsi-demo-narration[data-source-state="unavailable"]{display:none!important}
+}
