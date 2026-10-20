@@ -55,9 +55,11 @@ test("one public MAIN DEMO, other presenters retained only behind hidden wrapper
  assert.doesNotMatch(html,/id="gsiFloodDemoPickHint"/);
  assert.match(html,/id="gsiFloodDemoTitle"/);
  assert.equal((html.match(/id="gsiFloodDemoTitle"/g)||[]).length,1);
- assert.match(html,/gsi_flood_demo[.]js[?]v=waiting-vs-wide-evac-20261020-v1/);
+ assert.match(html,/gsi_flood_demo[.]js[?]v=gsi-desktop-compact-20261020-v1/);
   assert.match(html,/id="gsiDemoMobileToggle"[^>]*type="button"/);
   assert.match(html,/id="gsiDemoMobileClose"[^>]*type="button"/);
+ assert.match(html,/id="gsiDemoNext"[^>]*type="button"/);
+ assert.match(html,/id="gsiDemoDetailsToggle"[^>]*aria-controls="gsiFloodDemoPanel"/);
  assert.match(html,/公式掲載 ≠ 現在安全・開設中・避難推奨/);
  assert.match(html,/待避施設はやむを得ない場合の緊急避難先/);
  assert.match(html,/大規模水害の際、早期の広域避難/);
@@ -98,6 +100,45 @@ test("mobile missing official GSI keeps explicit fail-closed upper message",asyn
  assert.match(m.get("gsiDemoSceneSource").href,/koikihinan[.]html$/);
  assert.match(m.get("gsiFloodDemoMessage").textContent,/安全であることを意味しません/);
  assert.equal(m.get("gsiDemoMobileToggle").hidden,true);
+ m.get("gsiDemoMobileClose").click();
+ assert.equal(m.get("gsiDemoNarration").hidden,true);
+});
+test("desktop uses upper controls and only opens a compact evidence drawer on request",async()=>{
+ const m=mount();await m.open();
+ assert.equal(m.get("gsiDemoNarration").hidden,false);
+ assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-details-open"),"false");
+ assert.equal(m.get("gsiDemoMobileToggle").hidden,false);
+ assert.equal(m.get("gsiDemoNext").disabled,false);
+ assert.equal(m.get("gsiDemoDetailsToggle").hidden,false);
+ m.get("gsiDemoDetailsToggle").click();
+ assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-details-open"),"true");
+ assert.equal(m.get("gsiDemoDetailsToggle").getAttribute("aria-expanded"),"true");
+ m.get("gsiDemoDetailsToggle").click();
+ assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-details-open"),"false");
+ m.get("gsiDemoNext").click();
+ assert.ok(m.calls.includes("show"),"next is still driven by verified GSI API");
+ assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-details-open"),"false");
+ m.get("gsiDemoNext").click();
+ assert.equal(m.get("gsiDemoNext").disabled,true,
+   "pin selection must be mandatory; next cannot bypass verified evidence");
+ m.select();
+ assert.match(m.get("gsiFloodDemoTitle").textContent,/地図で確認しました/);
+ m.get("gsiDemoDetailsToggle").click();
+ assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-details-open"),"true");
+ m.get("gsiDemoMobileClose").click();
+ assert.equal(m.get("gsiFloodDemoPanel").hidden,true);
+ assert.equal(m.get("gsiDemoNarration").hidden,true);
+ assert.equal(m.timers.size,0);
+});
+test("unverified desktop source shows explicit fail-closed upper narration, no playback",async()=>{
+ const m=mount({state:"unavailable",reason:"UNVERIFIED_SOURCE"});await m.open();
+ assert.equal(m.get("gsiDemoNarration").hidden,false);
+ assert.equal(m.get("gsiDemoNarration").getAttribute("data-source-state"),"unavailable");
+ assert.match(m.get("gsiFloodDemoTitle").textContent,/確認できません/);
+ assert.equal(m.get("gsiDemoMobileToggle").hidden,true);
+ assert.equal(m.get("gsiDemoNext").hidden,true);
+ assert.equal(m.get("gsiDemoDetailsToggle").hidden,true);
+ assert.equal(m.get("gsiFloodDemoPanel").getAttribute("data-details-open"),"false");
  m.get("gsiDemoMobileClose").click();
  assert.equal(m.get("gsiDemoNarration").hidden,true);
 });
