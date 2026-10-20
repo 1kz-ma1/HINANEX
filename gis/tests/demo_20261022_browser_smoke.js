@@ -17,6 +17,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
 const { auditDirectory } = require("./inspect_local_region_exports.js");
+const { runReferenceSiteCompareBrowser } = require("./reference_site_compare_browser.js");
 
 const [distArg, outArg] = process.argv.slice(2);
 if (!distArg || !outArg || process.argv.length !== 4) {
@@ -833,6 +834,11 @@ async function screenshot(page, name) {
     // exact marker pixel assertions, without conflating this gate with the
     // independent full UI/presenter smoke later in this file.
     if (process.env.HINANEX_WHEEL_ONLY === "1") {
+      const compareBrowserResults = await runReferenceSiteCompareBrowser({
+        context, base, out, waitUntilLoaded
+      });
+      assert.equal(compareBrowserResults.length, 4,
+        "two viewport journeys and two missing/invalid source guards must run");
       assert.deepEqual(errors, [], "no GIS page errors during real zoom gestures");
       fs.writeFileSync(path.join(out, "wheel_browser_audit.json"),
         JSON.stringify({
@@ -853,14 +859,18 @@ async function screenshot(page, name) {
             "MOBILE_DOCK_DOES_NOT_OBSCURE_INTERACTIVE_MAP",
             "MOBILE_EXPANDABLE_SOURCE_EVIDENCE_AND_FIXED_CONTROLS",
             "SCENE_INSTRUCTION_DIRECTLY_BELOW_MAP_TOOLBAR",
-            "SEPARATE_SOURCE_ACTION_PANEL_FROM_SCENE_NARRATION"
+            "SEPARATE_SOURCE_ACTION_PANEL_FROM_SCENE_NARRATION",
+            "GSI_TWO_SITE_COMPARE_REAL_CHROMIUM_DESKTOP_AND_MOBILE_SYNTHETIC_FIXTURE",
+            "GSI_COMPARE_DISCARDS_ON_ORIGIN_CHANGE_AND_MISSING_SOURCE"
           ],
           current_D_exports_contract_valid: report.all_local_contracts_valid,
           external_GSI_and_flood_raster_requests_blocked: true,
           full_GIS_UI_and_live_staging_verified: false,
           physical_Safari_trackpad_verified: false,
           actual_shelter_safety_approved: false,
-          interactive_verified_GSI_pin_available_offline: verifiedPinJourney
+          interactive_verified_GSI_pin_available_offline: verifiedPinJourney,
+          comparison_CI_synthetic_browser_journeys: compareBrowserResults.length,
+          comparison_real_official_facility_approval: false
         }, null, 2) + "\n", "utf8");
       process.stdout.write(
         "GIS_CHROMIUM_WHEEL_BOTH_DIRECTIONS_PASS: real DOM geometry, " +
