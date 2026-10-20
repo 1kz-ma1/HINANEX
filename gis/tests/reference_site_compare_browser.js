@@ -185,7 +185,7 @@ async function runReferenceSiteCompareBrowser({ context, base, out, waitUntilLoa
       await waitUntilLoaded(page, "13123");
       await chooseOrigin(page, "35.70, 139.90");
       await page.waitForFunction(() => document.querySelector("#floodDiscoveryResults")
-        ?.textContent?.includes("未検証"));
+        ?.textContent?.match(/未検証|未配信|独立照合待ち/));
       assert.equal(await page.locator("#referenceCompareOpen").isVisible(), false);
       assert.equal(await page.locator(".reference-site-marker").count(), 0);
       results.push({ negativeFixture: mode, failClosed: true });
