@@ -22,6 +22,13 @@
 .gsi-demo-narration-copy strong{display:block;font-size:15px;font-weight:850;
  line-height:1.4;overflow-wrap:anywhere}
 .gsi-demo-narration-copy p{font-size:12px;line-height:1.5;color:#d1edf3;margin:0}
+/* One directly sourced policy/designation link per verified scene.
+   It is always a document link, never a dynamic safety recommendation. */
+.gsi-demo-narration-source{width:max-content;max-width:100%;display:inline-block;
+ color:#96f5e9;font-size:11px;font-weight:750;line-height:1.5;
+ overflow-wrap:anywhere;text-decoration:underline;text-underline-offset:3px;
+ pointer-events:auto}
+.gsi-demo-narration-source:focus-visible{outline:3px solid #ffe2a1;outline-offset:2px}
 /* Existing flood-raster warning still matters; relocate it so the tour
    never hides the critical 'unretrieved ≠ no inundation' message. */
 .map-wrap:has(.gsi-demo-narration:not([hidden])) .map-raster-banner{
@@ -159,6 +166,7 @@
   .gsi-demo-narration-copy{grid-column:1/-1;grid-row:2;min-width:0;gap:4px}
   .gsi-demo-narration-copy strong{font-size:13px;line-height:1.4}
   .gsi-demo-narration-copy p{font-size:11px;line-height:1.5}
+  .gsi-demo-narration-source{font-size:10.5px;line-height:1.5}
   .gsi-demo-mobile-controls{
     grid-column:2;grid-row:1;display:flex;gap:6px;align-items:center;
     pointer-events:auto;
