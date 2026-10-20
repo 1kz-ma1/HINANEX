@@ -46,3 +46,21 @@ Draft PRのままCI実行、desktop/mobile実機確認、A/C/Dの安全境界の
 - 出力証跡：workflow artifacts内 `reference_site_compare_browser_audit.json`、`gsi-comparison-ci-fixture-1365.png`、`gsi-comparison-ci-fixture-390.png`（[artifacts付きrun #39370677402](https://github.com/1kz-ma1/HINANEX/actions/runs/39370677402)、2026-10-27 UTC頃までの保持設定）。スクリーンショットは合成fixtureのみ。
 
 **制約：** Chromiumの自動操作は通過したが、iPhone Safari実機、ユーザーが情報を誤認しないかの観察、現在の公式原本の更新確認、実GSIの配信到達性、Render本番・ステージングへの反映・閲覧は未実施。今回のCI成功はA/C正式承認・実災害時の安全性・実経路の検証ではない。
+
+
+## 2026-10-20 14時前後：視覚QAからのモバイル改善（Current PR）
+
+過去のChromium証跡を画像で確認したところ、390px幅では独立したGSI概要パネルと既存Leafletの地点ポップアップが2地点比較の後ろ/前に重なり、地図の見える範囲と説明の明瞭さが低下していた。これは**単体/DOMテスト成功だけでは見つからなかったUI欠陥**。
+
+- 比較開始時に既存Leafletポップアップを閉じ、GSI概要パネルを一時非表示とする。比較を閉じたら、出典が引き続き検証済みで表示モードがGSI対応の場合にのみ概要パネルを復元する。選択地点・元データ・地図レイヤーは消さない。
+- 長い住所/備考原文を読んで下にスクロールしても「×」が操作できるよう、比較パネルのヘッダーをstickyにする。比較終了時はトリガーボタンへフォーカスを戻す。
+- 検証済みGSI掲載地点が1件しか表示されない場合、2地点比較ボタンを出さず、出典表示欄に「今回1件で比較不可、他に避難場所が存在しないことを意味しない」と明示。
+- 実DOM検証：背景GSI概要非表示、Leafletポップアップ閉鎖、スクロール後の閉じるボタンの表示、パネル閉鎖による概要復帰、検証済み1件での比較不可、未確認データ拒否。
+- **最終確認（この時点）：** [required CI #39371859842](https://github.com/1kz-ma1/HINANEX/actions/runs/39371859842) SUCCESS、[Chromium #39371859841](https://github.com/1kz-ma1/HINANEX/actions/runs/39371859841) SUCCESS。後者のGitHub Actions artifactには、改善後の390px・1365px画面、合成データでの操作結果JSON、元のwheel検証JSONが含まれる（保持期限は2026-10-27 UTC頃）。
+- 変更は引き続きE領域だけ、A/C/D公式データや配布物・スキーマを変更していない。
+
+**まだ未検証：** 実iPhone Safari、実GSI JSONのRender配信、閲覧者による解釈・可読性、現在の施設開設状況、避難経路安全性。GitHubのmainを更新していないため、既存の共有staging URL上にこのPRの画面があるとは主張しない。
+
+### 実際の共有stagingの確認ゲート
+
+現在の設定書はGitHub mainをRender Static Siteの配信元として記録している。公開先として記載されたURLは \`https://hinanex-staging.onrender.com\`。検証時には \`/_staging.json\` に含まれるGSIの検証/公開状態と \`/pipeline/data/output/gsi_verified_tiles/13123/10-909-403.json\` のHTTPを**別々に**確認する必要がある。元データ欠損、アクセス拒否、ビルド時照合エラーを「公式施設がない」と解釈しない。共有stagingのmain反映前にDraft PRの機能が表示されることはない。Renderワークスペース・デプロイの確認はユーザー選択/権限の確認後に行う。
