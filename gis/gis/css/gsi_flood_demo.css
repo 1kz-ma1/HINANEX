@@ -195,3 +195,66 @@
   .gsi-demo-narration[data-source-state="loading"],
   .gsi-demo-narration[data-source-state="unavailable"]{display:none!important}
 }
+
+
+/* 2026-10-20 desktop parity: scene narration is the SINGLE persistent
+   presenter surface. The previous 380px x 520px bottom-right card is an
+   opt-in evidence drawer only; verified Leaflet pins remain clickable. */
+@media(min-width:781px){
+  .gsi-demo-narration,
+  .gsi-demo-narration[data-source-state="loading"],
+  .gsi-demo-narration[data-source-state="unavailable"]{
+    top:77px;
+    left:max(12px,calc(50% - 460px));
+    right:max(12px,calc(50% - 460px));
+    max-width:920px;
+    display:grid!important;
+    grid-template-columns:auto minmax(0,1fr) auto;
+    gap:12px;
+    align-items:start;
+    padding:10px 13px;
+  }
+  .gsi-demo-narration-copy{gap:3px}
+  .gsi-demo-narration-copy strong{font-size:14px;line-height:1.35}
+  .gsi-demo-narration-copy p{font-size:11.5px;line-height:1.45}
+  .gsi-demo-mobile-controls{
+    display:flex;align-items:center;justify-content:flex-end;
+    gap:5px;flex-wrap:wrap;max-width:262px;
+    pointer-events:auto;
+  }
+  .gsi-demo-mobile-controls button{
+    min-height:40px;min-width:40px;padding:6px 9px;
+    border:1px solid #84cfd5;border-radius:8px;
+    background:#135368;color:#efffff;
+    font:800 11px system-ui,"Noto Sans JP",sans-serif;
+    cursor:pointer;touch-action:manipulation;
+  }
+  .gsi-demo-mobile-controls button:disabled{opacity:.58;cursor:default}
+  .gsi-demo-mobile-controls button[hidden]{display:none!important}
+  .gsi-demo-mobile-controls button:focus-visible{
+    outline:3px solid #ffe2a1;outline-offset:2px;
+  }
+  #gsiDemoMobileClose{font-size:18px}
+  #gsiDemoDetailsToggle[aria-expanded=true]{background:#28777b;color:white}
+  .gsi-demo-panel:not([hidden]){display:none!important}
+  .gsi-demo-panel[data-details-open="true"]:not([hidden]){
+    display:flex!important;top:auto;right:12px;bottom:12px;
+    width:min(320px,calc(100% - 24px));height:min(43dvh,355px);
+    min-height:0;padding:12px;border-radius:12px;
+    box-shadow:0 12px 32px #001d35bb;
+  }
+  .gsi-demo-panel[data-details-open="true"] .gsi-demo-top>div>span{font-size:9px}
+  .gsi-demo-panel[data-details-open="true"] .gsi-demo-top strong{font-size:13px}
+  .gsi-demo-panel[data-details-open="true"] .gsi-demo-panel h2{font-size:17px}
+  .gsi-demo-panel[data-details-open="true"] .gsi-demo-source-count strong{font-size:22px}
+  .gsi-demo-panel[data-details-open="true"] #gsiFloodDemoClose{width:36px;height:36px}
+  .gsi-demo-panel[data-details-open="true"] .gsi-demo-actions{display:none!important}
+  .gsi-demo-panel[data-details-open="true"] .gsi-demo-notice{font-size:10px}
+  /* The pop-up must remain distinct from map interaction; no forced focus. */
+}
+
+/* Handset remains narration-only as in the approved mobile UX.
+   New next/details controls are intentionally desktop-only. */
+@media(max-width:780px){
+  #gsiDemoNext,#gsiDemoDetailsToggle{display:none!important}
+}
