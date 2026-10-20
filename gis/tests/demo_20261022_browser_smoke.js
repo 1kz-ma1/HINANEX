@@ -837,8 +837,8 @@ async function screenshot(page, name) {
       const compareBrowserResults = await runReferenceSiteCompareBrowser({
         context, base, out, waitUntilLoaded
       });
-      assert.equal(compareBrowserResults.length, 4,
-        "two viewport journeys and two missing/invalid source guards must run");
+      assert.equal(compareBrowserResults.length, 5,
+        "two viewport journeys, missing, unverified and one-site guards must run");
       assert.deepEqual(errors, [], "no GIS page errors during real zoom gestures");
       fs.writeFileSync(path.join(out, "wheel_browser_audit.json"),
         JSON.stringify({
