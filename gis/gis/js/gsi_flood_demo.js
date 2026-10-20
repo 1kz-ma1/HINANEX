@@ -15,6 +15,11 @@
       state==="loading"?"確認中":"再生";
     mobileToggle.textContent=label;
     mobileToggle.setAttribute("aria-label",label+"：GSI洪水指定デモ");
+    const next=get("gsiDemoNext");
+    next.disabled=state==="loading"||state==="unavailable"||state==="awaiting-pin"||state==="complete";
+    next.hidden=state==="loading"||state==="unavailable";
+    const details=get("gsiDemoDetailsToggle");
+    details.hidden=state==="loading"||state==="unavailable";
   }
   const api=window.HINANEX_GSI_FLOOD_PRESENTER;
   const timings=[7,12,12,12]; // 43 seconds plus unbounded human pin selection
@@ -67,9 +72,19 @@
       if(body)body.scrollTop=0;
     }
   }
+  // The big evidence card is optional on desktop. The official source link,
+  // scene narration, playback and close controls remain in the top strip.
+  function setDesktopDetailsOpen(open){
+    const expanded=Boolean(open)&&!isMobile()&&!panel.hidden;
+    panel.setAttribute("data-details-open",String(expanded));
+    const button=get("gsiDemoDetailsToggle");
+    button.setAttribute("aria-expanded",String(expanded));
+    button.textContent=expanded?"根拠を閉じる":"根拠を見る";
+    if(!expanded)get("gsiFloodDemoContent").scrollTop=0;
+  }
   function writeStatus(s){get("gsiFloodDemoStatus").textContent=s;}
   function unavailable(reason) {
-    stopClock();state="unavailable"; // Fail closed for both desktop fallback and mobile controls.
+    stopClock();state="unavailable";setDesktopDetailsOpen(false); // Fail closed on all screen sizes.
     // A missing/invalid official catalog is never interpreted as "no
     // designated sites". Offer the already working D-only presentation,
     // clearly labeled as a different source and a different capability.
@@ -105,12 +120,9 @@
     get("gsiFloodDemoClock").textContent=state==="complete"?"終了":
       scene===2&&!item?"操作待ち":remaining+"秒";
     get("gsiFloodDemoTitle").textContent=scene===2&&item
-      ? (isMobile()?"選んだGSI掲載地点を地図で確認しました。":
-        "選んだGSI掲載地点の公式情報をカードで確かめましょう。") : titles[scene];
+      ? "選んだGSI掲載地点の公式情報を地図で確認しました。" : titles[scene];
     get("gsiFloodDemoMessage").textContent=scene===2&&item
-      ? (isMobile()
-          ?"地図のピンから原文を確認できます。区の待避施設との同一性、現在の開設・混雑・安全は未確認です。"
-          :"元データと住所をカードで確認できます。区の待避施設との同一性、現在の開設・混雑・安全は未確認です。")
+      ? "地図のピンから原文を確認できます。区の待避施設との同一性、現在の開設・混雑・安全は未確認です。"
       : explanations[scene];
     showOfficialSource(scene);
     get("gsiFloodDemoCount").textContent=String(data.total);
@@ -163,6 +175,7 @@
       return false;
     }
     scene=next;
+    setDesktopDetailsOpen(false); // Always return map pixels to the scene.
     remaining=timings[next];
     elapsed=timings.slice(0,next).reduce((a,b)=>a+b,0);
     if(next===2){stopClock();state="awaiting-pin";setMobileExpanded(false);}
@@ -197,6 +210,7 @@
     if(panel.hidden)return;
     ++sequence;stopClock();state="idle";
     api?.end(restore);
+    setDesktopDetailsOpen(false);
     panel.hidden=true;narration.hidden=true;
     get("gsiFloodDemoActions").hidden=true;
     data=null;item=null;dStatus=null;
@@ -217,6 +231,7 @@
     get("mapTourClose").click();
     const token=++sequence;
     panel.hidden=false;narration.hidden=false;
+    setDesktopDetailsOpen(false);
     narration.setAttribute("data-source-state","loading");
     get("gsiFloodDemoPhase").textContent="確認中";
     get("gsiFloodDemoTitle").textContent="検証済みの公式資料を確認しています";
@@ -258,6 +273,14 @@
   });
   get("gsiFloodDemoClose").addEventListener("click",close);
   mobileClose.addEventListener("click",close);
+  get("gsiDemoNext").addEventListener("click",()=>{
+    if(panel.hidden||!data||["loading","unavailable","awaiting-pin","complete"].includes(state))return;
+    pause();advance();
+  });
+  get("gsiDemoDetailsToggle").addEventListener("click",()=>{
+    if(panel.hidden||!data||isMobile())return;
+    setDesktopDetailsOpen(panel.getAttribute("data-details-open")!=="true");
+  });
   mobileToggle.addEventListener("click",()=>{
     if(panel.hidden||!data)return;
     if(state==="complete"){close();void open();}
