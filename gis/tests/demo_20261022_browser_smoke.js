@@ -628,6 +628,12 @@ async function screenshot(page, name) {
     assert.match(introCopy,/未判定.*推測で埋めない/s);
     assert.match(introCopy,/避難先の安全判断・推奨はまだ行いません/,
       "foundation completion must not be mistaken for live evacuation guidance");
+    assert.match(introCopy,/待避施設はやむを得ない場合の緊急避難先/,
+      "welcome must differentiate municipal emergency waiting facilities from early wide-area evacuation");
+    assert.match(introCopy,/紫ピンには千葉県側も含まれ得ます/,
+      "municipality selection must not imply every GSI pin is in Edogawa");
+    assert.match(await visitor.locator("#mapAudienceIntro a[href*=koikihinan]").getAttribute("href"),/koikihinan[.]html$/,
+      "official wide-area source must be directly navigable");
     assert.equal(await visitor.locator("#gsiFloodDemoPanel").isVisible(),false,
       "a shared URL never autoplays a scenario or requests GPS");
     assert.equal(await visitor.locator(".map-tour-other-demos").isVisible(),false,
@@ -714,6 +720,7 @@ async function screenshot(page, name) {
       const r=narr.getBoundingClientRect();
       const toggle=document.getElementById("gsiDemoMobileToggle");
       const close=document.getElementById("gsiDemoMobileClose");
+      const policy=document.getElementById("gsiDemoSceneSource");
       const rTitle=document.getElementById("gsiFloodDemoTitle").getBoundingClientRect();
       return {
         sourceState:narr.getAttribute("data-source-state"),
@@ -726,7 +733,10 @@ async function screenshot(page, name) {
         panelHidden:panel.hidden,
         toggleHidden:toggle.hidden,
         closeDisplayed:getComputedStyle(close).display,
-        togglePointerEvents:getComputedStyle(toggle).pointerEvents
+        togglePointerEvents:getComputedStyle(toggle).pointerEvents,
+        policyHref:policy.getAttribute("href"),
+        policyPointerEvents:getComputedStyle(policy).pointerEvents,
+        policyHeight:policy.getBoundingClientRect().height
       };
     });
     assert.equal(mobileLayout.panelHidden,false,"presenter logic must stay active");
@@ -748,6 +758,12 @@ async function screenshot(page, name) {
       "upper card owns the accessible close action");
     assert.equal(mobileLayout.togglePointerEvents,"auto",
       "upper card play/pause control must accept a real tap");
+    assert.equal(mobileLayout.policyPointerEvents,"auto",
+      "an official primary-source link must remain independently tappable on mobile");
+    assert.ok(mobileLayout.policyHeight>=10,
+      "the municipal source link must remain legible without opening the hidden dock");
+    assert.match(mobileLayout.policyHref,/koikihinan[.]html$/,
+      "the first scene or fail-closed fallback cites Edogawa's actual broad-evacuation policy");
     if(mobileLayout.sourceState==="verified"){
       assert.equal(mobileLayout.toggleHidden,false);
       await visitor.locator("#gsiDemoMobileToggle").click();
