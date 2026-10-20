@@ -3,7 +3,7 @@
 .reference-compare-open[hidden],.reference-compare-panel[hidden]{display:none}
 .reference-compare-open:focus-visible,.reference-compare-panel button:focus-visible,.reference-compare-panel a:focus-visible{outline:3px solid #ffb547;outline-offset:2px}
 .reference-compare-panel{position:absolute;z-index:1005;right:12px;bottom:35px;max-height:min(74%,690px);overflow-y:auto;overscroll-behavior:contain;width:min(540px,calc(100% - 24px));background:rgba(255,255,255,.985);border:1px solid #bc98da;border-radius:12px;padding:15px;box-shadow:0 8px 28px rgba(15,23,42,.26);font-size:13px;line-height:1.6;color:#28364a}
-.reference-compare-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.reference-compare-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:sticky;top:-15px;z-index:2;background:#fff;padding:8px 0;border-bottom:1px solid #dcd0e8}
 .reference-compare-header strong{font-size:16px;color:#562584}
 .reference-compare-header p{font-size:12px;margin:4px 0}
 .reference-compare-header button{width:44px;height:44px;border:1px solid #bca4d6;border-radius:8px;background:#fff;color:#563184;font-size:23px;flex-shrink:0;cursor:pointer}
@@ -20,4 +20,4 @@
 .reference-compare-site dd{margin:0;overflow-wrap:anywhere}
 .reference-compare-site a{display:inline-flex;align-items:center;min-height:44px;overflow-wrap:anywhere;font-size:12px}
 .reference-compare-hint,.reference-compare-caution{margin:12px 0 0;padding:10px;border-radius:8px;background:#fff5e8;border:1px solid #e0bc86;font-size:12px;line-height:1.7}
-@media(max-width:680px){.reference-compare-panel{right:8px;bottom:30px;max-height:54%;width:calc(100% - 16px);padding:11px}.reference-compare-choices{grid-template-columns:1fr}.reference-compare-columns{grid-template-columns:1fr}.reference-compare-site{padding:10px}}
+@media(max-width:680px){.reference-compare-header{top:-11px}.reference-compare-panel{right:8px;bottom:30px;max-height:54%;width:calc(100% - 16px);padding:11px}.reference-compare-choices{grid-template-columns:1fr}.reference-compare-columns{grid-template-columns:1fr}.reference-compare-site{padding:10px}}
