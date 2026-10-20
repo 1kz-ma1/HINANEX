@@ -3,6 +3,10 @@ import { access, readFile } from "node:fs/promises";
 const requiredFiles = [
   "index.html",
   "historical-evidence-demo.html",
+  "decision-lab.html",
+  "decision-lab.css",
+  "src/decision-lab.js",
+  "src/decision-lab-model.js",
   "historical-evidence-demo.css",
   "src/historical-evidence-demo.js",
   "src/historical-evidence-model.js",

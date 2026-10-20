@@ -1669,6 +1669,138 @@ function setFacilityListMode(summary) {
 const FLOOD_CATALOG_URL = "../../pipeline/data/output/edogawa_flood_site_catalog.json";
 const VERIFIED_TILE_DIR = "../../pipeline/data/output/gsi_verified_tiles/";
 
+// Presentation state only. Never turn GSI reference sites into D facilities or
+// persist private origin coordinates. This panel consumes ONLY current accepted
+// discovery.sites and is reset before every new request / region / origin.
+let referenceComparisonSession = null;
+
+function resetReferenceComparison() {
+  referenceComparisonSession = null;
+  const button = document.getElementById("referenceCompareOpen");
+  const panel = document.getElementById("referenceComparePanel");
+  if (button) {
+    button.hidden = true;
+    button.disabled = true;
+    button.setAttribute("aria-expanded", "false");
+  }
+  if (panel) panel.hidden = true;
+  document.getElementById("referenceCompareChoices")?.replaceChildren?.();
+  document.getElementById("referenceCompareResult")?.replaceChildren?.();
+  const status = document.getElementById("referenceCompareStatus");
+  if (status) status.textContent = "確認済みの掲載地点がありません。指定地点の出典照合が必要です。";
+}
+
+function comparisonElement(tag, value, className) {
+  const element = document.createElement(tag);
+  element.textContent = value;
+  if (className) element.className = className;
+  return element;
+}
+
+function referenceCompareDetail(site) {
+  const card = comparisonElement("article", "", "reference-compare-site");
+  card.append(comparisonElement("h3", site.name));
+  const list = document.createElement("dl");
+  for (const [title, value] of [
+    ["公式住所（原文）", site.address ?? "元データで未確認"],
+    ["公式備考（原文）", site.remarks ?? "元データで未確認"],
+    ["選択地点からの直線距離", site.distanceMetres.toLocaleString("ja-JP") + "m（経路ではありません）"],
+    ["原データ行", site.trace]
+  ]) {
+    list.append(comparisonElement("dt", title), comparisonElement("dd", value));
+  }
+  card.append(list);
+  const url = safeExternalUrl(site.sourceUrl);
+  if (url && url.startsWith("https:")) {
+    const link = comparisonElement("a", "GSI公式GeoJSONの元データを確認 ↗");
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    card.append(link);
+  }
+  return card;
+}
+
+function renderReferenceComparison() {
+  const session = referenceComparisonSession;
+  const options = document.getElementById("referenceCompareChoices");
+  const output = document.getElementById("referenceCompareResult");
+  const status = document.getElementById("referenceCompareStatus");
+  if (!session || !options || !output || !status) return;
+  options.replaceChildren();
+  output.replaceChildren();
+
+  const picked = session.selected();
+  const coverage = session.coverage();
+  status.textContent = "比較対象 " + picked.length + "/2地点｜検証済み " +
+    coverage.verified + "/" + coverage.requested + "タイル" +
+    (coverage.partial ? "（未照合範囲があります）" : "") +
+    "。この5地点以内の表示は調査済み地域全体の網羅を意味しません。";
+
+  for (const site of session.candidates()) {
+    const button = comparisonElement("button",
+      (site.selected ? "選択を外す：" : "比較に追加：") + site.name, "reference-compare-choice");
+    button.type = "button";
+    button.setAttribute("aria-pressed", String(site.selected));
+    button.disabled = picked.length >= 2 && !site.selected;
+    button.addEventListener("click", () => {
+      const changed = referenceComparisonSession?.toggle(site.id);
+      if (!changed?.ok) return; // stale or third choice: never fabricate
+      renderReferenceComparison();
+    });
+    options.append(button);
+  }
+  if (picked.length !== 2) {
+    output.append(comparisonElement("p",
+      picked.length === 1 ? "あと1地点を選んでください。" : "異なる2つの掲載地点を選んでください。",
+      "reference-compare-hint"));
+    return;
+  }
+  const columns = comparisonElement("div", "", "reference-compare-columns");
+  columns.append(referenceCompareDetail(picked[0]), referenceCompareDetail(picked[1]));
+  output.append(columns);
+}
+
+function enableReferenceComparison(discovery) {
+  const engine = window.HINANEX_REFERENCE_SITE_COMPARE;
+  const button = document.getElementById("referenceCompareOpen");
+  // Map-only browsing is still possible if the independent compare module
+  // has not loaded. Do not permit an unchecked comparison on a stale asset.
+  if (engine?.apiVersion !== "gsi-reference-compare-20261020-v1" ||
+      typeof engine?.createSession !== "function" || !button) return;
+  const session = engine.createSession(discovery);
+  if (!session) return;
+  referenceComparisonSession = session;
+  button.hidden = false;
+  button.disabled = false;
+}
+
+document.getElementById("referenceCompareOpen")?.addEventListener("click", () => {
+  if (!referenceComparisonSession) return;
+  const panel = document.getElementById("referenceComparePanel");
+  if (!panel) return;
+  // On mobile the map footprint summary and an existing Leaflet popup can
+  // overlap this opt-in comparison sheet. Both are secondary while comparing.
+  // Restore the source coverage panel after closing; no data layer is removed.
+  map.closePopup?.();
+  const summary = document.getElementById("referenceMapSummary");
+  if (summary) summary.hidden = true;
+  panel.hidden = false;
+  document.getElementById("referenceCompareOpen").setAttribute("aria-expanded", "true");
+  renderReferenceComparison();
+});
+document.getElementById("referenceCompareClose")?.addEventListener("click", () => {
+  const panel = document.getElementById("referenceComparePanel");
+  if (panel) panel.hidden = true;
+  const trigger = document.getElementById("referenceCompareOpen");
+  trigger?.setAttribute("aria-expanded", "false");
+  // applyDisplayMode knows whether a verified GSI footprint is still active.
+  // Never restore a source overlay that has since become unverified.
+  applyDisplayMode();
+  trigger?.focus?.();
+});
+
+
 function updateMapOriginAction(message, picking = false) {
   const button = document.getElementById("mapOriginShortcut");
   const status = document.getElementById("mapOriginShortcutStatus");
@@ -1731,7 +1863,15 @@ function applyDisplayMode() {
   const summaryPanel = document.getElementById("referenceMapSummary");
   // Hide GSI's legend and counts whenever GSI is not drawn. Preserve the
   // accepted in-memory evidence so toggling back does not trigger a re-fetch.
-  summaryPanel.hidden = !showGSI || !hasGsiEvidence;
+  const comparing = document.getElementById("referenceComparePanel")?.hidden === false;
+  summaryPanel.hidden = !showGSI || !hasGsiEvidence || comparing;
+  // Switching to D-only hides every GSI comparison surface without
+  // invalidating the approved reference data held for an explicit return.
+  if (!showGSI) {
+    const comparePanel = document.getElementById("referenceComparePanel");
+    if (comparePanel) comparePanel.hidden = true;
+    document.getElementById("referenceCompareOpen")?.setAttribute("aria-expanded", "false");
+  }
 
   // D, GSI, and municipality-fixture layers are independent. A newly selected
   // origin never changes the municipality or repurposes D as GSI reference.
@@ -1871,6 +2011,7 @@ function renderReferenceMap(discovery) {
 
 function renderReferenceDiscovery() {
   const result = document.getElementById("floodDiscoveryResults");
+  resetReferenceComparison();
   clearReferenceMap();
   const engine = compatibleDiscoveryEngine();
   if (!engine) {
@@ -1901,8 +2042,12 @@ function renderReferenceDiscovery() {
   }).join("");
   result.innerHTML = `<p>検証済み${discovery.verifiedTileCount}/${discovery.requestedTileCount}タイルの掲載地点：${discovery.total}件（自治体内の件数ではありません）。最大5件を参考表示。</p>` +
     `<p class="reference-warning">${escapeHtml(discovery.message)}</p>` +
-    (cards || '<p>この照合済みデータ内に対象施設はありません。自治体の指定不存在は断定できません。</p>');
+    (cards || '<p>この照合済みデータ内に対象施設はありません。自治体の指定不存在は断定できません。</p>') +
+    (discovery.sites.length === 1
+      ? '<p class="reference-warning">今回照合できた表示地点は1件のため、2地点比較は利用できません。他の避難場所が存在しないという意味ではありません。</p>'
+      : '');
   renderReferenceMap(discovery);
+  enableReferenceComparison(discovery);
   updateMapOriginAction("検証済み" + discovery.verifiedTileCount + "/" +
     discovery.requestedTileCount + "タイル・" + discovery.total +
     "掲載件数（左欄に参考結果）。避難先の推奨ではありません。");
