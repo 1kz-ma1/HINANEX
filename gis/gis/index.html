@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="css/evidence_replay.css?v=spatial-evidence-20261014-v2">
   <link rel="stylesheet" href="css/presentation_story.css?v=presenter-55s-20261014-v1">
   <link rel="stylesheet" href="css/filter_demo.css?v=d-source-criteria-20261014-v1">
-  <link rel="stylesheet" href="css/gsi_flood_demo.css?v=mobile-only-narration-20261019-v1">
+  <link rel="stylesheet" href="css/gsi_flood_demo.css?v=waiting-vs-wide-evac-20261020-v1">
   <link rel="stylesheet" href="css/place_card.css?v=zoom-compact-popup-20261014-v1">
 </head>
 <body>
@@ -388,6 +388,9 @@
       <div class="gsi-demo-narration-copy">
         <strong id="gsiFloodDemoTitle"></strong>
         <p id="gsiFloodDemoMessage"></p>
+        <a id="gsiDemoSceneSource" class="gsi-demo-narration-source"
+           href="https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/hazardmap/koikihinan.html"
+           target="_blank" rel="noopener noreferrer">江戸川区：公式資料を確認 ↗</a>
       </div>
       <div class="gsi-demo-mobile-controls" role="group" aria-label="スマホ用GSIデモ操作">
         <button id="gsiDemoMobileToggle" type="button" aria-label="GSI洪水指定デモを一時停止">一時停止</button>
@@ -521,7 +524,12 @@
     <section id="mapAudienceIntro" class="map-audience-intro" aria-label="HINANEXの使い方" hidden>
       <div class="map-audience-intro-head"><strong>HINANEXへようこそ</strong><button id="mapAudienceIntroClose" type="button" aria-label="案内を閉じる">×</button></div>
       <p class="map-audience-intro-purpose"><strong>将来の避難支援につながるデータ基盤が、どこまで実装されたかを示すデモです。</strong></p>
-      <p>このデモでは、検証できたGSI公式掲載地点を出典までたどり、別資料の「未判定」を推測で埋めない処理を地図で体験できます。避難先の安全判断・推奨はまだ行いません。</p>
+      <p>近くに学校や避難施設があっても、そこへ避難すべきとは限りません。江戸川区では大規模水害の際、早期の広域避難を案内し、待避施設はやむを得ない場合の緊急避難先と位置付けています。</p>
+      <p>このデモでは、検証できたGSI公式掲載地点を出典までたどり、別資料の「未判定」を推測で埋めない処理を地図で体験できます。紫ピンには千葉県側も含まれ得ます。避難先の安全判断・推奨はまだ行いません。</p>
+      <p class="map-audience-policy-references">公式説明：
+        <a href="https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/hazardmap/koikihinan.html" target="_blank" rel="noopener noreferrer">広域避難 ↗</a> /
+        <a href="https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/hazardmap/ikinaihinan.html" target="_blank" rel="noopener noreferrer">待避施設 ↗</a>
+      </p>
        <button id="mapAudienceIntroStart" class="map-audience-intro-start" type="button">▶ デモを開始する</button>
       <p>※施設が表示されないことは、安全・施設なしの意味ではありません。避難先の推奨やリアルタイム情報ではありません。</p>
     </section>
@@ -631,7 +639,7 @@
 <script src="js/evidence_replay.js?v=spatial-evidence-20261014-v2"></script>
 <script src="js/presentation_story.js?v=presenter-55s-20261014-v2"></script>
 <script src="js/filter_demo.js?v=interactive-presenter-20261014-v1"></script>
-<script src="js/gsi_flood_demo.js?v=mobile-only-narration-20261019-v1"></script>
+<script src="js/gsi_flood_demo.js?v=waiting-vs-wide-evac-20261020-v1"></script>
 <script src="js/evidence_sheet.js?v=evidence-sheet-20261010-v1"></script>
 </body>
 </html>
