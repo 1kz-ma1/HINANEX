@@ -148,3 +148,5 @@ assert.equal(discoverReferenceTiles(null, point).status, "UNVERIFIED_SOURCE");
 assert.equal(discoverReferenceTiles([full], null).status, "NO_ORIGIN");
 
 console.log("flood_discovery.test.js: OK");
+// Reuse the mandatory E CI entry point without modifying shared workflows.
+require("./reference_site_compare.test.js");

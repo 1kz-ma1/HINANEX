@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="css/filter_demo.css?v=d-source-criteria-20261014-v1">
   <link rel="stylesheet" href="css/gsi_flood_demo.css?v=waiting-vs-wide-evac-20261020-v1">
   <link rel="stylesheet" href="css/place_card.css?v=zoom-compact-popup-20261014-v1">
+  <link rel="stylesheet" href="css/reference_site_compare.css?v=gsi-reference-compare-20261020-v1">
 </head>
 <body>
 <header class="header">
@@ -573,6 +574,20 @@
       </div>
         </div>
       </details>
+      <button id="referenceCompareOpen" class="reference-compare-open" type="button"
+        aria-controls="referenceComparePanel" aria-expanded="false" hidden disabled>掲載地点を2つ比較（試作）</button>
+    </section>
+    <section id="referenceComparePanel" class="reference-compare-panel" role="region"
+      aria-labelledby="referenceCompareTitle" hidden>
+      <div class="reference-compare-header">
+        <div><strong id="referenceCompareTitle">GSI公式掲載地点を比較</strong>
+          <p>検証済みの同一データ系統から2地点を手動で選び、原文の掲載情報を確認します。</p></div>
+        <button id="referenceCompareClose" type="button" aria-label="地点比較を閉じる">×</button>
+      </div>
+      <p id="referenceCompareStatus" role="status" aria-live="polite">地点を2つ選んでください。</p>
+      <div id="referenceCompareChoices" class="reference-compare-choices" role="group" aria-label="比較するGSI掲載地点を選ぶ"></div>
+      <div id="referenceCompareResult" class="reference-compare-result" aria-live="polite"></div>
+      <p class="reference-compare-caution">掲載データだけの比較です。直線距離は移動距離・安全性・推奨順位ではありません。現在の開設・混雑・道路の安全性や自治体施設との同一性は検証していません。原文・有効時点は公式資料で確認してください。</p>
     </section>
     <div id="mapUnavailable" class="map-unavailable" hidden>
       <strong id="mapUnavailableTitle">表示範囲を確定できません</strong>
@@ -632,7 +647,8 @@
 <script src="js/facility_list.js"></script>
 <!-- Discovery API remains v14; map UI-only consumer has a separate cache-busting key. -->
 <script src="js/flood_discovery.js?v=gsi-z10-neighbors-20261009-v14"></script>
-<script src="js/map.js?v=audience-main-pin-20261015-v1"></script>
+<script src="js/reference_site_compare.js?v=gsi-reference-compare-20261020-v1"></script>
+<script src="js/map.js?v=gsi-reference-compare-20261020-v1"></script>
 <script src="js/map_first_ui.js?v=anchored-point-bubble-20261014-v1"></script>
 <script src="js/audience_share.js?v=audience-replay-welcome-20261015-v1"></script>
 <script src="js/guided_tour.js?v=interactive-presenter-20261014-v1"></script>
