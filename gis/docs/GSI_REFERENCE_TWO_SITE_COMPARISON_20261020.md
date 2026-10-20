@@ -33,3 +33,16 @@
 
 ## 統合条件
 Draft PRのままCI実行、desktop/mobile実機確認、A/C/Dの安全境界の独立維持を確認し、Merge Captainの判断を待つ。main push・自動merge・Renderデプロイは行わない。
+
+## 2026-10-20 13時台：実Chromium比較操作の自動受入（合成fixture）
+
+- 追加：`gis/tests/reference_site_compare_browser.js`。既存の `gis/tests/demo_20261022_browser_smoke.js` のE専用 `HINANEX_WHEEL_ONLY=1` profileから呼び出し、`main` のshared workflowは変更しない。
+- **CI結果:** [required test #39370677376](https://github.com/1kz-ma1/HINANEX/actions/runs/39370677376) SUCCESS、[GIS Chromium #39370677402](https://github.com/1kz-ma1/HINANEX/actions/runs/39370677402) SUCCESS。
+- desktop 1365×900 と mobile 390×844 で実Leaflet/Chromiumを起動。GSIタイル JSONのHTTP応答のみEテスト内で一時差し替え、C-accepted catalogの**schema・状態を模した明記済み合成fixture**を使用する。実在の自治体施設情報ではない。GISの通常データ・配布物や原本は変更しない。
+- 実ブラウザ操作を自動化：表示前ボタン非表示→地点指定→合成GSI3件を出典検査経路から読み込む→明示的に比較を開く→2件選択→3件目無効化→選択解除・再選択→閉じて再開→地点を検証済み範囲外に移動すると比較を消去。
+- PCでは比較2列、390pxでは縦1列。ダイアログがビューポートからはみ出さず、モバイルでは地図の54%を超えないことをDOM実寸で検証。選択したsource URLのHTTPSリンクと`noopener noreferrer`を照合。
+- HTML混入を意図した合成名称が`<img>`タグにならず、`textContent`のまま可視化されることを確認。
+- 未取得タイル・`source_status=PENDING` の負系も実ブラウザで確認。紫ピン／比較操作を創作しない。
+- 出力証跡：workflow artifacts内 `reference_site_compare_browser_audit.json`、`gsi-comparison-ci-fixture-1365.png`、`gsi-comparison-ci-fixture-390.png`（[artifacts付きrun #39370677402](https://github.com/1kz-ma1/HINANEX/actions/runs/39370677402)、2026-10-27 UTC頃までの保持設定）。スクリーンショットは合成fixtureのみ。
+
+**制約：** Chromiumの自動操作は通過したが、iPhone Safari実機、ユーザーが情報を誤認しないかの観察、現在の公式原本の更新確認、実GSIの配信到達性、Render本番・ステージングへの反映・閲覧は未実施。今回のCI成功はA/C正式承認・実災害時の安全性・実経路の検証ではない。
