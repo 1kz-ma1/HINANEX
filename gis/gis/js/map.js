@@ -2042,7 +2042,10 @@ function renderReferenceDiscovery() {
   }).join("");
   result.innerHTML = `<p>検証済み${discovery.verifiedTileCount}/${discovery.requestedTileCount}タイルの掲載地点：${discovery.total}件（自治体内の件数ではありません）。最大5件を参考表示。</p>` +
     `<p class="reference-warning">${escapeHtml(discovery.message)}</p>` +
-    (cards || '<p>この照合済みデータ内に対象施設はありません。自治体の指定不存在は断定できません。</p>');
+    (cards || '<p>この照合済みデータ内に対象施設はありません。自治体の指定不存在は断定できません。</p>') +
+    (discovery.sites.length === 1
+      ? '<p class="reference-warning">今回照合できた表示地点は1件のため、2地点比較は利用できません。他の避難場所が存在しないという意味ではありません。</p>'
+      : '');
   renderReferenceMap(discovery);
   enableReferenceComparison(discovery);
   updateMapOriginAction("検証済み" + discovery.verifiedTileCount + "/" +
