@@ -23,7 +23,7 @@
 
   function createSession(discovery) {
     if (discovery?.status !== "REFERENCE_ONLY" ||
-        !Array.isArray(discovery.sites) || discovery.sites.length < 1 ||
+        !Array.isArray(discovery.sites) || discovery.sites.length < 2 ||
         discovery.sites.length > LIMIT ||
         !Array.isArray(discovery.verifiedTileKeys) ||
         discovery.verifiedTileKeys.length < 1 ||
