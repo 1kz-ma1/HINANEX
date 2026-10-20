@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="一次資料を自分で比較して未確認事項を把握するHINANEXの操作検証用画面">
+  <title>HINANEX｜根拠比較ラボ（試作）</title>
+  <link rel="stylesheet" href="./decision-lab.css">
+</head>
+<body>
+  <div class="lab-shell">
+    <header class="lab-header">
+      <a href="./" class="lab-brand">HINANEX</a>
+      <nav aria-label="他の画面"><a href="./">分析・根拠</a><a href="/gis/gis/?region=13123">江戸川区の地図</a></nav>
+    </header>
+    <main>
+      <p class="eyebrow">PRODUCT-FIRST / B PROTOTYPE</p>
+      <h1>避難情報を、根拠から比較する。</h1>
+      <p class="intro">「どこへ行くべきか」を自動判定する前に、どんな資料があり、何がまだ分からないかを利用者自身で確かめるための試作です。</p>
+      <aside class="safety" role="note" aria-label="利用上の制限">
+        <strong>操作検証専用・実際の避難判断には使えません。</strong>
+        <p>施設・安全な経路の推奨、現在の開設状況、リアルタイム災害情報は提供しません。未承認の施設結合や洪水適合判定も行いません。非常時は自治体等の最新公式情報を確認してください。</p>
+      </aside>
+      <section class="section" aria-labelledby="topicTitle">
+        <div class="step">01 / 調べたいこと</div>
+        <h2 id="topicTitle">いま知りたいことを選ぶ</h2>
+        <p class="hint">これは情報を整理するための選択です。危険度や避難先の優先順位には変換しません。</p>
+        <fieldset class="topics">
+          <legend>確認する目的</legend>
+          <label><input type="radio" name="topic" value="wide">区外も含めた早期避難について</label>
+          <label><input type="radio" name="topic" value="waiting">区の待避施設について</label>
+          <label><input type="radio" name="topic" value="gsi">GSIと区の施設資料の違いについて</label>
+          <label><input type="radio" name="topic" value="undecided" checked>まず情報を整理したい</label>
+        </fieldset>
+        <p class="selection" id="selectionStatus" role="status" aria-live="polite"></p>
+      </section>
+      <section class="section" aria-labelledby="sourcesTitle">
+        <div class="step">02 / 根拠資料を比較</div>
+        <h2 id="sourcesTitle">4種類の原文を並べて確認する</h2>
+        <p class="hint">資料の紹介文は既存仕様に基づく説明です。実際の原文と有効時点はリンク先で確認してください。選択内容に関わらず、資料は全件表示します。</p>
+        <div class="sources" id="sourceCards"></div>
+        <p class="hint">「確認した」は本人のメモです。資料の真正性・ライセンス・個別施設の結合を承認するものではありません。</p>
+      </section>
+      <section class="section" aria-labelledby="compareTitle">
+        <div class="step">03 / 2つの資料を比べる</div>
+        <h2 id="compareTitle">「何を知りたいか」に沿って根拠を比べる</h2>
+        <p class="hint">問いは情報収集上の目的であり、災害の緊急度や避難の優先順位を決める条件ではありません。資料を2つ選び、公式の原文をそれぞれ確認してください。</p>
+        <div class="compare-fields">
+          <label>確認したい問い
+            <select id="researchQuestion"></select>
+          </label>
+          <label>左の資料
+            <select id="leftSource"></select>
+          </label>
+          <label>右の資料
+            <select id="rightSource"></select>
+          </label>
+        </div>
+        <p id="compareWarning" class="compare-warning" role="status" aria-live="polite"></p>
+        <div id="comparisonRoot" class="comparison-root" aria-live="polite"></div>
+        <p class="hint">比較結果は資料の種類と調査上の限界を整理したものです。原文の現行性・制度上の意味・個別施設の属性を独立認定した結果ではありません。</p>
+      </section>
+      <section class="section" aria-labelledby="notesTitle">
+        <div class="step">04 / 理解できたこと・残る不確実性</div>
+        <h2 id="notesTitle">自分の確認メモを作る</h2>
+        <p>確認済み・未確認の資料を並べて、次に何を調べるべきか整理します。個人の確認記録はサーバーに送信せず、この画面を閉じるとリセットされます。</p>
+        <button id="makeMemo" class="primary" type="button">比較メモを更新</button>
+        <label for="memo">確認メモ（必要なら選択してコピー）</label>
+        <textarea id="memo" rows="12" readonly spellcheck="false"></textarea>
+        <div class="next-actions">
+          <a href="/gis/gis/?region=13123">江戸川区の参考地図を別画面で確認 →</a>
+          <a href="./">地域分析・根拠を確認 →</a>
+        </div>
+        <p class="hint">地図上の近さ、GSIへの掲載、施設の存在は、現在利用可能な安全な避難先であることを保証しません。</p>
+      </section>
+    </main>
+    <footer>HINANEX / 比較体験の先行試作。A/C正式レビューとDデータ投入は別ゲートです。</footer>
+  </div>
+  <noscript>この比較試作ではJavaScriptが必要です。自治体の公式情報を直接確認してください。</noscript>
+  <script type="module" src="./src/decision-lab.js"></script>
+</body>
+</html>

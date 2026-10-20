@@ -4,24 +4,54 @@
   const get=id=>document.getElementById(id);
   const panel=get("gsiFloodDemoPanel"),opener=get("mapGsiFloodDemoOpen"),
         narration=get("gsiDemoNarration");
+  const mobileToggle=get("gsiDemoMobileToggle");
+  const mobileClose=get("gsiDemoMobileClose");
+  const isMobile=()=>Boolean(window.matchMedia?.("(max-width: 780px)")?.matches);
+  function updateMobileControls(){
+    mobileToggle.hidden=state==="unavailable";
+    mobileToggle.disabled=state==="loading"||state==="awaiting-pin";
+    const label=state==="playing"?"一時停止":
+      state==="complete"?"最初から":state==="awaiting-pin"?"ピンを選択":
+      state==="loading"?"確認中":"再生";
+    mobileToggle.textContent=label;
+    mobileToggle.setAttribute("aria-label",label+"：GSI洪水指定デモ");
+  }
   const api=window.HINANEX_GSI_FLOOD_PRESENTER;
   const timings=[7,12,12,12]; // 43 seconds plus unbounded human pin selection
   let sequence=0,state="idle",clock=null,scene=0,remaining=7,elapsed=0,
       data=null,item=null,dStatus=null,restore=true;
   // These are map-watching cues, not a duplicate source explanation.
   // GSI's published designation must never be presented as live safety data.
+  // Official policy is presented as reference guidance, NOT as a D/GSI
+  // facility classification or live instruction. The policies apply to the
+  // specified large-scale flood scenario, not every storm or every person.
+  const officialSources=[
+    {name:"江戸川区：大規模水害時の広域避難（公式）",
+      url:"https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/hazardmap/koikihinan.html"},
+    {name:"江戸川区：待避施設の位置付け（公式）",
+      url:"https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/hazardmap/ikinaihinan.html"},
+    {name:"国土地理院：指定緊急避難場所の資料",
+      url:"https://www.gsi.go.jp/bousaichiri/hinanbasho.html"},
+    {name:"江戸川区：水害時の避難判断フロー（公式）",
+      url:"https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/hazardmap/suigaihinan.html"}
+  ];
   const titles=[
-    "避難支援の前に、根拠を扱うデータ基盤を確かめます。",
-    "地図の紫のピンが、検証できた公式掲載地点です。",
-    "紫のピンを1つ選んで、出典を確認してください。",
-    "公式指定が確認できても、施設の「未判定」は残ります。"
+    "近くに学校があっても、最初の避難先とは限りません。",
+    "区の「待避施設」と、紫のGSI洪水指定ピンは別情報です。",
+    "紫のピンを選んで、掲載場所と出典を確かめよう。",
+    "ピンだけで避難先を決めない。「未判定」を残します。"
   ];
   const explanations=[
-    "出典を追い、未判定を推測で埋めない処理が今回の実装範囲です。避難先の安全判断は行いません。",
-    "検証済みGSIデータの範囲だけを表示中。すべての施設や現在の安全性を示すものではありません。",
-    "選んだ地点の名称・住所・原データは、右側（スマホでは下部）のカードに表示します。",
-    "HINANEXは、確認済みの根拠と未判定の情報を区別します。両資料の施設同一性は未照合です。"
+    "江戸川区は大規模水害時に早期の広域避難を案内。区の待避施設は、避難する時間がないなどやむを得ない場合の緊急避難先です。",
+    "紫は周辺の検証済みGSI掲載地点から最大5件。千葉県側を含む場合があり、江戸川区内の施設数や推奨先を示しません。",
+    "紫のピンを選び、住所・出典の元データを確認してください。掲載だけでは現在の開設・混雑・移動の安全を確認できません。",
+    "江戸川区の避難方針、緊急時の待避施設、GSI洪水指定、Dの洪水未判定は別々の情報。開設・混雑・経路の現況はこのデモでは未確認です。"
   ];
+  function showOfficialSource(index){
+    const a=get("gsiDemoSceneSource"),source=officialSources[index];
+    a.href=source.url;
+    a.textContent=source.name+" ↗";
+  }
   function stopClock(){if(clock!==null)window.clearInterval(clock);clock=null;}
   let mobileExpanded=false;
   function setMobileExpanded(expanded){
@@ -39,6 +69,7 @@
   }
   function writeStatus(s){get("gsiFloodDemoStatus").textContent=s;}
   function unavailable(reason) {
+    stopClock();state="unavailable"; // Fail closed for both desktop fallback and mobile controls.
     // A missing/invalid official catalog is never interpreted as "no
     // designated sites". Offer the already working D-only presentation,
     // clearly labeled as a different source and a different capability.
@@ -48,7 +79,15 @@
       UNVERIFIED_SOURCE:"この地点のGSI検証済みデータを読み込めません。配信・検証状態の確認が必要です。"
     };
     writeStatus(messages[reason] || "GSI公式データの検証結果を確認できません。再生を停止しました。");
-    narration.hidden=true;
+    narration.hidden=false; // Mobile shows a truthful fail-closed message in the ONLY visible demo surface.
+    narration.setAttribute("data-source-state","unavailable");
+    get("gsiFloodDemoPhase").textContent="確認不可";
+    get("gsiFloodDemoTitle").textContent="公式データを確認できません";
+    get("gsiFloodDemoMessage").textContent=(messages[reason]||
+      "GSI公式データの検証結果を確認できません。")+
+      " 未確認は指定地点がないことや安全であることを意味しません。区の避難方針は公式資料を参照してください。";
+    showOfficialSource(0);
+    updateMobileControls();
     get("gsiFloodDemoFallback").hidden=false;
     get("gsiFloodDemoFallbackReason").textContent=
       "GSI洪水指定の掲載情報は未確認です。現在の安全性は判断できません。"+
@@ -60,15 +99,20 @@
     panel.setAttribute("data-scene",String(scene+1));
     narration.hidden=false;
     narration.setAttribute("data-scene",String(scene+1));
+    narration.setAttribute("data-source-state","verified");
     const awaitingPin=scene===2&&!item;
     get("gsiFloodDemoPhase").textContent=String(scene+1).padStart(2,"0")+" / 04";
     get("gsiFloodDemoClock").textContent=state==="complete"?"終了":
       scene===2&&!item?"操作待ち":remaining+"秒";
     get("gsiFloodDemoTitle").textContent=scene===2&&item
-      ? "選んだピンの公式情報をカードで確かめましょう。" : titles[scene];
+      ? (isMobile()?"選んだGSI掲載地点を地図で確認しました。":
+        "選んだGSI掲載地点の公式情報をカードで確かめましょう。") : titles[scene];
     get("gsiFloodDemoMessage").textContent=scene===2&&item
-      ? "掲載地点の名前・住所・元データを確認できます。現在の安全性や開設を示すものではありません。"
+      ? (isMobile()
+          ?"地図のピンから原文を確認できます。区の待避施設との同一性、現在の開設・混雑・安全は未確認です。"
+          :"元データと住所をカードで確認できます。区の待避施設との同一性、現在の開設・混雑・安全は未確認です。")
       : explanations[scene];
+    showOfficialSource(scene);
     get("gsiFloodDemoCount").textContent=String(data.total);
     get("gsiFloodDemoShown").textContent=String(data.shown);
     get("gsiFloodDemoEvidence").hidden=scene<2||!item;
@@ -100,6 +144,7 @@
       state==="complete"?"再生完了":state==="paused"?"一時停止中":"再生中")+
       "｜公式に検証済み "+data.verifiedTiles+"/"+data.requestedTiles+
       " タイル。掲載地点 "+data.total+"件（選択した自治体全体の件数ではありません）。");
+    updateMobileControls();
   }
   function changeScene(next) {
     if(!data||next<0||next>=timings.length)return;
@@ -171,14 +216,20 @@
     if(!get("mapEvidenceReplayPanel").hidden)get("mapEvidenceReplayClose").click();
     get("mapTourClose").click();
     const token=++sequence;
-    panel.hidden=false;narration.hidden=true;
+    panel.hidden=false;narration.hidden=false;
+    narration.setAttribute("data-source-state","loading");
+    get("gsiFloodDemoPhase").textContent="確認中";
+    get("gsiFloodDemoTitle").textContent="検証済みの公式資料を確認しています";
+    get("gsiFloodDemoMessage").textContent="出典を確認できるまで、洪水指定のピンは表示しません。大規模水害時の避難は江戸川区の公式方針も確認してください。";
+    showOfficialSource(0);
     opener.setAttribute("aria-expanded","true");
     setMobileExpanded(false);
-    get("gsiFloodDemoClose").focus();
+    (isMobile()?mobileClose:get("gsiFloodDemoClose")).focus();
     get("gsiFloodDemoContent").hidden=true;
     get("gsiFloodDemoActions").hidden=true;
     get("gsiFloodDemoFallback").hidden=true;
     stopClock();state="loading";scene=0;remaining=timings[0];elapsed=0;
+    updateMobileControls();
     data=null;item=null;dStatus=null;restore=true;
     writeStatus("独立に検証されたGSI洪水指定データを確認しています。");
     try{
@@ -206,6 +257,14 @@
     setMobileExpanded(!mobileExpanded);
   });
   get("gsiFloodDemoClose").addEventListener("click",close);
+  mobileClose.addEventListener("click",close);
+  mobileToggle.addEventListener("click",()=>{
+    if(panel.hidden||!data)return;
+    if(state==="complete"){close();void open();}
+    else if(state==="playing"){pause();api?.halt();}
+    else if(state==="paused"){play();}
+    // "awaiting-pin" does not bypass the required verified GSI map selection.
+  });
   get("gsiFloodDemoFallbackD").addEventListener("click",()=>{
     // Hand-off is explicit user action; never pretend this is a GSI result.
     close();
@@ -232,6 +291,8 @@
     if(event.key==="Escape"){
       event.preventDefault();event.stopImmediatePropagation?.();close();
     }else if(event.key==="Tab"){
+      // The desktop panel is CSS-hidden on mobile; do not trap focus there.
+      if(isMobile())return;
       const nodes=Array.from(panel.querySelectorAll('button:not([disabled]),a[href]'));
       if(!nodes.length)return;
       if(event.shiftKey&&document.activeElement===nodes[0]){

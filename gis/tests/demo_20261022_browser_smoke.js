@@ -17,6 +17,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
 const { auditDirectory } = require("./inspect_local_region_exports.js");
+const { runReferenceSiteCompareBrowser } = require("./reference_site_compare_browser.js");
 
 const [distArg, outArg] = process.argv.slice(2);
 if (!distArg || !outArg || process.argv.length !== 4) {
@@ -628,6 +629,12 @@ async function screenshot(page, name) {
     assert.match(introCopy,/未判定.*推測で埋めない/s);
     assert.match(introCopy,/避難先の安全判断・推奨はまだ行いません/,
       "foundation completion must not be mistaken for live evacuation guidance");
+    assert.match(introCopy,/待避施設はやむを得ない場合の緊急避難先/,
+      "welcome must differentiate municipal emergency waiting facilities from early wide-area evacuation");
+    assert.match(introCopy,/紫ピンには千葉県側も含まれ得ます/,
+      "municipality selection must not imply every GSI pin is in Edogawa");
+    assert.match(await visitor.locator("#mapAudienceIntro a[href*=koikihinan]").getAttribute("href"),/koikihinan[.]html$/,
+      "official wide-area source must be directly navigable");
     assert.equal(await visitor.locator("#gsiFloodDemoPanel").isVisible(),false,
       "a shared URL never autoplays a scenario or requests GPS");
     assert.equal(await visitor.locator(".map-tour-other-demos").isVisible(),false,
@@ -660,7 +667,7 @@ async function screenshot(page, name) {
       await visitor.locator("#gsiFloodDemoNext").click(); // user-selection stage
       assert.equal(await visitor.locator("#gsiDemoNarration").isVisible(),true);
       assert.match(await visitor.locator("#gsiFloodDemoTitle").innerText(),
-        /紫のピンを1つ選んで/,"scene instruction appears under the toolbar");
+        /紫のピンを選んで/,"scene instruction appears under the toolbar");
       assert.equal(await visitor.locator("#gsiFloodDemoNext").isDisabled(),true);
       assert.equal((await visitor.locator("#gsiFloodDemoEvidence").isVisible()),false);
       const proof=await visitor.evaluate(()=>{
@@ -675,7 +682,7 @@ async function screenshot(page, name) {
           narrative:document.getElementById("gsiFloodDemoTitle").textContent};
       });
       assert.equal(proof.found,true,"ready official catalog must render a real GSI pin");
-      assert.match(proof.narrative,/選んだピンの公式情報/,
+      assert.match(proof.narrative,/選んだGSI掲載地点の公式情報/,
         "selected verified pin changes upper narration to show what the card contains");
       assert.ok(proof.selected.length>0 && proof.trace.length>0);
       assert.equal(await visitor.locator("#gsiFloodDemoEvidence").isVisible(),true);
@@ -704,91 +711,122 @@ async function screenshot(page, name) {
         (!document.getElementById("gsiFloodDemoContent").hidden ||
          !document.getElementById("gsiFloodDemoFallback").hidden);
     },null,{timeout:15000});
-    const compact=await visitor.evaluate(()=>{
-      const mapRect=document.getElementById("map").getBoundingClientRect();
+    // The mobile MAIN DEMO shows ONLY the scene narration card. The full
+    // source/actions presenter still runs internally but must not occupy map pixels.
+    const mobileLayout=await visitor.evaluate(()=>{
+      const narr=document.getElementById("gsiDemoNarration");
       const panel=document.getElementById("gsiFloodDemoPanel");
-      const rect=panel.getBoundingClientRect();
-      const controls=document.getElementById("gsiFloodDemoActions");
-      const buttons=controls.getBoundingClientRect();
+      const nav=document.querySelector(".map-toolbar").getBoundingClientRect();
+      const mapRect=document.getElementById("map").getBoundingClientRect();
+      const r=narr.getBoundingClientRect();
+      const toggle=document.getElementById("gsiDemoMobileToggle");
+      const close=document.getElementById("gsiDemoMobileClose");
+      const policy=document.getElementById("gsiDemoSceneSource");
+      const rTitle=document.getElementById("gsiFloodDemoTitle").getBoundingClientRect();
       return {
-        mapHeight:mapRect.height, panelHeight:rect.height,
-        uncoveredAbove:(rect.top-mapRect.top)/mapRect.height,
-        panelBottom:rect.bottom,buttonsBottom:buttons.bottom,
-        controlsVisible:!controls.hidden,
-        expanded:panel.getAttribute("data-mobile-expanded"),
-        overflow:getComputedStyle(document.getElementById("gsiFloodDemoContent")).overflowY
+        sourceState:narr.getAttribute("data-source-state"),
+        narrationShown:!narr.hidden && getComputedStyle(narr).display!=="none",
+        mapHeight:mapRect.height,navBottom:nav.bottom,
+        top:r.top,bottom:r.bottom,left:r.left,right:r.right,
+        titleHeight:rTitle.height,
+        narrationPointerEvents:getComputedStyle(narr).pointerEvents,
+        panelDisplay:getComputedStyle(panel).display,
+        panelHidden:panel.hidden,
+        toggleHidden:toggle.hidden,
+        closeDisplayed:getComputedStyle(close).display,
+        togglePointerEvents:getComputedStyle(toggle).pointerEvents,
+        policyHref:policy.getAttribute("href"),
+        policyPointerEvents:getComputedStyle(policy).pointerEvents,
+        policyHeight:policy.getBoundingClientRect().height
       };
     });
-    assert.ok(compact.mapHeight>260 && compact.panelHeight<compact.mapHeight*0.45,
-      "compact mobile card must not cover most of the interactive map");
-    assert.ok(compact.uncoveredAbove>0.36,
-      "mobile visitor must have enough unobstructed map to find GSI pins");
-    assert.equal(compact.expanded,"false");
-    if(compact.controlsVisible)assert.ok(compact.buttonsBottom<=compact.panelBottom+1,
-      "play/pause/next/restart controls remain inside the compact dock");
-    assert.equal(compact.overflow,"auto",
-      "original official evidence should remain independently scrollable");
-    // The four map tabs remain the top landmark. Missing verified skhb01
-    // input must fail closed with NO narration. For that isolated CI case,
-    // exercise CSS placement with a clearly labeled layout-only fixture,
-    // never with fabricated official source data or presenter state.
-    if(!compact.controlsVisible){
-      assert.equal(await visitor.locator("#gsiDemoNarration").isVisible(),false,
-        "GSI source unavailable: no misleading scene narration");
-      await visitor.evaluate(()=>{
-        const el=document.getElementById("gsiDemoNarration");
-        el.querySelector("#gsiFloodDemoTitle").textContent=
-          "TEST ONLY / narrow-screen banner placement";
-        el.querySelector("#gsiFloodDemoMessage").textContent=
-          "Offline CSS layout fixture. No official GSI data was verified.";
-        el.hidden=false;
-      });
+    assert.equal(mobileLayout.panelHidden,false,"presenter logic must stay active");
+    assert.equal(mobileLayout.panelDisplay,"none",
+      "the mobile source/action dock MUST NOT cover the actual Leaflet map");
+    assert.equal(mobileLayout.narrationShown,true,
+      "mobile supports both verified step narration and explicit source-unavailable state");
+    assert.ok(mobileLayout.top>=mobileLayout.navBottom-4 &&
+      mobileLayout.top<=mobileLayout.navBottom+35,
+      "scene banner must start immediately below the four map tabs");
+    assert.ok(mobileLayout.bottom-mobileLayout.top<mobileLayout.mapHeight*0.32,
+      "scene explanation should not occupy a third of the visible map");
+    assert.ok(mobileLayout.right<=390 &&
+      mobileLayout.titleHeight>10,
+      "mobile narration title must be readable and remain inside the map viewport");
+    assert.equal(mobileLayout.narrationPointerEvents,"none",
+      "the text background must not intercept actual marker taps");
+    assert.notEqual(mobileLayout.closeDisplayed,"none",
+      "upper card owns the accessible close action");
+    assert.equal(mobileLayout.togglePointerEvents,"auto",
+      "upper card play/pause control must accept a real tap");
+    assert.equal(mobileLayout.policyPointerEvents,"auto",
+      "an official primary-source link must remain independently tappable on mobile");
+    assert.ok(mobileLayout.policyHeight>=10,
+      "the municipal source link must remain legible without opening the hidden dock");
+    assert.match(mobileLayout.policyHref,/koikihinan[.]html$/,
+      "the first scene or fail-closed fallback cites Edogawa's actual broad-evacuation policy");
+    if(mobileLayout.sourceState==="verified"){
+      assert.equal(mobileLayout.toggleHidden,false);
+      await visitor.locator("#gsiDemoMobileToggle").click();
+      assert.match(await visitor.locator("#gsiDemoMobileToggle").textContent(),/再生/);
+      await visitor.locator("#gsiDemoMobileToggle").click();
+      assert.match(await visitor.locator("#gsiDemoMobileToggle").textContent(),/一時停止/);
+    }else{
+      assert.equal(mobileLayout.sourceState,"unavailable",
+        "when GSI data cannot be proven the only allowed mobile scene is a clear unavailable notice");
+      assert.equal(mobileLayout.toggleHidden,true,
+        "a failed source must not expose fake playback");
+      assert.match(await visitor.locator("#gsiFloodDemoTitle").textContent(),/確認できません/);
     }
-    const narrationGeometry=await visitor.evaluate(()=>{
-      const nav=document.querySelector(".map-toolbar").getBoundingClientRect();
-      const narr=document.getElementById("gsiDemoNarration");
-      const rect=narr.getBoundingClientRect();
-      const panel=document.getElementById("gsiFloodDemoPanel").getBoundingClientRect();
-      const text=narr.querySelector("#gsiFloodDemoTitle").getBoundingClientRect();
-      const css=getComputedStyle(narr);
-      return {shown:!narr.hidden,navBottom:nav.bottom,top:rect.top,bottom:rect.bottom,
-        left:rect.left,right:rect.right,mapRight:document.getElementById("map").getBoundingClientRect().right,
-        panelTop:panel.top,titleHeight:text.height,pointerEvents:css.pointerEvents,
-        ownText:!document.getElementById("gsiFloodDemoPanel")
-          .contains(document.getElementById("gsiFloodDemoMessage"))};
-    });
-    assert.equal(narrationGeometry.shown,true);
-    assert.ok(narrationGeometry.top>=narrationGeometry.navBottom-4 &&
-      narrationGeometry.top<=narrationGeometry.navBottom+35,
-      "mobile narration should sit directly below the 4 map tabs");
-    assert.ok(narrationGeometry.bottom<narrationGeometry.panelTop-8,
-      "narration must leave real tap space for geographic pins between bars");
-    assert.ok(narrationGeometry.titleHeight>10 &&
-      narrationGeometry.right<narrationGeometry.mapRight,
-      "instruction must stay readable and avoid the right zoom controls");
-    assert.equal(narrationGeometry.pointerEvents,"none",
-      "slim explanation cannot intercept real Leaflet marker selection");
-    assert.equal(narrationGeometry.ownText,true,
-      "source panel retains official details/actions, not duplicated instruction");
-    if(!compact.controlsVisible){
-      await visitor.evaluate(()=>{
-        document.getElementById("gsiDemoNarration").hidden=true;
-      });
+    await screenshot(visitor,"audience-mobile-narration-only");
+    // LAYOUT ONLY: the CI network intentionally lacks real C-approved GSI data.
+    // Render all four authored text lengths against the real banner CSS, without
+    // creating any GSI facilities, geocoding or pretending the source is verified.
+    // The behavioral/official-evidence semantics are asserted separately by
+    // gis/tests/gsi_flood_demo.test.js. This specifically catches text overflow
+    // that the normal fail-closed-only browser screenshot would never exercise.
+    const authoredSceneTextFixtures=[
+      ["近くに学校があっても、最初の避難先とは限りません。",
+       "江戸川区は大規模水害時に早期の広域避難を案内。区の待避施設は、避難する時間がないなどやむを得ない場合の緊急避難先です。",
+       "江戸川区：大規模水害時の広域避難（公式）"],
+      ["区の「待避施設」と、紫のGSI洪水指定ピンは別情報です。",
+       "紫は周辺の検証済みGSI掲載地点から最大5件。千葉県側を含む場合があり、江戸川区内の施設数や推奨先を示しません。",
+       "江戸川区：待避施設の位置付け（公式）"],
+      ["紫のピンを選んで、掲載場所と出典を確かめよう。",
+       "紫のピンを選び、住所・出典の元データを確認してください。掲載だけでは現在の開設・混雑・移動の安全を確認できません。",
+       "国土地理院：指定緊急避難場所の資料"],
+      ["ピンだけで避難先を決めない。「未判定」を残します。",
+       "江戸川区の避難方針、緊急時の待避施設、GSI洪水指定、Dの洪水未判定は別々の情報。開設・混雑・経路の現況はこのデモでは未確認です。",
+       "江戸川区：水害時の避難判断フロー（公式）"]
+    ];
+    for(const width of [390,360]){
+      await visitor.setViewportSize({width,height:740});
+      for(let i=0;i<authoredSceneTextFixtures.length;i++){
+        const measured=await visitor.evaluate(([title,copy,source])=>{
+          const narr=document.getElementById("gsiDemoNarration");
+          const heading=document.getElementById("gsiFloodDemoTitle");
+          const body=document.getElementById("gsiFloodDemoMessage");
+          const link=document.getElementById("gsiDemoSceneSource");
+          heading.textContent=title;body.textContent=copy;link.textContent=source+" ↗";
+          const bounds=narr.getBoundingClientRect(),mapRect=document.getElementById("map").getBoundingClientRect();
+          return {top:bounds.top,height:bounds.height,mapHeight:mapRect.height,
+            contentScrollHeight:narr.scrollHeight,contentClientHeight:narr.clientHeight,
+            linkPointerEvents:getComputedStyle(link).pointerEvents,
+            linkWidth:link.getBoundingClientRect().width,
+            titleWidth:heading.getBoundingClientRect().width};
+        },authoredSceneTextFixtures[i]);
+        assert.equal(measured.linkPointerEvents,"auto","official link must be tappable in every scene");
+        assert.ok(measured.linkWidth>40 && measured.titleWidth>40,"scene "+i+" text remains laid out");
+        assert.ok(measured.height<measured.mapHeight*.32,
+          "scene "+i+" must not hide the map at width "+width);
+        assert.ok(measured.contentScrollHeight<=measured.contentClientHeight+2,
+          "scene "+i+" text must not need scrolling at width "+width);
+      }
     }
-    const expand=visitor.locator("#gsiFloodDemoExpand");
-    assert.equal(await expand.isVisible(),true);
-    await expand.click();
-    const expandedHeight=await visitor.locator("#gsiFloodDemoPanel").evaluate(
-      el=>el.getBoundingClientRect().height);
-    assert.ok(expandedHeight>compact.panelHeight+20,
-      "source counts, official address and original row can be expanded deliberately");
-    assert.equal(await expand.getAttribute("aria-expanded"),"true");
-    await expand.click();
-    const collapsedHeight=await visitor.locator("#gsiFloodDemoPanel").evaluate(
-      el=>el.getBoundingClientRect().height);
-    assert.ok(Math.abs(collapsedHeight-compact.panelHeight)<2);
-    assert.equal(await expand.getAttribute("aria-expanded"),"false");
-    await screenshot(visitor,"audience-mobile-map-first-dock");
+    await visitor.setViewportSize({width:390,height:844});
+    await visitor.locator("#gsiDemoMobileClose").click();
+    assert.equal(await visitor.locator("#gsiDemoNarration").isVisible(),false,
+      "mobile close must dismiss the remaining explanation without keeping the demo running");
     assert.deepEqual(visitorErrors,[],"shared intro and presenter must not crash Chromium");
     await visitor.close();
 
@@ -796,6 +834,11 @@ async function screenshot(page, name) {
     // exact marker pixel assertions, without conflating this gate with the
     // independent full UI/presenter smoke later in this file.
     if (process.env.HINANEX_WHEEL_ONLY === "1") {
+      const compareBrowserResults = await runReferenceSiteCompareBrowser({
+        context, base, out, waitUntilLoaded
+      });
+      assert.equal(compareBrowserResults.length, 5,
+        "two viewport journeys, missing, unverified and one-site guards must run");
       assert.deepEqual(errors, [], "no GIS page errors during real zoom gestures");
       fs.writeFileSync(path.join(out, "wheel_browser_audit.json"),
         JSON.stringify({
@@ -816,14 +859,18 @@ async function screenshot(page, name) {
             "MOBILE_DOCK_DOES_NOT_OBSCURE_INTERACTIVE_MAP",
             "MOBILE_EXPANDABLE_SOURCE_EVIDENCE_AND_FIXED_CONTROLS",
             "SCENE_INSTRUCTION_DIRECTLY_BELOW_MAP_TOOLBAR",
-            "SEPARATE_SOURCE_ACTION_PANEL_FROM_SCENE_NARRATION"
+            "SEPARATE_SOURCE_ACTION_PANEL_FROM_SCENE_NARRATION",
+            "GSI_TWO_SITE_COMPARE_REAL_CHROMIUM_DESKTOP_AND_MOBILE_SYNTHETIC_FIXTURE",
+            "GSI_COMPARE_DISCARDS_ON_ORIGIN_CHANGE_AND_MISSING_SOURCE"
           ],
           current_D_exports_contract_valid: report.all_local_contracts_valid,
           external_GSI_and_flood_raster_requests_blocked: true,
           full_GIS_UI_and_live_staging_verified: false,
           physical_Safari_trackpad_verified: false,
           actual_shelter_safety_approved: false,
-          interactive_verified_GSI_pin_available_offline: verifiedPinJourney
+          interactive_verified_GSI_pin_available_offline: verifiedPinJourney,
+          comparison_CI_synthetic_browser_journeys: compareBrowserResults.length,
+          comparison_real_official_facility_approval: false
         }, null, 2) + "\n", "utf8");
       process.stdout.write(
         "GIS_CHROMIUM_WHEEL_BOTH_DIRECTIONS_PASS: real DOM geometry, " +
