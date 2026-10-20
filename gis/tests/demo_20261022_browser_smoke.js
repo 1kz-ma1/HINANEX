@@ -641,34 +641,63 @@ async function screenshot(page, name) {
       "other presenter choices cannot clutter the audience's demo path");
     await visitor.locator("#mapAudienceIntroStart").click();
     assert.equal(await visitor.locator("#mapAudienceIntro").isVisible(),false);
-    assert.equal(await visitor.locator("#gsiFloodDemoPanel").isVisible(),true,
+    assert.equal(await visitor.locator("#gsiFloodDemoPanel").evaluate(el=>!el.hidden),true,
       "welcome CTA must launch MAIN GSI DEMO in one action");
+    assert.equal(await visitor.locator("#gsiFloodDemoPanel").isVisible(),false,
+      "desktop must not cover the map with a persistent source/action card");
+    assert.equal(await visitor.locator("#gsiDemoNarration").isVisible(),true,
+      "desktop narrator and accessible controls must be the primary demo surface");
     await visitor.waitForFunction(()=>{
       const content=document.getElementById("gsiFloodDemoContent");
       const fallback=document.getElementById("gsiFloodDemoFallback");
       return !content.hidden || !fallback.hidden;
     },null,{timeout:15000});
-    if(await visitor.locator("#gsiFloodDemoContent").isVisible()){
-      const desk=await visitor.evaluate(()=>{
-        const bar=document.getElementById("gsiDemoNarration").getBoundingClientRect();
-        const tools=document.querySelector(".map-toolbar").getBoundingClientRect();
-        const card=document.getElementById("gsiFloodDemoPanel").getBoundingClientRect();
-        return {top:bar.top,bottom:bar.bottom,left:bar.left,right:bar.right,
-          toolbarBottom:tools.bottom,cardLeft:card.left};
+    const presenterReady=await visitor.locator("#gsiFloodDemoContent").evaluate(el=>!el.hidden);
+    const desk=await visitor.evaluate(()=>{
+      const bar=document.getElementById("gsiDemoNarration").getBoundingClientRect();
+      const tools=document.querySelector(".map-toolbar").getBoundingClientRect();
+      const mapBox=document.getElementById("map").getBoundingClientRect();
+      const controls=document.querySelector(".gsi-demo-mobile-controls").getBoundingClientRect();
+      const dock=document.getElementById("gsiFloodDemoPanel");
+      return {top:bar.top,bottom:bar.bottom,left:bar.left,right:bar.right,
+        toolbarBottom:tools.bottom,mapWidth:mapBox.width,mapHeight:mapBox.height,
+        controlsWidth:controls.width,panelDisplay:getComputedStyle(dock).display};
+    });
+    assert.ok(desk.top>=desk.toolbarBottom-4 &&
+      desk.bottom<desk.top+190,"desktop narration must remain a slim, readable bar");
+    assert.equal(desk.panelDisplay,"none",
+      "the previous full-size bottom-right source card must be CSS-hidden");
+    assert.ok(desk.right-desk.left<=Math.min(920,desk.mapWidth+2),
+      "narration must not span the whole desktop map");
+    assert.ok(desk.controlsWidth>150,"desktop play/next/source/close controls should appear in the header");
+    assert.equal(await visitor.locator("#gsiDemoMobileClose").isVisible(),true);
+    if(presenterReady){
+      assert.equal(await visitor.locator("#gsiDemoDetailsToggle").isVisible(),true);
+      await visitor.locator("#gsiDemoDetailsToggle").click();
+      const evidenceGeometry=await visitor.locator("#gsiFloodDemoPanel").evaluate(el=>{
+        const b=el.getBoundingClientRect();
+        return {height:b.height,width:b.width,closed:el.hidden,
+          visible:getComputedStyle(el).display!=="none"};
       });
-      assert.ok(desk.top>=desk.toolbarBottom-4 &&
-        desk.bottom<desk.top+180,"desktop narration must remain a slim, readable bar");
-      assert.ok(desk.right<=desk.cardLeft+3,
-        "desktop scene instruction cannot be covered by the source card");
+      assert.equal(evidenceGeometry.visible,true,"details must be opt-in");
+      assert.ok(evidenceGeometry.height<=Math.min(355,desk.mapHeight*.43)+6,
+        "optional evidence drawer should be compact");
+      assert.ok(evidenceGeometry.width<=322);
+      await visitor.locator("#gsiDemoDetailsToggle").click();
+      assert.equal(await visitor.locator("#gsiFloodDemoPanel").isVisible(),false);
+    }else{
+      assert.equal(await visitor.locator("#gsiDemoMobileToggle").isVisible(),false,
+        "unverified source cannot expose play control");
+      assert.match(await visitor.locator("#gsiFloodDemoTitle").innerText(),/確認できません/);
     }
     let verifiedPinJourney=false;
-    if(await visitor.locator("#gsiFloodDemoContent").isVisible()){
-      await visitor.locator("#gsiFloodDemoNext").click(); // show verified GSI pins
-      await visitor.locator("#gsiFloodDemoNext").click(); // user-selection stage
+    if(presenterReady){
+      await visitor.locator("#gsiDemoNext").click(); // show verified GSI pins
+      await visitor.locator("#gsiDemoNext").click(); // user-selection stage
       assert.equal(await visitor.locator("#gsiDemoNarration").isVisible(),true);
       assert.match(await visitor.locator("#gsiFloodDemoTitle").innerText(),
         /紫のピンを選んで/,"scene instruction appears under the toolbar");
-      assert.equal(await visitor.locator("#gsiFloodDemoNext").isDisabled(),true);
+      assert.equal(await visitor.locator("#gsiDemoNext").isDisabled(),true);
       assert.equal((await visitor.locator("#gsiFloodDemoEvidence").isVisible()),false);
       const proof=await visitor.evaluate(()=>{
         const icon=document.querySelector(".reference-site-marker");
@@ -685,7 +714,13 @@ async function screenshot(page, name) {
       assert.match(proof.narrative,/選んだGSI掲載地点の公式情報/,
         "selected verified pin changes upper narration to show what the card contains");
       assert.ok(proof.selected.length>0 && proof.trace.length>0);
-      assert.equal(await visitor.locator("#gsiFloodDemoEvidence").isVisible(),true);
+      assert.equal(await visitor.locator("#gsiFloodDemoEvidence").evaluate(el=>!el.hidden),true,
+        "verified pin evidence remains populated while card is collapsed");
+      await visitor.locator("#gsiDemoDetailsToggle").click();
+      assert.equal(await visitor.locator("#gsiFloodDemoEvidence").isVisible(),true,
+        "opt-in details still offer exact official source proof");
+      await visitor.locator("#gsiDemoDetailsToggle").click();
+      assert.equal(await visitor.locator("#gsiFloodDemoPanel").isVisible(),false);
       verifiedPinJourney=true;
     }else{
       assert.match(await visitor.locator("#gsiFloodDemoFallbackReason").innerText(),
