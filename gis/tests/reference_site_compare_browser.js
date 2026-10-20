@@ -53,7 +53,9 @@ async function installSyntheticTileRoutes(page, mode) {
     const url = new URL(route.request().url());
     if (url.pathname.endsWith("/13123/10-909-403.json") && mode !== "missing") {
       const data = mode === "unverified"
-        ? { ...fixture, source_status: "PENDING" } : fixture;
+        ? { ...fixture, source_status: "PENDING" }
+        : mode === "single" ? { ...fixture, sites: [features[0]], total_source_records: 1 }
+        : fixture;
       return route.fulfill({ status: 200, contentType: "application/json",
         body: JSON.stringify(data) });
     }
@@ -100,6 +102,10 @@ async function runReferenceSiteCompareBrowser({ context, base, out, waitUntilLoa
       assert.equal(await page.locator("#referenceComparePanel").isVisible(), false);
       await page.locator("#referenceCompareOpen").click();
       assert.equal(await page.locator("#referenceComparePanel").isVisible(), true);
+      assert.equal(await page.locator("#referenceMapSummary").isVisible(), false,
+        "GSI source summary must not overlap the comparison sheet");
+      assert.equal(await page.evaluate(() => Boolean(map._popup?.isOpen?.())), false,
+        "existing Leaflet origin popup must close when comparing");
       assert.equal(await page.locator(".reference-compare-choice").count(), 3);
       assert.match(await page.locator("#referenceCompareStatus").innerText(),
         /検証済み 1\/9タイル/);
@@ -120,6 +126,16 @@ async function runReferenceSiteCompareBrowser({ context, base, out, waitUntilLoa
       const link = page.locator(".reference-compare-site a").first();
       assert.equal(await link.getAttribute("href"), rawUrl);
       assert.match(await link.getAttribute("rel"), /noopener noreferrer/);
+      await page.locator(".reference-compare-site a").last().scrollIntoViewIfNeeded();
+      const stickyClose = await page.locator("#referenceCompareClose").evaluate(el => {
+        const rect = el.getBoundingClientRect();
+        const panel = el.closest("#referenceComparePanel").getBoundingClientRect();
+        return { visible: rect.top >= panel.top - 4 && rect.bottom <= panel.bottom + 4,
+          position: getComputedStyle(el.closest(".reference-compare-header")).position };
+      });
+      assert.equal(stickyClose.position, "sticky");
+      assert.equal(stickyClose.visible, true,
+        "comparison close control must remain in view when scrolled to the sources");
       const geometry = await page.locator("#referenceComparePanel").evaluate(panel => {
         const rect = panel.getBoundingClientRect();
         const mapRect = document.querySelector("#map").getBoundingClientRect();
@@ -155,6 +171,8 @@ async function runReferenceSiteCompareBrowser({ context, base, out, waitUntilLoa
       // The dialog should close without resetting a user's explicit choices.
       await page.locator("#referenceCompareClose").click();
       assert.equal(await page.locator("#referenceComparePanel").isVisible(), false);
+      assert.equal(await page.locator("#referenceMapSummary").isVisible(), true,
+        "closing comparison restores the vetted GSI overview");
       await page.locator("#referenceCompareOpen").click();
       assert.equal(await page.locator(".reference-compare-site").count(), 2);
       const screenshotName = "gsi-comparison-ci-fixture-" + width + ".png";
@@ -177,23 +195,28 @@ async function runReferenceSiteCompareBrowser({ context, base, out, waitUntilLoa
   }
 
   // Negative: a forged C status and a missing source must NEVER unlock UI.
-  for (const mode of ["missing", "unverified"]) {
+  for (const mode of ["missing", "unverified", "single"]) {
     const page = await context.newPage();
     await installSyntheticTileRoutes(page, mode);
     try {
       await page.goto(base + "/gis/gis/?region=13123", { waitUntil: "domcontentloaded" });
       await waitUntilLoaded(page, "13123");
       await chooseOrigin(page, "35.70, 139.90");
-      await page.waitForFunction(() => document.querySelector("#floodDiscoveryResults")
-        ?.textContent?.match(/未検証|未配信|独立照合待ち/));
+      if (mode === "single") {
+        await page.waitForFunction(() => document.querySelector("#floodDiscoveryResults")
+          ?.textContent?.includes("公式") && document.querySelectorAll(".reference-site-marker").length === 1);
+      } else {
+        await page.waitForFunction(() => document.querySelector("#floodDiscoveryResults")
+          ?.textContent?.match(/未検証|未配信|独立照合待ち/));
+      }
       assert.equal(await page.locator("#referenceCompareOpen").isVisible(), false);
-      assert.equal(await page.locator(".reference-site-marker").count(), 0);
+      assert.equal(await page.locator(".reference-site-marker").count(), mode === "single" ? 1 : 0);
       results.push({ negativeFixture: mode, failClosed: true });
     } finally {
       await page.close();
     }
   }
-  assert.equal(results.length, 4);
+  assert.equal(results.length, 5);
   fs.writeFileSync(path.join(out, "reference_site_compare_browser_audit.json"), JSON.stringify({
     status: "E_GSI_REFERENCE_COMPARISON_CHROMIUM_FIXTURE_PASS",
     checks: results,
