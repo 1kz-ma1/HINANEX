@@ -669,10 +669,18 @@ async function screenshot(page, name) {
       "the previous full-size bottom-right source card must be CSS-hidden");
     assert.ok(desk.right-desk.left<=Math.min(920,desk.mapWidth+2),
       "narration must not span the whole desktop map");
-    assert.ok(desk.controlsWidth>150,"desktop play/next/source/close controls should appear in the header");
-    assert.equal(await visitor.locator("#gsiDemoMobileClose").isVisible(),true);
+    // Compact controls may wrap and shrink; require each actual action to be
+    // accessible rather than imposing an arbitrary horizontal width.
+    assert.ok(desk.controlsWidth>0,"desktop header control group is laid out");
+    for(const id of ["gsiDemoMobileClose"]){
+      assert.equal(await visitor.locator("#"+id).isVisible(),true,
+        "desktop always offers a working close action");
+    }
     if(presenterReady){
-      assert.equal(await visitor.locator("#gsiDemoDetailsToggle").isVisible(),true);
+      for(const id of ["gsiDemoMobileToggle","gsiDemoNext","gsiDemoDetailsToggle"]){
+        assert.equal(await visitor.locator("#"+id).isVisible(),true,
+          "desktop header action "+id+" must be rendered and actionable");
+      }
       await visitor.locator("#gsiDemoDetailsToggle").click();
       const evidenceGeometry=await visitor.locator("#gsiFloodDemoPanel").evaluate(el=>{
         const b=el.getBoundingClientRect();
