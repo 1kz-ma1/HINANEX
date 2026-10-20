@@ -55,10 +55,15 @@ test("one public MAIN DEMO, other presenters retained only behind hidden wrapper
  assert.doesNotMatch(html,/id="gsiFloodDemoPickHint"/);
  assert.match(html,/id="gsiFloodDemoTitle"/);
  assert.equal((html.match(/id="gsiFloodDemoTitle"/g)||[]).length,1);
- assert.match(html,/gsi_flood_demo[.]js[?]v=mobile-only-narration-20261019-v1/);
+ assert.match(html,/gsi_flood_demo[.]js[?]v=waiting-vs-wide-evac-20261020-v1/);
   assert.match(html,/id="gsiDemoMobileToggle"[^>]*type="button"/);
   assert.match(html,/id="gsiDemoMobileClose"[^>]*type="button"/);
  assert.match(html,/公式掲載 ≠ 現在安全・開設中・避難推奨/);
+ assert.match(html,/待避施設はやむを得ない場合の緊急避難先/);
+ assert.match(html,/大規模水害の際、早期の広域避難/);
+ assert.match(html,/紫ピンには千葉県側も含まれ得ます/);
+ assert.match(html,/id="gsiDemoSceneSource"/);
+ assert.match(html,/href="https:\/\/www[.]city[.]edogawa[.]tokyo[.]jp\/e007\/bosaianzen\/bosai\/kanrenmap\/hazardmap\/ikinaihinan[.]html"/);
 });
 test("mobile keeps only an upper narration with working pause and close",async()=>{
  const m=mount(undefined,true);await m.open();
@@ -77,6 +82,7 @@ test("mobile keeps only an upper narration with working pause and close",async()
  assert.equal(m.get("gsiDemoMobileToggle").textContent,"ピンを選択");
  m.select();
  assert.match(m.get("gsiFloodDemoTitle").textContent,/地図で確認/);
+ assert.match(m.get("gsiFloodDemoMessage").textContent,/待避施設との同一性/);
  assert.equal(m.get("gsiDemoMobileToggle").disabled,false);
  m.get("gsiDemoMobileClose").click();
  assert.equal(m.get("gsiDemoNarration").hidden,true);
@@ -89,6 +95,7 @@ test("mobile missing official GSI keeps explicit fail-closed upper message",asyn
  assert.equal(m.get("gsiDemoNarration").hidden,false);
  assert.equal(m.get("gsiDemoNarration").getAttribute("data-source-state"),"unavailable");
  assert.match(m.get("gsiFloodDemoTitle").textContent,/確認できません/);
+ assert.match(m.get("gsiDemoSceneSource").href,/koikihinan[.]html$/);
  assert.match(m.get("gsiFloodDemoMessage").textContent,/安全であることを意味しません/);
  assert.equal(m.get("gsiDemoMobileToggle").hidden,true);
  m.get("gsiDemoMobileClose").click();
@@ -100,7 +107,7 @@ test("43 playback seconds + real audience-selected GSI pin -> exact source proof
  m.tick(12);
  assert.equal(m.timers.size,0,"interactive scene must stop the clock");
  assert.equal(m.get("gsiDemoNarration").hidden,false);
- assert.match(m.get("gsiFloodDemoTitle").textContent,/紫のピンを1つ選んで/);
+ assert.match(m.get("gsiFloodDemoTitle").textContent,/紫のピンを選んで/);
  assert.equal(m.calls.includes("inspect"),false,
    "never preselect first official place for an audience visitor");
  assert.equal(m.get("gsiFloodDemoNext").disabled,true);
@@ -108,7 +115,7 @@ test("43 playback seconds + real audience-selected GSI pin -> exact source proof
  assert.equal(m.timers.size,0,"non-verified input cannot unlock the scene");
  m.select("feature_index=1");
  assert.equal(m.get("gsiDemoNarration").hidden,false);
- assert.match(m.get("gsiFloodDemoTitle").textContent,/選んだピンの公式情報/);
+ assert.match(m.get("gsiFloodDemoTitle").textContent,/選んだGSI掲載地点の公式情報/);
  assert.ok(m.calls.includes("inspect"));
  assert.equal(m.get("gsiFloodDemoName").textContent,"選択した公式掲載地点");
  assert.equal(m.get("gsiFloodDemoTrace").textContent,"feature_index=1");
@@ -123,8 +130,27 @@ test("43 playback seconds + real audience-selected GSI pin -> exact source proof
    "future concept is not part of the public source-evidence demo");
  assert.equal(m.get("gsiFloodDemoPhase").textContent,"04 / 04");
  assert.match(m.get("gsiFloodDemoTitle").textContent,/未判定/);
- assert.match(m.get("gsiFloodDemoMessage").textContent,/施設同一性は未照合/);
+ assert.match(m.get("gsiFloodDemoMessage").textContent,/別々の情報/);
  assert.equal(m.get("gsiFloodDemoProgress").style.width,"100%");
+});
+test("four official source links switch with real source scenes without authorizing a joined facility",async()=>{
+ const m=mount(undefined,true);await m.open();
+ assert.match(m.get("gsiFloodDemoTitle").textContent,/近くに学校/);
+ assert.match(m.get("gsiFloodDemoMessage").textContent,/早期の広域避難/);
+ assert.match(m.get("gsiDemoSceneSource").href,/koikihinan[.]html$/);
+ assert.match(m.get("gsiDemoSceneSource").textContent,/江戸川区/);
+ m.tick(7);
+ assert.match(m.get("gsiFloodDemoMessage").textContent,/千葉県側/);
+ assert.match(m.get("gsiDemoSceneSource").href,/ikinaihinan[.]html$/);
+ m.tick(12);
+ assert.match(m.get("gsiDemoSceneSource").href,/gsi[.]go[.]jp/);
+ assert.equal(m.timers.size,0,"a static official link cannot skip pin verification");
+ m.select();
+ assert.match(m.get("gsiFloodDemoMessage").textContent,/開設・混雑・安全は未確認/);
+ m.tick(12);
+ assert.match(m.get("gsiDemoSceneSource").href,/suigaihinan[.]html$/);
+ assert.match(m.get("gsiFloodDemoMessage").textContent,/開設・混雑・経路の現況はこのデモでは未確認/);
+ assert.match(m.get("gsiFloodDemoDStatus").textContent,/未判定 152件/);
 });
 test("source absent or incorrect raw value refuses to animate",async()=>{
  for(const r of [{state:"unavailable"},{state:"ready",source:"GSI_SKHB01_FLOOD",rawDisaster1:0,total:2,shown:2}]){
