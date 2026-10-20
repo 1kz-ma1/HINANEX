@@ -245,7 +245,7 @@
   }
   .gsi-demo-panel[data-details-open="true"] .gsi-demo-top>div>span{font-size:9px}
   .gsi-demo-panel[data-details-open="true"] .gsi-demo-top strong{font-size:13px}
-  .gsi-demo-panel[data-details-open="true"] .gsi-demo-panel h2{font-size:17px}
+  .gsi-demo-panel[data-details-open="true"] h2{font-size:17px}
   .gsi-demo-panel[data-details-open="true"] .gsi-demo-source-count strong{font-size:22px}
   .gsi-demo-panel[data-details-open="true"] #gsiFloodDemoClose{width:36px;height:36px}
   .gsi-demo-panel[data-details-open="true"] .gsi-demo-actions{display:none!important}
@@ -258,3 +258,5 @@
 @media(max-width:780px){
   #gsiDemoNext,#gsiDemoDetailsToggle{display:none!important}
 }
+\n/* The HTML hidden state wins even over verified/unavailable desktop overrides. */
+.gsi-demo-narration[hidden]{display:none!important}
