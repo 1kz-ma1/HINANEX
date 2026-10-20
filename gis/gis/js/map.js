@@ -1853,6 +1853,13 @@ function applyDisplayMode() {
   // Hide GSI's legend and counts whenever GSI is not drawn. Preserve the
   // accepted in-memory evidence so toggling back does not trigger a re-fetch.
   summaryPanel.hidden = !showGSI || !hasGsiEvidence;
+  // Switching to D-only hides every GSI comparison surface without
+  // invalidating the approved reference data held for an explicit return.
+  if (!showGSI) {
+    const comparePanel = document.getElementById("referenceComparePanel");
+    if (comparePanel) comparePanel.hidden = true;
+    document.getElementById("referenceCompareOpen")?.setAttribute("aria-expanded", "false");
+  }
 
   // D, GSI, and municipality-fixture layers are independent. A newly selected
   // origin never changes the municipality or repurposes D as GSI reference.
