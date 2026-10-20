@@ -1779,6 +1779,12 @@ document.getElementById("referenceCompareOpen")?.addEventListener("click", () =>
   if (!referenceComparisonSession) return;
   const panel = document.getElementById("referenceComparePanel");
   if (!panel) return;
+  // On mobile the map footprint summary and an existing Leaflet popup can
+  // overlap this opt-in comparison sheet. Both are secondary while comparing.
+  // Restore the source coverage panel after closing; no data layer is removed.
+  map.closePopup?.();
+  const summary = document.getElementById("referenceMapSummary");
+  if (summary) summary.hidden = true;
   panel.hidden = false;
   document.getElementById("referenceCompareOpen").setAttribute("aria-expanded", "true");
   renderReferenceComparison();
@@ -1786,7 +1792,12 @@ document.getElementById("referenceCompareOpen")?.addEventListener("click", () =>
 document.getElementById("referenceCompareClose")?.addEventListener("click", () => {
   const panel = document.getElementById("referenceComparePanel");
   if (panel) panel.hidden = true;
-  document.getElementById("referenceCompareOpen")?.setAttribute("aria-expanded", "false");
+  const trigger = document.getElementById("referenceCompareOpen");
+  trigger?.setAttribute("aria-expanded", "false");
+  // applyDisplayMode knows whether a verified GSI footprint is still active.
+  // Never restore a source overlay that has since become unverified.
+  applyDisplayMode();
+  trigger?.focus?.();
 });
 
 
@@ -1852,7 +1863,8 @@ function applyDisplayMode() {
   const summaryPanel = document.getElementById("referenceMapSummary");
   // Hide GSI's legend and counts whenever GSI is not drawn. Preserve the
   // accepted in-memory evidence so toggling back does not trigger a re-fetch.
-  summaryPanel.hidden = !showGSI || !hasGsiEvidence;
+  const comparing = document.getElementById("referenceComparePanel")?.hidden === false;
+  summaryPanel.hidden = !showGSI || !hasGsiEvidence || comparing;
   // Switching to D-only hides every GSI comparison surface without
   // invalidating the approved reference data held for an explicit return.
   if (!showGSI) {
