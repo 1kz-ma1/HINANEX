@@ -41,8 +41,27 @@
         <div class="sources" id="sourceCards"></div>
         <p class="hint">「確認した」は本人のメモです。資料の真正性・ライセンス・個別施設の結合を承認するものではありません。</p>
       </section>
+      <section class="section" aria-labelledby="compareTitle">
+        <div class="step">03 / 2つの資料を比べる</div>
+        <h2 id="compareTitle">「何を知りたいか」に沿って根拠を比べる</h2>
+        <p class="hint">問いは情報収集上の目的であり、災害の緊急度や避難の優先順位を決める条件ではありません。資料を2つ選び、公式の原文をそれぞれ確認してください。</p>
+        <div class="compare-fields">
+          <label>確認したい問い
+            <select id="researchQuestion"></select>
+          </label>
+          <label>左の資料
+            <select id="leftSource"></select>
+          </label>
+          <label>右の資料
+            <select id="rightSource"></select>
+          </label>
+        </div>
+        <p id="compareWarning" class="compare-warning" role="status" aria-live="polite"></p>
+        <div id="comparisonRoot" class="comparison-root" aria-live="polite"></div>
+        <p class="hint">比較結果は資料の種類と調査上の限界を整理したものです。原文の現行性・制度上の意味・個別施設の属性を独立認定した結果ではありません。</p>
+      </section>
       <section class="section" aria-labelledby="notesTitle">
-        <div class="step">03 / 理解できたこと・残る不確実性</div>
+        <div class="step">04 / 理解できたこと・残る不確実性</div>
         <h2 id="notesTitle">自分の確認メモを作る</h2>
         <p>確認済み・未確認の資料を並べて、次に何を調べるべきか整理します。個人の確認記録はサーバーに送信せず、この画面を閉じるとリセットされます。</p>
         <button id="makeMemo" class="primary" type="button">比較メモを更新</button>
