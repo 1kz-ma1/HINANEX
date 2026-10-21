@@ -45,7 +45,7 @@ function mount(reply={state:"ready",source:"GSI_SKHB01_FLOOD",rawDisaster1:1,tot
  }});},
  pan(){get("map").listeners.wheel?.({});}};
 }
-test("one public MAIN DEMO, other presenters retained only behind hidden wrapper",()=>{
+test("Edogawa is public MAIN DEMO, GSI source presenter retained as opt-in legacy",()=>{
  assert.ok(html.indexOf('id="mapGsiFloodDemoOpen"')<html.indexOf('id="mapFilterDemoOpen"'));
  assert.match(html,/class="map-tour-other-demos" hidden/);
  assert.match(html,/id="mapAudienceIntroStart"[^>]*>▶ デモを開始する/);
@@ -64,7 +64,8 @@ test("one public MAIN DEMO, other presenters retained only behind hidden wrapper
  assert.match(html,/公式掲載 ≠ 現在安全・開設中・避難推奨/);
  assert.match(html,/待避施設はやむを得ない場合の緊急避難先/);
  assert.match(html,/大規模水害の際、早期の広域避難/);
- assert.match(html,/紫ピンには千葉県側も含まれ得ます/);
+ assert.match(html,/江戸川区として取得された施設から2件を選び/);
+ assert.match(html,/id="mapEdogawaCompareOpen"/);
  assert.match(html,/id="gsiDemoSceneSource"/);
  assert.match(html,/id="gsiDemoFullSource"[^>]*rel="noopener noreferrer"/);
  assert.match(html,/href="https:\/\/www[.]city[.]edogawa[.]tokyo[.]jp\/e007\/bosaianzen\/bosai\/kanrenmap\/hazardmap\/ikinaihinan[.]html"/);
