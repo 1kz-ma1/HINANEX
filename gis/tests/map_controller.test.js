@@ -317,6 +317,7 @@ function makeContext({ protocol, fetchImpl, href = null, discoveryOverride = nul
     "facilityListPage", "scenarioHazard", "selectOrigin", "useGps",
     "originStatus", "floodDiscoveryResults", "mapOriginShortcut", "mapOriginShortcutStatus",
     "referenceMapSummary", "referenceMapCoverage", "referenceMapCount",
+    "referenceComparePanel", "referenceCompareOpen",
     "focusReferenceTiles", "toggleDMarkers", "facilityDisplayMode", "facilityDisplayModeDescription",
     "mapDDecisionFilter", "mapDDecisionFilterStatus",
     "coordinateSearchForm", "coordinateSearchInput", "coordinateSearchButton",
