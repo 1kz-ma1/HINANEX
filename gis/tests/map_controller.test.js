@@ -930,7 +930,15 @@ nagoya.scenarios = [{
   // is selected. Presenter must use an actual D source coordinate instead.
   gsiPresenterCase.L.__map.setView([35.4,138.7],8);
   const savedCenter=gsiPresenterCase.L.__map.getCenter();
+  // Source comparison + an old pop-up may be left open from normal GIS mode.
+  // The audience demo must close both before starting its four scenes.
+  gsiPresenterCase.elements.referenceComparePanel.hidden=false;
+  gsiPresenterCase.L.__map.openedPopup={source:"stale GIS popup"};
   const result=await gp.begin();
+  assert.equal(gsiPresenterCase.elements.referenceComparePanel.hidden,true,
+    "starting audience mode dismisses the 2-site comparison overlay");
+  assert.equal(gsiPresenterCase.L.__map.openedPopup,null,
+    "starting audience mode dismisses a previously selected place popup");
   assert.deepEqual(Array.from(gsiPresenterCase.L.__map.lastPointFly.latlng),[35.70,139.88],
     "presentation origin must be a verified regional D point, never the map center");
   assert.equal(gsiPresenterCase.L.__map.lastPointFly.zoom,12);
@@ -940,15 +948,26 @@ nagoya.scenarios = [{
   assert.equal(result.total,1);
   assert.equal(result.partial,true);
   assert.equal(gsiPresenterCase.elements.facilityDisplayMode.value,"region");
+  const flyBeforeShow=gsiPresenterCase.L.__map.lastFly;
+  const boundsBeforeShow=gsiPresenterCase.L.__map.lastBounds;
   assert.equal(gp.show().state,"shown");
+  assert.equal(gsiPresenterCase.L.__map.lastFly,flyBeforeShow);
+  assert.equal(gsiPresenterCase.L.__map.lastBounds,boundsBeforeShow,
+    "scene 2 renders genuine GSI pins without auto-fitting Chiba-side candidates");
   assert.equal(gsiPresenterCase.elements.facilityDisplayMode.value,"nearby");
+  assert.equal(gp.focusPins().state,"focused");
+  assert.notEqual(gsiPresenterCase.L.__map.lastBounds,boundsBeforeShow,
+    "only the visitor's explicit action may fit the GSI/Chiba reference candidate bounds");
   assert.equal(gsiPresenterCase.L.__map.hasLayer(gsiPresenterCase.L.__groups[3]),true);
   const candidate=vm.runInContext("gsiPresenterSession.sites[0]",gsiPresenterCase.context);
   assert.equal(gp.selectFromMap({...candidate,sourceUrl:"https://example.invalid/fake"}).state,
     "unavailable","other-source marker may not unlock a verified GSI presentation");
   assert.equal(gp.selectFromMap({...candidate,latitude:candidate.latitude+.01}).state,
     "unavailable","nearby but different coordinates must not masquerade as official pin");
+  const pointBeforeSelect=gsiPresenterCase.L.__map.lastPointFly;
   const chosenVerifiedGsiPin=gp.selectFromMap(candidate);
+  assert.equal(gsiPresenterCase.L.__map.lastPointFly,pointBeforeSelect,
+    "selecting a GSI pin may disclose facts, but must not animate the map to Chiba");
   assert.equal(chosenVerifiedGsiPin.state,"inspected");
   assert.equal(chosenVerifiedGsiPin.sourceTrace,candidate.trace,
     "selected source evidence is grounded in the exact verified source row");
