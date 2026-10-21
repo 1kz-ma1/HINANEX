@@ -738,8 +738,9 @@ async function screenshot(page, name) {
     await visitor.locator("#edogawaCompareNext").click();
     assert.equal(await visitor.locator("#edogawaCompareTakeawayTitle").isVisible(),true);
     assert.match(await visitor.locator("#edogawaCompareTakeawayTitle").innerText(),/未判定|安全性の判定/);
-    assert.equal(await visitor.locator(".edogawa-compare-popup").count(),0,
-      "summary must close the anchored facility bubble");
+    await visitor.locator(".edogawa-compare-popup").waitFor({state:"hidden",timeout:5000});
+    assert.equal(await visitor.evaluate(()=>map._popup?.isOpen?.()===true),false,
+      "summary must close the active Leaflet popup rather than leaving A/B detail visible");
     assert.equal(await visitor.locator("#edogawaCompareShowSummary").getAttribute("aria-pressed"),"true");
     const summaryBounds=await visitor.evaluate(()=>{
       const a=edogawaCompareABMarkers.A.getLatLng(),b=edogawaCompareABMarkers.B.getLatLng();
@@ -981,7 +982,7 @@ async function screenshot(page, name) {
       null,{timeout:6000});
     await visitor.locator("#edogawaCompareShowSummary").click();
     assert.equal(await visitor.locator("#edogawaCompareTakeaway").isVisible(),true);
-    assert.equal(await visitor.locator(".edogawa-compare-popup").count(),0);
+    await visitor.locator(".edogawa-compare-popup").waitFor({state:"hidden",timeout:5000});
     assert.equal(await visitor.locator("#edogawaComparePairBasis").isVisible(),true,
       "source-only auto selection disclaimer must appear in summary");
     await visitor.locator("#edogawaCompareClose").click();
