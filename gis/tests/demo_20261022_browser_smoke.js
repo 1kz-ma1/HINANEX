@@ -639,6 +639,13 @@ async function screenshot(page, name) {
       "a shared URL never autoplays a scenario or requests GPS");
     assert.equal(await visitor.locator(".map-tour-other-demos").isVisible(),false,
       "other presenter choices cannot clutter the audience's demo path");
+    // Reproduce the reported real-world overlap: an exploratory comparison
+    // and a Leaflet popup were still open when the audience demo began.
+    await visitor.evaluate(()=>{
+      document.getElementById("referenceComparePanel").hidden=false;
+      L.popup({autoPan:false}).setLatLng(map.getCenter())
+        .setContent("CI_STALE_GSI_POPUP").openOn(map);
+    });
     await visitor.locator("#mapAudienceIntroStart").click();
     assert.equal(await visitor.locator("#mapAudienceIntro").isVisible(),false);
     assert.equal(await visitor.locator("#gsiFloodDemoPanel").evaluate(el=>!el.hidden),true,
@@ -647,6 +654,11 @@ async function screenshot(page, name) {
       "desktop must not cover the map with a persistent source/action card");
     assert.equal(await visitor.locator("#gsiDemoNarration").isVisible(),true,
       "desktop narrator and accessible controls must be the primary demo surface");
+    await visitor.waitForFunction(()=>
+      document.getElementById("referenceComparePanel").hidden && !map._popup,
+      null,{timeout:15000});
+    assert.equal(await visitor.locator("#referenceComparePanel").isVisible(),false,
+      "opening demo must dismiss the old two-site comparison");
     const desktopSource=await visitor.locator("#gsiDemoSceneSource").evaluate(a=>{
       const title=document.querySelector("#gsiFloodDemoTitle").getBoundingClientRect();
       const link=a.getBoundingClientRect();
@@ -725,6 +737,13 @@ async function screenshot(page, name) {
       assert.match(await visitor.locator("#gsiFloodDemoTitle").innerText(),
         /紫のピンを選んで/,"scene instruction appears under the toolbar");
       assert.equal(await visitor.locator("#gsiDemoNext").isDisabled(),true);
+      assert.equal(await visitor.locator("#gsiDemoMobileToggle").textContent(),"紫ピンへ");
+      assert.match(await visitor.locator("#gsiDemoMobileToggle").getAttribute("aria-label"),/千葉県側/);
+      assert.equal(await visitor.locator("#referenceComparePanel").isVisible(),false);
+      // The candidate focus deliberately requires an additional user click.
+      // This is not automatic panning in scene 2 and not verified selection.
+      await visitor.locator("#gsiDemoMobileToggle").click();
+      assert.equal(await visitor.locator("#gsiDemoNext").isDisabled(),true);
       assert.equal((await visitor.locator("#gsiFloodDemoEvidence").isVisible()),false);
       const proof=await visitor.evaluate(()=>{
         const icon=document.querySelector(".reference-site-marker");
@@ -741,6 +760,8 @@ async function screenshot(page, name) {
       assert.match(proof.narrative,/選んだGSI掲載地点の公式情報/,
         "selected verified pin changes upper narration to show what the card contains");
       assert.ok(proof.selected.length>0 && proof.trace.length>0);
+      assert.equal(await visitor.evaluate(()=>map._popup?.options?.autoPan),false,
+        "chosen GSI popup must not auto-pan to a Chiba-side marker during the demo");
       assert.equal(await visitor.locator("#gsiFloodDemoEvidence").evaluate(el=>!el.hidden),true,
         "verified pin evidence remains populated while card is collapsed");
       await visitor.locator("#gsiDemoDetailsToggle").click();
