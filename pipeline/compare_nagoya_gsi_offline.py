@@ -143,9 +143,6 @@ def parse_gsi(inputs: list[tuple[str, Path]]) -> tuple[list[dict], dict]:
         if not rows:
             raise ValueError("Empty GSI CSV")
         # Check CSV source before use. No guesses or fuzzy header inference.
-        with path.open("rb") as stream:
-            header_sample = stream.read(1)
-        del header_sample
         if not GSI_REQUIRED.issubset(rows[0].keys()):
             raise ValueError("GSI CSV required columns absent")
         accepted = 0
@@ -187,6 +184,18 @@ def validate_queue(queue: list[dict], summary: dict) -> None:
     for row in queue:
         if not all(field in row for field in PRIVATE_FIELDS):
             raise ValueError("Private queue schema invalid")
+        if not isinstance(row.get("pilot_record_id"), str) or not row["pilot_record_id"]:
+            raise ValueError("Invalid private record identity")
+        if not isinstance(row.get("facility_name"), str) or not row["facility_name"].strip():
+            raise ValueError("Invalid private facility name")
+        try:
+            lat = float(row["abr_reference_latitude"])
+            lon = float(row["abr_reference_longitude"])
+        except (KeyError, ValueError, TypeError) as exc:
+            raise ValueError("Invalid private reference point") from exc
+        if (not (math.isfinite(lat) and math.isfinite(lon))
+                or not 33 <= lat <= 38 or not 133 <= lon <= 140):
+            raise ValueError("Private reference point outside expected region")
 
 
 def compare(queue: list[dict], queue_summary: dict,
@@ -292,6 +301,8 @@ def main() -> None:
                                   ("shelter", args.gsi_shelter)) if path]
     if any(not (p == folder or folder in p.parents) for _, p in sources):
         parser.error("GSI source CSV must be inside the gitignored pilot directory")
+    if len({path for _, path in sources}) != len(sources):
+        parser.error("GSI emergency and shelter CSVs must be separate sources")
     out_private = folder / "gsi_cross_reference_PRIVATE.csv"
     out_summary = folder / "gsi_cross_reference_aggregate.json"
     if out_private.exists() or out_summary.exists():
