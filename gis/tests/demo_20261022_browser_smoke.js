@@ -626,7 +626,7 @@ async function screenshot(page, name) {
     const introCopy=await visitor.locator("#mapAudienceIntro").innerText();
     assert.match(introCopy,/データ基盤が、どこまで実装されたか/,
       "visitors should understand the purpose of the demo before starting");
-    assert.match(introCopy,/未判定.*推測で埋めない/s);
+    assert.match(introCopy,/洪水時の未判定を比較/);
     assert.match(introCopy,/避難先の安全判断・推奨はまだ行いません/,
       "foundation completion must not be mistaken for live evacuation guidance");
     assert.match(introCopy,/待避施設はやむを得ない場合の緊急避難先/,
