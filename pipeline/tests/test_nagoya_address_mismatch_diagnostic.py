@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 
 from diagnose_nagoya_address_mismatch import (
-    check_snapshot, diagnose, triage_address_mismatch,
+    check_snapshot, diagnose, triage_address_mismatch, safe_failure_code,
 )
 from geocode_nagoya_pilot import classify, digest, prepare
 from report_nagoya_geocoding_pilot import audit
@@ -102,6 +102,20 @@ class AddressMismatchDiagnosticTests(unittest.TestCase):
             triage_address_mismatch(query, PREFIX + "試験町3-2-5", WARD)
         with self.assertRaises(ValueError):
             triage_address_mismatch(query, "愛知県名古屋市中区試験町3-2", WARD)
+
+    def test_safe_error_codes_do_not_leak_provider_or_address_text(self):
+        self.assertEqual(
+            safe_failure_code(ValueError("ABR response changed since the original pilot")),
+            "ABR_RESPONSE_HASH_CHANGED",
+        )
+        self.assertEqual(
+            safe_failure_code(ValueError("unexpected source address: confidential-location")),
+            "VALUEERROR",
+        )
+        self.assertEqual(
+            safe_failure_code(OSError("http://127.0.0.1/private-address")),
+            "OSERROR",
+        )
 
     @patch("diagnose_nagoya_address_mismatch.fetch_json")
     def test_aggregate_only_unchanged_candidate_statuses(self, mock_fetch):
