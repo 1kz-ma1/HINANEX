@@ -1,11 +1,17 @@
 """Synthetic facility data only; PRIVATE offline review page does not approve sites."""
 import copy
+import csv
 import json
+import tempfile
 import unittest
+from pathlib import Path
 
 from refine_nagoya_gsi_stage7 import refine
 from test_nagoya_gsi_stage7 import historical_fixture
-from view_nagoya_stage7_private import OFFICIAL_PORTAL, RANKS, render, validate
+from view_nagoya_stage7_private import (
+    COLUMNS, LEGACY_COLUMNS, OFFICIAL_PORTAL, RANKS,
+    read_stage7_private, render, validate,
+)
 
 
 def dummy():
@@ -64,6 +70,80 @@ class NagoyaReviewViewerTests(unittest.TestCase):
         tampered[0]["facility_reopening_verified"] = "YES"
         with self.assertRaises(ValueError):
             render(tampered, summary)
+
+    def test_stage7_schema_has_unique_future_headers(self):
+        self.assertEqual(len(COLUMNS), len(set(COLUMNS)))
+        self.assertEqual(
+            LEGACY_COLUMNS.count("independent_site_position_approved"), 2)
+        self.assertEqual(COLUMNS.count("independent_site_position_approved"), 1)
+
+    def test_read_realistic_legacy_duplicate_header_without_rewriting(self):
+        rows, summary = dummy()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "gsi_stage7_refined_PRIVATE.csv"
+            with path.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=LEGACY_COLUMNS)
+                writer.writeheader()
+                writer.writerows(rows)
+            original = path.read_bytes()
+            decoded = read_stage7_private(path)
+            self.assertEqual(len(decoded), len(rows))
+            self.assertTrue(all(r["independent_site_position_approved"] == "NO"
+                                for r in decoded))
+            page = render(decoded, summary)
+            self.assertIn("P0_IDENTITY_OR_OPERATIONAL_RESTRICTION", page)
+            self.assertIn("2027-03-31", page)
+            self.assertEqual(path.read_bytes(), original)
+
+    def test_read_canonical_unique_header(self):
+        rows, summary = dummy()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "canonical.csv"
+            with path.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=COLUMNS)
+                writer.writeheader()
+                writer.writerows(rows)
+            decoded = read_stage7_private(path)
+            self.assertEqual(len(decoded), len(rows))
+            self.assertIn("未承認", render(decoded, summary))
+
+    def test_fail_closed_on_conflicting_legacy_approval_columns(self):
+        rows, _ = dummy()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "legacy-bad.csv"
+            with path.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=LEGACY_COLUMNS)
+                writer.writeheader()
+                writer.writerows(rows)
+            with path.open("r", encoding="utf-8", newline="") as handle:
+                raw = list(csv.reader(handle))
+            # Modify only the second instance of the duplicated approval
+            # field: accepting this would conceal a security-state conflict.
+            second_idx = len(LEGACY_COLUMNS) - 3
+            self.assertEqual(LEGACY_COLUMNS[second_idx],
+                             "independent_site_position_approved")
+            raw[1][second_idx] = "YES"
+            with path.open("w", encoding="utf-8", newline="") as handle:
+                csv.writer(handle).writerows(raw)
+            with self.assertRaisesRegex(ValueError, "Conflicting duplicate"):
+                read_stage7_private(path)
+
+    def test_unrecognized_duplicate_or_truncated_legacy_fails(self):
+        rows, _ = dummy()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "legacy-bad.csv"
+            with path.open("w", encoding="utf-8", newline="") as handle:
+                csv.writer(handle).writerows(
+                    [list(LEGACY_COLUMNS) + ["stage7_review_status"],
+                     [rows[0].get(k, "") for k in LEGACY_COLUMNS] + ["NOT_REVIEWED"]])
+            with self.assertRaisesRegex(ValueError, "Unexpected Stage-7"):
+                read_stage7_private(path)
+            with path.open("w", encoding="utf-8", newline="") as handle:
+                csv.writer(handle).writerows(
+                    [list(LEGACY_COLUMNS),
+                     [rows[0].get(k, "") for k in LEGACY_COLUMNS][:-1]])
+            with self.assertRaisesRegex(ValueError, "Malformed Stage-7"):
+                read_stage7_private(path)
 
     def test_reject_unknown_priorities_and_missing_columns(self):
         rows, summary = dummy()
