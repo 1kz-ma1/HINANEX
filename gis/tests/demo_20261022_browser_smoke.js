@@ -647,6 +647,19 @@ async function screenshot(page, name) {
       "desktop must not cover the map with a persistent source/action card");
     assert.equal(await visitor.locator("#gsiDemoNarration").isVisible(),true,
       "desktop narrator and accessible controls must be the primary demo surface");
+    const desktopSource=await visitor.locator("#gsiDemoSceneSource").evaluate(a=>{
+      const title=document.querySelector("#gsiFloodDemoTitle").getBoundingClientRect();
+      const link=a.getBoundingClientRect();
+      return {label:a.textContent,accessible:a.getAttribute("aria-label"),
+        title:a.getAttribute("title"),href:a.getAttribute("href"),
+        sameTitleRow:Math.abs(link.top-title.top)<=8,linkHeight:link.height};
+    });
+    assert.equal(desktopSource.label,"公式資料 ↗");
+    assert.match(desktopSource.accessible,/江戸川区：大規模水害時の広域避難/);
+    assert.match(desktopSource.href,/koikihinan[.]html$/);
+    assert.ok(desktopSource.sameTitleRow,
+      "desktop compact source link should share the scene-title row, not add a new row");
+    assert.ok(desktopSource.linkHeight>10);
     await visitor.waitForFunction(()=>{
       const content=document.getElementById("gsiFloodDemoContent");
       const fallback=document.getElementById("gsiFloodDemoFallback");
@@ -688,6 +701,12 @@ async function screenshot(page, name) {
           visible:getComputedStyle(el).display!=="none"};
       });
       assert.equal(evidenceGeometry.visible,true,"details must be opt-in");
+      const fullSource=await visitor.locator("#gsiDemoFullSource").evaluate(a=>({
+        label:a.textContent,href:a.getAttribute("href"),rel:a.getAttribute("rel")
+      }));
+      assert.match(fullSource.label,/江戸川区：大規模水害時の広域避難（公式）/);
+      assert.equal(fullSource.href,desktopSource.href);
+      assert.match(fullSource.rel,/noopener noreferrer/);
       assert.ok(evidenceGeometry.height<=Math.min(355,desk.mapHeight*.43)+6,
         "optional evidence drawer should be compact");
       assert.ok(evidenceGeometry.width<=322);
@@ -806,6 +825,11 @@ async function screenshot(page, name) {
       "an official primary-source link must remain independently tappable on mobile");
     assert.ok(mobileLayout.policyHeight>=10,
       "the municipal source link must remain legible without opening the hidden dock");
+    assert.equal(await visitor.locator("#gsiDemoSceneSource").textContent(),"公式資料 ↗",
+      "mobile uses the same short source link without removing direct primary-source access");
+    assert.match(await visitor.locator("#gsiDemoSceneSource").getAttribute("aria-label"),
+      /江戸川区：大規模水害時の広域避難/,
+      "mobile screen readers retain the full official source name");
     assert.match(mobileLayout.policyHref,/koikihinan[.]html$/,
       "the first scene or fail-closed fallback cites Edogawa's actual broad-evacuation policy");
     if(mobileLayout.sourceState==="verified"){
@@ -850,7 +874,8 @@ async function screenshot(page, name) {
           const heading=document.getElementById("gsiFloodDemoTitle");
           const body=document.getElementById("gsiFloodDemoMessage");
           const link=document.getElementById("gsiDemoSceneSource");
-          heading.textContent=title;body.textContent=copy;link.textContent=source+" ↗";
+          heading.textContent=title;body.textContent=copy;
+          link.textContent="公式資料 ↗";link.setAttribute("aria-label",source+"の出典を開く");
           const bounds=narr.getBoundingClientRect(),mapRect=document.getElementById("map").getBoundingClientRect();
           return {top:bounds.top,height:bounds.height,mapHeight:mapRect.height,
             contentScrollHeight:narr.scrollHeight,contentClientHeight:narr.clientHeight,
@@ -859,7 +884,10 @@ async function screenshot(page, name) {
             titleWidth:heading.getBoundingClientRect().width};
         },authoredSceneTextFixtures[i]);
         assert.equal(measured.linkPointerEvents,"auto","official link must be tappable in every scene");
-        assert.ok(measured.linkWidth>40 && measured.titleWidth>40,"scene "+i+" text remains laid out");
+        // Short source text is intentional: do not require the old long-link
+        // width. Check the text is rendered without overflow instead.
+        assert.ok(measured.linkWidth>24 && measured.titleWidth>40,
+          "scene "+i+" compact source and narration are visibly laid out: "+JSON.stringify(measured));
         assert.ok(measured.height<measured.mapHeight*.32,
           "scene "+i+" must not hide the map at width "+width);
         assert.ok(measured.contentScrollHeight<=measured.contentClientHeight+2,
