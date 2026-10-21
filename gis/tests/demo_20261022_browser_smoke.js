@@ -685,6 +685,10 @@ async function screenshot(page, name) {
       "A stage should show only one facility at a time");
     assert.equal(await visitor.locator(".edogawa-compare-card").getAttribute("data-marker"),"A");
     assert.equal(await visitor.locator("#edogawaCompareShowA").getAttribute("aria-pressed"),"true");
+    await visitor.waitForFunction(()=>{
+      const target=edogawaCompareABMarkers?.A?.getLatLng?.();
+      return target && map.getCenter().distanceTo(target)<15 && map.getZoom()>=14;
+    },null,{timeout:6000});
     assert.equal(await visitor.locator("#mapLocateMe").isVisible(),false,
       "GPS shortcut may not cover the compact compare navigation");
     assert.equal(await visitor.locator("#edogawaCompareTakeaway").isVisible(),false,
@@ -710,12 +714,23 @@ async function screenshot(page, name) {
     assert.equal(await visitor.locator(".edogawa-compare-card").getAttribute("data-marker"),"B",
       "next button changes to B and its own source details");
     assert.equal(await visitor.locator("#edogawaCompareShowB").getAttribute("aria-pressed"),"true");
+    await visitor.waitForFunction(()=>{
+      const target=edogawaCompareABMarkers?.B?.getLatLng?.();
+      return target && map.getCenter().distanceTo(target)<15 && map.getZoom()>=14;
+    },null,{timeout:6000});
     await visitor.locator("#edogawaCompareNext").click();
     assert.equal(await visitor.locator("#edogawaCompareTakeawayTitle").isVisible(),true);
     assert.match(await visitor.locator("#edogawaCompareTakeawayTitle").innerText(),/未判定|安全性の判定/);
     assert.equal(await visitor.locator(".edogawa-compare-card").count(),0,
       "summary is compact: it does not expand both detailed cards");
     assert.equal(await visitor.locator("#edogawaCompareShowSummary").getAttribute("aria-pressed"),"true");
+    const summaryBounds=await visitor.evaluate(()=>{
+      const a=edogawaCompareABMarkers.A.getLatLng(),b=edogawaCompareABMarkers.B.getLatLng();
+      return {aContained:map.getBounds().pad(.02).contains(a),
+        bContained:map.getBounds().pad(.02).contains(b)};
+    });
+    assert.equal(summaryBounds.aContained,true);
+    assert.equal(summaryBounds.bContained,true,"summary stage must show both existing D points");
     const localFocus=await visitor.evaluate(()=>map.getCenter().lng);
     assert.ok(localFocus>139 && localFocus<141,"Edogawa D pair cannot silently navigate to western Japan");
     await visitor.locator("#edogawaCompareShowA").click();
