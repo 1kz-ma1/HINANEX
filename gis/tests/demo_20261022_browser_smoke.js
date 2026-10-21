@@ -866,11 +866,17 @@ async function screenshot(page, name) {
         scroller=document.querySelector("#mapAudienceIntroBody"),
         start=document.querySelector("#mapAudienceIntroStart");
       const before=start.getBoundingClientRect(),frame=intro.getBoundingClientRect();
+      // Some mobile font/viewport combinations fit all original text. Force a
+      // long-doc case in the test, without altering the shipped UI or source.
+      const extra=document.createElement("p");
+      extra.textContent="説明の追加スクロール検証 ".repeat(150);
+      scroller.append(extra);
+      const scrollable=scroller.scrollHeight>scroller.clientHeight;
       scroller.scrollTop=scroller.scrollHeight;
       const after=start.getBoundingClientRect();
+      extra.remove();
       return {before:before.top,after:after.top,ctaBottom:after.bottom,
-        frameBottom:frame.bottom,scrollable:scroller.scrollHeight>scroller.clientHeight,
-        stillOpen:!intro.hidden};
+        frameBottom:frame.bottom,scrollable,stillOpen:!intro.hidden};
     });
     assert.equal(mobileWelcome.stillOpen,true);
     assert.equal(mobileWelcome.scrollable,true,
