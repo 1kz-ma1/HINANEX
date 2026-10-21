@@ -62,6 +62,14 @@ class NagoyaGeocodingPilotTests(unittest.TestCase):
         self.assertEqual(result["derived_geometry"], {"latitude": 35.16, "longitude": 136.93})
         self.assertFalse(result["approved_for_map"])
 
+    def test_parcel_level_is_review_only_even_with_full_address(self):
+        address = "愛知県名古屋市千種区千種3-2-5"
+        point = classify(provider(level="parcel"), address, "千種区")
+        self.assertEqual(point["status"], "NEEDS_REVIEW")
+        self.assertEqual(point["reason"], "parcel_reference_offset_risk")
+        self.assertEqual(point["coordinates_level"], "parcel")
+        self.assertFalse(point["approved_for_map"])
+
     def test_query_mismatch(self):
         self.assertEqual(classify(provider(), "愛知県名古屋市千種区他1", "千種区")["reason"], "query_mismatch")
 
