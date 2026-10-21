@@ -96,18 +96,48 @@ class NagoyaGeocodingPilotTests(unittest.TestCase):
 
     def test_stale_manifest_rejected_before_http(self):
         with self.assertRaises(ValueError):
-            resolve(prepare(sample(1), "old"), "new", "http://127.0.0.1:3000")
+            resolve(prepare(sample(1), "old"), sample(1), "new", "http://127.0.0.1:3000")
+
+    @patch("geocode_nagoya_pilot.fetch_json")
+    def test_reject_tampered_manifest_before_network(self, mocked):
+        source = sample(3)
+        original = prepare(source, "digest")
+        for field, new_value in (
+            ("record_id", "spoofed-site"),
+            ("query_address", "愛知県名古屋市千種区別の場所1"),
+            ("name", "別の施設"),
+            ("source_address", "別の場所1"),
+        ):
+            manifest = {
+                **original,
+                "selected": [dict(row) for row in original["selected"]],
+            }
+            manifest["selected"][0][field] = new_value
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                resolve(manifest, source, "digest", "http://127.0.0.1:3000")
+        mocked.assert_not_called()
+
+    @patch("geocode_nagoya_pilot.fetch_json")
+    def test_reject_swapped_dataset_same_digest_claim(self, mocked):
+        source = sample(3)
+        manifest = prepare(source, "digest")
+        different = sample(3)
+        different["records"][0]["address"] = "別の場所5-7"
+        with self.assertRaises(ValueError):
+            resolve(manifest, different, "digest", "http://127.0.0.1:3000")
+        mocked.assert_not_called()
 
     @patch("geocode_nagoya_pilot.fetch_json")
     def test_mocked_provider_pipeline_is_unverified_only(self, mocked):
-        manifest = prepare(sample(1), "digest")
+        source = sample(1)
+        manifest = prepare(source, "digest")
         record = manifest["selected"][0]
         mocked.side_effect = [
             ({"status": "ok"}, b'{"status":"ok"}'),
             ({"name": "abrg", "db_version": "synthetic", "version": "synthetic"}, b'{}'),
             (provider(record["query_address"], record["ward"]), b'{"synthetic":true}'),
         ]
-        result = resolve(manifest, "digest", "http://127.0.0.1:3000")
+        result = resolve(manifest, source, "digest", "http://127.0.0.1:3000")
         self.assertEqual(result["statuses"], {"UNVERIFIED_CANDIDATE": 1})
         self.assertFalse(result["approved_for_map"])
         self.assertFalse(result["data_promotion_authorized"])
