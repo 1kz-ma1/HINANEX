@@ -314,6 +314,28 @@ python triage_nagoya_gsi_stage6.py \
 - データの提供日・指定区分、独立した施設位置の公式根拠（同一自治体が登録したGSI点との循環参照にならない証拠）を確認できるまで、位置承認0件、approved_for_map=false、data_promotion_authorized=false、避難安全判定NO-GO。
 - CIは架空施設データのみ。Stage 6のMacローカル実測件数と個別確認の結果は**実行するまで不明**。
 
+### Stage 6実測・人手による施設位置確認のゲート（2026-10-21）
+
+Macで Stage 6のオフライン匿名集計 `NAGOYA_STAGE6_MANUAL_GSI_DISCREPANCY_TRIAGE_NOT_SITE_APPROVAL` を取得。dataset SHA256 `d5f7191a49d4f531fa890ccf437918789ed534138b1e89973d6181cf6aa1c3a3`、GSI両CSVのSHA256がStage 5と一致し、Stage 5件数も再現（`stage5_status_counts_reproduced=true`）。全34施設は依然 NOT_REVIEWED。
+
+| 優先度 | 実測施設数 | 手動確認の要点 |
+| --- | ---: | --- |
+| P0_IDENTITY_OR_GSI_CONFLICT | 3 | GSIの異なる参照点2・同住所別施設名1 |
+| P1_DISTANCE_OR_PARCEL | 9 | ABR-GSI参照点100m以上7・地番参照点7（重複あり） |
+| P2_STANDARD_SITE_REVIEW | 22 | 重点注意フラグなし。ただし施設敷地・建物・入口の独立確認は未実施 |
+| 合計 | 34 | 公式施設位置の承認数0 |
+
+要注意フラグは合計17で、異なる施設数12、2つ以上のフラグがある施設数5。P0の3施設とP1の9施設を合わせた12件が先行確認対象。距離100mは**レビュー優先順位を設定するための便宜的閾値**であり、避難時の位置精度基準ではない。P2が「安全・確認済み」を意味することもない。
+
+**次は自動診断を増やすより、同じローカルCSVを人間が検証する工程を優先する。**
+
+- `pipeline/data/geocoding_pilot/nagoya50/gsi_stage6_review_PRIVATE.csv` は施設名・住所・参照点を含むため、Mac内に限って開き、`stage6_priority` でP0 → P1 → P2の順に確認。別の受入コマンドやGIS書込みは用意しない。手動レビュー済みを表示できる仕組みは将来別途設計。
+- P0の2件の座標競合では、GSIに指定緊急避難場所と指定避難所の異なるレコードが存在する可能性も含め、**根拠のない同一視・点の平均化・座標選択をしない**。名称不一致1件も「改称」と即断せず、正式施設名の版・住所・施設同一性を検証。
+- P1の100m以上離れた参照点7件と地番精度の点7件は同一施設を重複して含み得る。どちらが正しいかは自動判定せず、公式の独立した施設図・管理者資料・建物/入口の位置根拠を確認する。
+- 各行の `official_site_evidence_url`、`official_evidence_date`、`facility_identity_evidence`、`site_position_evidence`、`entrance_or_building_evidence`、`facility_type_confirmed`、`reviewer`、`reviewed_at` を根拠とともに人間が記録する。ただしCSVへの記載とGIS/RegionExportへの正式採用は別の承認ゲートである。
+- GSIは自治体登録に基づくため、他ソースとの完全一致を**独立測位の裏付け**とはみなさない。施設種別・災害適合性・開設状況・経路安全性の判断は位置の照合から独立した検証事項。
+- 元50件のステータス・座標は変更しない。site_position_independently_verified=false、official_facility_positions_accepted=0、approved_for_map=false、data_promotion_authorized=false、GIS利用NO-GOを継続。Issue #286に匿名の実測値を記録。PR #283はDraft。
+
 ## 発表質問への回答例
 
 「名古屋市の屋内施設の住所情報は取得できていますが、緯度経度の列はありません。そこで住所から座標候補を得る実験用のパイプラインを追加しました。候補点と公式施設座標は区別し、変換時の位置精度・版・不一致を記録します。座標が付いただけでは避難時の安全性・施設の開設状態・経路の通行可能性は証明できないため、正式な地図表示への自動昇格は行っていません。」
