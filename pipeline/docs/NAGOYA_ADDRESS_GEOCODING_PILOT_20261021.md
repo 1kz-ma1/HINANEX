@@ -414,6 +414,28 @@ open data/geocoding_pilot/nagoya50/gsi_stage7_review_PRIVATE.html
 
 この追加は新しい正規化・公式出典の自動取得・RegionExport/GIS公開ではなく、Macローカルの人手レビュー支援。Stage 7実測 P0=1/P1=9/P2=24、公式施設位置承認0、NO-GO維持。
 
+### PRIVATE確認HTMLのValueError修正（2026-10-22、既存Stage 7は再実行不要）
+
+Stage 7の既存実測 `gsi_stage7_refined_PRIVATE.csv` には、**出力スキーマの問題**により `independent_site_position_approved` という列名が2回出力されていた。Stage 7の匿名集計自体は成功していたが、追加のローカル確認画面が共通CSVリーダーによる**重複ヘッダー禁止**で `Local review HTML aborted [ValueError]` を返し、HTML未生成となった。
+
+実装上の対処は次の2点に限定：
+- **将来作成されるStage 7 CSV**の列定義 `ADDED_FIELDS` から重複する承認欄を外し、出力前に全ヘッダー一意性を検証する。
+- 既存のMacの `gsi_stage7_refined_PRIVATE.csv` はそのまま保存し、ローカルHTMLビューア `view_nagoya_stage7_private.py` だけで**従来の厳密なヘッダー順と重複箇所1つ**を例外的に読み取る。各行の承認欄2つが**完全一致**する場合に限り読込を許可し、不一致・別の重複・列欠損や行不正はフェイルクローズ。**上書き修復や再生成はしない。**
+- 合成テストで従来の二重ヘッダー、将来の一意ヘッダー、矛盾した承認値、予期しないヘッダー・行長を検証。手動レビュー状態・位置承認フラグの拒否規則、プライバシー、無接続のHTML、RegionExport/GIS NO-GOは維持。
+
+Macで再試行（現在の `pipeline` にいる場合も、リポジトリから更新後に実行）：
+
+~~~sh
+cd ~/Developer/HINANEX
+git pull --ff-only origin feature/d-nagoya-geocoding-pilot-20261021
+cd pipeline
+source .venv/bin/activate
+python view_nagoya_stage7_private.py --pilot-dir data/geocoding_pilot/nagoya50
+open data/geocoding_pilot/nagoya50/gsi_stage7_review_PRIVATE.html
+~~~
+
+**PRIVATE.csvの削除、Stage 7の再実行、元データ/GSI CSV/集計の再ダウンロードは不要。** HTMLもPRIVATEのためMacから出さない。全34件NOT_REVIEWED、正式施設位置受入0、地図公開なし。
+
 ## 発表質問への回答例
 
 「名古屋市の屋内施設の住所情報は取得できていますが、緯度経度の列はありません。そこで住所から座標候補を得る実験用のパイプラインを追加しました。候補点と公式施設座標は区別し、変換時の位置精度・版・不一致を記録します。座標が付いただけでは避難時の安全性・施設の開設状態・経路の通行可能性は証明できないため、正式な地図表示への自動昇格は行っていません。」
