@@ -130,6 +130,36 @@ python diagnose_nagoya_address_mismatch.py \
 
 最初の37件診断は`ABR_RESPONSE_HASH_CHANGED`で停止した。ABR `result_info.duration_ms` が各API呼び出しで変わることを公式実装で確認したため、**初回結果を上書きせず**、上記の二重再照会方式へ変更。こちらの変更が実環境で成功したとはまだ判定しない。元の施設位置受入0件・GISへのNO-GOは不変。
 
+### 住所不一致37件の実測結果とStage 2（2026-10-21）
+
+ローカルABR 3.0.52 / DB 3.0.29で37件の匿名診断を完遂。現在の二重照会で処理時間を除くJSONは37件すべて一致した。初回の生JSONハッシュとの差は37件だが、古いレスポンス本文は保存していないため、**初回との意味的な同一性を証明するものではない**。
+
+| Stage 1 住所文字列パターン | 件数 |
+|---|---:|
+| town_or_other_text_difference（残余カテゴリ） | 35 |
+| source_suffix_not_matched | 2 |
+| same_text_stem_number_difference | 0 |
+| provider_has_extra_suffix | 0 |
+| 合計 | 37 |
+
+ABR unmatched_addressが空でない照会は10件。35件の文字列差との重なり、実際の町名・住所体系の違いは未判明。35件を町名誤りと断定しない。
+
+この残余35件をさらに、**数字アンカーの有無／数字以降の文字列一致／ABRの住所マッチ粒度／未照合トークンの存在**へ分解する診断を同じDraft PRに追加。Stage 1の匿名レポートが存在し、かつ原本データ・元の50件レポートと整合するときだけ再診断する。
+
+~~~sh
+# pipeline/ から、Git管理外のローカルデータだけを使用
+python diagnose_nagoya_text_difference_stage2.py \
+  --dataset data/normalized/nagoya_shelters.json \
+  --pilot-dir data/geocoding_pilot/nagoya50 \
+  --local-abr-url http://127.0.0.1:3000
+~~~
+
+成功時は data/geocoding_pilot/nagoya50/text_difference_stage2_aggregate.json に**匿名集計のみ**を新規出力（既存ファイル上書き不可）。出力するのはカテゴリ別件数、数字以降の部分文字列一致数、既知のABRマッチレベル別件数、各種表記マーカー検出数等。個別住所・施設名・施設ID・候補座標・元ABR応答本文を保存・表示せず、対象37件の元分類をすべて再現できない場合は出力を中止する。
+
+例えば both_have_numbers_text_stem_diff は数字の前の表現に差があることを示すだけ。numeric_suffix_observations.same は数字以降の文字列が同じという観測結果であって、その施設が同一位置にある証拠にはならない。oaza/aza・漢数字丁目も**表記特徴の件数のみ**。住所の自動補正／再ジオコーディングによる候補追加、GIS反映、災害適合判定、独立施設照合は行わない。
+
+Stage 2のコードの合成テストが成功しても**35件の実データ解析結果を得たことにはならない**。Macローカルで上記コマンドを実行し、匿名JSONを確認するまでは結果を未測定とする。
+
 ## 発表質問への回答例
 
 「名古屋市の屋内施設の住所情報は取得できていますが、緯度経度の列はありません。そこで住所から座標候補を得る実験用のパイプラインを追加しました。候補点と公式施設座標は区別し、変換時の位置精度・版・不一致を記録します。座標が付いただけでは避難時の安全性・施設の開設状態・経路の通行可能性は証明できないため、正式な地図表示への自動昇格は行っていません。」
