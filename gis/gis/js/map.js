@@ -3039,6 +3039,12 @@ window.HINANEX_EDOGAWA_FACILITY_COMPARE = Object.freeze({
     }
     return {state:"compared",first:facts(first),second:facts(second)};
   },
+  // Removing a previous pair when the visitor edits their selection changes
+  // only presentation markers, never the source D record set or state.
+  clear(){
+    edogawaCompareMarkers.clearLayers();
+    return {state:"cleared"};
+  },
   focus(a,b){
     const s=edogawaCompareSession;
     if(!s||selectedRegionCode!=="13123"||a===b)return {state:"unavailable"};
