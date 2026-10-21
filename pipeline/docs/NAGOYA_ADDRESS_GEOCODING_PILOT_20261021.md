@@ -113,9 +113,9 @@ python diagnose_nagoya_address_mismatch.py \
 ```
 
 - 入力JSON・manifest・resolution・summaryを相互照合し、抽出ID/住所の改変がないことを確認。通信開始前にスナップショット不一致を拒否する。
-- ABRのhealth、API版、DB版、対象pref=23、category=allを検証。元の37応答のSHA256が一致しなければ停止する。古い出力を上書きせず、診断レポートを新規作成する。
+- ABRのhealth、API版、DB版、対象pref=23、category=allを検証。元の37応答のSHA256は履歴照合指標として保持する。ただしABRは`result_info.duration_ms`を毎回計測するため、**生JSONのSHA256が違うだけでは住所の意味的変化を示さない**。そのため各住所をローカルABRに2回照会して、**処理時間フィールドのみを除外した正規化JSON全体**が一致することを検証。住所・照合精度・座標・その他メタデータの差異があれば停止し、旧来の`UNRESOLVED`判定理由が変わった場合も停止する。古い出力を上書きしない。
 - HTTPはlocalhost限定、リダイレクト拒否、proxy不使用。**個別の名前・ID・住所・住所候補・座標・レスポンスは出力せず**、gitignoredの`mismatch_diagnostics_aggregate.json`と標準出力に匿名件数のみ記録。
-- 診断区分は次の4つ。これらは**文字列の観測パターン**であって原因・精度・施設位置の確定分類ではない。
+- 診断区分は次の4つ。これらは**現行ABRの再照会結果による文字列の観測パターン**であって原因・精度・施設位置の確定分類ではない。元のパイロットは個別の元レスポンスJSONを保存していないため、**SHA256が異なる当初の応答との意味的同一性は証明できない**。匿名集計には旧生レスポンスとのハッシュ一致数/差異数と、再照会2回の非時間情報一致数を必ず分けて記録する。
   - `source_suffix_not_matched`: ABR住所が元の住所の前方部分で止まる
   - `provider_has_extra_suffix`: ABR住所側に追加の末尾がある
   - `same_text_stem_number_difference`: 最初の数字より前の文字列は一致し、数字以降に相違がある
@@ -124,6 +124,11 @@ python diagnose_nagoya_address_mismatch.py \
 - データの選定、元の50件ステータス、`UNVERIFIED_CANDIDATE`6件、施設位置受入0件、`approved_for_map=false`を一切変えない。RegionExport / GIS / 災害適合判定 / 正式座標には接続しない。
 - Issue #286へはこの匿名化した集計と実測上の制約だけを掲載し、施設単位の内容や`human_review.csv`は絶対にコミット・投稿しない。
 - 原本16ファイルのURL/取得時間帯/SHA256は個別のローカル監査記録で確認すること。元の実測集計に含まれていない場合は記録済みと断定しない。
+
+
+### 再照会の失敗履歴（2026-10-21）
+
+最初の37件診断は`ABR_RESPONSE_HASH_CHANGED`で停止した。ABR `result_info.duration_ms` が各API呼び出しで変わることを公式実装で確認したため、**初回結果を上書きせず**、上記の二重再照会方式へ変更。こちらの変更が実環境で成功したとはまだ判定しない。元の施設位置受入0件・GISへのNO-GOは不変。
 
 ## 発表質問への回答例
 
