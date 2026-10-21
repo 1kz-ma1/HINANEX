@@ -46,13 +46,7 @@ class Stage7Tests(unittest.TestCase):
         args = historical_fixture()
         self.assertEqual(args[3]["status_counts"][
             "strict_name_address_conflicting_references"], 1)
-        self.assertTrue(near_coincident_strict_references(args[4][0], args[6])
-                        if args[4][0]["gsi_cross_reference_status"] ==
-                        "strict_name_address_conflicting_references"
-                        else near_coincident_strict_references(
-                            next(row for row in args[4] if row["gsi_cross_reference_status"]
-                                 == "strict_name_address_conflicting_references"), args[6]
-                        ))
+        self.assertTrue(near_coincident_strict_references(args[0][0], args[6]))
         rows, agg = refine(*args)
         self.assertEqual(agg["near_coincident_distinct_gsi_reference_cases"], 1)
         self.assertEqual(agg["refined_classifications"][
