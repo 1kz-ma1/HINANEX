@@ -17,6 +17,8 @@
 - ローカルの http://127.0.0.1:3000 /geocode のみオペレーターが明示的に実行する。初期prepare段階では一切通信しない。HTTP redirect禁止。
 - クエリは 愛知県名古屋市 + 区名 + 原本所在地。ABRへは最大2件候補を要求し、候補が複数ある場合は未解決とする。
 - 座標はGeoJSON形式の [longitude, latitude] から取得する。低解像度の町字代表点、不一致の住所、他区、余分な未照合住所、異常数値は採用しない。
+- **地番（parcel）精度を自動的な候補成功に含めない。** デジタル庁ABR公式リポジトリの [Issue #256](https://github.com/digital-go-jp/abr-geocoder/issues/256) では一部の地番座標が実位置から大きくずれる事例が報告されている。名古屋の全地番に同じ問題があるとは断定せず、`NEEDS_REVIEW` として施設本人との独立照合を必須にする。
+- ABR公式リポジトリの [Issue #254](https://github.com/digital-go-jp/abr-geocoder/issues/254) はGitHub Actions上での原本ダウンロード403事例を記録している。このためActions環境でABR生データを直接取得できることを前提としない。
 - 過去のレコードIDと入力のSHA256、対象区名、ABRデータ版、位置精度、応答ハッシュを追跡できるようにする。
 
 ## 試験の操作手順
@@ -43,8 +45,8 @@ python geocode_nagoya_pilot.py resolve --dataset data/normalized/nagoya_shelters
 
 ## 判定区分
 
-- UNVERIFIED_CANDIDATE: 一意の座標候補、区と住所が一致、住宅番号・街区・地番相当の精度。ただし独立した施設位置確認は未実施で、GIS公開不可。
-- NEEDS_REVIEW: 異なる元レコードが同じ代表座標を持つ等の要検証。
+- UNVERIFIED_CANDIDATE: 一意の住所候補、区と住所が一致、街区・住居番号相当の精度。ただし独立した施設位置確認は未実施で、GIS公開不可。地番精度はここに入れない。
+- NEEDS_REVIEW: 地番（parcel）精度、または異なる元レコードが同じ代表座標を持つ等の要検証。
 - UNRESOLVED: 住所未一致、複数結果、区が違う、精度が粗い、座標不正等。施設不在や自治体の公開不足の意味ではない。
 - PROVIDER_ERROR: ローカルABRの通信・応答が失敗した場合。ソース欠損として扱わない。
 
