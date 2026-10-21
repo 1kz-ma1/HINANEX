@@ -91,7 +91,7 @@
     // The single public MAIN DEMO owns its verified-source loading/fallback.
     intro.hidden = true;
     setOpen(false);
-    id("mapGsiFloodDemoOpen").click();
+    id("mapEdogawaCompareOpen").click();
   });
   const audienceMode = new URL(window.location.href).searchParams.get("demo") === "audience";
   // Each explicit visit or browser refresh of the distributed audience URL

@@ -1,0 +1,66 @@
+/* Edogawa audience facility comparison; not an evacuation recommendation. */
+.edogawa-compare-banner[hidden],.edogawa-compare-panel[hidden],.map-tour-gsi-cta[hidden]{display:none!important}
+.edogawa-compare-banner{
+  position:absolute;z-index:1021;top:107px;left:50%;transform:translateX(-50%);
+  width:min(1050px,calc(100% - 32px));
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;
+  background:#08283bed;color:#edfafa;border:1px solid #5cb9bf;
+  border-radius:14px;padding:10px 13px;box-shadow:0 12px 30px #00172288;
+}
+.edogawa-compare-banner>span{color:#8ef1e9;font-size:12px;font-weight:900}
+.edogawa-compare-banner strong{display:block;font-size:14px}
+.edogawa-compare-banner p{font-size:12px;line-height:1.5;margin:4px 0 0}
+.edogawa-compare-banner button,.edogawa-compare-panel button{
+  cursor:pointer;border-radius:8px;padding:8px 12px;min-height:40px;
+  border:1px solid #84cfd5;background:#145066;color:#fff;font:700 12px system-ui,sans-serif;
+}
+.edogawa-compare-panel button:disabled{opacity:.5;cursor:not-allowed}
+.edogawa-compare-banner :is(button,a):focus-visible,
+.edogawa-compare-panel :is(button,a,select):focus-visible{outline:3px solid #ffe2a1;outline-offset:2px}
+.edogawa-compare-panel{
+  position:absolute;right:12px;bottom:12px;z-index:1019;
+  width:min(465px,calc(100% - 24px));max-height:min(54dvh,475px);
+  overflow:auto;overscroll-behavior:contain;
+  padding:14px 15px;border:1px solid #b2cfd2;border-radius:14px;
+  background:#f8fcff;color:#193342;box-shadow:0 15px 40px #001f3899;
+  font:13px/1.5 system-ui,"Noto Sans JP",sans-serif;
+}
+.edogawa-compare-panel-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;
+  border-bottom:1px solid #d5e1e9;padding-bottom:7px}
+.edogawa-compare-panel-head strong{font-size:15px}
+.edogawa-compare-panel-head span{font-size:11px;color:#586878}
+.edogawa-compare-count{font-size:12px;font-weight:700;color:#12666b}
+.edogawa-compare-selects{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:9px 0}
+.edogawa-compare-selects label{display:grid;gap:4px;font-size:12px;font-weight:700}
+.edogawa-compare-selects select{min-width:0;max-width:100%;width:100%;padding:9px 6px;border-radius:7px;
+  border:1px solid #9bb8c4;background:white;color:#182f40;font-size:12px;min-height:44px}
+.edogawa-compare-actions{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.edogawa-compare-result{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.edogawa-compare-card{min-width:0;border:1px solid #cbdde4;background:white;padding:9px;border-radius:9px}
+.edogawa-compare-card h3{font-size:13px;line-height:1.4;margin:0 0 8px;color:#103b53;overflow-wrap:anywhere}
+.edogawa-compare-card dl{display:grid;gap:3px;margin:0}
+.edogawa-compare-card dt{font-weight:700;font-size:10px;color:#607282}
+.edogawa-compare-card dd{margin:0 0 5px;overflow-wrap:anywhere;font-size:12px}
+.edogawa-compare-card a,.edogawa-compare-policy a{color:#095879;text-decoration:underline;overflow-wrap:anywhere}
+.edogawa-compare-caution{border-left:3px solid #c19137;padding:6px 9px;background:#fff7e5;
+  font-size:11px;line-height:1.5}
+.edogawa-compare-policy{font-size:11px}
+.edogawa-compare-map-pin{display:grid;place-items:center;width:32px;height:32px;border:3px solid #fff;
+  border-radius:50%;background:#124e73;color:white;font:bold 14px system-ui;
+  box-shadow:0 1px 10px #132d4baa}
+.map-tour-edogawa-cta{display:grid;gap:7px}
+.map-tour-edogawa-cta span{font-size:11px;color:#55d6d3;font-weight:800}
+.map-tour-edogawa-cta strong{font-size:14px}
+.map-tour-edogawa-cta p{font-size:11px}
+.map-tour-edogawa-cta button{border:0;border-radius:8px;padding:10px 12px;
+  color:#003946;background:#91f0e4;font-weight:850;cursor:pointer}
+@media(max-width:780px){
+  .edogawa-compare-banner{top:73px;left:8px;right:56px;transform:none;
+    width:auto;grid-template-columns:auto 1fr auto;gap:5px;padding:8px}
+  .edogawa-compare-banner strong{font-size:12px}
+  .edogawa-compare-banner p{font-size:10.5px}
+  .edogawa-compare-banner button{padding:6px 7px;font-size:11px}
+  .edogawa-compare-panel{right:7px;left:7px;bottom:8px;width:auto;
+    max-height:49dvh;padding:10px}
+  .edogawa-compare-result{grid-template-columns:1fr}
+}

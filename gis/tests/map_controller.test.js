@@ -712,7 +712,7 @@ nagoya.scenarios = [{
   // accepted discovery API. Assert compatibility by both embedded signatures,
   // not by equating unrelated HTTP cache tags.
   assert.equal(discoveryAsset[1], "gsi-z10-neighbors-20261009-v14");
-  assert.equal(mapAsset[1], "gsi-camera-consent-20261021-v1");
+  assert.equal(mapAsset[1], "edogawa-local-compare-20261021-v1");
   assert.match(discoveryCode, new RegExp('apiVersion: "' + discoveryAsset[1] + '"'));
   assert.match(mapCode, new RegExp('REQUIRED_DISCOVERY_VERSION = "' + discoveryAsset[1] + '"'));
   const oldScriptCase = makeContext({
@@ -2900,7 +2900,9 @@ nagoya.scenarios = [{
   assert.match(page, /id="mapSharePanel"[^>]*hidden/);
   assert.match(page, /id="mapShareURL"[^>]*readonly value="https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
   assert.match(page, /id="mapAudienceIntro"[^>]*hidden/);
-  assert.match(page, /js\/audience_share[.]js[?]v=audience-replay-welcome-20261015-v1/);
+  assert.match(page, /js\/audience_share[.]js[?]v=edogawa-local-compare-20261021-v1/);
+  assert.match(page, /id="mapEdogawaCompareOpen"/);
+  assert.match(page, /id="edogawaComparePanel"[^>]*hidden/);
   assert.match(page, /css\/map_first[.]css[?]v=audience-foundation-intro-20261016-v1/);
   assert.match(styles, /\.map-share-panel\[hidden\],\.map-audience-intro\[hidden\]\{display:none\}/);
   assert.match(shareSource, /const AUDIENCE_URL = "https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
@@ -2995,7 +2997,7 @@ nagoya.scenarios = [{
   assert.equal(b.element("mapAudienceIntro").hidden, false);
   assert.equal(b.element("mapSharePanel").hidden, true);
   let starts=0;
-  b.element("mapGsiFloodDemoOpen").addEventListener("click",()=>starts++);
+  b.element("mapEdogawaCompareOpen").addEventListener("click",()=>starts++);
   assert.equal(starts,0,"shared link must never autoplay a map/demo");
   b.element("mapAudienceIntroStart").click();
   assert.equal(b.element("mapAudienceIntro").hidden,true);
