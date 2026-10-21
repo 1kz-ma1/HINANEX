@@ -2955,6 +2955,115 @@ window.HINANEX_GSI_FLOOD_PRESENTER = Object.freeze({
   }
 });
 
+// Edogawa D-facility comparison for the MAIN audience flow.
+// 13123 is the dataset's municipality key; this API does not certify
+// that every raw latitude/longitude lies inside a legal boundary, nor
+// upgrade UNKNOWN hazard statuses or match D rows to GSI facilities.
+const edogawaCompareMarkers = L.layerGroup().addTo(map);
+let edogawaCompareSession = null;
+let edogawaCompareGeneration = 0;
+window.HINANEX_EDOGAWA_FACILITY_COMPARE = Object.freeze({
+  async begin() {
+    if (edogawaCompareSession || gsiPresenterSession) return {state:"busy"};
+    const ticket = ++edogawaCompareGeneration;
+    const previous = {
+      code: selectedRegionCode,mode:displayMode,
+      center:map.getCenter(),zoom:map.getZoom(),
+      filter:document.getElementById("mapDDecisionFilter").value,
+      shelter:document.getElementById("shelter").checked
+    };
+    // Opening the Edogawa demo is a direct visitor action. Never silently
+    // geolocate the visitor, infer municipality from their camera or fabricate.
+    if (selectedRegionCode !== "13123") selectRegion("13123");
+    const config = REGION_CONFIGS["13123"];
+    const recent = currentShelterSummary?.region.code === "13123"
+      ? currentShelterSummary : viewportDCache.get("13123")?.summary;
+    if (!recent && window.location.protocol !== "file:") await fetchViewportDOnce(config);
+    if (ticket !== edogawaCompareGeneration || selectedRegionCode !== "13123")
+      return {state:"cancelled"};
+    const summary = currentShelterSummary?.region.code === "13123"
+      ? currentShelterSummary : viewportDCache.get("13123")?.summary;
+    if(!summary?.dataset || summary.region.code!=="13123" ||
+       !Array.isArray(summary.mappableRecords) || summary.mappableRecords.length<2)
+      return {state:"unavailable",reason:"NO_TWO_LOCATED_D_RECORDS"};
+    if (summary !== currentShelterSummary)
+      renderShelterSummary(summary,"江戸川区の取得済み施設データ（比較閲覧）");
+    // Keep GSI coverage distinct from this D comparison and reveal D marks.
+    map.closePopup?.();
+    document.getElementById("referenceComparePanel").hidden=true;
+    document.getElementById("referenceCompareOpen")?.setAttribute("aria-expanded","false");
+    document.getElementById("mapTourClose")?.click?.();
+    document.getElementById("mapDDecisionFilter").value="all";
+    document.getElementById("shelter").checked=true;
+    setDisplayMode("region");
+    presenterFilterIds=null;lastDMarkerZoomBucket=null;renderDMarkers();
+    const indices=summary.mappableRecords.map((record,index)=>({key:String(index),record}));
+    const records=indices.map(({key,record})=>({
+      key,name:record.name,address:record.address,
+      latitude:record.latitude,longitude:record.longitude
+    })).sort((a,b)=>a.name.localeCompare(b.name,"ja"));
+    const bounds=L.latLngBounds(summary.mappableRecords.map(r=>[r.latitude,r.longitude]));
+    if(bounds.isValid())map.fitBounds(bounds,{padding:[40,40],maxZoom:12});
+    edogawaCompareSession={previous,summary,indices};
+    return {state:"ready",region:"13123",total:summary.records.length,
+      unknown:summary.mappableRecords.filter(r=>dFloodDecision(summary,r)==="UNKNOWN").length,
+      records};
+  },
+  compare(a,b) {
+    const s=edogawaCompareSession;
+    if(!s||selectedRegionCode!=="13123"||a===b)return {state:"unavailable"};
+    const first=s.indices.find(x=>x.key===a)?.record;
+    const second=s.indices.find(x=>x.key===b)?.record;
+    if(!first||!second)return {state:"unavailable"};
+    function facts(r){
+      const scenario=s.summary.floodScenario?.byId.get(r.id);
+      const status=dFloodDecision(s.summary,r);
+      return {
+        id:r.id,name:r.name,address:r.address,
+        administrativeArea:r.administrative_area,
+        facilityType:r.facility_type,capacity:r.capacity,
+        latitude:r.latitude,longitude:r.longitude,
+        floodStatus:status==="UNKNOWN"?"UNKNOWN（未判定）":
+          status+"（安全・開設の認証ではありません）",
+        reason:scenario?.reason ?? null,
+        sourceUrl:safeExternalUrl(scenario?.sourceUrl||r.detail_url)||null
+      };
+    }
+    edogawaCompareMarkers.clearLayers();
+    for(const [label,r] of [["A",first],["B",second]]){
+      L.marker([r.latitude,r.longitude],{
+        pane:"referenceOriginPane",zIndexOffset:1600,
+        icon:L.divIcon({className:"",html:'<span class="edogawa-compare-map-pin" aria-label="比較用'+label+'（安全性未判定）">'+label+'</span>',
+          iconSize:[34,34],iconAnchor:[17,17]})
+      }).addTo(edogawaCompareMarkers);
+    }
+    return {state:"compared",first:facts(first),second:facts(second)};
+  },
+  focus(a,b){
+    const s=edogawaCompareSession;
+    if(!s||selectedRegionCode!=="13123"||a===b)return {state:"unavailable"};
+    const first=s.indices.find(x=>x.key===a)?.record,second=s.indices.find(x=>x.key===b)?.record;
+    if(!first||!second)return {state:"unavailable"};
+    map.fitBounds(L.latLngBounds([[first.latitude,first.longitude],[second.latitude,second.longitude]]),
+      {padding:[55,55],maxZoom:14});
+    return {state:"focused"};
+  },
+  end(){
+    ++edogawaCompareGeneration;
+    const s=edogawaCompareSession;
+    edogawaCompareSession=null;
+    edogawaCompareMarkers.clearLayers();
+    if(!s)return;
+    const v=s.previous;
+    if(selectedRegionCode!==v.code)selectRegion(v.code);
+    document.getElementById("mapDDecisionFilter").value=v.filter;
+    document.getElementById("shelter").checked=v.shelter;
+    setDisplayMode(v.mode);
+    lastDMarkerZoomBucket=null;renderDMarkers();
+    map.setView(v.center,v.zoom,{animate:false});
+  }
+});
+
 // Presentation-only map tour API. This does not select another municipality,
 // alter Scenario contracts, imply data coverage, or infer unlocated facilities.
 // It can only focus on *actual mappable source points* from RegionExport.
