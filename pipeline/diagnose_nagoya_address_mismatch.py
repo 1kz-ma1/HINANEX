@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 from collections import Counter
 from pathlib import Path
@@ -44,6 +45,8 @@ SAFE_FAILURE_CODES = {
     "ABR health not OK": "ABR_HEALTH_INVALID",
     "Local ABR version/pref/category changed": "ABR_CONFIGURATION_CHANGED",
     "ABR response changed since the original pilot": "ABR_RESPONSE_HASH_CHANGED",
+    "ABR replay metadata invalid": "ABR_REPLAY_METADATA_INVALID",
+    "ABR replay semantic drift": "ABR_REPLAY_SEMANTIC_DRIFT",
     "Original unresolved classification changed": "ORIGINAL_CLASSIFICATION_CHANGED",
     "Untrusted provider address": "PROVIDER_ADDRESS_INVALID",
     "Previously mismatched address now matches": "PREVIOUS_MISMATCH_NOW_MATCHES",
@@ -114,6 +117,49 @@ def check_snapshot(manifest: dict, resolution: dict, summary: dict,
     return targets
 
 
+
+def comparable_response(payload: object, version: dict) -> str:
+    """Return canonical JSON excluding ONLY ABR's per-request duration_ms.
+
+    Exact original payloads were not retained by the old pilot, so this
+    establishes consistency across fresh requests, not historical identity.
+    """
+    if not isinstance(payload, dict):
+        raise ValueError("ABR replay metadata invalid")
+    info = payload.get("result_info")
+    expected = {
+        "api_version": version["version"],
+        "db_version": version["db_version"],
+        "enabled_category": "all",
+        "enabled_pref": "23",
+    }
+    if not isinstance(info, dict) or any(info.get(k) != v for k, v in expected.items()):
+        raise ValueError("ABR replay metadata invalid")
+    if (not isinstance(info.get("count"), int) or isinstance(info["count"], bool)
+            or not isinstance(payload.get("features"), list)
+            or info["count"] != len(payload["features"])
+            or info.get("limit") != 2):
+        raise ValueError("ABR replay metadata invalid")
+    duration = info.get("duration_ms")
+    if duration is not None and (
+            isinstance(duration, bool)
+            or not isinstance(duration, (int, float))
+            or not math.isfinite(duration)
+            or duration < 0):
+        raise ValueError("ABR replay metadata invalid")
+    without_duration = {
+        **payload,
+        "result_info": {k: v for k, v in info.items() if k != "duration_ms"},
+    }
+    try:
+        return json.dumps(
+            without_duration, ensure_ascii=False, sort_keys=True,
+            separators=(",", ":"), allow_nan=False,
+        )
+    except (ValueError, TypeError) as exc:
+        raise ValueError("ABR replay metadata invalid") from exc
+
+
 def diagnose(manifest: dict, resolution: dict, summary: dict,
              dataset: dict, dataset_sha: str, server: str) -> dict:
     targets = check_snapshot(manifest, resolution, summary, dataset, dataset_sha)
@@ -132,21 +178,28 @@ def diagnose(manifest: dict, resolution: dict, summary: dict,
 
     categories = Counter()
     unmatched_field_count = 0
+    original_raw_hash_drift_count = 0
     for row in targets:
         uri = base + "/geocode?" + urlencode({
             "address": row["query_address"], "pref": "23",
             "limit": "2", "category": "all",
         })
+        # Re-run each request independently. The original response was not
+        # retained; the old byte SHA256 is still counted as provenance, but
+        # cannot establish that a mismatched historical payload is equivalent.
         payload, raw = fetch_json(opener, uri)
+        second, second_raw = fetch_json(opener, uri)
         if digest(raw) != row["provider_response_sha256"]:
-            raise ValueError("ABR response changed since the original pilot")
-        classified = classify(payload, row["query_address"], row["ward"])
-        if (classified["status"] != "UNRESOLVED"
-                or classified["reason"] != TARGET_REASON):
-            raise ValueError("Original unresolved classification changed")
-        # The existing strict classifier checked the envelope and structured ward.
-        feature = payload["features"][0]
-        props = feature["properties"]
+            original_raw_hash_drift_count += 1
+        if comparable_response(payload, version) != comparable_response(second, version):
+            raise ValueError("ABR replay semantic drift")
+        for replay in (payload, second):
+            classified = classify(replay, row["query_address"], row["ward"])
+            if (classified["status"] != "UNRESOLVED"
+                    or classified["reason"] != TARGET_REASON):
+                raise ValueError("Original unresolved classification changed")
+        # The strict classifier has checked the envelope and structured ward.
+        props = payload["features"][0]["properties"]
         categories[triage_address_mismatch(
             row["query_address"], props["matched_address"], row["ward"],
         )] += 1
@@ -156,16 +209,20 @@ def diagnose(manifest: dict, resolution: dict, summary: dict,
     if sum(categories.values()) != len(targets):
         raise ValueError("Diagnostic counts incomplete")
     return {
-        "report_kind": "NAGOYA_LOCAL_ADDRESS_MISMATCH_TRIAGE_NOT_COORDINATE_APPROVAL",
+        "report_kind": "NAGOYA_CURRENT_REPLAY_MISMATCH_TRIAGE_NOT_HISTORICAL_PROOF",
         "source_dataset_sha256": dataset_sha,
         "provider": "DIGITAL_AGENCY_ABR",
         "provider_version": version["version"],
         "provider_db_version": version["db_version"],
         "diagnosed_count": len(targets),
+        "replay_nonvolatile_semantics_agreed_count": len(targets),
+        "original_raw_response_hash_changed_count": original_raw_hash_drift_count,
+        "original_raw_response_hash_equal_count": len(targets) - original_raw_hash_drift_count,
+        "historical_semantic_equivalence_proven_for_changed_hashes": False,
         "original_unresolved_reason": TARGET_REASON,
         "categories": {category: categories[category] for category in CATEGORIES},
         "provider_unmatched_field_nonempty_count": unmatched_field_count,
-        "interpretation": "String differences only; causes and facility positions NOT verified",
+        "interpretation": "Current replay string-pattern diagnosis only; historical bytes with different hashes cannot be proven semantically equivalent because original JSON was not archived",
         "previous_statuses_unchanged": True,
         "site_accuracy_independently_verified": False,
         "approved_for_map": False,
