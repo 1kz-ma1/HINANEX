@@ -280,6 +280,40 @@ python compare_nagoya_gsi_offline.py \
 - GSIと一致しても official_facility_positions_accepted=0、approved_for_map=false / data_promotion_authorized=false。建物の位置・入口・対象災害ごとの指定・開設状況・避難経路を独立確認しなければGIS反映は不可。
 - CIは合成レコード・架空座標のみ。実際のGSIデータでの34件突合と独立した位置確認は、Macローカル実行まで **NOT TESTED**。
 
+### Stage 5実測結果・Stage 6プライベート確認台帳（2026-10-21）
+
+利用者がMacで実行した国土地理院GSI CSVのオフライン照合（名古屋市向け review queue 34件）の匿名集計が完了。GSI CSVは指定緊急避難場所 5,820行中名古屋市住所記載1,750行、指定避難所 3,117行中822行。これは**名古屋市の施設件数や網羅性の保証ではなく、各CSV内の住所文字列に対する抽出件数**。
+
+| Stage 5結果 | 件数 |
+|---|---:|
+| 名称＋住所の厳格一致・一意のGSI参照点 | 31 |
+| 厳格一致するがGSI側の参照座標が競合 | 2 |
+| 住所は一致するが施設名未確認 | 1 |
+| 計 | 34 |
+
+一意対応31件のABR〜GSI参照点距離は25m未満10件、25〜100m未満14件、100〜500m未満7件、500m以上0件。A_NEW 21件中の厳格一致18件／競合2件／住所のみ一致1件。A_EXISTING 6件とB_PARCEL 7件は各全件厳格一意一致。しかし、**GSI点との一致・距離が近いことは施設の敷地・建物・入口の位置、災害適合性を証明しない**。公式施設位置の独立承認は0件。
+
+次の Stage 6 は**元のプライベート台帳・Stage 5の個別CSV・Stage 5匿名集計・GSI原本CSV（同一SHA256）**を再計算して一致確認する、オフライン専用の優先度付き人間レビュー台帳。Git管理外の作業環境で次を実行。
+
+~~~sh
+cd ~/Developer/HINANEX
+git pull --ff-only origin feature/d-nagoya-geocoding-pilot-20261021
+cd pipeline
+source .venv/bin/activate
+python triage_nagoya_gsi_stage6.py \
+  --pilot-dir data/geocoding_pilot/nagoya50 \
+  --gsi-emergency data/geocoding_pilot/nagoya50/gsi_emergency.csv \
+  --gsi-shelter data/geocoding_pilot/nagoya50/gsi_shelter.csv
+~~~
+
+- 出力 PRIVATE: gsi_stage6_review_PRIVATE.csv。実施設名・住所・参照点・競合GSI候補座標・同住所の別施設名が入る。**GitHub、チャット、共同資料にはアップロード・貼付け禁止**。公式の施設・敷地・建物・入口の根拠URL・日付・種別・確認者・レビュー結論を人間が追記するための空欄を備える。すべて NOT_REVIEWED のまま開始し、別の明示的な受入操作なしに更新しない。
+- 出力共有可能: gsi_stage6_triage_aggregate.json。カテゴリ件数、P0/P1/P2優先度ごとの件数、注意点が重複した施設数のみ。個別施設情報・座標は書かない。
+- P0はGSI登録座標が競合する、住所一致でも名称が異なる、対応が一意に確認できないなどの施設同一性・参照点の不確実性。P1は100m以上離れた参照点、地番由来の位置ずれリスク。P2はその他の標準的な公式施設照合。ただし**P2も未承認**。
+- 2つ以上の要確認理由を持つ施設は、各理由の件数には含めるが、優先レビュー総数では1施設として扱う。Stage 5から判明している2件のGSI競合／1件の住所のみ一致／距離差7件／地番由来7件の重なりは、このStage 6匿名集計で判明する。
+- Stage 5の個別出力と元GSIファイルから再計算した結果が違う場合はフェイルクローズ。以前のPRIVATE台帳は上書きせず、新規ファイル名に作成。ネットワーク／GIS mutation／RegionExport／mainは変更しない。
+- データの提供日・指定区分、独立した施設位置の公式根拠（同一自治体が登録したGSI点との循環参照にならない証拠）を確認できるまで、位置承認0件、approved_for_map=false、data_promotion_authorized=false、避難安全判定NO-GO。
+- CIは架空施設データのみ。Stage 6のMacローカル実測件数と個別確認の結果は**実行するまで不明**。
+
 ## 発表質問への回答例
 
 「名古屋市の屋内施設の住所情報は取得できていますが、緯度経度の列はありません。そこで住所から座標候補を得る実験用のパイプラインを追加しました。候補点と公式施設座標は区別し、変換時の位置精度・版・不一致を記録します。座標が付いただけでは避難時の安全性・施設の開設状態・経路の通行可能性は証明できないため、正式な地図表示への自動昇格は行っていません。」
