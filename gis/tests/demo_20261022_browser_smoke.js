@@ -675,11 +675,11 @@ async function screenshot(page, name) {
       const panel=document.querySelector("#edogawaComparePanel");
       const container=document.querySelector("#map").getBoundingClientRect();
       return {opacity:Number(getComputedStyle(pane).opacity),
-        height:panel.getBoundingClientRect().height,mapHeight:container.height};
+        height:panel.getBoundingClientRect().height,mapHeight:container.height,viewportHeight:window.innerHeight};
     });
     assert.ok(presentation.opacity<=.2,
       "unrelated yellow source clusters must be visually de-emphasized");
-    assert.ok(presentation.height<=Math.min(385,window.innerHeight*.43)+8,
+    assert.ok(presentation.height<=Math.min(385,presentation.viewportHeight*.43)+8,
       "result sheet must remain smaller than the map");
     assert.equal(await visitor.locator("#gsiFloodDemoPanel").isVisible(),false,
       "new main does not open the old GSI presenter automatically");
