@@ -336,6 +336,33 @@ Macで Stage 6のオフライン匿名集計 `NAGOYA_STAGE6_MANUAL_GSI_DISCREPAN
 - GSIは自治体登録に基づくため、他ソースとの完全一致を**独立測位の裏付け**とはみなさない。施設種別・災害適合性・開設状況・経路安全性の判断は位置の照合から独立した検証事項。
 - 元50件のステータス・座標は変更しない。site_position_independently_verified=false、official_facility_positions_accepted=0、approved_for_map=false、data_promotion_authorized=false、GIS利用NO-GOを継続。Issue #286に匿名の実測値を記録。PR #283はDraft。
 
+### Stage 7 — 近接登録点・工事注記の安全な再分類（実データ再検証待ち）
+
+Stage 6で P0 3件（GSI登録点の競合2件、同住所・別名1件）となった施設を**ローカルで追加確認**。競合2件はどちらも指定避難所／指定緊急避難場所の異なるレコードで、ABRとの距離は各79.5m・77.1m、異なるGSI登録点の相互距離は小数第6位メートル表示で `0.000000m`。**丸めた表示から厳密に座標が同一とは断定できない**。別名1件はGSIの施設名が原本の工事注記を除いた基本名と一致しており、原本には令和8年7月11日〜令和9年3月31日の改修工事による使用不可が記載されている。これも使用可否の最新公式情報を独立確認するまで自動判定しない。
+
+既存Stage 5/6実測値を変更・上書きせず、**versioned Stage 7**を追加：
+
+- GSIの正確な生の経緯度は保持し、GSIの両種別も維持したまま、**全ペアの参照点間距離が1mm未満（0.001m未満）**の場合に限り `gsi_distinct_references_under_1mm` という**照合用の観測分類**へ分ける。大きな距離差は以前どおり競合。平均点や片方の「正しい座標」は作成しない。**この1mmは表記ゆらぎを抽出するための分析基準であり施設位置の測位精度基準ではない。**
+- 施設名の工事注記は、**限定された形式（末尾 ※R?.?.?～R?.?.?まで…工事のため、使用不可）に完全一致する場合のみ**原文を保持したまま、施設基本名・令和を西暦へ変換した開始日／終了日・使用不可の原文理由を別の**確認用列**へ抽出。日付が不正、改修工事形式以外の注記、GSIの施設基本名と住所がともに一致しない場合は従来どおり不一致。工事期間終了後も**自動で使用可能に戻さない**。
+- 元のStage 5のCSV/GSI原本hash/Stage 6のPRIVATE CSV/匿名集計をローカルで再計算し、いずれかの履歴・承認禁止条件が変わればフェイルクローズ。元の PRIVATE/匿名レポートは新規出力でも一切上書きしない。
+- バージョン変更後も工事による使用不可の記載がある施設は**P0（施設運用状況の独立確認が最優先）**、100m以上の参照点差・地番由来はP1、近接登録点だけの見かけ上の競合であればP2（ただし**未承認・独立位置照合が必要**）という優先順位で再集計。
+- Stage 7の合成テストとGitHub CIだけでは実際の2件が1mm未満か判定済みとは言えない。**Macで同じGSI CSVを指定して実行するまで、新しい優先度件数は未確定。**
+
+~~~sh
+cd ~/Developer/HINANEX
+git pull --ff-only origin feature/d-nagoya-geocoding-pilot-20261021
+cd pipeline
+source .venv/bin/activate
+python refine_nagoya_gsi_stage7.py \
+  --pilot-dir data/geocoding_pilot/nagoya50 \
+  --gsi-emergency data/geocoding_pilot/nagoya50/gsi_emergency.csv \
+  --gsi-shelter data/geocoding_pilot/nagoya50/gsi_shelter.csv
+~~~
+
+- **匿名・共有可能**：`gsi_stage7_refined_aggregate.json` （修正前後の件数だけ）。
+- **PRIVATE・Mac内限定**：`gsi_stage7_refined_PRIVATE.csv` （元の施設名・住所・GSI/ABR座標・原文工事注記・新しい判定列が入る）。GitHub/Issue/チャットには絶対に投稿しない。
+- `approved_for_map=false` / `data_promotion_authorized=false` / 公式施設位置受入0。指定避難所・緊急避難場所の区分、工事期間の運用制限、独立した施設位置検証、災害適合性・開設状況・経路安全性は**別々の判定ゲート**を継続。
+
 ## 発表質問への回答例
 
 「名古屋市の屋内施設の住所情報は取得できていますが、緯度経度の列はありません。そこで住所から座標候補を得る実験用のパイプラインを追加しました。候補点と公式施設座標は区別し、変換時の位置精度・版・不一致を記録します。座標が付いただけでは避難時の安全性・施設の開設状態・経路の通行可能性は証明できないため、正式な地図表示への自動昇格は行っていません。」
