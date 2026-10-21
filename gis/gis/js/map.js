@@ -2961,6 +2961,7 @@ window.HINANEX_GSI_FLOOD_PRESENTER = Object.freeze({
 // upgrade UNKNOWN hazard statuses or match D rows to GSI facilities.
 const edogawaCompareMarkers = L.layerGroup().addTo(map);
 let edogawaCompareABMarkers = {};
+let edogawaPopupGeneration = 0;
 function edogawaHighlightMarker(letter) {
   for (const [name,marker] of Object.entries(edogawaCompareABMarkers)) {
     const element=marker.getElement?.();
@@ -3039,6 +3040,8 @@ window.HINANEX_EDOGAWA_FACILITY_COMPARE = Object.freeze({
         sourceUrl:safeExternalUrl(scenario?.sourceUrl||r.detail_url)||null
       };
     }
+    edogawaPopupGeneration++;
+    map.closePopup?.();
     edogawaCompareMarkers.clearLayers();
     edogawaCompareABMarkers={};
     for(const [label,r] of [["A",first],["B",second]]){
@@ -3055,9 +3058,28 @@ window.HINANEX_EDOGAWA_FACILITY_COMPARE = Object.freeze({
   // Removing a previous pair when the visitor edits their selection changes
   // only presentation markers, never the source D record set or state.
   clear(){
+    edogawaPopupGeneration++;
+    map.closePopup?.();
     edogawaCompareMarkers.clearLayers();
     edogawaCompareABMarkers={};
     return {state:"cleared"};
+  },
+  // Leaflet accepts a real DOM element here; the presenter creates it only
+  // from original, source-checked D record fields via textContent.
+  // No HTML string interpolation or address-derived coordinates.
+  setPopup(letter,element) {
+    const marker=edogawaCompareABMarkers[letter];
+    if(!edogawaCompareSession||!marker||!element||element.nodeType!==1)
+      return {state:"unavailable"};
+    marker.bindPopup(element,{
+      className:"edogawa-compare-popup",
+      maxWidth:276,minWidth:206,
+      autoPan:true,autoClose:true,closeOnClick:false,
+      autoPanPaddingTopLeft:[14,125],
+      autoPanPaddingBottomRight:[14,130],
+      closeButton:true
+    });
+    return {state:"bound",letter};
   },
   focusSite(key,letter) {
     const s=edogawaCompareSession;
@@ -3068,10 +3090,25 @@ window.HINANEX_EDOGAWA_FACILITY_COMPARE = Object.freeze({
     // User starts this sequence by clicking Compare/Auto and then advances
     // between site stages. Always use the raw D coordinates, never geocode.
     const destination=[record.latitude,record.longitude];
-    if(typeof map.flyTo==="function")
-      map.flyTo(destination,15,{duration:0.65});
-    else map.setView(destination,15,{animate:false});
+    const marker=edogawaCompareABMarkers[letter];
+    if(!marker)return {state:"unavailable"};
+    const generation=++edogawaPopupGeneration;
+    map.closePopup?.(); // never leave an A popup underneath a B popup
     edogawaHighlightMarker(letter);
+    // Let flyTo settle before Leaflet auto-pans the anchored popup clear of
+    // the bottom stage bar and the top narration. Rapid switches are ignored.
+    const reveal=()=>{
+      if(generation===edogawaPopupGeneration && edogawaCompareSession===s)
+        marker.openPopup?.();
+    };
+    if(typeof map.flyTo==="function"){
+      if(typeof map.once==="function")map.once("moveend",reveal);
+      map.flyTo(destination,15,{duration:0.65});
+      if(typeof map.once!=="function")reveal(); // unit-test Leaflet stub
+    }else{
+      map.setView(destination,15,{animate:false});
+      reveal();
+    }
     return {state:"focused",letter};
   },
   focus(a,b){
@@ -3079,6 +3116,8 @@ window.HINANEX_EDOGAWA_FACILITY_COMPARE = Object.freeze({
     if(!s||selectedRegionCode!=="13123"||a===b)return {state:"unavailable"};
     const first=s.indices.find(x=>x.key===a)?.record,second=s.indices.find(x=>x.key===b)?.record;
     if(!first||!second)return {state:"unavailable"};
+    edogawaPopupGeneration++;
+    map.closePopup?.(); // summary has no pinned facility popup
     map.fitBounds(L.latLngBounds([[first.latitude,first.longitude],[second.latitude,second.longitude]]),
       {padding:[55,55],maxZoom:14});
     edogawaHighlightMarker(null);
@@ -3086,6 +3125,8 @@ window.HINANEX_EDOGAWA_FACILITY_COMPARE = Object.freeze({
   },
   end(){
     ++edogawaCompareGeneration;
+    edogawaPopupGeneration++;
+    map.closePopup?.();
     const s=edogawaCompareSession;
     edogawaCompareSession=null;
     edogawaCompareMarkers.clearLayers();

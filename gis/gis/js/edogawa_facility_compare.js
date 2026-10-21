@@ -10,7 +10,7 @@
   const first = get("edogawaCompareFirst"), second = get("edogawaCompareSecond");
   const api = window.HINANEX_EDOGAWA_FACILITY_COMPARE;
   let sequence = 0, session = null, step = 0;
-  let activePair = null, activeStage = null;
+  let activePair = null, activeStage = null, activeAutoPair = false;
 
   const steps = [
     ["01 / 03", "地図にある施設だけで、避難先は決められる？",
@@ -83,6 +83,10 @@
     title.textContent = "洪水時の分類：";
     status.append(title,document.createTextNode(record.floodStatus));
     card.append(status);
+    const warning=document.createElement("p");
+    warning.className="edogawa-popup-caution";
+    warning.textContent="この掲載情報だけでは、安全・開設・避難可否は判断できません。";
+    card.append(warning);
     const detail=document.createElement("details");
     detail.className="edogawa-compare-card-extra";
     const summary=document.createElement("summary");
@@ -117,10 +121,14 @@
     activeStage=target;result.replaceChildren();
     const summary=target==="summary";
     get("edogawaCompareTakeaway").hidden=!summary;
+    get("edogawaComparePairBasis").hidden=!(summary&&activeAutoPair);
     if(target==="A"||target==="B"){
       const record=target==="A"?activePair.first:activePair.second;
       const key=target==="A"?first.value:second.value;
-      result.append(buildSite(record,target));
+      // A/B source facts belong to their actual map pin, not the bottom bar.
+      // The map API anchors the DOM card as a single Leaflet popup.
+      const popup=buildSite(record,target);
+      api?.setPopup?.(target,popup);
       api?.focusSite?.(key,target);
       get("edogawaCompareNext").textContent=target==="A"?"次：Bを見る →":"次：比較の結論 →";
       get("edogawaComparePhase").textContent=target==="A"?"03 / 05":"04 / 05";
@@ -152,7 +160,7 @@
       ? "江戸川区として収録された施設を2件選択してください。"
       : !ok ? "異なる2件を選んでください。" : "2件選択済み。情報を比較できます。";
     if(step===2){
-      step=1;activePair=null;activeStage=null;
+      step=1;activePair=null;activeStage=null;activeAutoPair=false;
       get("edogawaCompareResult").replaceChildren();updateStep();
       api?.clear?.();
     }
@@ -160,7 +168,7 @@
   function finish(){
     ++sequence;
     if(session)api?.end?.();
-    session=null;step=0;activePair=null;activeStage=null;panel.hidden=true;banner.hidden=true;
+    session=null;step=0;activePair=null;activeStage=null;activeAutoPair=false;panel.hidden=true;banner.hidden=true;
     openButton?.setAttribute("aria-expanded","false");
     get("edogawaCompareResult").replaceChildren();
     get("edogawaComparePairBasis").hidden=true;
@@ -170,7 +178,7 @@
     if(!panel.hidden)return;
     if(!api||typeof api.begin!=="function"||typeof api.compare!=="function")return;
     const token=++sequence;
-    panel.hidden=false;banner.hidden=false;session=null;step=0;activePair=null;activeStage=null;
+    panel.hidden=false;banner.hidden=false;session=null;step=0;activePair=null;activeStage=null;activeAutoPair=false;
     get("edogawaCompareAutoPick").disabled=true;
     get("edogawaCompareAutoPickFromPicker").disabled=true;
     get("edogawaComparePairBasis").hidden=true;
@@ -208,6 +216,7 @@
     const compared=api.compare(first.value,second.value);
     if(compared?.state!=="compared")return;
     activePair=compared;
+    activeAutoPair=autoSelected;
     const bothUnknown=[compared.first,compared.second].every(r=>r.floodStatus.startsWith("UNKNOWN"));
     get("edogawaCompareTakeawayTitle").textContent=bothUnknown
       ? "結論：2施設とも洪水時の利用可否は未判定"
@@ -215,7 +224,6 @@
     get("edogawaCompareTakeawayText").textContent=bothUnknown
       ? "住所・施設区分は確認できます。しかし「未判定」は安全・危険のどちらでもありません。現時点ではこの比較から避難先を推奨できません。"
       : "記録された分類が異なっても、安全・開設・移動可能性を保証しません。出典の確認と追加の検証が必要です。";
-    get("edogawaComparePairBasis").hidden=!autoSelected;
     step=2;updateStep();showStage("A");
   }
   function autoPick() {
@@ -242,7 +250,7 @@
   get("edogawaCompareAgain").addEventListener("click",()=>{
     if(!session)return;
     api?.clear?.();
-    activePair=null;activeStage=null;
+    activePair=null;activeStage=null;activeAutoPair=false;
     step=1;updateStep();panel.scrollTop=0;first.focus();
   });
   get("edogawaCompareClose").addEventListener("click",finish);
