@@ -7,12 +7,12 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="css/style.css?v=d-marker-entrance-20261015-v1">
   <link rel="stylesheet" href="css/current_theme.css?v=gis-facility-drawer-20261009-v6">
-  <link rel="stylesheet" href="css/map_first.css?v=audience-foundation-intro-20261016-v1">
+  <link rel="stylesheet" href="css/map_first.css?v=audience-sticky-cta-20261021-v1">
   <link rel="stylesheet" href="css/evidence_replay.css?v=spatial-evidence-20261014-v2">
   <link rel="stylesheet" href="css/presentation_story.css?v=presenter-55s-20261014-v1">
   <link rel="stylesheet" href="css/filter_demo.css?v=d-source-criteria-20261014-v1">
   <link rel="stylesheet" href="css/gsi_flood_demo.css?v=gsi-source-shortlabel-20261021-v1">
-  <link rel="stylesheet" href="css/edogawa_facility_compare.css?v=edogawa-presentation-clarity-20261021-v2">
+  <link rel="stylesheet" href="css/edogawa_facility_compare.css?v=edogawa-auto-pair-20261021-v1">
   <link rel="stylesheet" href="css/place_card.css?v=zoom-compact-popup-20261014-v1">
   <link rel="stylesheet" href="css/reference_site_compare.css?v=gsi-reference-compare-20261020-v1">
 </head>
@@ -402,7 +402,11 @@
       <p id="edogawaCompareCount" class="edogawa-compare-count"></p>
       <div id="edogawaCompareSelectArea" hidden>
         <p id="edogawaComparePrompt" class="edogawa-compare-prompter">施設の位置だけで、避難先を判断できるでしょうか？</p>
-        <button id="edogawaCompareAdvance" type="button">2施設を選んで確かめる →</button>
+        <div class="edogawa-compare-quick-actions">
+          <button id="edogawaCompareAutoPick" type="button" disabled>▶ お任せで2件を比較</button>
+          <button id="edogawaCompareAdvance" type="button">自分で2施設を選ぶ →</button>
+        </div>
+        <p class="edogawa-compare-auto-note">取得済み施設の区分違いを優先したデモ用の組み合わせです。安全性・距離では選びません。</p>
         <div id="edogawaComparePickControls" hidden>
           <div class="edogawa-compare-selects">
             <label>施設A<select id="edogawaCompareFirst" aria-label="施設Aを選ぶ"></select></label>
@@ -411,6 +415,7 @@
           <p id="edogawaCompareChoiceStatus" role="status">異なる2つの取得施設を選んでください。</p>
           <div class="edogawa-compare-actions">
             <button id="edogawaCompareRun" type="button" disabled>この2件の情報を比較 →</button>
+            <button id="edogawaCompareAutoPickFromPicker" type="button">お任せで選び直す</button>
             <button id="edogawaCompareMapFocus" type="button" disabled>2地点を地図で見る</button>
           </div>
         </div>
@@ -579,15 +584,20 @@
     </section>
     <section id="mapAudienceIntro" class="map-audience-intro" aria-label="HINANEXの使い方" hidden>
       <div class="map-audience-intro-head"><strong>HINANEXへようこそ</strong><button id="mapAudienceIntroClose" type="button" aria-label="案内を閉じる">×</button></div>
-      <p class="map-audience-intro-purpose"><strong>将来の避難支援につながるデータ基盤が、どこまで実装されたかを示すデモです。</strong></p>
-      <p>近くに学校や避難施設があっても、そこへ避難すべきとは限りません。江戸川区では大規模水害の際、早期の広域避難を案内し、待避施設はやむを得ない場合の緊急避難先と位置付けています。</p>
-      <p>このデモでは、江戸川区として取得された施設から2件を選び、施設名・住所・施設区分と洪水時の未判定を比較できます。比較から安全な避難先を決定・推奨するものではありません。GSI公式掲載地点は別情報源です。</p>
-      <p class="map-audience-policy-references">公式説明：
-        <a href="https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/hazardmap/koikihinan.html" target="_blank" rel="noopener noreferrer">広域避難 ↗</a> /
-        <a href="https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/hazardmap/ikinaihinan.html" target="_blank" rel="noopener noreferrer">待避施設 ↗</a>
-      </p>
-       <button id="mapAudienceIntroStart" class="map-audience-intro-start" type="button">▶ デモを開始する</button>
-      <p>※施設が表示されないことは、安全・施設なしの意味ではありません。避難先の推奨やリアルタイム情報ではありません。</p>
+      <div id="mapAudienceIntroBody" class="map-audience-intro-body" role="region" aria-label="デモの説明と公式資料" tabindex="0">
+        <p class="map-audience-intro-purpose"><strong>将来の避難支援につながるデータ基盤が、どこまで実装されたかを示すデモです。</strong></p>
+        <p>近くに学校や避難施設があっても、そこへ避難すべきとは限りません。江戸川区では大規模水害の際、早期の広域避難を案内し、待避施設はやむを得ない場合の緊急避難先と位置付けています。</p>
+        <p>このデモでは、江戸川区として取得された施設から2件を選び、施設名・住所・施設区分と洪水時の未判定を比較できます。比較から安全な避難先を決定・推奨するものではありません。GSI公式掲載地点は別情報源です。</p>
+        <p class="map-audience-policy-references">公式説明：
+          <a href="https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/hazardmap/koikihinan.html" target="_blank" rel="noopener noreferrer">広域避難 ↗</a> /
+          <a href="https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/hazardmap/ikinaihinan.html" target="_blank" rel="noopener noreferrer">待避施設 ↗</a>
+        </p>
+        <p>※施設が表示されないことは、安全・施設なしの意味ではありません。避難先の推奨やリアルタイム情報ではありません。</p>
+      </div>
+      <div class="map-audience-intro-footer">
+        <button id="mapAudienceIntroStart" class="map-audience-intro-start" type="button">▶ デモを開始する</button>
+        <small>説明はスクロールできます。開始ボタンは常に表示されます。</small>
+      </div>
     </section>
     <section id="mapSettingsPanel" class="map-settings-sheet" aria-label="地図の操作設定" hidden>
       <div class="map-settings-heading">
@@ -705,7 +715,7 @@
 <script src="js/reference_site_compare.js?v=gsi-reference-compare-20261020-v1"></script>
 <script src="js/map.js?v=edogawa-local-compare-20261021-v1"></script>
 <script src="js/map_first_ui.js?v=anchored-point-bubble-20261014-v1"></script>
-<script src="js/edogawa_facility_compare.js?v=edogawa-presentation-clarity-20261021-v2"></script>
+<script src="js/edogawa_facility_compare.js?v=edogawa-auto-pair-20261021-v1"></script>
 <script src="js/audience_share.js?v=edogawa-local-compare-20261021-v1"></script>
 <script src="js/guided_tour.js?v=interactive-presenter-20261014-v1"></script>
 <script src="js/evidence_replay.js?v=spatial-evidence-20261014-v2"></script>
