@@ -627,8 +627,8 @@ async function screenshot(page, name) {
     assert.match(introCopy,/データ基盤が、どこまで実装されたか/,
       "visitors should understand the purpose of the demo before starting");
     assert.match(introCopy,/洪水時の未判定を比較/);
-    assert.match(introCopy,/避難先の安全判断・推奨はまだ行いません/,
-      "foundation completion must not be mistaken for live evacuation guidance");
+    assert.match(introCopy,/比較から安全な避難先を決定・推奨するものではありません/,
+      "comparison must not be mistaken for live evacuation guidance");
     assert.match(introCopy,/待避施設はやむを得ない場合の緊急避難先/,
       "welcome must differentiate municipal emergency waiting facilities from early wide-area evacuation");
     assert.match(introCopy,/江戸川区として取得された施設から2件を選び/,
