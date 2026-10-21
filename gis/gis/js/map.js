@@ -1888,9 +1888,6 @@ function applyDisplayMode() {
     map.removeLayer(shelterGroup);
     map.removeLayer(viewportDGroup);
   }
-  const viewportBadge = document.getElementById("mapViewportDStatus");
-  if (viewportBadge) viewportBadge.hidden =
-    !showD || !shelterInput.checked || !summaryPanel.hidden;
   if (showD && boundaryInput.checked && boundaryBounds?.isValid()) map.addLayer(boundaryGroup);
   else map.removeLayer(boundaryGroup);
   if (showGSI) {
@@ -2565,10 +2562,7 @@ function renderViewportD() {
   }
   if (loading) badge.textContent += "｜他地域の施設データ確認中";
   if (failures) badge.textContent += "｜未取得 " + failures + "地域";
-  // A second official GSI legend has priority on small screens.
-  badge.hidden = !viewportTriggered || displayMode === "nearby" ||
-    !document.getElementById("shelter").checked ||
-    !document.getElementById("referenceMapSummary").hidden;
+  // Keep the evidence sheet text current; the map status node stays hidden.
   if (debugMapPerf) console.info("[HINANEX map perf] viewport D", {
     zoom, visibleSourcePoints: activeTotal, otherRegionMarkers: next.size,
     durationMs: Math.round(perfTime() - start)

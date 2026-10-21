@@ -314,26 +314,6 @@ footer{display:none}
   .map-settings-sheet{right:8px;bottom:8px;width:calc(100% - 16px);max-height:min(70%,500px)}
 }
 
-/* Map view selects confirmed D coordinate markers, not municipalities. */
-.map-viewport-d-status{
-  position:absolute;z-index:1320;bottom:13px;left:50%;
-  transform:translateX(-50%);margin:0;
-  box-sizing:border-box;max-width:min(590px,calc(100% - 126px));
-  padding:7px 12px;border:1px solid rgba(112,184,187,.45);
-  border-radius:12px;background:rgba(9,26,35,.94);
-  color:#d6e8ec;font-size:11px;line-height:1.5;
-  box-shadow:0 5px 20px rgba(0,0,0,.27);pointer-events:none;
-  text-align:center;
-}
-.map-viewport-d-status[hidden]{display:none}
-@media(max-width:680px){
-  .map-viewport-d-status{
-    left:8px;right:auto;bottom:69px;transform:none;
-    max-width:calc(100% - 86px);font-size:10px;padding:6px 8px;
-    text-align:left;
-  }
-}
-
 /* Presentation access: standalone audience URL + QR (no external QR API). */
 .header-share-button{cursor:pointer;font:inherit;font-size:12px;font-weight:750}
 .map-share-panel,.map-audience-intro{

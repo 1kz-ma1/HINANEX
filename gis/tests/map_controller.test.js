@@ -1630,7 +1630,9 @@ nagoya.scenarios = [{
     if (planned) assert.match(html, /今後実装予定/);
   }
   assert.match(html, /id="mapLocateMe"[^>]*type="button"/);
-  assert.match(html, /id="mapViewportDStatus"[^>]*role="status"/);
+  assert.match(html, /<span id="mapViewportDStatus" hidden><\/span>/);
+  assert.doesNotMatch(html, /class="map-viewport-d-status"/);
+  assert.doesNotMatch(css, /\.map-viewport-d-status/);
   assert.match(html, /id="mapSettingsPanel"[^>]*hidden/);
   assert.match(html, /id="mapSettingsToggle"[^>]*type="button"/);
   assert.match(html, /id="mapWheelSensitivity"[^>]*type="range"[^>]*min="0.5"[^>]*max="5"/);
@@ -2817,7 +2819,7 @@ nagoya.scenarios = [{
   assert.equal(group.items[0].latlng[1], niigata.datasets[0].records[0].longitude);
   assert.match(pill.textContent, /新潟県 新潟市 1件/);
   assert.match(pill.textContent, /開設・安全性未判定/);
-  assert.equal(pill.hidden, false);
+  assert.equal(pill.hidden, true, "viewport details live in the evidence sheet, never in a floating map banner");
   assert.strictEqual(map.lastView, beforeView, "panning does not reset chosen map view");
   assert.equal(http.context.window.location.href, beforeUrl, "no implicit region URL mutation");
   assert.equal(http.elements.region.value, "13123", "manual region remains a navigation shortcut");
@@ -2865,6 +2867,7 @@ nagoya.scenarios = [{
   http.elements.facilityDisplayMode.value = "region";
   http.elements.facilityDisplayMode.listeners.change({ target: http.elements.facilityDisplayMode });
   assert.equal(map.hasLayer(group), true);
+  assert.equal(pill.hidden, true, "changing display modes cannot restore the floating banner");
 
   const localFile = makeContext({
     protocol: "file:",
