@@ -256,3 +256,10 @@ body:has(#edogawaComparePanel:not([hidden])) .leaflet-reference-site-pane{
     font-size:10px;margin:2px 0;padding:3px 5px;
   }
 }
+
+
+/* Never let the GPS shortcut intercept the compact A/B presenter controls.
+   Geolocation has no role in a source-only educational comparison. */
+.layout:has(#edogawaComparePanel:not([hidden])) .map-locate-button{
+  display:none!important;
+}
