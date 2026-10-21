@@ -48,6 +48,18 @@ class NagoyaGeocodeReportTests(unittest.TestCase):
         self.assertNotIn("架空施設", rendered)
         self.assertNotIn("136.93", rendered)
 
+    def test_parcel_point_counts_as_review_not_success(self):
+        manifest, result = fixture()
+        item = result["results"][0]
+        item["status"] = "NEEDS_REVIEW"
+        item["reason"] = "parcel_reference_offset_risk"
+        item["coordinates_level"] = "parcel"
+        summary, worksheet = audit(manifest, result)
+        self.assertEqual(summary["unverified_candidate_count"], 0)
+        self.assertEqual(summary["requires_review_count"], 1)
+        self.assertEqual(summary["coordinate_levels"]["parcel"], 1)
+        self.assertEqual(worksheet[0]["human_review"], "NOT_REVIEWED")
+
     def test_reject_approved_map_result(self):
         manifest, result = fixture()
         result["results"][0]["approved_for_map"] = True
