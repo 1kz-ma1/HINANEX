@@ -52,7 +52,7 @@ ADDED_FIELDS = (
     "source_renovation_start", "source_renovation_end",
     "source_renovation_reason_PRIVATE", "source_notice_verbatim_PRIVATE",
     "original_gsi_reference_points_preserved", "facility_use_status_verified",
-    "facility_reopening_verified", "independent_site_position_approved",
+    "facility_reopening_verified",
     "manual_review_required", "stage7_review_status",
 )
 
@@ -222,6 +222,9 @@ def refine(queue: list[dict], queue_summary: dict,
     ))
     if len(refined) != stage6_summary["total_private_review_rows"]:
         raise ValueError("Refined count changed")
+    if len(set((*PRIVATE_COMPARISON_FIELDS, *EXTRA, *ADDED_FIELDS))) != len(
+            (*PRIVATE_COMPARISON_FIELDS, *EXTRA, *ADDED_FIELDS)):
+        raise ValueError("Stage-7 PRIVATE schema contains duplicate column names")
     aggregate = {
         "report_kind": "NAGOYA_STAGE7_VERSIONED_REFERENCE_AND_RENOVATION_REFINEMENT",
         "source_dataset_sha256": stage6_summary["source_dataset_sha256"],
