@@ -301,8 +301,10 @@ def main() -> None:
         writer.writeheader()
         for row in rows:
             writer.writerow({k: safe_csv_cell(row.get(k)) for k in PRIVATE_FIELDS})
-        # File creation is exclusive and only under Git-ignored pilot directory.
-        save_new(private_csv, buffer.getvalue())
+        # CSV must be written as CSV rather than serialized into JSON;
+        # use exclusive creation to avoid destroying any manual review notes.
+        with private_csv.open("x", encoding="utf-8", newline="") as handle:
+            handle.write(buffer.getvalue())
         save_new(public_counts, summary)
     except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
         p.exit(1, "Private review queue aborted [" + safe_failure_code(exc) +
