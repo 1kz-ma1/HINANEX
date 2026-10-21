@@ -125,12 +125,12 @@ def address_key(value: str) -> str:
     This is intentionally conservative: unrecognized variants remain UNRESOLVED.
     """
     value = unicodedata.normalize("NFKC", value)
-    value = re.sub(r"\\s+", "", value)
+    value = re.sub(r"\s+", "", value)
     value = re.sub(r"[−‐‑–―ー]", "-", value)
-    value = re.sub(r"(?<=\\d)丁目", "-", value)
-    value = re.sub(r"(?<=\\d)番地の?", "-", value)
-    value = re.sub(r"(?<=\\d)番", "-", value)
-    value = re.sub(r"(?<=\\d)号", "", value)
+    value = re.sub(r"(?<=\d)丁目", "-", value)
+    value = re.sub(r"(?<=\d)番地の?", "-", value)
+    value = re.sub(r"(?<=\d)番", "-", value)
+    value = re.sub(r"(?<=\d)号", "", value)
     value = re.sub(r"-+", "-", value).strip("-")
     return value
 
