@@ -19,6 +19,21 @@
     ["03 / 03", "比較できたことと、判断できないこと。",
       "住所や施設区分は比較できても、洪水時の利用可否までは判定できません。"]
   ];
+  // A repeatable educational example from existing 13123 source records:
+  // prefer two different recorded facility types, never flood suitability,
+  // opening, distance, capacity or a presumed recommendation. No randomness.
+  function chooseDemoPair(records) {
+    if (!Array.isArray(records) || records.length < 2) return null;
+    const eligible = records.filter(r => r && r.key !== "" && r.key != null);
+    if (eligible.length < 2) return null;
+    const firstRecord = eligible.find(r => typeof r.facilityType === "string" &&
+      r.facilityType.trim() !== "") || eligible[0];
+    const alternate = eligible.find(r => r.key !== firstRecord.key &&
+      typeof r.facilityType === "string" && r.facilityType.trim() !== "" &&
+      r.facilityType !== firstRecord.facilityType);
+    const secondRecord = alternate || eligible.find(r => r.key !== firstRecord.key);
+    return secondRecord ? [firstRecord.key, secondRecord.key] : null;
+  }
   function resetOptions(select, records, label) {
     select.replaceChildren();
     const placeholder = document.createElement("option");
@@ -109,6 +124,7 @@
     session=null;step=0;panel.hidden=true;banner.hidden=true;
     openButton?.setAttribute("aria-expanded","false");
     get("edogawaCompareResult").replaceChildren();
+    get("edogawaComparePairBasis").hidden=true;
     panel.dataset.stage="intro";
   }
   async function open(){
@@ -116,6 +132,9 @@
     if(!api||typeof api.begin!=="function"||typeof api.compare!=="function")return;
     const token=++sequence;
     panel.hidden=false;banner.hidden=false;session=null;step=0;
+    get("edogawaCompareAutoPick").disabled=true;
+    get("edogawaCompareAutoPickFromPicker").disabled=true;
+    get("edogawaComparePairBasis").hidden=true;
     openButton?.setAttribute("aria-expanded","true");
     get("edogawaCompareLoading").hidden=false;
     get("edogawaCompareLoading").textContent="江戸川区の取得済み施設データを確認しています…";
@@ -129,6 +148,9 @@
         return;
       }
       session=result;get("edogawaCompareLoading").hidden=true;
+      const canAuto=Boolean(chooseDemoPair(result.records));
+      get("edogawaCompareAutoPick").disabled=!canAuto;
+      get("edogawaCompareAutoPickFromPicker").disabled=!canAuto;
       resetOptions(first,result.records,"施設Aを選ぶ");
       resetOptions(second,result.records,"施設Bを選ぶ");
       get("edogawaCompareCount").textContent =
@@ -142,7 +164,7 @@
   }
   get("edogawaCompareAdvance").addEventListener("click",()=>{if(session){step=1;updateStep();first.focus();}});
   first.addEventListener("change",selection);second.addEventListener("change",selection);
-  get("edogawaCompareRun").addEventListener("click",()=>{
+  function runComparison(autoSelected=false){
     if(!session||!first.value||!second.value||first.value===second.value)return;
     const compared=api.compare(first.value,second.value);
     if(compared?.state!=="compared")return;
@@ -155,8 +177,20 @@
     get("edogawaCompareTakeawayText").textContent=bothUnknown
       ? "住所・施設区分は確認できます。しかし「未判定」は安全・危険のどちらでもありません。現時点ではこの比較から避難先を推奨できません。"
       : "記録された分類が異なっても、安全・開設・移動可能性を保証しません。出典の確認と追加の検証が必要です。";
+    get("edogawaComparePairBasis").hidden=!autoSelected;
     step=2;updateStep();panel.scrollTop=0;
-  });
+  }
+  function autoPick() {
+    if(!session)return;
+    const keys=chooseDemoPair(session.records);
+    if(!keys)return;
+    first.value=String(keys[0]);second.value=String(keys[1]);
+    selection();
+    runComparison(true);
+  }
+  get("edogawaCompareAutoPick").addEventListener("click",autoPick);
+  get("edogawaCompareAutoPickFromPicker").addEventListener("click",autoPick);
+  get("edogawaCompareRun").addEventListener("click",()=>runComparison(false));
   get("edogawaCompareMapFocus").addEventListener("click",()=>{
     if(!session||!first.value||!second.value||first.value===second.value)return;
     api.focus(first.value,second.value);
