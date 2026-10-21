@@ -884,7 +884,10 @@ async function screenshot(page, name) {
             titleWidth:heading.getBoundingClientRect().width};
         },authoredSceneTextFixtures[i]);
         assert.equal(measured.linkPointerEvents,"auto","official link must be tappable in every scene");
-        assert.ok(measured.linkWidth>40 && measured.titleWidth>40,"scene "+i+" text remains laid out");
+        // Short source text is intentional: do not require the old long-link
+        // width. Check the text is rendered without overflow instead.
+        assert.ok(measured.linkWidth>24 && measured.titleWidth>40,
+          "scene "+i+" compact source and narration are visibly laid out: "+JSON.stringify(measured));
         assert.ok(measured.height<measured.mapHeight*.32,
           "scene "+i+" must not hide the map at width "+width);
         assert.ok(measured.contentScrollHeight<=measured.contentClientHeight+2,
