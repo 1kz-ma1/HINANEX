@@ -106,7 +106,7 @@ class NagoyaStage6Tests(unittest.TestCase):
         queue, qs, previous, agg, gsi_rows, provenance = fixtures()
         modified = copy.deepcopy(previous)
         modified[0]["gsi_abr_distance_meters"] = "99999"
-        with self.assertRaisesRegex(ValueError, "Stage-5 private record differs"):
+        with self.assertRaisesRegex(ValueError, "Stage-5 private record changed"):
             triage(queue, qs, modified, agg, gsi_rows, provenance)
 
     def test_approval_and_summary_mutation_aborts(self):
@@ -128,10 +128,14 @@ class NagoyaStage6Tests(unittest.TestCase):
         bad_provenance["shelter"]["sha256"] = "changed"
         with self.assertRaisesRegex(ValueError, "Stage-5 provenance changed"):
             triage(queue, qs, previous, agg, gsi_rows, bad_provenance)
+        # In actual execution, parse_gsi recomputes this SHA256 from the
+        # local CSV bytes. A changed official record MUST change provenance.
         bad_records = copy.deepcopy(gsi_rows)
         bad_records[0]["point"] = (136.93, 35.1)
-        with self.assertRaises(ValueError):
-            triage(queue, qs, previous, agg, bad_records, provenance)
+        changed_provenance = copy.deepcopy(provenance)
+        changed_provenance["shelter"]["sha256"] = "hash-of-updated-GSI-CSV"
+        with self.assertRaisesRegex(ValueError, "Stage-5 provenance changed"):
+            triage(queue, qs, previous, agg, bad_records, changed_provenance)
 
     def test_no_gsi_coverage_means_incomplete_not_rejected_facility(self):
         queue, qs, previous, agg, gsi_rows, provenance = fixtures()
