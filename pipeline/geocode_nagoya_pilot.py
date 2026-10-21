@@ -20,6 +20,12 @@ from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_ope
 MAX_SAMPLE = 50
 REGION = "23100"
 CITY = "愛知県名古屋市"
+# Verify ward labels against the city of Nagoya's official 16-ward directory.
+# https://www.city.nagoya.jp/shisei/gaiyou/1015754/1015781/index.html
+NAGOYA_WARDS = frozenset({
+    "千種区", "東区", "北区", "西区", "中村区", "中区", "昭和区", "瑞穂区",
+    "熱田区", "中川区", "港区", "南区", "守山区", "緑区", "名東区", "天白区",
+})
 LEVELS = {"rsdtdsp_blk", "rsdtdsp_rsdt", "parcel"}
 
 
@@ -41,7 +47,7 @@ def full_address(ward: str, address: str) -> str:
     if not isinstance(ward, str) or not isinstance(address, str):
         raise ValueError("Ward/address missing")
     ward, address = ward.strip(), address.strip()
-    if not re.fullmatch(r"[^0-9\s]{1,12}区", ward) or not address:
+    if ward not in NAGOYA_WARDS or not address:
         raise ValueError("Ward/address invalid")
     if address.startswith(CITY):
         if not address.startswith(CITY + ward):
@@ -76,6 +82,9 @@ def prepare(dataset: dict, source_sha256: str, limit: int = MAX_SAMPLE) -> dict:
         if not isinstance(record.get("name"), str) or not record["name"].strip():
             skipped["missing_name"] += 1
             continue
+        if record.get("administrative_area") not in NAGOYA_WARDS:
+            skipped["out_of_scope_ward"] += 1
+            continue
         try:
             query = full_address(record.get("administrative_area"), record.get("address"))
         except ValueError:
@@ -97,6 +106,8 @@ def prepare(dataset: dict, source_sha256: str, limit: int = MAX_SAMPLE) -> dict:
             if by_ward[ward]:
                 remaining.append(ward)
         wards = remaining
+    if not selected:
+        raise ValueError("No eligible Nagoya records for address geocoding")
     return {
         "pilot_version": 1, "region_code": REGION,
         "source_dataset_sha256": source_sha256,
@@ -139,7 +150,7 @@ def classify(payload: object, query: str, ward: str) -> dict:
     lon, lat = coords
     if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) for v in (lon, lat)):
         return unresolved("invalid_numeric_coordinates")
-    if not (-180 <= lon <= 180 and -90 <= lat <= 90):
+    if lon == 0 or lat == 0 or not (-180 <= lon <= 180 and -90 <= lat <= 90):
         return unresolved("out_of_range_coordinates")
     # ABR upstream issue #256 reports some parcel-level coordinates with
     # very large offsets. Preserve the reference point for independent review
@@ -222,7 +233,7 @@ def resolve(manifest: dict, source_dataset: dict, dataset_sha256: str, server: s
             result["provider_response_sha256"] = digest(raw)
         except (HTTPError, URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
             result.update({"status": "PROVIDER_ERROR", "reason": type(exc).__name__})
-        if result["status"] == "UNVERIFIED_CANDIDATE":
+        if result["status"] in {"UNVERIFIED_CANDIDATE", "NEEDS_REVIEW"}:
             p = result["derived_geometry"]
             duplicates[(p["latitude"], p["longitude"])].append(result)
         results.append(result)
@@ -230,7 +241,8 @@ def resolve(manifest: dict, source_dataset: dict, dataset_sha256: str, server: s
         if len(group) > 1:
             for item in group:
                 item["status"] = "NEEDS_REVIEW"
-                item["reason"] = "shared_reference_coordinate"
+                if item.get("reason") != "shared_reference_coordinate":
+                    item["reason"] += ";shared_reference_coordinate"
     return {
         "pilot_version": 1, "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "source_dataset_sha256": dataset_sha256, "provider": "DIGITAL_AGENCY_ABR",
