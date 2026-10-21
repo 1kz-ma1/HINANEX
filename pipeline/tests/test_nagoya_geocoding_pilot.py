@@ -78,6 +78,27 @@ class NagoyaGeocodingPilotTests(unittest.TestCase):
         self.assertEqual(classify(provider(ward="中区"), address, "千種区")["reason"], "outside_city_or_ward")
         self.assertEqual(classify(provider(level="machiaza"), address, "千種区")["reason"], "low_resolution_or_unknown_level")
 
+    def test_same_ward_but_different_house_number_is_unresolved(self):
+        expected = "愛知県名古屋市千種区千種3-2-5"
+        data = provider()
+        data["features"][0]["properties"]["matched_address"] = "愛知県名古屋市千種区千種3-2-6"
+        self.assertEqual(
+            classify(data, expected, "千種区")["reason"],
+            "different_street_or_house_number",
+        )
+
+    def test_fullwidth_digits_and_address_delimiters_are_equivalent(self):
+        expected = "愛知県名古屋市千種区千種3-2-5"
+        data = provider()
+        data["features"][0]["properties"]["matched_address"] = "愛知県名古屋市千種区千種３丁目２番５号"
+        self.assertEqual(classify(data, expected, "千種区")["status"], "UNVERIFIED_CANDIDATE")
+
+    def test_mismatched_town_rejected_despite_same_ward(self):
+        expected = "愛知県名古屋市千種区千種3-2-5"
+        data = provider()
+        data["features"][0]["properties"]["matched_address"] = "愛知県名古屋市千種区今池3-2-5"
+        self.assertEqual(classify(data, expected, "千種区")["status"], "UNRESOLVED")
+
     def test_ambiguous_and_unmatched_are_unresolved(self):
         addr = "愛知県名古屋市千種区千種3-2-5"
         data = provider()
