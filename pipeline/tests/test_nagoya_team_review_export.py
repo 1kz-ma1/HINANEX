@@ -11,7 +11,12 @@ from test_nagoya_gsi_stage7 import historical_fixture
 
 
 def synthetic_stage7():
-    return refine(*historical_fixture())
+    rows, aggregate = refine(*historical_fixture())
+    # The historical Stage-7 synthetic fixture uses a human-readable sentinel,
+    # while the distribution boundary intentionally requires a genuine
+    # 64-character SHA256. Replace only this synthetic aggregate's fingerprint.
+    aggregate["source_dataset_sha256"] = "a" * 64
+    return rows, aggregate
 
 
 class TeamReviewExportTests(unittest.TestCase):
