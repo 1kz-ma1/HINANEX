@@ -263,3 +263,109 @@ body:has(#edogawaComparePanel:not([hidden])) .leaflet-reference-site-pane{
 .layout:has(#edogawaComparePanel:not([hidden])) .map-locate-button{
   display:none!important;
 }
+
+
+/* Map-led A/B demo: the dock owns ONLY navigation. Each site's raw data
+   is anchored to that site's Leaflet marker; no scrolling inside a tiny
+   bottom comparison sheet for individual facility details. */
+.edogawa-compare-panel[data-stage="result"]{
+  overflow:visible;
+  max-height:none;
+  padding:7px 9px;
+  width:min(360px,calc(100% - 24px));
+}
+.edogawa-compare-panel[data-stage="result"] .edogawa-compare-stages{
+  position:static;
+  padding:0 0 4px;
+}
+.edogawa-compare-panel[data-stage="result"] .edogawa-compare-result:empty{
+  display:none;
+}
+.edogawa-compare-panel[data-stage="result"] .edogawa-compare-stage-actions{
+  margin:3px 0 0;
+}
+.edogawa-compare-panel[data-stage="result"][data-site-stage="summary"]{
+  max-height:min(33dvh,245px);
+  overflow:auto;
+}
+/* The popup's Leaflet anchor is the real original D coordinate.
+   Keep the standard Leaflet pointer/close affordance and readable facts. */
+.edogawa-compare-popup .leaflet-popup-content-wrapper{
+  border:1px solid #79bbd2;
+  border-radius:11px;
+  box-shadow:0 6px 22px #001e3773;
+}
+.edogawa-compare-popup .leaflet-popup-content{
+  margin:9px 10px;
+  width: min(248px, calc(100vw - 70px)) !important;
+}
+.edogawa-compare-popup .edogawa-compare-card{
+  border:0;
+  border-top:3px solid #157a9b;
+  padding:5px 2px;
+  box-shadow:none;
+  background:#fff;
+}
+.edogawa-compare-popup .edogawa-compare-card[data-marker="B"]{
+  border-top-color:#15518e;
+}
+.edogawa-compare-popup .edogawa-compare-card h3{
+  min-height:0;
+  margin:0 14px 6px 0;
+  font-size:13px;
+  line-height:1.4;
+}
+.edogawa-compare-popup .edogawa-compare-card dl{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  align-items:baseline;gap:2px 7px;
+  margin:0;
+}
+.edogawa-compare-popup .edogawa-compare-card dt{
+  font-size:10px;white-space:nowrap;
+}
+.edogawa-compare-popup .edogawa-compare-card dd{
+  font-size:11px;margin:0;
+}
+.edogawa-compare-popup .edogawa-compare-flood{
+  margin:6px 0 2px;
+  padding:5px 6px;
+  font-size:11px;
+}
+.edogawa-popup-caution{
+  color:#536878;
+  margin:2px 0 5px;
+  font-size:10px;
+  line-height:1.35;
+}
+.edogawa-compare-popup .edogawa-compare-card-extra{
+  margin-top:4px;
+  font-size:11px;
+}
+.edogawa-compare-popup .edogawa-compare-card-extra[open]{
+  max-height:150px;overflow-y:auto;
+  overscroll-behavior:contain;
+}
+.edogawa-compare-popup .edogawa-compare-card-extra[open] dl{
+  grid-template-columns:1fr;gap:3px;
+}
+.edogawa-compare-popup :is(summary,a):focus-visible{
+  outline:2px solid #147d96;
+  outline-offset:2px;
+}
+@media(max-width:780px){
+  .edogawa-compare-panel[data-stage="result"]{
+    left:7px;right:7px;bottom:7px;width:auto;
+    max-height:none;padding:6px 7px;
+  }
+  .edogawa-compare-panel[data-stage="result"][data-site-stage="summary"]{
+    max-height:min(26dvh,185px);
+  }
+  .edogawa-compare-panel[data-stage="result"] .edogawa-compare-stage-actions button{
+    min-height:38px;
+  }
+  .edogawa-compare-popup .leaflet-popup-content{
+    width:min(225px,calc(100vw - 70px)) !important;
+    margin:8px 10px;
+  }
+}
