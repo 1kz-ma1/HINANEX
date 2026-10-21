@@ -29,6 +29,32 @@ CATEGORIES = (
 )
 
 
+
+# Deliberately constant diagnostics: never echo exception text containing source
+# addresses, selected IDs, query URLs, or provider response payloads.
+SAFE_FAILURE_CODES = {
+    "Untrusted pilot manifest": "MANIFEST_INVALID",
+    "Selection/source mismatch": "SELECTION_SOURCE_MISMATCH",
+    "Pilot report snapshot mismatch": "REPORT_SNAPSHOT_MISMATCH",
+    "Unexpected provider": "PROVIDER_MISMATCH",
+    "Unapproved and versioned report required": "APPROVAL_OR_VERSION_INVALID",
+    "Mismatch counts differ": "TARGET_COUNT_MISMATCH",
+    "No matching unresolved rows to diagnose": "NO_TARGET_ROWS",
+    "Missing original response hashes": "ORIGINAL_HASHES_MISSING",
+    "ABR health not OK": "ABR_HEALTH_INVALID",
+    "Local ABR version/pref/category changed": "ABR_CONFIGURATION_CHANGED",
+    "ABR response changed since the original pilot": "ABR_RESPONSE_HASH_CHANGED",
+    "Original unresolved classification changed": "ORIGINAL_CLASSIFICATION_CHANGED",
+    "Untrusted provider address": "PROVIDER_ADDRESS_INVALID",
+    "Previously mismatched address now matches": "PREVIOUS_MISMATCH_NOW_MATCHES",
+    "Diagnostic counts incomplete": "DIAGNOSTIC_COUNT_INCOMPLETE",
+}
+
+
+def safe_failure_code(exc: Exception) -> str:
+    """Only emit predeclared diagnostic codes, never raw exception messages."""
+    return SAFE_FAILURE_CODES.get(str(exc), type(exc).__name__.upper())
+
 def triage_address_mismatch(query: str, matched: str, ward: str) -> str:
     """Describe string-level difference, NOT its underlying real-world cause."""
     if not isinstance(matched, str) or not matched.startswith(CITY + ward):
@@ -173,8 +199,8 @@ def main() -> None:
         )
         save_new(output, result)
     except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
-        parser.exit(1, "Diagnostic aborted (" + type(exc).__name__ +
-                    "); no new report was written.\n")
+        parser.exit(1, "Diagnostic aborted [" + safe_failure_code(exc) +
+                    "]; no new report was written.\n")
     print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
 
 
