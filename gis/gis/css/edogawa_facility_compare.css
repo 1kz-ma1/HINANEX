@@ -156,3 +156,110 @@ body:has(#edogawaComparePanel:not([hidden])) .leaflet-reference-site-pane{
   .edogawa-compare-quick-actions{gap:5px;margin:7px 0}
   .edogawa-compare-quick-actions #edogawaCompareAutoPick{min-height:44px}
 }
+
+
+/* A → B → evidence summary: compact map-led presentation.
+   One factual card at a time; expand raw details only on demand. */
+.edogawa-compare-panel[data-stage="result"]{
+  max-height:min(36dvh,285px);
+  width:min(390px,calc(100% - 24px));
+}
+.edogawa-compare-panel[data-stage="result"] .edogawa-compare-panel-head,
+.edogawa-compare-panel[data-stage="result"] .edogawa-compare-more{
+  display:none;
+}
+.edogawa-compare-stages{
+  position:sticky;
+  top:0;
+  z-index:1;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:5px;
+  background:#f8fcff;
+  padding:1px 0 7px;
+}
+.edogawa-compare-stages button{
+  min-width:0;min-height:40px;padding:6px 3px;
+  font-size:11px;
+  color:#155268;
+  background:#e9f2f6;
+  border-color:#adc8d3;
+}
+.edogawa-compare-stages button[aria-pressed="true"]{
+  background:#105b76;color:#fff;
+  box-shadow:0 0 0 2px #b4eef1 inset;
+}
+.edogawa-compare-panel[data-stage="result"] .edogawa-compare-result{
+  display:block;
+  margin:5px 0;
+}
+.edogawa-compare-panel[data-stage="result"] .edogawa-compare-card{
+  padding:7px 9px;
+}
+.edogawa-compare-panel[data-stage="result"] .edogawa-compare-card h3{
+  min-height:0;
+  margin:0 0 5px;
+  font-size:12px;
+}
+.edogawa-compare-panel[data-stage="result"] .edogawa-compare-card dl{
+  display:grid;grid-template-columns:auto minmax(0,1fr);
+  gap:3px 8px;align-items:baseline;
+}
+.edogawa-compare-panel[data-stage="result"] .edogawa-compare-card dt{font-size:10px}
+.edogawa-compare-panel[data-stage="result"] .edogawa-compare-card dd{
+  margin:0;font-size:11px;
+}
+.edogawa-compare-panel[data-stage="result"] .edogawa-compare-card-extra{
+  display:block;
+}
+.edogawa-compare-panel[data-stage="result"] .edogawa-compare-card-extra dl{
+  grid-template-columns:1fr;gap:3px;
+}
+.edogawa-compare-panel[data-stage="result"] .edogawa-compare-flood{
+  padding:4px 6px;margin:4px 0;font-size:10px;
+}
+.edogawa-compare-panel[data-stage="result"] .edogawa-compare-stage-actions{
+  display:grid;grid-template-columns:1fr auto;gap:6px;
+  margin:5px 0 0;
+}
+.edogawa-compare-panel[data-stage="result"] .edogawa-compare-stage-actions button{
+  padding:5px 8px;min-height:40px;
+}
+.edogawa-compare-panel[data-stage="result"] .edogawa-compare-stage-actions button:last-child{
+  background:#eef5f8;color:#19536a;border-color:#abc7d0;
+}
+.edogawa-compare-panel[data-stage="result"][data-site-stage="summary"] .edogawa-compare-takeaway{
+  margin:5px 0;
+  padding:7px;
+}
+.edogawa-compare-summary-labels{
+  font-size:11px;line-height:1.5;color:#16445a;
+  overflow-wrap:anywhere;margin:4px 0;
+}
+.edogawa-compare-map-pin.is-current{
+  background:#0c7ca8;
+  box-shadow:0 0 0 6px #10b5df66,0 2px 14px #001d30d9;
+  transform:scale(1.17);
+}
+@media(max-width:780px){
+  .edogawa-compare-panel[data-stage="result"]{
+    left:7px;right:7px;width:auto;
+    bottom:8px;
+    max-height:min(29dvh,213px);
+    padding:8px;
+    border-radius:12px;
+  }
+  .edogawa-compare-panel[data-stage="result"] .edogawa-compare-stages button{
+    font-size:10px;padding:5px 2px;
+  }
+  .edogawa-compare-panel[data-stage="result"] .edogawa-compare-pair-basis{
+    font-size:10px;margin:2px 0;padding:3px 5px;
+  }
+}
+
+
+/* Never let the GPS shortcut intercept the compact A/B presenter controls.
+   Geolocation has no role in a source-only educational comparison. */
+.layout:has(#edogawaComparePanel:not([hidden])) .map-locate-button{
+  display:none!important;
+}
