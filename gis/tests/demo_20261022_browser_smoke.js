@@ -681,19 +681,26 @@ async function screenshot(page, name) {
     await visitor.locator("#edogawaCompareRun").click();
     assert.equal(await visitor.locator("#edogawaCompareSelectArea").isVisible(),false,
       "after comparison the pickers must collapse to a map-led guide");
-    assert.equal(await visitor.locator(".edogawa-compare-card").count(),1,
-      "A stage should show only one facility at a time");
-    assert.equal(await visitor.locator(".edogawa-compare-card").getAttribute("data-marker"),"A");
+    await visitor.waitForFunction(()=>
+      document.querySelector('.edogawa-compare-popup .edogawa-compare-card[data-marker="A"]') !== null,
+      null,{timeout:6000});
+    assert.equal(await visitor.locator("#edogawaComparePanel .edogawa-compare-card").count(),0,
+      "mobile/desktop bottom dock must not contain source details");
+    assert.equal(await visitor.locator(".edogawa-compare-popup .edogawa-compare-card").count(),1,
+      "A's original D details belong to its anchored Leaflet popup");
+    assert.match(await visitor.locator(".edogawa-compare-popup").innerText(),/洪水時の分類|UNKNOWN/);
     assert.equal(await visitor.locator("#edogawaCompareShowA").getAttribute("aria-pressed"),"true");
-    await visitor.waitForFunction(()=>{
-      const target=edogawaCompareABMarkers?.A?.getLatLng?.();
-      return target && map.getCenter().distanceTo(target)<15 && map.getZoom()>=14;
-    },null,{timeout:6000});
+    assert.equal(await visitor.evaluate(()=>{
+      const pin=edogawaCompareABMarkers.A.getLatLng(),
+        bubble=map._popup?.getLatLng?.();
+      return Boolean(bubble && pin.distanceTo(bubble)<.1 && map.getZoom()>=14);
+    }),true,"A popup is anchored to the original selected facility coordinate");
     assert.equal(await visitor.locator("#mapLocateMe").isVisible(),false,
       "GPS shortcut may not cover the compact compare navigation");
     assert.equal(await visitor.locator("#edogawaCompareTakeaway").isVisible(),false,
       "the conclusion waits until the audience sees both facilities");
-    assert.match(await visitor.locator("#edogawaComparePanel").innerText(),/洪水時の分類|UNKNOWN/);
+    assert.equal(await visitor.locator("#edogawaComparePanel .edogawa-compare-card").count(),0);
+    assert.match(await visitor.locator(".edogawa-compare-popup").innerText(),/安全・開設|洪水時の分類/);
     assert.equal(await visitor.locator(".edogawa-compare-map-pin").count(),2,
       "only the selected A/B source coordinates receive prominent map markers");
     const presentation=await visitor.evaluate(()=>{
@@ -705,24 +712,34 @@ async function screenshot(page, name) {
     });
     assert.ok(presentation.opacity<=.2,
       "unrelated yellow source clusters must be visually de-emphasized");
-    assert.ok(presentation.height<=Math.min(285,presentation.viewportHeight*.36)+8,
-      "guided result sheet must leave most of the desktop map visible");
+    assert.ok(presentation.height<=156,
+      "desktop A/B navigation-only dock must remain slim");
+    const desktopBubble=await visitor.locator(".edogawa-compare-popup").evaluate(el=>{
+      const b=el.getBoundingClientRect(),panel=document.getElementById("edogawaComparePanel").getBoundingClientRect();
+      return {bottom:b.bottom,navTop:panel.top,width:b.width};
+    });
+    assert.ok(desktopBubble.width<=315,"source popup must be small enough to keep the map visible");
+    assert.ok(desktopBubble.bottom<=desktopBubble.navTop+4,
+      "source popup should not cover the bottom navigation");
     assert.equal(await visitor.locator("#gsiFloodDemoPanel").isVisible(),false,
       "new main does not open the old GSI presenter automatically");
     await visitor.locator("#edogawaCompareNext").click();
-    assert.equal(await visitor.locator(".edogawa-compare-card").count(),1);
-    assert.equal(await visitor.locator(".edogawa-compare-card").getAttribute("data-marker"),"B",
-      "next button changes to B and its own source details");
+    await visitor.waitForFunction(()=>
+      document.querySelector('.edogawa-compare-popup .edogawa-compare-card[data-marker="B"]')!==null,
+      null,{timeout:6000});
+    assert.equal(await visitor.locator(".edogawa-compare-popup .edogawa-compare-card").count(),1,
+      "switching to B must close the old A popup, not stack details");
     assert.equal(await visitor.locator("#edogawaCompareShowB").getAttribute("aria-pressed"),"true");
-    await visitor.waitForFunction(()=>{
-      const target=edogawaCompareABMarkers?.B?.getLatLng?.();
-      return target && map.getCenter().distanceTo(target)<15 && map.getZoom()>=14;
-    },null,{timeout:6000});
+    assert.equal(await visitor.evaluate(()=>{
+      const pin=edogawaCompareABMarkers.B.getLatLng(),
+        bubble=map._popup?.getLatLng?.();
+      return Boolean(bubble && pin.distanceTo(bubble)<.1 && map.getZoom()>=14);
+    }),true,"B popup is anchored to B's actual D coordinate");
     await visitor.locator("#edogawaCompareNext").click();
     assert.equal(await visitor.locator("#edogawaCompareTakeawayTitle").isVisible(),true);
     assert.match(await visitor.locator("#edogawaCompareTakeawayTitle").innerText(),/未判定|安全性の判定/);
-    assert.equal(await visitor.locator(".edogawa-compare-card").count(),0,
-      "summary is compact: it does not expand both detailed cards");
+    assert.equal(await visitor.locator(".edogawa-compare-popup").count(),0,
+      "summary must close the anchored facility bubble");
     assert.equal(await visitor.locator("#edogawaCompareShowSummary").getAttribute("aria-pressed"),"true");
     const summaryBounds=await visitor.evaluate(()=>{
       const a=edogawaCompareABMarkers.A.getLatLng(),b=edogawaCompareABMarkers.B.getLatLng();
@@ -734,16 +751,18 @@ async function screenshot(page, name) {
     const localFocus=await visitor.evaluate(()=>map.getCenter().lng);
     assert.ok(localFocus>139 && localFocus<141,"Edogawa D pair cannot silently navigate to western Japan");
     await visitor.locator("#edogawaCompareShowA").click();
-    assert.equal(await visitor.locator(".edogawa-compare-card").getAttribute("data-marker"),"A",
-      "audience can revisit each factual site independently");
+    await visitor.waitForFunction(()=>
+      document.querySelector('.edogawa-compare-popup .edogawa-compare-card[data-marker="A"]')!==null,
+      null,{timeout:6000});
     await visitor.locator("#edogawaCompareAgain").click();
     assert.equal(await visitor.locator("#edogawaComparePickControls").isVisible(),true);
     await visitor.locator("#edogawaCompareAutoPickFromPicker").click();
-    assert.equal(await visitor.locator(".edogawa-compare-card").count(),1,
-      "opt-in demo pair must launch A stage using a real D source record");
+    await visitor.waitForFunction(()=>
+      document.querySelector('.edogawa-compare-popup .edogawa-compare-card[data-marker="A"]')!==null,
+      null,{timeout:6000});
     assert.equal(await visitor.locator("#edogawaCompareShowA").getAttribute("aria-pressed"),"true");
-    assert.equal(await visitor.locator("#edogawaComparePairBasis").isVisible(),true);
-    assert.match(await visitor.locator("#edogawaComparePairBasis").innerText(),/安全性・距離に基づく推薦ではありません/);
+    assert.equal(await visitor.locator("#edogawaComparePairBasis").isVisible(),false,
+      "the tutorial disclosure belongs to summary so A/B dock stays slim");
     const autoPair=await visitor.evaluate(()=>{
       const a=document.querySelector("#edogawaCompareFirst"),
         b=document.querySelector("#edogawaCompareSecond");
@@ -934,23 +953,37 @@ async function screenshot(page, name) {
     assert.ok(compactHeight < 844*.55,
       "mobile comparison picker must leave significant Leaflet map visible");
     await visitor.locator("#edogawaCompareAutoPick").click();
-    assert.equal(await visitor.locator(".edogawa-compare-card").count(),1,
-      "mobile starts by zooming to A with a single visible detail card");
-    assert.equal(await visitor.locator("#edogawaComparePairBasis").isVisible(),true,
-      "mobile visitor can see the demo-only auto-selection disclosure");
+    await visitor.waitForFunction(()=>
+      document.querySelector('.edogawa-compare-popup .edogawa-compare-card[data-marker="A"]')!==null,
+      null,{timeout:6000});
+    assert.equal(await visitor.locator("#edogawaComparePairBasis").isVisible(),false);
+    assert.equal(await visitor.locator("#edogawaComparePanel .edogawa-compare-card").count(),0,
+      "no detail card should appear inside the compact mobile dock");
     const compactGuide=await visitor.locator("#edogawaComparePanel").evaluate(el=>({
       height:el.getBoundingClientRect().height,
       viewport:window.innerHeight,
       stage:el.getAttribute("data-site-stage")
     }));
     assert.equal(compactGuide.stage,"A");
-    assert.ok(compactGuide.height<=Math.min(213,compactGuide.viewport*.29)+8,
-      "mobile A detail must not cover more than 29% of the viewport");
+    assert.ok(compactGuide.height<=142,
+      "mobile A/B dock must contain navigation only, not a scrollable facility card");
+    const mobileBubble=await visitor.locator(".edogawa-compare-popup").evaluate(el=>{
+      const b=el.getBoundingClientRect(),dock=document.getElementById("edogawaComparePanel").getBoundingClientRect();
+      return {bottom:b.bottom,navTop:dock.top,left:b.left,right:b.right,viewport:window.innerWidth};
+    });
+    assert.ok(mobileBubble.bottom<=mobileBubble.navTop+5,
+      "Leaflet popup must auto-pan above the navigation strip");
+    assert.ok(mobileBubble.left>=-2 && mobileBubble.right<=mobileBubble.viewport+2,
+      "anchored bubble must fit mobile width");
     await visitor.locator("#edogawaCompareShowB").click();
-    assert.equal(await visitor.locator(".edogawa-compare-card").getAttribute("data-marker"),"B");
+    await visitor.waitForFunction(()=>
+      document.querySelector('.edogawa-compare-popup .edogawa-compare-card[data-marker="B"]')!==null,
+      null,{timeout:6000});
     await visitor.locator("#edogawaCompareShowSummary").click();
     assert.equal(await visitor.locator("#edogawaCompareTakeaway").isVisible(),true);
-    assert.equal(await visitor.locator(".edogawa-compare-card").count(),0);
+    assert.equal(await visitor.locator(".edogawa-compare-popup").count(),0);
+    assert.equal(await visitor.locator("#edogawaComparePairBasis").isVisible(),true,
+      "source-only auto selection disclaimer must appear in summary");
     await visitor.locator("#edogawaCompareClose").click();
     // Verify old GSI mobile narration as an opt-in legacy reference flow.
     await visitor.evaluate(()=>document.getElementById("mapGsiFloodDemoOpen").click());
