@@ -208,7 +208,7 @@ def diagnose_stage4(manifest: dict, resolution: dict, summary: dict,
         "orthographic_text_equal_rechecked": exact_n,
         "stage1_and_stage3_aggregate_counts_reproduced": True,
         "screen_categories": {k: screens[k] for k in OUTCOME_KEYS},
-        "screening_rule": "Only full chome-normalized text match with empty unmatched_address, high ABR match+coordinate levels, valid unique reference point; never a facility location acceptance",
+        "screening_rule": "Only full chome-normalized text match with no leftover tokens, high ABR match+coordinate levels, valid unique reference point; never a facility location acceptance",
         "source_suffix_cases_not_promoted": (
             stage1["categories"]["source_suffix_not_matched"]
             + stage3["comparison_outcomes"]["source_suffix_unmatched_after_kanji_chome"]
