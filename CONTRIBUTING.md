@@ -1,6 +1,6 @@
 # Contributing to HINANEX
 
-このリポジトリは、卒業制作チームが A/B/C/D/E の担当を並行して統合するための共通基盤です。
+このリポジトリは、卒業制作のHINANEXを **機能・3軸の優先順位を中心に実装し、安全に統合する** ための共通基盤です。旧A/B/C/D/Eは技術的な責務・ディレクトリの参照名であり、担当者やチャットの作業範囲を固定しません。
 
 AI を利用する開発では、最初に root の `AGENTS.md` を読み、対象ディレクトリに追加の `AGENTS.md` がある場合はそれも守ってください。
 
@@ -10,37 +10,19 @@ AI を利用する開発では、最初に root の `AGENTS.md` を読み、対�
 - `main` へ直接 push しない。
 - `main` への最終 merge は Merge Captain が行う。
 - Approve と Merge は別物として扱う。
-- 変更は担当ブランチ / feature branch から Pull Request で統合する。
+- 変更は機能単位のfeature/fix/docs branchからPull Requestで統合する（既存role branchも継続利用可）。
 - 前提 PR がある場合は PR 本文に `Depends on: #<番号>` を明記する。
 - 古い base で通ったテストだけを根拠に merge しない。main 統合前に最新 main へ追従し、再テストする。
 - D の JSON 契約を変更する場合は、B/C/E への影響と Schema version 更新要否を明記する。
 - `score=null` と `score=0`、`NOT_FOUND` の意味を変更しない。
 
-## 担当別の統合ブランチ
+## 機能単位のブランチと既存role branch
 
-通常作業は担当別 branch 上で進め、毎回 main へ入れる必要はありません。
+通常は `feature/<topic>`、`fix/<topic>`、`docs/<topic>` のような機能単位の短命ブランチを使います。1機能を実装するために複数ディレクトリを変更して構いません。依存関係、共有Contract、独立検証、必要なテストをPRで明示します。
 
-```text
-role/a-data
-role/b-frontend
-role/c-validation
-role/d-pipeline
-role/e-gis
-```
+既存の `role/a-data`、`role/b-frontend`、`role/c-validation`、`role/d-pipeline`、`role/e-gis` および `feature/a-*` 等は互換として残し、既存PRや並行作業の継続に利用できます。新規作業への強制はしません。role-scoped branchを使うときは従来のScope Guardに従います。
 
-担当内で複数作業を並行する場合は、role branch から短命 branch を切ります。
-
-```text
-feature/a-<topic>
-feature/b-<topic>
-feature/c-<topic>
-feature/d-<topic>
-feature/e-<topic>
-fix/<topic>
-docs/<topic>
-```
-
-短命 branch は原則として対応する role branch へ PR を出します。
+作業途中で毎回mainに統合する必要はありませんが、統合直前には最新mainとCIを再確認してください。
 
 ## main への統合タイミング
 
@@ -61,7 +43,7 @@ PR の作成順や番号順に機械的に merge しません。
 
 後続作業を止める必要はありません。
 
-前提 branch から次の branch を切る、または適切な role branch を base にして開発を継続できます。
+前提branchから次のbranchを切る、または適切な既存ブランチをbaseにして開発を継続できます。
 
 ただし:
 
@@ -126,7 +108,7 @@ AI は `main` への merge、force push、テスト削除による失敗隠蔽�
 
 PR 作成前に、現在 branch、target/base、最新 main との差分、依存 PR、Shared Contract / CI への影響、必要な tests / CI を確認してください。
 
-role branch が main より古い場合でも作業は継続できますが、main 側の shared CI / Contract / repository structure / test infrastructure 等の変更が今回の検証へ影響する場合は、統合前に最新化して再テストします。
+作業branch（既存role branchを含む）がmainより古い場合でも作業は継続できますが、main 側の shared CI / Contract / repository structure / test infrastructure 等の変更が今回の検証へ影響する場合は、統合前に最新化して再テストします。
 
 required check や必要な CI が red / pending の PR は Integration ready と扱いません。
 原因が既知の base 側問題でも、無視して merge せず、`merge: needs-update` または `merge: blocked` を使って状態を明示してください。
@@ -152,16 +134,11 @@ AI はこれらを同じ「完了」と表現してはいけません。
 
 ## Automated Scope Guard
 
-担当 feature / role branch の PR では、変更パスを CI で検証します。
+従来の `feature/a-*`〜`feature/e-*`、`fix/a-*`〜`fix/e-*`、`role/*` などのrole-scoped branchには、既存のパス限定Scope Guardが適用されます。
 
-- A: `data-research/**`
-- B: `frontend/**`
-- C: `validation/**`
-- D: `pipeline/**`
-- E: `gis/**`
+一方、新しい機能単位の通常ブランチは複数ディレクトリを横断できます。変更した全領域のテスト・依存関係・Contract互換性・独立検証をレビュー対象とし、無関係な修正を混ぜないでください。破壊的な共有Contract変更や独立したCI/Infrastructure改修は必要に応じて別PRへ分離します。
 
-担当外ファイルが必要になった場合は、その PR に混ぜず shared / dependent PR として切り分けます。
-特に `.github/workflows/**`、root governance、他担当の tests を role PR から変更して CI を通すことは禁止です。
+role branchの名称をCI回避目的で変更したり、CIを通すためScope Guardやテストを弱めたりしてはいけません。
 
 ## PR Labels
 
