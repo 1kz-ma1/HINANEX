@@ -10,6 +10,7 @@ import hashlib
 import json
 import math
 import re
+import unicodedata
 from collections import Counter, defaultdict, deque
 from datetime import datetime, timezone
 from pathlib import Path
@@ -117,6 +118,23 @@ def prepare(dataset: dict, source_sha256: str, limit: int = MAX_SAMPLE) -> dict:
     }
 
 
+def address_key(value: str) -> str:
+    """Compare ABR-normalized addresses without blindly accepting other house numbers.
+
+    Japanese full-width digits and common address delimiters are normalized.
+    This is intentionally conservative: unrecognized variants remain UNRESOLVED.
+    """
+    value = unicodedata.normalize("NFKC", value)
+    value = re.sub(r"\\s+", "", value)
+    value = re.sub(r"[−‐‑–―ー]", "-", value)
+    value = re.sub(r"(?<=\\d)丁目", "-", value)
+    value = re.sub(r"(?<=\\d)番地の?", "-", value)
+    value = re.sub(r"(?<=\\d)番", "-", value)
+    value = re.sub(r"(?<=\\d)号", "", value)
+    value = re.sub(r"-+", "-", value).strip("-")
+    return value
+
+
 def classify(payload: object, query: str, ward: str) -> dict:
     def unresolved(reason: str) -> dict:
         return {"status": "UNRESOLVED", "reason": reason, "approved_for_map": False}
@@ -138,6 +156,8 @@ def classify(payload: object, query: str, ward: str) -> dict:
     matched = props.get("matched_address")
     if not isinstance(matched, str) or not matched.startswith(CITY + ward):
         return unresolved("matched_address_outside_ward")
+    if address_key(matched) != address_key(query):
+        return unresolved("different_street_or_house_number")
     if props.get("unmatched_address") not in ([], None):
         return unresolved("unmatched_address")
     level = props.get("coordinates_level")
