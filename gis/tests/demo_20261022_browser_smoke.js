@@ -653,16 +653,37 @@ async function screenshot(page, name) {
     await visitor.waitForFunction(()=>
       document.querySelectorAll("#edogawaCompareFirst option").length >= 3,
       null,{timeout:15000});
+    assert.equal(await visitor.locator("#edogawaComparePickControls").isVisible(),false,
+      "first scene presents the purpose, not a wall of dropdowns");
+    await visitor.locator("#edogawaCompareAdvance").click();
+    assert.equal(await visitor.locator("#edogawaComparePickControls").isVisible(),true);
     const edogawaOptions=await visitor.evaluate(()=>Array.from(
       document.querySelector("#edogawaCompareFirst").options).slice(1,3).map(o=>o.value));
     await visitor.locator("#edogawaCompareFirst").selectOption(edogawaOptions[0]);
     await visitor.locator("#edogawaCompareSecond").selectOption(edogawaOptions[1]);
     await visitor.locator("#edogawaCompareRun").click();
     assert.equal(await visitor.locator(".edogawa-compare-card").count(),2);
+    assert.equal(await visitor.locator("#edogawaCompareSelectArea").isVisible(),false,
+      "after comparison the pickers must collapse so results are above the fold");
+    assert.equal(await visitor.locator("#edogawaCompareTakeawayTitle").isVisible(),true);
+    assert.match(await visitor.locator("#edogawaCompareTakeawayTitle").innerText(),/未判定|安全性の判定/);
     assert.match(await visitor.locator("#edogawaComparePanel").innerText(),/洪水時の分類|UNKNOWN/);
+    assert.equal(await visitor.locator(".edogawa-compare-map-pin").count(),2,
+      "only the selected A/B source coordinates receive prominent map markers");
+    const presentation=await visitor.evaluate(()=>{
+      const pane=document.querySelector(".leaflet-shelter-pane");
+      const panel=document.querySelector("#edogawaComparePanel");
+      const container=document.querySelector("#map").getBoundingClientRect();
+      return {opacity:Number(getComputedStyle(pane).opacity),
+        height:panel.getBoundingClientRect().height,mapHeight:container.height};
+    });
+    assert.ok(presentation.opacity<=.2,
+      "unrelated yellow source clusters must be visually de-emphasized");
+    assert.ok(presentation.height<=Math.min(385,window.innerHeight*.43)+8,
+      "result sheet must remain smaller than the map");
     assert.equal(await visitor.locator("#gsiFloodDemoPanel").isVisible(),false,
       "new main does not open the old GSI presenter automatically");
-    await visitor.locator("#edogawaCompareMapFocus").click();
+    await visitor.locator("#edogawaCompareResultFocus").click();
     const localFocus=await visitor.evaluate(()=>map.getCenter().lng);
     assert.ok(localFocus>139 && localFocus<141,"Edogawa D source pair cannot silently navigate to western Japan");
     await visitor.locator("#edogawaCompareClose").click();
