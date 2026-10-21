@@ -391,6 +391,31 @@
       </div>
       <p id="storyLoadStatus" class="story-loading" role="status">正本データの読み込みを確認しています。</p>
     </section>
+    <section id="edogawaCompareBanner" class="edogawa-compare-banner" aria-label="江戸川区の施設比較デモの案内" hidden>
+      <span id="edogawaComparePhase">01 / 03</span>
+      <div><strong id="edogawaCompareTitle">江戸川区の施設を比較します</strong><p id="edogawaCompareMessage">取得されたデータと、確認できない条件を分けて確認します。</p></div>
+      <button id="edogawaCompareClose" type="button">閉じる ×</button>
+    </section>
+    <section id="edogawaComparePanel" class="edogawa-compare-panel" aria-label="江戸川区の取得施設比較" hidden>
+      <div class="edogawa-compare-panel-head"><strong>江戸川区の2施設を比較</strong><span>取得済み情報の比較・避難推奨ではありません</span></div>
+      <p id="edogawaCompareLoading" role="status" hidden></p>
+      <p id="edogawaCompareCount" class="edogawa-compare-count"></p>
+      <div id="edogawaCompareSelectArea" hidden>
+        <button id="edogawaCompareAdvance" type="button">施設を選ぶ →</button>
+        <div class="edogawa-compare-selects">
+          <label>施設A<select id="edogawaCompareFirst" aria-label="施設Aを選ぶ"></select></label>
+          <label>施設B<select id="edogawaCompareSecond" aria-label="施設Bを選ぶ"></select></label>
+        </div>
+        <p id="edogawaCompareChoiceStatus" role="status">異なる2つの取得施設を選んでください。</p>
+        <div class="edogawa-compare-actions">
+          <button id="edogawaCompareRun" type="button" disabled>2件を比較する</button>
+          <button id="edogawaCompareMapFocus" type="button" disabled>2件を地図で見る</button>
+        </div>
+      </div>
+      <div id="edogawaCompareViewArea" hidden><div id="edogawaCompareResult" class="edogawa-compare-result"></div></div>
+      <p class="edogawa-compare-caution">施設名・住所・座標など取得された値を比較しています。元データの収録範囲は施設の網羅性や座標の正確性を保証しません。洪水時の適合性・建物安全・現在の開設・混雑・経路は未確認で、UNKNOWNは利用不可や危険を意味しません。</p>
+      <p class="edogawa-compare-policy">江戸川区の公式方針：<a href="https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/hazardmap/koikihinan.html" target="_blank" rel="noopener noreferrer">早期の広域避難 ↗</a> ／ <a href="https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/hazardmap/ikinaihinan.html" target="_blank" rel="noopener noreferrer">待避施設の位置づけ ↗</a></p>
+    </section>
     <section id="gsiDemoNarration" class="gsi-demo-narration" role="status" aria-live="polite" aria-atomic="true" hidden>
       <span id="gsiFloodDemoPhase" class="gsi-demo-narration-phase">01 / 04</span>
       <div class="gsi-demo-narration-copy">
