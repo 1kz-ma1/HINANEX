@@ -72,11 +72,14 @@ python geocode_nagoya_pilot.py resolve --dataset data/normalized/nagoya_shelters
     python geocode_nagoya_pilot.py resolve --dataset data/normalized/nagoya_shelters.json --out data/geocoding_pilot/nagoya50 --local-abr-url http://127.0.0.1:3000
     python report_nagoya_geocoding_pilot.py --pilot-dir data/geocoding_pilot/nagoya50
 
+実行前には元データのSHA256と、抽出された施設ID・住所を元データから再計算して照合する。不一致があればローカルABRにも問い合わせず停止する。
+
 7. 結果はgitignoredのdata/geocoding_pilot/nagoya50に保存される。summary.jsonとhuman_review.csvはGitにコミットしない。2回目の実験では上書きせず別フォルダを使う。
 
 ### 発表のための実データ診断と独立承認
 
 - summary.json: 最大50件の対象数、UNVERIFIED_CANDIDATE比率、要レビュー・未解決・プロバイダ失敗数、座標精度、区別のサンプル数を集計。**候補取得率は位置精度や施設同一性の確認率ではない**。
+- presentation_summary.md: 施設名・原本住所・候補座標は含まず、候補件数・未解決件数・精度・未検証の制約を発表用に記載する。人間の独立受入は0件として記録する。
 - human_review.csv: 元ID、施設名、原本住所、候補緯度経度に対して、公式位置資料のURL、施設同一性、精度を人が確認するための空欄を持つ。全件NOT_REVIEWEDで生成。
 - 公式施設座標として受入済みの件数は常に0、全件approved_for_map=false。実際の照合と公開向け地図への使用判断は別の受入ゲートとする。
 - GithubのCIは合成データで分類と集計ロジックを試験するのみ。**愛知県ABR実データによる50件変換と現地座標の比較は未実施**であり、実変換成功率を推測しない。
