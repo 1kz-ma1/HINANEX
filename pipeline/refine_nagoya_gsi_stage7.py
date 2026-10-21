@@ -97,8 +97,8 @@ def match_official_name_without_notice(queue_row: dict, gsi: list[dict],
     return bool(targets)
 
 
-def near_coincident_strict_references(stage6_row: dict, gsi: list[dict]) -> bool:
-    strict, _ = local_references(stage6_row, gsi)
+def near_coincident_strict_references(original_queue_row: dict, gsi: list[dict]) -> bool:
+    strict, _ = local_references(original_queue_row, gsi)
     points = sorted({r["point"] for r in strict if r["point"] is not None})
     if len(points) < 2:
         return False
@@ -167,7 +167,7 @@ def refine(queue: list[dict], queue_summary: dict,
         parsed = None
         near = False
         if original_status == "strict_name_address_conflicting_references":
-            near = near_coincident_strict_references(row, gsi)
+            near = near_coincident_strict_references(qids[row["pilot_record_id"]], gsi)
             state = ("gsi_distinct_references_under_1mm" if near
                      else "unchanged_unresolved_identity_or_gsi_conflict")
         elif original_status == "address_match_only_name_unconfirmed":
