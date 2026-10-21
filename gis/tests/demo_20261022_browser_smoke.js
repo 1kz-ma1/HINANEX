@@ -679,11 +679,14 @@ async function screenshot(page, name) {
     await visitor.locator("#edogawaCompareFirst").selectOption(edogawaOptions[0]);
     await visitor.locator("#edogawaCompareSecond").selectOption(edogawaOptions[1]);
     await visitor.locator("#edogawaCompareRun").click();
-    assert.equal(await visitor.locator(".edogawa-compare-card").count(),2);
     assert.equal(await visitor.locator("#edogawaCompareSelectArea").isVisible(),false,
-      "after comparison the pickers must collapse so results are above the fold");
-    assert.equal(await visitor.locator("#edogawaCompareTakeawayTitle").isVisible(),true);
-    assert.match(await visitor.locator("#edogawaCompareTakeawayTitle").innerText(),/未判定|安全性の判定/);
+      "after comparison the pickers must collapse to a map-led guide");
+    assert.equal(await visitor.locator(".edogawa-compare-card").count(),1,
+      "A stage should show only one facility at a time");
+    assert.equal(await visitor.locator(".edogawa-compare-card").getAttribute("data-marker"),"A");
+    assert.equal(await visitor.locator("#edogawaCompareShowA").getAttribute("aria-pressed"),"true");
+    assert.equal(await visitor.locator("#edogawaCompareTakeaway").isVisible(),false,
+      "the conclusion waits until the audience sees both facilities");
     assert.match(await visitor.locator("#edogawaComparePanel").innerText(),/洪水時の分類|UNKNOWN/);
     assert.equal(await visitor.locator(".edogawa-compare-map-pin").count(),2,
       "only the selected A/B source coordinates receive prominent map markers");
@@ -696,18 +699,32 @@ async function screenshot(page, name) {
     });
     assert.ok(presentation.opacity<=.2,
       "unrelated yellow source clusters must be visually de-emphasized");
-    assert.ok(presentation.height<=Math.min(385,presentation.viewportHeight*.43)+8,
-      "result sheet must remain smaller than the map");
+    assert.ok(presentation.height<=Math.min(285,presentation.viewportHeight*.36)+8,
+      "guided result sheet must leave most of the desktop map visible");
     assert.equal(await visitor.locator("#gsiFloodDemoPanel").isVisible(),false,
       "new main does not open the old GSI presenter automatically");
-    await visitor.locator("#edogawaCompareResultFocus").click();
+    await visitor.locator("#edogawaCompareNext").click();
+    assert.equal(await visitor.locator(".edogawa-compare-card").count(),1);
+    assert.equal(await visitor.locator(".edogawa-compare-card").getAttribute("data-marker"),"B",
+      "next button changes to B and its own source details");
+    assert.equal(await visitor.locator("#edogawaCompareShowB").getAttribute("aria-pressed"),"true");
+    await visitor.locator("#edogawaCompareNext").click();
+    assert.equal(await visitor.locator("#edogawaCompareTakeawayTitle").isVisible(),true);
+    assert.match(await visitor.locator("#edogawaCompareTakeawayTitle").innerText(),/未判定|安全性の判定/);
+    assert.equal(await visitor.locator(".edogawa-compare-card").count(),0,
+      "summary is compact: it does not expand both detailed cards");
+    assert.equal(await visitor.locator("#edogawaCompareShowSummary").getAttribute("aria-pressed"),"true");
     const localFocus=await visitor.evaluate(()=>map.getCenter().lng);
-    assert.ok(localFocus>139 && localFocus<141,"Edogawa D source pair cannot silently navigate to western Japan");
+    assert.ok(localFocus>139 && localFocus<141,"Edogawa D pair cannot silently navigate to western Japan");
+    await visitor.locator("#edogawaCompareShowA").click();
+    assert.equal(await visitor.locator(".edogawa-compare-card").getAttribute("data-marker"),"A",
+      "audience can revisit each factual site independently");
     await visitor.locator("#edogawaCompareAgain").click();
     assert.equal(await visitor.locator("#edogawaComparePickControls").isVisible(),true);
     await visitor.locator("#edogawaCompareAutoPickFromPicker").click();
-    assert.equal(await visitor.locator(".edogawa-compare-card").count(),2,
-      "opt-in auto pair must choose and compare real D source records");
+    assert.equal(await visitor.locator(".edogawa-compare-card").count(),1,
+      "opt-in demo pair must launch A stage using a real D source record");
+    assert.equal(await visitor.locator("#edogawaCompareShowA").getAttribute("aria-pressed"),"true");
     assert.equal(await visitor.locator("#edogawaComparePairBasis").isVisible(),true);
     assert.match(await visitor.locator("#edogawaComparePairBasis").innerText(),/安全性・距離に基づく推薦ではありません/);
     const autoPair=await visitor.evaluate(()=>{
@@ -898,9 +915,23 @@ async function screenshot(page, name) {
     assert.ok(compactHeight < 844*.55,
       "mobile comparison picker must leave significant Leaflet map visible");
     await visitor.locator("#edogawaCompareAutoPick").click();
-    assert.equal(await visitor.locator(".edogawa-compare-card").count(),2);
+    assert.equal(await visitor.locator(".edogawa-compare-card").count(),1,
+      "mobile starts by zooming to A with a single visible detail card");
     assert.equal(await visitor.locator("#edogawaComparePairBasis").isVisible(),true,
       "mobile visitor can see the demo-only auto-selection disclosure");
+    const compactGuide=await visitor.locator("#edogawaComparePanel").evaluate(el=>({
+      height:el.getBoundingClientRect().height,
+      viewport:window.innerHeight,
+      stage:el.getAttribute("data-site-stage")
+    }));
+    assert.equal(compactGuide.stage,"A");
+    assert.ok(compactGuide.height<=Math.min(213,compactGuide.viewport*.29)+8,
+      "mobile A detail must not cover more than 29% of the viewport");
+    await visitor.locator("#edogawaCompareShowB").click();
+    assert.equal(await visitor.locator(".edogawa-compare-card").getAttribute("data-marker"),"B");
+    await visitor.locator("#edogawaCompareShowSummary").click();
+    assert.equal(await visitor.locator("#edogawaCompareTakeaway").isVisible(),true);
+    assert.equal(await visitor.locator(".edogawa-compare-card").count(),0);
     await visitor.locator("#edogawaCompareClose").click();
     // Verify old GSI mobile narration as an opt-in legacy reference flow.
     await visitor.evaluate(()=>document.getElementById("mapGsiFloodDemoOpen").click());
