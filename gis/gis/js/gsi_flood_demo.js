@@ -53,9 +53,17 @@
     "江戸川区の避難方針、緊急時の待避施設、GSI洪水指定、Dの洪水未判定は別々の情報。開設・混雑・経路の現況はこのデモでは未確認です。"
   ];
   function showOfficialSource(index){
-    const a=get("gsiDemoSceneSource"),source=officialSources[index];
+    const a=get("gsiDemoSceneSource"),detail=get("gsiDemoFullSource"),
+          source=officialSources[index];
+    // The top link is intentionally short to keep the map unobstructed.
+    // Preserve the complete source title for accessible link text/tooltip
+    // and in the opt-in details; never change the exact official URL.
     a.href=source.url;
-    a.textContent=source.name+" ↗";
+    a.textContent="公式資料 ↗";
+    a.setAttribute("aria-label",source.name+"の出典を開く（新しいタブ）");
+    a.setAttribute("title",source.name);
+    detail.href=source.url;
+    detail.textContent=source.name+" ↗";
   }
   function stopClock(){if(clock!==null)window.clearInterval(clock);clock=null;}
   let mobileExpanded=false;
