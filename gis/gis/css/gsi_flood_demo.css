@@ -72,6 +72,11 @@
 #gsiFloodDemoClose{flex:none;width:40px;height:40px;border-radius:50%;border:1px solid #789cb0;
  background:#123e54;color:white;font-size:22px;cursor:pointer}
 #gsiFloodDemoStatus{font-size:11px;line-height:1.6;color:#b1dae6}
+.gsi-demo-full-source{display:grid;gap:4px;padding:8px 0;border-bottom:1px solid #326576}
+.gsi-demo-full-source span{font-size:10px;color:#a8d3dd}
+.gsi-demo-full-source a{font-size:12px;line-height:1.5;color:#a1f7ee;overflow-wrap:anywhere;
+  text-decoration:underline;text-underline-offset:3px}
+.gsi-demo-full-source a:focus-visible{outline:3px solid #ffe2a1;outline-offset:2px}
 .gsi-demo-step{display:flex;justify-content:space-between;color:#8be9eb;font-size:12px;font-weight:800;margin:9px 0 5px}
 .gsi-demo-panel h2{font-size:clamp(23px,2.6vw,30px);line-height:1.4;margin:6px 0 10px}
 #gsiFloodDemoMessage{font-size:14px;line-height:1.65;color:#daedf3;margin:0 0 12px}
