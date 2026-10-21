@@ -95,6 +95,40 @@ class NagoyaGeocodingPilotTests(unittest.TestCase):
         data["features"][0]["geometry"]["coordinates"] = [True, 35.16]
         self.assertEqual(classify(data, addr, "千種区")["reason"], "invalid_numeric_coordinates")
 
+    def test_only_16_official_nagoya_wards_accepted(self):
+        source = sample(4)
+        source["records"][0]["administrative_area"] = "足立区"
+        manifest = prepare(source, "digest")
+        self.assertEqual(manifest["skipped"]["out_of_scope_ward"], 1)
+        self.assertEqual(len(manifest["selected"]), 3)
+        with self.assertRaises(ValueError):
+            full_address("足立区", "西新井1-1")
+        with self.assertRaises(ValueError):
+            prepare({"records": [source["records"][0]]}, "digest")
+
+    def test_zero_or_missing_earth_coordinate_not_a_candidate(self):
+        address = "愛知県名古屋市千種区千種3-2-5"
+        point = provider()
+        point["features"][0]["geometry"]["coordinates"] = [0, 0]
+        self.assertEqual(classify(point, address, "千種区")["reason"], "out_of_range_coordinates")
+
+    @patch("geocode_nagoya_pilot.fetch_json")
+    def test_shared_reference_geometry_across_ward_records_needs_review(self, mocked):
+        source = sample(2)
+        manifest = prepare(source, "same-source")
+        rows = manifest["selected"]
+        mocked.side_effect = [
+            ({"status": "ok"}, b'{"status":"ok"}'),
+            ({"name": "abrg", "db_version": "synthetic", "version": "synthetic"}, b'{}'),
+            (provider(rows[0]["query_address"], rows[0]["ward"]), b'{"test": 1}'),
+            (provider(rows[1]["query_address"], rows[1]["ward"], "parcel"), b'{"test": 2}'),
+        ]
+        result = resolve(manifest, source, "same-source", "http://127.0.0.1:3000")
+        self.assertEqual(result["statuses"], {"NEEDS_REVIEW": 2})
+        self.assertTrue(all(not row["approved_for_map"] for row in result["results"]))
+        self.assertIn("parcel_reference_offset_risk", result["results"][1]["reason"])
+        self.assertIn("shared_reference_coordinate", result["results"][1]["reason"])
+
     def test_rejects_nonlocal_geocoder(self):
         for url in ("https://127.0.0.1:3000", "http://example.org:3000",
                     "http://127.0.0.1:3000/evil", "http://user:pw@127.0.0.1:3000"):
