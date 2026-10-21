@@ -9,12 +9,19 @@
   const isMobile=()=>Boolean(window.matchMedia?.("(max-width: 780px)")?.matches);
   function updateMobileControls(){
     mobileToggle.hidden=state==="unavailable";
-    mobileToggle.disabled=state==="loading"||state==="awaiting-pin";
+    // Pin-navigation is explicit. While awaiting a verified pin, reuse
+    // the existing top play button rather than adding a fifth control.
+    mobileToggle.disabled=state==="loading";
     const label=state==="playing"?"一時停止":
-      state==="complete"?"最初から":state==="awaiting-pin"?"ピンを選択":
+      state==="complete"?"最初から":state==="awaiting-pin"?"紫ピンへ":
       state==="loading"?"確認中":"再生";
     mobileToggle.textContent=label;
-    mobileToggle.setAttribute("aria-label",label+"：GSI洪水指定デモ");
+    mobileToggle.setAttribute("aria-label",state==="awaiting-pin"
+      ? "必要な場合、周辺の検証済みGSI掲載地点へ移動します。千葉県側を含むことがあります"
+      : label+"：GSI洪水指定デモ");
+    mobileToggle.setAttribute("title",state==="awaiting-pin"
+      ? "地図が移動するのはこの操作を選んだときだけです。千葉県側のGSI掲載地点を含む場合があります"
+      : label+"：GSI洪水指定デモ");
     const next=get("gsiDemoNext");
     next.disabled=state==="loading"||state==="unavailable"||state==="awaiting-pin"||state==="complete";
     next.hidden=state==="loading"||state==="unavailable";
@@ -230,7 +237,7 @@
   }
   async function open(){
     if(!panel.hidden)return;
-    if(!api||!["begin","show","inspect","compareD","halt","end"].every(x=>typeof api[x]==="function"))
+    if(!api||!["begin","show","focusPins","inspect","compareD","halt","end"].every(x=>typeof api[x]==="function"))
       return;
     // Close other players first, before saving our own camera/source state.
     if(!get("filterDemoPanel").hidden)get("filterDemoClose").click();
@@ -294,7 +301,12 @@
     if(state==="complete"){close();void open();}
     else if(state==="playing"){pause();api?.halt();}
     else if(state==="paused"){play();}
-    // "awaiting-pin" does not bypass the required verified GSI map selection.
+    else if(state==="awaiting-pin"){
+      // Only a real user click pans to the current verified candidates.
+      // This is NOT a facility recommendation or an automatic scene transition.
+      api?.focusPins?.();
+    }
+    // Even after explicit focusing, the actual verified pin must be selected.
   });
   get("gsiFloodDemoFallbackD").addEventListener("click",()=>{
     // Hand-off is explicit user action; never pretend this is a GSI result.

@@ -19,6 +19,7 @@ function mount(reply={state:"ready",source:"GSI_SKHB01_FLOOD",rawDisaster1:1,tot
  const doc={hidden:false,activeElement:null,getElementById:get,addEventListener(k,f){ev.set(k,f);}};
  const api={async begin(){calls.push("begin");return reply;},
  show(){calls.push("show");return {state:"shown",count:reply.total};},
+ focusPins(){calls.push("focusPins");return {state:"focused"};},
  inspect(trace){calls.push("inspect");return {state:"inspected",
  name:trace==="feature_index=1"?"選択した公式掲載地点":"公式掲載地点",
  address:trace==="feature_index=1"?"選択地点の公式住所":"出典の住所",
@@ -55,7 +56,7 @@ test("one public MAIN DEMO, other presenters retained only behind hidden wrapper
  assert.doesNotMatch(html,/id="gsiFloodDemoPickHint"/);
  assert.match(html,/id="gsiFloodDemoTitle"/);
  assert.equal((html.match(/id="gsiFloodDemoTitle"/g)||[]).length,1);
- assert.match(html,/gsi_flood_demo[.]js[?]v=gsi-source-shortlabel-20261021-v1/);
+ assert.match(html,/gsi_flood_demo[.]js[?]v=gsi-camera-consent-20261021-v1/);
   assert.match(html,/id="gsiDemoMobileToggle"[^>]*type="button"/);
   assert.match(html,/id="gsiDemoMobileClose"[^>]*type="button"/);
  assert.match(html,/id="gsiDemoNext"[^>]*type="button"/);
@@ -81,8 +82,13 @@ test("mobile keeps only an upper narration with working pause and close",async()
  assert.equal(m.timers.size,1);
  m.tick(7);m.tick(12);
  assert.equal(m.timers.size,0,"verified pin selection must remain mandatory");
- assert.equal(m.get("gsiDemoMobileToggle").disabled,true);
- assert.equal(m.get("gsiDemoMobileToggle").textContent,"ピンを選択");
+ assert.equal(m.get("gsiDemoMobileToggle").disabled,false);
+ assert.equal(m.get("gsiDemoMobileToggle").textContent,"紫ピンへ");
+ assert.match(m.get("gsiDemoMobileToggle").getAttribute("aria-label"),/千葉県側/);
+ m.get("gsiDemoMobileToggle").click();
+ assert.ok(m.calls.includes("focusPins"),"explicit click may focus nearby GSI pins");
+ assert.equal(m.timers.size,0,"focusing candidates does not satisfy required verified pin selection");
+ assert.equal(m.get("gsiDemoNext").disabled,true,"cannot skip the source evidence gate");
  m.select();
  assert.match(m.get("gsiFloodDemoTitle").textContent,/地図で確認/);
  assert.match(m.get("gsiFloodDemoMessage").textContent,/待避施設との同一性/);
@@ -122,6 +128,9 @@ test("desktop uses upper controls and only opens a compact evidence drawer on re
  m.get("gsiDemoNext").click();
  assert.equal(m.get("gsiDemoNext").disabled,true,
    "pin selection must be mandatory; next cannot bypass verified evidence");
+ assert.equal(m.get("gsiDemoMobileToggle").textContent,"紫ピンへ");
+ m.get("gsiDemoMobileToggle").click();
+ assert.ok(m.calls.includes("focusPins"));
  m.select();
  assert.match(m.get("gsiFloodDemoTitle").textContent,/地図で確認しました/);
  m.get("gsiDemoDetailsToggle").click();
