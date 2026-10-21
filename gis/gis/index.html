@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="css/presentation_story.css?v=presenter-55s-20261014-v1">
   <link rel="stylesheet" href="css/filter_demo.css?v=d-source-criteria-20261014-v1">
   <link rel="stylesheet" href="css/gsi_flood_demo.css?v=gsi-source-shortlabel-20261021-v1">
-  <link rel="stylesheet" href="css/edogawa_facility_compare.css?v=edogawa-local-compare-20261021-v1">
+  <link rel="stylesheet" href="css/edogawa_facility_compare.css?v=edogawa-presentation-clarity-20261021-v2">
   <link rel="stylesheet" href="css/place_card.css?v=zoom-compact-popup-20261014-v1">
   <link rel="stylesheet" href="css/reference_site_compare.css?v=gsi-reference-compare-20261020-v1">
 </head>
@@ -401,20 +401,36 @@
       <p id="edogawaCompareLoading" role="status" hidden></p>
       <p id="edogawaCompareCount" class="edogawa-compare-count"></p>
       <div id="edogawaCompareSelectArea" hidden>
-        <button id="edogawaCompareAdvance" type="button">施設を選ぶ →</button>
-        <div class="edogawa-compare-selects">
-          <label>施設A<select id="edogawaCompareFirst" aria-label="施設Aを選ぶ"></select></label>
-          <label>施設B<select id="edogawaCompareSecond" aria-label="施設Bを選ぶ"></select></label>
-        </div>
-        <p id="edogawaCompareChoiceStatus" role="status">異なる2つの取得施設を選んでください。</p>
-        <div class="edogawa-compare-actions">
-          <button id="edogawaCompareRun" type="button" disabled>2件を比較する</button>
-          <button id="edogawaCompareMapFocus" type="button" disabled>2件を地図で見る</button>
+        <p class="edogawa-compare-prompter">施設の位置だけで、避難先を判断できるでしょうか？</p>
+        <button id="edogawaCompareAdvance" type="button">2施設を選んで確かめる →</button>
+        <div id="edogawaComparePickControls" hidden>
+          <div class="edogawa-compare-selects">
+            <label>施設A<select id="edogawaCompareFirst" aria-label="施設Aを選ぶ"></select></label>
+            <label>施設B<select id="edogawaCompareSecond" aria-label="施設Bを選ぶ"></select></label>
+          </div>
+          <p id="edogawaCompareChoiceStatus" role="status">異なる2つの取得施設を選んでください。</p>
+          <div class="edogawa-compare-actions">
+            <button id="edogawaCompareRun" type="button" disabled>この2件の情報を比較 →</button>
+            <button id="edogawaCompareMapFocus" type="button" disabled>2地点を地図で見る</button>
+          </div>
         </div>
       </div>
-      <div id="edogawaCompareViewArea" hidden><div id="edogawaCompareResult" class="edogawa-compare-result"></div></div>
-      <p class="edogawa-compare-caution">施設名・住所・座標など取得された値を比較しています。元データの収録範囲は施設の網羅性や座標の正確性を保証しません。洪水時の適合性・建物安全・現在の開設・混雑・経路は未確認で、UNKNOWNは利用不可や危険を意味しません。</p>
-      <p class="edogawa-compare-policy">江戸川区の公式方針：<a href="https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/hazardmap/koikihinan.html" target="_blank" rel="noopener noreferrer">早期の広域避難 ↗</a> ／ <a href="https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/hazardmap/ikinaihinan.html" target="_blank" rel="noopener noreferrer">待避施設の位置づけ ↗</a></p>
+      <div id="edogawaCompareViewArea" hidden>
+        <div class="edogawa-compare-takeaway" role="note">
+          <strong id="edogawaCompareTakeawayTitle">比較して分かること</strong>
+          <p id="edogawaCompareTakeawayText"></p>
+        </div>
+        <div id="edogawaCompareResult" class="edogawa-compare-result"></div>
+        <div class="edogawa-compare-actions">
+          <button id="edogawaCompareResultFocus" type="button">A・Bの位置を確認</button>
+          <button id="edogawaCompareAgain" type="button">別の2施設を比較</button>
+        </div>
+      </div>
+      <details class="edogawa-compare-more">
+        <summary>公式方針・出典と比較上の注意</summary>
+        <p class="edogawa-compare-caution">ここで比べられるのは取得済み施設レコードの属性です。全施設の網羅性、座標の正確性、建物の安全性、洪水時の適合性、開設状況・混雑・経路を保証しません。UNKNOWNは危険や利用不可を意味しません。</p>
+        <p class="edogawa-compare-policy">江戸川区の公式方針：<a href="https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/hazardmap/koikihinan.html" target="_blank" rel="noopener noreferrer">早期の広域避難 ↗</a> ／ <a href="https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/kanrenmap/hazardmap/ikinaihinan.html" target="_blank" rel="noopener noreferrer">待避施設の位置づけ ↗</a></p>
+      </details>
     </section>
     <section id="gsiDemoNarration" class="gsi-demo-narration" role="status" aria-live="polite" aria-atomic="true" hidden>
       <span id="gsiFloodDemoPhase" class="gsi-demo-narration-phase">01 / 04</span>
@@ -689,7 +705,7 @@
 <script src="js/reference_site_compare.js?v=gsi-reference-compare-20261020-v1"></script>
 <script src="js/map.js?v=edogawa-local-compare-20261021-v1"></script>
 <script src="js/map_first_ui.js?v=anchored-point-bubble-20261014-v1"></script>
-<script src="js/edogawa_facility_compare.js?v=edogawa-local-compare-20261021-v1"></script>
+<script src="js/edogawa_facility_compare.js?v=edogawa-presentation-clarity-20261021-v2"></script>
 <script src="js/audience_share.js?v=edogawa-local-compare-20261021-v1"></script>
 <script src="js/guided_tour.js?v=interactive-presenter-20261014-v1"></script>
 <script src="js/evidence_replay.js?v=spatial-evidence-20261014-v2"></script>
