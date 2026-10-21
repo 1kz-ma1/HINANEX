@@ -172,13 +172,22 @@ def fetch_json(opener, uri: str) -> tuple[object, bytes]:
     return json.loads(raw), raw
 
 
-def resolve(manifest: dict, dataset_sha256: str, server: str) -> dict:
+def resolve(manifest: dict, source_dataset: dict, dataset_sha256: str, server: str) -> dict:
     if (manifest.get("pilot_version") != 1 or manifest.get("region_code") != REGION
             or manifest.get("source_dataset_sha256") != dataset_sha256):
         raise ValueError("Invalid or stale manifest")
     rows = manifest.get("selected")
     if not isinstance(rows, list) or not 1 <= len(rows) <= MAX_SAMPLE:
         raise ValueError("Invalid sample")
+    # A hash alone does not prove that the chosen IDs/addresses match the
+    # unchanged dataset. Rebuild the deterministic sample before any HTTP.
+    if manifest.get("approved_for_map") is not False:
+        raise ValueError("Pilot manifest must remain unapproved")
+    expected = prepare(source_dataset, dataset_sha256, manifest.get("max_sample"))
+    if (manifest.get("selected") != expected["selected"]
+            or manifest.get("source_record_count") != expected["source_record_count"]
+            or manifest.get("skipped") != expected["skipped"]):
+        raise ValueError("Manifest selection differs from the source dataset")
     base = local_url(server)
     opener = build_opener(ProxyHandler({}), BlockRedirects())
     health, _ = fetch_json(opener, base + "/health")
@@ -253,7 +262,7 @@ def main() -> None:
         print("Prepared", len(manifest["selected"]), "records. No network or geocoding.")
     else:
         manifest = json.loads((target / "manifest.json").read_text(encoding="utf-8"))
-        report = resolve(manifest, source_sha, args.local_abr_url)
+        report = resolve(manifest, data, source_sha, args.local_abr_url)
         save_new(target / "resolution.json", report)
         print(json.dumps(report["statuses"], ensure_ascii=False, sort_keys=True))
         print("No geocoded result was approved or copied into RegionExport")
