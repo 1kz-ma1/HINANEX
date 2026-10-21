@@ -655,7 +655,8 @@ async function screenshot(page, name) {
     assert.equal(await visitor.locator("#gsiDemoNarration").isVisible(),true,
       "desktop narrator and accessible controls must be the primary demo surface");
     await visitor.waitForFunction(()=>
-      document.getElementById("referenceComparePanel").hidden && !map._popup,
+      document.getElementById("referenceComparePanel").hidden &&
+      !map._popup?.isOpen?.(),
       null,{timeout:15000});
     assert.equal(await visitor.locator("#referenceComparePanel").isVisible(),false,
       "opening demo must dismiss the old two-site comparison");
