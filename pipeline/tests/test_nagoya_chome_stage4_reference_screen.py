@@ -68,8 +68,11 @@ class Stage4SyntheticTests(unittest.TestCase):
         self.assertFalse(result["data_promotion_authorized"])
         self.assertEqual(result["official_facility_positions_accepted"], 0)
         message = json.dumps(result, ensure_ascii=False)
+        # Reject sensitive JSON fields, not innocent substrings embedded
+        # in an aggregate-only category label (e.g. unexpected_unmatched_address).
         for forbidden in ("試験町", "架空施設", "136.95", "35.18",
-                          "synthetic-a", "query_address", "matched_address"):
+                          "synthetic-a", '"query_address":', '"matched_address":',
+                          '"record_id":'):
             self.assertNotIn(forbidden, message)
 
     def test_parcel_match_rejected_even_with_high_resolution_coordinate(self):
