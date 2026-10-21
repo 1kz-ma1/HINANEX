@@ -631,8 +631,8 @@ async function screenshot(page, name) {
       "foundation completion must not be mistaken for live evacuation guidance");
     assert.match(introCopy,/待避施設はやむを得ない場合の緊急避難先/,
       "welcome must differentiate municipal emergency waiting facilities from early wide-area evacuation");
-    assert.match(introCopy,/紫ピンには千葉県側も含まれ得ます/,
-      "municipality selection must not imply every GSI pin is in Edogawa");
+    assert.match(introCopy,/江戸川区として取得された施設から2件を選び/,
+      "audience demo must lead with actual Edogawa D facility comparison");
     assert.match(await visitor.locator("#mapAudienceIntro a[href*=koikihinan]").getAttribute("href"),/koikihinan[.]html$/,
       "official wide-area source must be directly navigable");
     assert.equal(await visitor.locator("#gsiFloodDemoPanel").isVisible(),false,
@@ -648,6 +648,28 @@ async function screenshot(page, name) {
     });
     await visitor.locator("#mapAudienceIntroStart").click();
     assert.equal(await visitor.locator("#mapAudienceIntro").isVisible(),false);
+    assert.equal(await visitor.locator("#edogawaComparePanel").isVisible(),true,
+      "audience start must open Edogawa D facility comparison, not GSI/Chiba");
+    await visitor.waitForFunction(()=>
+      document.querySelectorAll("#edogawaCompareFirst option").length >= 3,
+      null,{timeout:15000});
+    const edogawaOptions=await visitor.evaluate(()=>Array.from(
+      document.querySelector("#edogawaCompareFirst").options).slice(1,3).map(o=>o.value));
+    await visitor.locator("#edogawaCompareFirst").selectOption(edogawaOptions[0]);
+    await visitor.locator("#edogawaCompareSecond").selectOption(edogawaOptions[1]);
+    await visitor.locator("#edogawaCompareRun").click();
+    assert.equal(await visitor.locator(".edogawa-compare-card").count(),2);
+    assert.match(await visitor.locator("#edogawaComparePanel").innerText(),/洪水時の分類|UNKNOWN/);
+    assert.equal(await visitor.locator("#gsiFloodDemoPanel").isVisible(),false,
+      "new main does not open the old GSI presenter automatically");
+    await visitor.locator("#edogawaCompareMapFocus").click();
+    const localFocus=await visitor.evaluate(()=>map.getCenter().lng);
+    assert.ok(localFocus>139 && localFocus<141,"Edogawa D source pair cannot silently navigate to western Japan");
+    await visitor.locator("#edogawaCompareClose").click();
+    assert.equal(await visitor.locator("#edogawaComparePanel").isVisible(),false);
+    // Keep the previous GSI source-only presenter under explicit, separate
+    // regression coverage. It is no longer the public MAIN DEMO.
+    await visitor.evaluate(()=>document.getElementById("mapGsiFloodDemoOpen").click());
     assert.equal(await visitor.locator("#gsiFloodDemoPanel").evaluate(el=>!el.hidden),true,
       "welcome CTA must launch MAIN GSI DEMO in one action");
     assert.equal(await visitor.locator("#gsiFloodDemoPanel").isVisible(),false,
@@ -789,6 +811,18 @@ async function screenshot(page, name) {
     assert.equal(await visitor.locator("#gsiFloodDemoPanel").isVisible(),false,
       "refresh must not autoplay the official presenter");
     await visitor.locator("#mapAudienceIntroStart").click();
+    await visitor.waitForFunction(()=>
+      !document.getElementById("edogawaComparePanel").hidden &&
+      document.querySelectorAll("#edogawaCompareFirst option").length>=3,
+      null,{timeout:15000});
+    assert.equal(await visitor.locator("#edogawaComparePanel").isVisible(),true,
+      "390px audience starts Edogawa comparison as well");
+    const compactHeight=await visitor.locator("#edogawaComparePanel").evaluate(el=>el.getBoundingClientRect().height);
+    assert.ok(compactHeight < 844*.55,
+      "mobile comparison picker must leave significant Leaflet map visible");
+    await visitor.locator("#edogawaCompareClose").click();
+    // Verify old GSI mobile narration as an opt-in legacy reference flow.
+    await visitor.evaluate(()=>document.getElementById("mapGsiFloodDemoOpen").click());
     await visitor.waitForFunction(()=>{
       const p=document.getElementById("gsiFloodDemoPanel");
       return !p.hidden &&
