@@ -7,13 +7,13 @@ municipal source links are included. This file must remain gitignored.
 from __future__ import annotations
 
 import argparse
+import csv
 import html
+import io
 import json
 from collections import Counter
 from pathlib import Path
-from urllib.parse import urlsplit
 
-from compare_nagoya_gsi_offline import read_csv
 from refine_nagoya_gsi_stage7 import ADDED_FIELDS, RANKS, STATES
 from compare_nagoya_gsi_offline import PRIVATE_COMPARISON_FIELDS
 from triage_nagoya_gsi_stage6 import EXTRA
@@ -21,6 +21,46 @@ from triage_nagoya_gsi_stage6 import EXTRA
 OFFICIAL_PORTAL = "https://www.city.nagoya.jp/bousaiportal/hinan/1013390/1013492.html"
 OFFICIAL_CHIKUSA = "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/013/492/okunai01chikusa0809.pdf"
 COLUMNS = (*PRIVATE_COMPARISON_FIELDS, *EXTRA, *ADDED_FIELDS)
+
+# Stage-7 files created before the header fix contain a second copy of
+# "independent_site_position_approved" just before "manual_review_required".
+# Keep historical PRIVATE outputs immutable and tolerate ONLY this known
+# duplicate after verifying that the two values are equal, row by row.
+LEGACY_DUPLICATE_FIELD = "independent_site_position_approved"
+LEGACY_DUPLICATE_INDEX = COLUMNS.index("manual_review_required")
+LEGACY_COLUMNS = (
+    *COLUMNS[:LEGACY_DUPLICATE_INDEX],
+    LEGACY_DUPLICATE_FIELD,
+    *COLUMNS[LEGACY_DUPLICATE_INDEX:],
+)
+
+
+def read_stage7_private(path: Path) -> list[dict]:
+    """Read canonical or precisely-known legacy Stage-7 CSV, fail closed."""
+    raw = path.read_bytes()
+    try:
+        payload = raw.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise ValueError("Stage-7 PRIVATE CSV must use UTF-8") from exc
+    reader = csv.reader(io.StringIO(payload, newline=""))
+    header = next(reader, None)
+    if header == list(COLUMNS):
+        legacy = False
+    elif header == list(LEGACY_COLUMNS):
+        legacy = True
+    else:
+        raise ValueError("Unexpected Stage-7 PRIVATE columns")
+    first_approval_index = COLUMNS.index(LEGACY_DUPLICATE_FIELD)
+    result = []
+    for values in reader:
+        if len(values) != len(header):
+            raise ValueError("Malformed Stage-7 PRIVATE CSV row")
+        if legacy and values[first_approval_index] != values[LEGACY_DUPLICATE_INDEX]:
+            raise ValueError("Conflicting duplicate approval fields in legacy CSV")
+        result.append(dict(zip(header, values)))
+    return result
+
+
 STYLE = """
 :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif}
 body{background:#f5f6f7;color:#202428;margin:0 auto;padding:20px;max-width:1080px}
@@ -162,7 +202,7 @@ def main() -> None:
     if output.exists():
         p.error("PRIVATE HTML already exists; refuse to overwrite")
     try:
-        rows, _ = read_csv(folder / "gsi_stage7_refined_PRIVATE.csv")
+        rows = read_stage7_private(folder / "gsi_stage7_refined_PRIVATE.csv")
         summary = json.loads((folder / "gsi_stage7_refined_aggregate.json").read_text("utf-8"))
         page = render(rows, summary)
         with output.open("x", encoding="utf-8") as handle:
