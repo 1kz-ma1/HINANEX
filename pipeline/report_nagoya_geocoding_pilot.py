@@ -7,7 +7,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 
 
@@ -40,6 +40,7 @@ def audit(manifest: dict, resolution: dict) -> tuple[dict, list[dict]]:
     reasons = Counter()
     levels = Counter()
     wards = Counter()
+    ward_statuses = defaultdict(Counter)
     worksheet = []
     seen = set()
     for item in rows:
@@ -67,6 +68,7 @@ def audit(manifest: dict, resolution: dict) -> tuple[dict, list[dict]]:
         statuses[status] += 1
         reasons[str(item.get("reason", "unknown"))] += 1
         wards[item["ward"]] += 1
+        ward_statuses[item["ward"]][status] += 1
         if item.get("coordinates_level"):
             levels[str(item["coordinates_level"])] += 1
         worksheet.append({
@@ -101,6 +103,7 @@ def audit(manifest: dict, resolution: dict) -> tuple[dict, list[dict]]:
         "provider_error_count": statuses["PROVIDER_ERROR"],
         "statuses": dict(statuses), "reasons": dict(reasons),
         "coordinate_levels": dict(levels), "ward_sample_counts": dict(wards),
+        "ward_status_counts": {ward: dict(counts) for ward, counts in sorted(ward_statuses.items())},
         "official_site_coordinates_accepted": 0,
         "site_accuracy_independently_verified": False,
         "approved_for_map": False,
@@ -137,12 +140,17 @@ def presentation_summary(summary: dict) -> str:
         "",
         "## 区ごとの抽出件数",
         "",
-        "| 行政区 | 件数 |",
-        "| --- | ---: |",
+        "| 行政区 | 対象 | 未承認候補 | 要確認 | 未解決 | 通信失敗 |",
+        "| --- | ---: | ---: | ---: | ---: | ---: |",
     ])
     for ward, count in sorted(summary["ward_sample_counts"].items()):
         clean_ward = ward.replace("|", "").replace("\n", "")
-        lines.append(f"| {clean_ward} | {count} |")
+        detail = summary["ward_status_counts"][ward]
+        lines.append(
+            f"| {clean_ward} | {count} | {detail.get('UNVERIFIED_CANDIDATE', 0)}"
+            f" | {detail.get('NEEDS_REVIEW', 0)} | {detail.get('UNRESOLVED', 0)}"
+            f" | {detail.get('PROVIDER_ERROR', 0)} |"
+        )
     lines.extend([
         "",
         "## 解釈と制約",
