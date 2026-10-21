@@ -109,6 +109,54 @@ def audit(manifest: dict, resolution: dict) -> tuple[dict, list[dict]]:
     }, worksheet
 
 
+def presentation_summary(summary: dict) -> str:
+    """Address-candidate diagnostics for a presentation; not site acceptance."""
+    total = summary["sample_total"]
+    statuses = summary["statuses"]
+    lines = [
+        "# 名古屋市：住所から座標候補を生成する試験の結果",
+        "",
+        "**実験結果／施設位置の独立検証は未了。安全な避難先の判定ではありません。**",
+        "",
+        f"- 試験対象：{total}施設（名古屋市屋内施設データから抽出）",
+        f"- 座標候補（未承認）：{summary['unverified_candidate_count']}/{total}"
+        f"（{summary['unverified_candidate_rate_percent']:.2f}%）",
+        f"- 同一点など要確認：{summary['requires_review_count']}/{total}",
+        f"- 未解決：{summary['unresolved_count']}/{total}",
+        f"- プロバイダ側エラー：{summary['provider_error_count']}/{total}",
+        "- 公式施設位置として確認済み：**0件（独立照合は別工程）**",
+        "",
+        "## 判定別の内訳",
+        "",
+        "| 判定 | 件数 |",
+        "| --- | ---: |",
+    ]
+    for status in ("UNVERIFIED_CANDIDATE", "NEEDS_REVIEW", "UNRESOLVED", "PROVIDER_ERROR"):
+        lines.append(f"| {status} | {statuses.get(status, 0)} |")
+    lines.extend([
+        "",
+        "## 区ごとの抽出件数",
+        "",
+        "| 行政区 | 件数 |",
+        "| --- | ---: |",
+    ])
+    for ward, count in sorted(summary["ward_sample_counts"].items()):
+        clean_ward = ward.replace("|", "").replace("\n", "")
+        lines.append(f"| {clean_ward} | {count} |")
+    lines.extend([
+        "",
+        "## 解釈と制約",
+        "",
+        "- 本集計はローカルABRの住所参照結果であり、建物・施設・入口の正確な位置を保証しない。",
+        "- 座標候補の取得率を位置精度・施設同一性の検証完了率と混同しない。",
+        "- 災害適合性、避難先開設、経路安全性は未評価。",
+        "- 既存のRegionExport、元の座標、GIS、本番には反映しない。",
+        "- 原本版・ABRデータ版と独立した人間の確認が必要。",
+        "",
+    ])
+    return "\n".join(lines)
+
+
 def create_report(directory: Path) -> dict:
     root = (Path(__file__).resolve().parent / "data" / "geocoding_pilot").resolve()
     directory = directory.resolve()
@@ -117,7 +165,11 @@ def create_report(directory: Path) -> dict:
     manifest = json.loads((directory / "manifest.json").read_text("utf-8"))
     resolution = json.loads((directory / "resolution.json").read_text("utf-8"))
     summary, worksheet = audit(manifest, resolution)
-    # Exclusive writes avoid silently replacing an earlier snapshot.
+    # Fail before any output if a previous report already exists.
+    paths = [directory / name for name in
+             ("summary.json", "human_review.csv", "presentation_summary.md")]
+    if any(path.exists() for path in paths):
+        raise FileExistsError("Existing report detected; use a new output directory")
     with (directory / "summary.json").open("x", encoding="utf-8") as output:
         json.dump(summary, output, ensure_ascii=False, indent=2, sort_keys=True)
         output.write("\n")
@@ -125,6 +177,8 @@ def create_report(directory: Path) -> dict:
         writer = csv.DictWriter(output, fieldnames=list(worksheet[0].keys()))
         writer.writeheader()
         writer.writerows(worksheet)
+    with (directory / "presentation_summary.md").open("x", encoding="utf-8") as output:
+        output.write(presentation_summary(summary))
     return summary
 
 
