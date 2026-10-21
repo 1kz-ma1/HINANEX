@@ -98,6 +98,33 @@ python geocode_nagoya_pilot.py resolve --dataset data/normalized/nagoya_shelters
 - 作業中のUI改善とは切り分ける。こちらの試験結果を公開GISへ自動同期しない。
 - 住所・ジオコーディングデータの利用許諾、最新性、公開範囲は実運用に入る前に別途検証する。
 
+## 2026-10-21 実測結果と住所不一致の追加診断（候補昇格なし）
+
+同一パイロットの実測では、16区の公式屋内施設Excelを既存Adapterで正規化した1,602件から50件を抽出。ABR 3.0.52 / DB 3.0.29（愛知県23、category all）の結果は UNVERIFIED_CANDIDATE 6、NEEDS_REVIEW 1（parcel）、UNRESOLVED 43、PROVIDER_ERROR 0。未解決理由の内訳は「different_street_or_house_number」37件、「low_resolution_or_unknown_level」6件だった。**これらは住所参照点の診断結果であり、公式施設位置の正しさを保証しない。公式施設位置の独立確認は未実施。**
+
+当初の\`resolution.json\`では不一致判定になったABR応答の住所文字列を保持していない。そのため既存パイロットを上書きせず、同一データ・同一ABR版のまま、37件に限定したローカル再照会を行う追加スクリプトを提供する。
+
+\`\`\`sh
+# pipeline/ から、ローカルABRのhealthと127.0.0.1限定バインドを確認後に実行
+python diagnose_nagoya_address_mismatch.py \
+  --dataset data/normalized/nagoya_shelters.json \
+  --pilot-dir data/geocoding_pilot/nagoya50 \
+  --local-abr-url http://127.0.0.1:3000
+\`\`\`
+
+- 入力JSON・manifest・resolution・summaryを相互照合し、抽出ID/住所の改変がないことを確認。通信開始前にスナップショット不一致を拒否する。
+- ABRのhealth、API版、DB版、対象pref=23、category=allを検証。元の37応答のSHA256が一致しなければ停止する。古い出力を上書きせず、診断レポートを新規作成する。
+- HTTPはlocalhost限定、リダイレクト拒否、proxy不使用。**個別の名前・ID・住所・住所候補・座標・レスポンスは出力せず**、gitignoredの\`mismatch_diagnostics_aggregate.json\`と標準出力に匿名件数のみ記録。
+- 診断区分は次の4つ。これらは**文字列の観測パターン**であって原因・精度・施設位置の確定分類ではない。
+  - \`source_suffix_not_matched\`: ABR住所が元の住所の前方部分で止まる
+  - \`provider_has_extra_suffix\`: ABR住所側に追加の末尾がある
+  - \`same_text_stem_number_difference\`: 最初の数字より前の文字列は一致し、数字以降に相違がある
+  - \`town_or_other_text_difference\`: 上記以外の住所文字列差
+- 住居表示・地番体系の違い、真の番地違い、施設の位置誤差はこの機械的分類では確定できない。必要に応じて**ローカル限定**の公式施設位置資料による人間の独立照合で判別する。
+- データの選定、元の50件ステータス、\`UNVERIFIED_CANDIDATE\`6件、施設位置受入0件、\`approved_for_map=false\`を一切変えない。RegionExport / GIS / 災害適合判定 / 正式座標には接続しない。
+- Issue #286へはこの匿名化した集計と実測上の制約だけを掲載し、施設単位の内容や\`human_review.csv\`は絶対にコミット・投稿しない。
+- 原本16ファイルのURL/取得時間帯/SHA256は個別のローカル監査記録で確認すること。元の実測集計に含まれていない場合は記録済みと断定しない。
+
 ## 発表質問への回答例
 
 「名古屋市の屋内施設の住所情報は取得できていますが、緯度経度の列はありません。そこで住所から座標候補を得る実験用のパイプラインを追加しました。候補点と公式施設座標は区別し、変換時の位置精度・版・不一致を記録します。座標が付いただけでは避難時の安全性・施設の開設状態・経路の通行可能性は証明できないため、正式な地図表示への自動昇格は行っていません。」
