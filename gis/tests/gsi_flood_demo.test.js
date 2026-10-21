@@ -50,8 +50,8 @@ test("Edogawa is public MAIN DEMO, GSI source presenter retained as opt-in legac
  assert.match(html,/class="map-tour-other-demos" hidden/);
  assert.match(html,/id="mapAudienceIntroStart"[^>]*>▶ デモを開始する/);
  assert.match(html,/将来の避難支援につながるデータ基盤が、どこまで実装されたか/);
- assert.match(html,/検証できたGSI公式掲載地点を出典までたどり/);
- assert.match(html,/避難先の安全判断・推奨はまだ行いません/);
+ assert.match(html,/江戸川区として取得された施設から2件を選び/);
+ assert.match(html,/比較から安全な避難先を決定・推奨するものではありません/);
  assert.match(html,/id="gsiDemoNarration"[^>]*aria-live="polite"[^>]*hidden/);
  assert.doesNotMatch(html,/id="gsiFloodDemoPickHint"/);
  assert.match(html,/id="gsiFloodDemoTitle"/);
