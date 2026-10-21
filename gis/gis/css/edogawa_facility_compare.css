@@ -129,3 +129,30 @@ body:has(#edogawaComparePanel:not([hidden])) .leaflet-reference-site-pane{
   .edogawa-compare-takeaway strong{font-size:12px}
   .edogawa-compare-takeaway p{font-size:11px}
 }
+
+
+/* The visitor may either explore manually or let the demo choose two real
+   source records. The auto choice is pedagogical, NOT an evacuation ranking. */
+.edogawa-compare-quick-actions{
+  display:grid;grid-template-columns:1fr;gap:6px;margin:10px 0 6px;
+}
+.edogawa-compare-quick-actions #edogawaCompareAutoPick{
+  background:#0b727a;color:white;border-color:#0b727a;
+  min-height:46px;font-size:13px;
+}
+.edogawa-compare-quick-actions #edogawaCompareAdvance{
+  background:#f7fcff;color:#16516b;border-color:#9bbdc6;
+}
+.edogawa-compare-auto-note{
+  font-size:10.5px;line-height:1.5;color:#526779;
+  margin:6px 0 10px;
+}
+.edogawa-compare-pair-basis{
+  background:#ecf7fa;border-left:3px solid #0b7889;
+  color:#23505c;font-size:11px;line-height:1.5;
+  margin:5px 0 8px;padding:6px 8px;
+}
+@media(max-width:780px){
+  .edogawa-compare-quick-actions{gap:5px;margin:7px 0}
+  .edogawa-compare-quick-actions #edogawaCompareAutoPick{min-height:44px}
+}

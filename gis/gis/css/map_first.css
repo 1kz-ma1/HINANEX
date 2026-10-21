@@ -512,3 +512,56 @@ footer{display:none}
 .map-audience-intro-start:focus-visible{outline:3px solid #fff;outline-offset:3px}
 /* Keep legacy code testable but remove all alternate demos from distribution UI. */
 .map-tour-other-demos[hidden]{display:none!important}
+
+
+/* Audience welcome: head and launch are always visible, only documentation
+   scrolls. This fixes the screenshot where the CTA was below the 340px clip. */
+.map-audience-intro:not([hidden]){
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  padding:0;
+  max-height:min(70dvh,420px);
+}
+.map-audience-intro-head{
+  flex:0 0 auto;
+  padding:13px 15px 8px;
+  align-items:center;
+}
+.map-audience-intro-body{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:0 15px 6px;
+  scrollbar-gutter:stable;
+}
+.map-audience-intro-body:focus-visible{
+  outline:2px solid #73e6e3;
+  outline-offset:-3px;
+}
+.map-audience-intro-footer{
+  flex:0 0 auto;
+  padding:10px 15px 12px;
+  background:#102534;
+  border-top:1px solid var(--line-strong);
+  box-shadow:0 -8px 18px rgba(3,16,26,.34);
+}
+.map-audience-intro-footer .map-audience-intro-start{
+  margin:0;
+}
+.map-audience-intro-footer small{
+  display:block;
+  font-size:10px;
+  line-height:1.35;
+  text-align:center;
+  color:var(--muted);
+  margin-top:5px;
+}
+@media(max-width:680px){
+  .map-audience-intro:not([hidden]){max-height:min(65dvh,470px)}
+  .map-audience-intro-head{padding:10px 12px 7px}
+  .map-audience-intro-body{padding:0 12px 5px}
+  .map-audience-intro-footer{padding:8px 12px 10px}
+  .map-audience-intro-footer .map-audience-intro-start{min-height:48px}
+}

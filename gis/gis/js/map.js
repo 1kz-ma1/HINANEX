@@ -3000,6 +3000,7 @@ window.HINANEX_EDOGAWA_FACILITY_COMPARE = Object.freeze({
     const indices=summary.mappableRecords.map((record,index)=>({key:String(index),record}));
     const records=indices.map(({key,record})=>({
       key,name:record.name,address:record.address,
+      facilityType:record.facility_type ?? null,
       latitude:record.latitude,longitude:record.longitude
     })).sort((a,b)=>a.name.localeCompare(b.name,"ja"));
     const bounds=L.latLngBounds(summary.mappableRecords.map(r=>[r.latitude,r.longitude]));

@@ -623,6 +623,23 @@ async function screenshot(page, name) {
     await visitor.waitForFunction(()=>!!window.HINANEX_GSI_FLOOD_PRESENTER);
     assert.equal(await visitor.locator("#mapAudienceIntro").isVisible(),true,
       "distribution URL must show the welcome card in a fresh session");
+    const desktopWelcome=await visitor.evaluate(()=>{
+      const card=document.querySelector("#mapAudienceIntro"),
+        body=document.querySelector("#mapAudienceIntroBody"),
+        cta=document.querySelector("#mapAudienceIntroStart");
+      const before=cta.getBoundingClientRect(),frame=card.getBoundingClientRect();
+      body.scrollTop=body.scrollHeight;
+      const after=cta.getBoundingClientRect();
+      return {before:before.top,after:after.top,frameBottom:frame.bottom,
+        ctaBottom:after.bottom,cardStillOpen:!card.hidden,
+        bodyScrollable:getComputedStyle(body).overflowY};
+    });
+    assert.equal(desktopWelcome.cardStillOpen,true,"scrolling explanation cannot dismiss welcome");
+    assert.equal(desktopWelcome.bodyScrollable,"auto");
+    assert.ok(desktopWelcome.before>=0 && desktopWelcome.ctaBottom<=desktopWelcome.frameBottom+2,
+      "launch CTA must be visible at rest inside desktop welcome");
+    assert.ok(Math.abs(desktopWelcome.after-desktopWelcome.before)<2,
+      "launch CTA must stay fixed while long explanation scrolls");
     const introCopy=await visitor.locator("#mapAudienceIntro").innerText();
     assert.match(introCopy,/データ基盤が、どこまで実装されたか/,
       "visitors should understand the purpose of the demo before starting");
@@ -686,6 +703,21 @@ async function screenshot(page, name) {
     await visitor.locator("#edogawaCompareResultFocus").click();
     const localFocus=await visitor.evaluate(()=>map.getCenter().lng);
     assert.ok(localFocus>139 && localFocus<141,"Edogawa D source pair cannot silently navigate to western Japan");
+    await visitor.locator("#edogawaCompareAgain").click();
+    assert.equal(await visitor.locator("#edogawaComparePickControls").isVisible(),true);
+    await visitor.locator("#edogawaCompareAutoPickFromPicker").click();
+    assert.equal(await visitor.locator(".edogawa-compare-card").count(),2,
+      "opt-in auto pair must choose and compare real D source records");
+    assert.equal(await visitor.locator("#edogawaComparePairBasis").isVisible(),true);
+    assert.match(await visitor.locator("#edogawaComparePairBasis").innerText(),/安全性・距離に基づく推薦ではありません/);
+    const autoPair=await visitor.evaluate(()=>{
+      const a=document.querySelector("#edogawaCompareFirst"),
+        b=document.querySelector("#edogawaCompareSecond");
+      return {a:a.value,b:b.value,validA:[...a.options].some(o=>o.value===a.value),
+        validB:[...b.options].some(o=>o.value===b.value)};
+    });
+    assert.ok(autoPair.a && autoPair.b && autoPair.a!==autoPair.b && autoPair.validA && autoPair.validB,
+      "auto pair must choose two different existing source keys, not invented facilities");
     await visitor.locator("#edogawaCompareClose").click();
     assert.equal(await visitor.locator("#edogawaComparePanel").isVisible(),false);
     // Keep the previous GSI source-only presenter under explicit, separate
@@ -829,6 +861,30 @@ async function screenshot(page, name) {
     await visitor.waitForFunction(()=>!!window.HINANEX_GSI_FLOOD_PRESENTER);
     assert.equal(await visitor.locator("#mapAudienceIntro").isVisible(),true,
       "reload of ?demo=audience must re-show the intro in the SAME session");
+    const mobileWelcome=await visitor.evaluate(()=>{
+      const intro=document.querySelector("#mapAudienceIntro"),
+        scroller=document.querySelector("#mapAudienceIntroBody"),
+        start=document.querySelector("#mapAudienceIntroStart");
+      const before=start.getBoundingClientRect(),frame=intro.getBoundingClientRect();
+      // Some mobile font/viewport combinations fit all original text. Force a
+      // long-doc case in the test, without altering the shipped UI or source.
+      const extra=document.createElement("p");
+      extra.textContent="説明の追加スクロール検証 ".repeat(150);
+      scroller.append(extra);
+      const scrollable=scroller.scrollHeight>scroller.clientHeight;
+      scroller.scrollTop=scroller.scrollHeight;
+      const after=start.getBoundingClientRect();
+      extra.remove();
+      return {before:before.top,after:after.top,ctaBottom:after.bottom,
+        frameBottom:frame.bottom,scrollable,stillOpen:!intro.hidden};
+    });
+    assert.equal(mobileWelcome.stillOpen,true);
+    assert.equal(mobileWelcome.scrollable,true,
+      "390px welcome should scroll the explanatory copy independently of CTA");
+    assert.ok(mobileWelcome.ctaBottom<=mobileWelcome.frameBottom+2,
+      "mobile launch CTA should be above the card bottom without scrolling");
+    assert.ok(Math.abs(mobileWelcome.after-mobileWelcome.before)<2,
+      "mobile launch CTA may not be pushed away by scrolling");
     assert.equal(await visitor.locator("#gsiFloodDemoPanel").isVisible(),false,
       "refresh must not autoplay the official presenter");
     await visitor.locator("#mapAudienceIntroStart").click();
@@ -841,6 +897,10 @@ async function screenshot(page, name) {
     const compactHeight=await visitor.locator("#edogawaComparePanel").evaluate(el=>el.getBoundingClientRect().height);
     assert.ok(compactHeight < 844*.55,
       "mobile comparison picker must leave significant Leaflet map visible");
+    await visitor.locator("#edogawaCompareAutoPick").click();
+    assert.equal(await visitor.locator(".edogawa-compare-card").count(),2);
+    assert.equal(await visitor.locator("#edogawaComparePairBasis").isVisible(),true,
+      "mobile visitor can see the demo-only auto-selection disclosure");
     await visitor.locator("#edogawaCompareClose").click();
     // Verify old GSI mobile narration as an opt-in legacy reference flow.
     await visitor.evaluate(()=>document.getElementById("mapGsiFloodDemoOpen").click());
