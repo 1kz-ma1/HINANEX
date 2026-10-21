@@ -43,6 +43,10 @@ python geocode_nagoya_pilot.py resolve --dataset data/normalized/nagoya_shelters
 
 出力は resolution.json。source recordの正規化座標やRegionExport、GIS、Scenario、開設状況・適合判定は**一切変更しない**。パイロット出力はGit管理外。
 
+## 住所の行政区検証
+
+入力の `administrative_area` は、[名古屋市公式の区役所一覧](https://www.city.nagoya.jp/shisei/gaiyou/1015754/1015781/index.html)に示される16区のみに限定する。対象外の区・住所が欠けた行は `skipped` に理由を記録して対象から除く。住所条件に合致するレコードが0件なら試験を開始せず失敗とする。地理的境界の実位置確認をこの文字列の区検証だけで代替しない。
+
 ## 判定区分
 
 - UNVERIFIED_CANDIDATE: 一意の住所候補、区と住所が一致、街区・住居番号相当の精度。ただし独立した施設位置確認は未実施で、GIS公開不可。地番精度はここに入れない。
@@ -66,7 +70,7 @@ python geocode_nagoya_pilot.py resolve --dataset data/normalized/nagoya_shelters
     docker compose up -d abrg_app
 
 3. コマンド docker compose ps と curl http://127.0.0.1:3000/health および curl http://127.0.0.1:3000/ で起動とAPI/DB版を確認する。
-4. **外部公開の禁止:** 公式のDocker Composeは設定によって全インターフェースに公開され得る。Docker Compose overrideで、ABR APIはホストバインド127.0.0.1:3000:3000に、PostgreSQLも127.0.0.1のみに制限してから起動する。LAN・公衆ネットワークへの公開を行わない。
+4. **外部公開の禁止:** 公式のDocker Composeは設定によって全インターフェースに公開され得る。公式 .env.example にある `PORT=3000`、`DB_PORT=5432` をそれぞれ **`PORT=127.0.0.1:3000`**、**`DB_PORT=127.0.0.1:5432`** に変更してから起動する。Composeの `ports` 定義がそのままであれば、この指定はそれぞれ `127.0.0.1:3000:3000` と `127.0.0.1:5432:5432` になる。`docker compose config` で実際のホストポートバインドを確認し、LAN・公衆ネットワークへの公開を行わない。別のポートを使う場合はホストポートとpilotの引数を整合させる。
 5. HINANEXのpipeline/から、隔離環境に保存された公式名古屋市Excel由来のdata/normalized/nagoya_shelters.jsonを使う。必要なら既存の run_nagoya_workflow.py を明示実行する。元の原本・取得日・ハッシュを別記録に残す。
 6. 同一データスナップショットで以下を順番に実行する。
 
