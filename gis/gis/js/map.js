@@ -1522,7 +1522,11 @@ function detail(title, rows, type, options = {}) {
     const popup = L.popup({
       className: "hinanex-place-popup " + zoomTier +
         (isBoundary ? " place-bubble--boundary" : ""),
-      closeButton: true, autoPan: true,
+      // GSI presenter pins must not drag the map across a prefectural
+      // border simply because a popup needs space. Outside the presenter
+      // preserve normal map pop-up behavior.
+      closeButton: true,
+      autoPan: !(gsiPresenterSession && type === "GSI公式掲載 / 未推奨"),
       autoPanPaddingTopLeft: [16, 82],
       autoPanPaddingBottomRight: [16, 76], maxWidth: 285
     }).setLatLng(options.anchor)
@@ -1776,7 +1780,9 @@ function enableReferenceComparison(discovery) {
 }
 
 document.getElementById("referenceCompareOpen")?.addEventListener("click", () => {
-  if (!referenceComparisonSession) return;
+  // The audience presenter owns the map while playing. Keep exploratory
+  // comparison out of its way; resume availability after closing the demo.
+  if (!referenceComparisonSession || gsiPresenterSession) return;
   const panel = document.getElementById("referenceComparePanel");
   if (!panel) return;
   // On mobile the map footprint summary and an existing Leaflet popup can
@@ -2824,6 +2830,12 @@ window.HINANEX_GSI_FLOOD_PRESENTER = Object.freeze({
       sites:null,discovery:null
     };
     gsiPresenterSession=session;
+    // The preview map could already have both a place popup and an opt-in
+    // two-site comparison. Do not stack either above audience narration.
+    map.closePopup?.();
+    const comparePanel = document.getElementById("referenceComparePanel");
+    if (comparePanel) comparePanel.hidden = true;
+    document.getElementById("referenceCompareOpen")?.setAttribute("aria-expanded","false");
     selectedOrigin={latitude:origin.latitude,longitude:origin.longitude};
     setDisplayMode("region"); // start with D as context; GSI appears at the source-switch scene.
     if(!session.origin) {
@@ -2856,20 +2868,32 @@ window.HINANEX_GSI_FLOOD_PRESENTER = Object.freeze({
     const s=gsiPresenterSession;
     if(!s?.discovery||s.sourceCode!==selectedRegionCode)return {state:"unavailable"};
     setDisplayMode("nearby");
-    focusReferenceCandidates();
+    // Display verified GSI pins but DO NOT automatically fit Chiba-side
+    // references. Edogawa stays on screen until the visitor explicitly
+    // requests a focus change from the scene-3 button.
     return {state:"shown",count:s.discovery.total,shown:s.sites.length,
       partial:s.discovery.partialCoverage};
   },
-  inspect(sourceTrace=null) {
+  focusPins() {
+    const s=gsiPresenterSession;
+    if(!s?.discovery||s.sourceCode!==selectedRegionCode)return {state:"unavailable"};
+    if(!["nearby","both"].includes(displayMode))return {state:"unavailable"};
+    focusReferenceCandidates(); // Explicit user action only; may include Chiba.
+    return {state:"focused",shown:s.sites.length};
+  },
+  inspect(sourceTrace=null,focusCamera=true) {
     const s=gsiPresenterSession;
     if(!s?.discovery||s.sourceCode!==selectedRegionCode)return {state:"unavailable"};
     const item=sourceTrace===null ? s.sites[0] :
       s.sites.find(site=>site.trace===sourceTrace);
     if(!item) return {state:"unavailable",reason:"UNVERIFIED_SITE"};
     // Only an existing strictly verified, non-recommended catalog record.
-    if(typeof map.flyTo==="function")
-      map.flyTo([item.latitude,item.longitude],14,{duration:1.2});
-    else map.setView([item.latitude,item.longitude],14,{animate:false});
+    // Manual marker selection is evidence inspection, not camera navigation.
+    if(focusCamera){
+      if(typeof map.flyTo==="function")
+        map.flyTo([item.latitude,item.longitude],14,{duration:1.2});
+      else map.setView([item.latitude,item.longitude],14,{animate:false});
+    }
     const sourceUrl=safeExternalUrl(item.sourceUrl);
     return {
       state:"inspected",name:item.name,address:item.address,remarks:item.remarks,
@@ -2889,7 +2913,7 @@ window.HINANEX_GSI_FLOOD_PRESENTER = Object.freeze({
       record.latitude===site?.latitude && record.longitude===site?.longitude &&
       record.name===site?.name);
     if(!verified)return {state:"unavailable",reason:"UNVERIFIED_SITE"};
-    const proof=this.inspect(verified.trace);
+    const proof=this.inspect(verified.trace,false);
     if(proof.state==="inspected" && typeof window.dispatchEvent==="function" &&
        typeof window.CustomEvent==="function")
       window.dispatchEvent(new window.CustomEvent("hinanex:gsi-verified-pin",{
@@ -2925,6 +2949,8 @@ window.HINANEX_GSI_FLOOD_PRESENTER = Object.freeze({
     document.getElementById("details").innerHTML=s.originalDetail;
     renderReferenceDiscovery();
     setDisplayMode(s.mode);
+    // Rendering the saved vetted catalog may create a new comparison session.
+    // Keep it closed but allow the user to reopen it explicitly after demo.
     if(restore)map.setView(s.center,s.zoom,{animate:false});
   }
 });
