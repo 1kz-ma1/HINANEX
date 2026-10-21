@@ -141,8 +141,13 @@ def classify(payload: object, query: str, ward: str) -> dict:
         return unresolved("invalid_numeric_coordinates")
     if not (-180 <= lon <= 180 and -90 <= lat <= 90):
         return unresolved("out_of_range_coordinates")
+    # ABR upstream issue #256 reports some parcel-level coordinates with
+    # very large offsets. Preserve the reference point for independent review
+    # but never count parcel precision as an ordinary candidate success.
+    needs_review = level == "parcel"
     return {
-        "status": "UNVERIFIED_CANDIDATE", "reason": "human_site_review_required",
+        "status": "NEEDS_REVIEW" if needs_review else "UNVERIFIED_CANDIDATE",
+        "reason": "parcel_reference_offset_risk" if needs_review else "human_site_review_required",
         "derived_geometry": {"latitude": lat, "longitude": lon},
         "coordinate_source": "DIGITAL_AGENCY_ABR_ADDRESS_GEOCODER",
         "coordinates_level": level, "matched_address": matched,
