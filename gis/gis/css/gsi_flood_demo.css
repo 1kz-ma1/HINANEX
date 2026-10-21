@@ -265,3 +265,18 @@
 }
 \n/* The HTML hidden state wins even over verified/unavailable desktop overrides. */
 .gsi-demo-narration[hidden]{display:none!important}
+
+/* PC: the short primary-source link shares the title row, so it adds no
+   third narration row. Mobile keeps the link below the body for readability. */
+@media(min-width:781px){
+  .gsi-demo-narration-copy{
+    grid-template-columns:minmax(0,1fr) auto;column-gap:10px;row-gap:5px;
+    align-items:start;
+  }
+  .gsi-demo-narration-copy strong{grid-column:1;grid-row:1;min-width:0}
+  .gsi-demo-narration-copy p{grid-column:1/-1;grid-row:2}
+  .gsi-demo-narration-source{
+    grid-column:2;grid-row:1;align-self:start;
+    padding-top:1px;white-space:nowrap;
+  }
+}
