@@ -130,13 +130,8 @@ class GsiOfflineTests(unittest.TestCase):
         ):
             altered = [dict(q[0])]
             altered[0][field] = bad
-            with self.subTest(field=field):
-                if field == "pilot_record_id":
-                    # The ID schema currently allows empty string as a string,
-                    # but downstream cross-references never approve positions.
-                    continue
-                with self.assertRaises(ValueError):
-                    validate_queue(altered, queue_summary(q))
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                validate_queue(altered, queue_summary(q))
 
     def test_private_gsi_provenance_schema_and_headers(self):
         self.assertIn("strict_name_address_unique_reference", STATUS)
