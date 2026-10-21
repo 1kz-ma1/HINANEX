@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlparse
-from urllib.request import HTTPRedirectHandler, Request, build_opener
+from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 MAX_SAMPLE = 50
 REGION = "23100"
@@ -180,7 +180,7 @@ def resolve(manifest: dict, dataset_sha256: str, server: str) -> dict:
     if not isinstance(rows, list) or not 1 <= len(rows) <= MAX_SAMPLE:
         raise ValueError("Invalid sample")
     base = local_url(server)
-    opener = build_opener(BlockRedirects())
+    opener = build_opener(ProxyHandler({}), BlockRedirects())
     health, _ = fetch_json(opener, base + "/health")
     if not isinstance(health, dict) or health.get("status") != "ok":
         raise ValueError("ABR health check failed")
