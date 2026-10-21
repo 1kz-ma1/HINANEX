@@ -2960,6 +2960,15 @@ window.HINANEX_GSI_FLOOD_PRESENTER = Object.freeze({
 // that every raw latitude/longitude lies inside a legal boundary, nor
 // upgrade UNKNOWN hazard statuses or match D rows to GSI facilities.
 const edogawaCompareMarkers = L.layerGroup().addTo(map);
+let edogawaCompareABMarkers = {};
+function edogawaHighlightMarker(letter) {
+  for (const [name,marker] of Object.entries(edogawaCompareABMarkers)) {
+    const element=marker.getElement?.();
+    const pin=element?.querySelector?.(".edogawa-compare-map-pin");
+    pin?.classList?.toggle("is-current",name===letter);
+    pin?.setAttribute?.("aria-current",String(name===letter));
+  }
+}
 let edogawaCompareSession = null;
 let edogawaCompareGeneration = 0;
 window.HINANEX_EDOGAWA_FACILITY_COMPARE = Object.freeze({
@@ -3031,12 +3040,15 @@ window.HINANEX_EDOGAWA_FACILITY_COMPARE = Object.freeze({
       };
     }
     edogawaCompareMarkers.clearLayers();
+    edogawaCompareABMarkers={};
     for(const [label,r] of [["A",first],["B",second]]){
-      L.marker([r.latitude,r.longitude],{
+      const marker=L.marker([r.latitude,r.longitude],{
         pane:"referenceOriginPane",zIndexOffset:1600,
         icon:L.divIcon({className:"",html:'<span class="edogawa-compare-map-pin" aria-label="比較用'+label+'（安全性未判定）">'+label+'</span>',
           iconSize:[34,34],iconAnchor:[17,17]})
       }).addTo(edogawaCompareMarkers);
+      marker.on?.("click",()=>window.HINANEX_EDOGAWA_COMPARE_UI?.showSite?.(label));
+      edogawaCompareABMarkers[label]=marker;
     }
     return {state:"compared",first:facts(first),second:facts(second)};
   },
@@ -3044,7 +3056,23 @@ window.HINANEX_EDOGAWA_FACILITY_COMPARE = Object.freeze({
   // only presentation markers, never the source D record set or state.
   clear(){
     edogawaCompareMarkers.clearLayers();
+    edogawaCompareABMarkers={};
     return {state:"cleared"};
+  },
+  focusSite(key,letter) {
+    const s=edogawaCompareSession;
+    if(!s||selectedRegionCode!=="13123"||!["A","B"].includes(letter))return {state:"unavailable"};
+    const record=s.indices.find(x=>x.key===key)?.record;
+    if(!record||!Number.isFinite(record.latitude)||!Number.isFinite(record.longitude))
+      return {state:"unavailable"};
+    // User starts this sequence by clicking Compare/Auto and then advances
+    // between site stages. Always use the raw D coordinates, never geocode.
+    const destination=[record.latitude,record.longitude];
+    if(typeof map.flyTo==="function")
+      map.flyTo(destination,15,{duration:0.65});
+    else map.setView(destination,15,{animate:false});
+    edogawaHighlightMarker(letter);
+    return {state:"focused",letter};
   },
   focus(a,b){
     const s=edogawaCompareSession;
@@ -3053,6 +3081,7 @@ window.HINANEX_EDOGAWA_FACILITY_COMPARE = Object.freeze({
     if(!first||!second)return {state:"unavailable"};
     map.fitBounds(L.latLngBounds([[first.latitude,first.longitude],[second.latitude,second.longitude]]),
       {padding:[55,55],maxZoom:14});
+    edogawaHighlightMarker(null);
     return {state:"focused"};
   },
   end(){
@@ -3060,6 +3089,7 @@ window.HINANEX_EDOGAWA_FACILITY_COMPARE = Object.freeze({
     const s=edogawaCompareSession;
     edogawaCompareSession=null;
     edogawaCompareMarkers.clearLayers();
+    edogawaCompareABMarkers={};
     if(!s)return;
     const v=s.previous;
     if(selectedRegionCode!==v.code)selectRegion(v.code);
