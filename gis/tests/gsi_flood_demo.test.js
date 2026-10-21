@@ -55,7 +55,7 @@ test("one public MAIN DEMO, other presenters retained only behind hidden wrapper
  assert.doesNotMatch(html,/id="gsiFloodDemoPickHint"/);
  assert.match(html,/id="gsiFloodDemoTitle"/);
  assert.equal((html.match(/id="gsiFloodDemoTitle"/g)||[]).length,1);
- assert.match(html,/gsi_flood_demo[.]js[?]v=gsi-desktop-compact-20261020-v1/);
+ assert.match(html,/gsi_flood_demo[.]js[?]v=gsi-source-shortlabel-20261021-v1/);
   assert.match(html,/id="gsiDemoMobileToggle"[^>]*type="button"/);
   assert.match(html,/id="gsiDemoMobileClose"[^>]*type="button"/);
  assert.match(html,/id="gsiDemoNext"[^>]*type="button"/);
@@ -65,6 +65,7 @@ test("one public MAIN DEMO, other presenters retained only behind hidden wrapper
  assert.match(html,/大規模水害の際、早期の広域避難/);
  assert.match(html,/紫ピンには千葉県側も含まれ得ます/);
  assert.match(html,/id="gsiDemoSceneSource"/);
+ assert.match(html,/id="gsiDemoFullSource"[^>]*rel="noopener noreferrer"/);
  assert.match(html,/href="https:\/\/www[.]city[.]edogawa[.]tokyo[.]jp\/e007\/bosaianzen\/bosai\/kanrenmap\/hazardmap\/ikinaihinan[.]html"/);
 });
 test("mobile keeps only an upper narration with working pause and close",async()=>{
@@ -179,17 +180,30 @@ test("four official source links switch with real source scenes without authoriz
  assert.match(m.get("gsiFloodDemoTitle").textContent,/近くに学校/);
  assert.match(m.get("gsiFloodDemoMessage").textContent,/早期の広域避難/);
  assert.match(m.get("gsiDemoSceneSource").href,/koikihinan[.]html$/);
- assert.match(m.get("gsiDemoSceneSource").textContent,/江戸川区/);
+ assert.equal(m.get("gsiDemoSceneSource").textContent,"公式資料 ↗");
+ assert.match(m.get("gsiDemoSceneSource").getAttribute("aria-label"),/江戸川区：大規模水害時の広域避難/);
+ assert.match(m.get("gsiDemoSceneSource").getAttribute("title"),/江戸川区：大規模水害時の広域避難/);
+ assert.match(m.get("gsiDemoFullSource").textContent,/江戸川区：大規模水害時の広域避難/);
+ assert.equal(m.get("gsiDemoFullSource").href,m.get("gsiDemoSceneSource").href);
  m.tick(7);
  assert.match(m.get("gsiFloodDemoMessage").textContent,/千葉県側/);
  assert.match(m.get("gsiDemoSceneSource").href,/ikinaihinan[.]html$/);
+ assert.equal(m.get("gsiDemoSceneSource").textContent,"公式資料 ↗");
+ assert.match(m.get("gsiDemoFullSource").textContent,/江戸川区：待避施設の位置付け/);
+ assert.equal(m.get("gsiDemoFullSource").href,m.get("gsiDemoSceneSource").href);
  m.tick(12);
  assert.match(m.get("gsiDemoSceneSource").href,/gsi[.]go[.]jp/);
+ assert.equal(m.get("gsiDemoSceneSource").textContent,"公式資料 ↗");
+ assert.match(m.get("gsiDemoFullSource").textContent,/国土地理院：指定緊急避難場所の資料/);
+ assert.equal(m.get("gsiDemoFullSource").href,m.get("gsiDemoSceneSource").href);
  assert.equal(m.timers.size,0,"a static official link cannot skip pin verification");
  m.select();
  assert.match(m.get("gsiFloodDemoMessage").textContent,/開設・混雑・安全は未確認/);
  m.tick(12);
  assert.match(m.get("gsiDemoSceneSource").href,/suigaihinan[.]html$/);
+ assert.equal(m.get("gsiDemoSceneSource").textContent,"公式資料 ↗");
+ assert.match(m.get("gsiDemoFullSource").textContent,/江戸川区：水害時の避難判断フロー/);
+ assert.equal(m.get("gsiDemoFullSource").href,m.get("gsiDemoSceneSource").href);
  assert.match(m.get("gsiFloodDemoMessage").textContent,/開設・混雑・経路の現況はこのデモでは未確認/);
  assert.match(m.get("gsiFloodDemoDStatus").textContent,/未判定 152件/);
 });
