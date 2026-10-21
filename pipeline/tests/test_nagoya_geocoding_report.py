@@ -2,7 +2,7 @@ import copy
 import unittest
 
 from geocode_nagoya_pilot import prepare
-from report_nagoya_geocoding_pilot import audit
+from report_nagoya_geocoding_pilot import audit, presentation_summary
 
 
 def fixture():
@@ -37,6 +37,16 @@ class NagoyaGeocodeReportTests(unittest.TestCase):
         self.assertFalse(summary["approved_for_map"])
         self.assertEqual(worksheet[0]["human_review"], "NOT_REVIEWED")
         self.assertEqual(worksheet[0]["candidate_latitude"], 35.16)
+
+    def test_presentation_summary_is_explicitly_unverified_and_anonymous(self):
+        manifest, result = fixture()
+        summary, _ = audit(manifest, result)
+        rendered = presentation_summary(summary)
+        self.assertIn("1/1", rendered)
+        self.assertIn("独立検証は未了", rendered)
+        self.assertIn("0件", rendered)
+        self.assertNotIn("架空施設", rendered)
+        self.assertNotIn("136.93", rendered)
 
     def test_reject_approved_map_result(self):
         manifest, result = fixture()
