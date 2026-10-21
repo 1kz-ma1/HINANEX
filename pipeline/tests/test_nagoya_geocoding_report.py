@@ -35,6 +35,7 @@ class NagoyaGeocodeReportTests(unittest.TestCase):
         self.assertEqual(summary["unverified_candidate_rate_percent"], 100)
         self.assertEqual(summary["official_site_coordinates_accepted"], 0)
         self.assertFalse(summary["approved_for_map"])
+        self.assertEqual(summary["ward_status_counts"]["千種区"]["UNVERIFIED_CANDIDATE"], 1)
         self.assertEqual(worksheet[0]["human_review"], "NOT_REVIEWED")
         self.assertEqual(worksheet[0]["candidate_latitude"], 35.16)
 
