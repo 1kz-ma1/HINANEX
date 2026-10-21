@@ -39,7 +39,7 @@ cd C:\HINANEX
 .\pipeline\.venv\Scripts\python.exe -m unittest discover -s validation/validation -p "test_*.py" -v
 ```
 
-GitHubの既存CIは `validation/validation` のこの新規テストを自動実行しません。実行結果を別途記録し、ユーザー環境の公式raw監査と区別します。
+GitHubの必須CI `test` は、現在 `validation/validation/test_*.py` の回帰テストを実行します（`.github/workflows/test.yml` の `C independent raw-source regression tests`）。ただし、ユーザー環境の公式raw原本を使う独立照合スクリプトはCIでは実行されません。**合成テストの成功と公式原本の受入を区別**し、後者は入力バイトのSHA256・取得日・担当者の検証記録を別途残してください。
 
 このチェックはDの評価関数やModelをimportせず、生成済みRegionExport、Niigata公式raw CSV、Nagoya公式raw Excel bundleを突き合わせます。**単体テストのgreenやCスクリプト成功だけで公式記号の意味まで検証済みとはしません。** 元データの配布状況が変化した場合、固定件数を無理に通すのではなく、SourceとCレビューを更新します。
 
@@ -54,3 +54,161 @@ cd C:\HINANEX
 ```
 
 新潟のC側追加ゲート: 公式raw `2階以上` / `3階以上` / `全階可` と`fact.usable_floor_raw`が一致し、該当施設は`UNKNOWN`を維持すること。数値は最新Sourceから集計し、2026-10-08の256件を固定アサーションにしません。`○/×/－`等のODS固有の公式意味と実際の避難安全性は引き続き別ゲートです。
+
+## 2026-10-13 江戸川区の施設同一性と資料の更新履歴
+
+[独立監査の報告](reviews/2026-10-10-edogawa-water-join-snapshot-audit.md) および Draft [PR #136](https://github.com/1kz-ma1/HINANEX/pull/136) を参照。水害待避施設HTML・位置CSV・歴史的D RegionExport・Aの未承認候補台帳を突き合わせ、施設ID/座標/元URL/原文階数の一致を検査する。旧・現下小岩小学校では、2023年選挙資料と2025年学校移転・水害資料で、同じ名前が異なる住所を指している履歴を区別する。**同じ学校URLが複数の位置施設レコードにあっても施設同一性の確定キーに使わない。** 
+
+専用合成テスト：`python -m unittest discover -s validation/validation -p "test_edogawa*py" -v`。実データに対するC最終承認・洪水単独の適合判定は引き続き別ゲート。前提A PR #133、D #135とIssue #134/#137を確認する。
+
+
+### 公式HTML/CSV原本の取得とSHA256（C作業環境で別途実行）
+`python validation/validation/archive_edogawa_official_sources.py --out-dir "C:\HINANEX-evidence\official-20261013"` で、江戸川区の公式水害・位置・学校・移転資料と学校運営者の2ページをHTTPSで保存し、HTTPメタデータと生バイトのSHA256を記録できる。**取得日時とページの更新日・情報対象日を区別する**。2023年選挙資料を2025年の学校現所在地の根拠へ転用しない。
+
+このコマンドはCIでは**合成テストのみ**を行い、実際のネットワーク取得は実行しない。収集したファイルはGitに追加せず、独立したC担当者がソース版、施設IDと物理施設の対応、水害待避施設／洪水単独の意味を審査する。収集完了だけでは避難適合性はUNKNOWNのまま。
+
+
+### 公式原本アーカイブの保存後検証（2026-10-13 C追加）
+
+収集したデータはGit管理外で保持し、保存直後・Aへの受け渡し前・Cレビュー直前に、**同じディレクトリ内の実バイトとManifestを突き合わせ**ます。
+
+~~~powershell
+python validation/validation/archive_edogawa_official_sources.py --out-dir "C:\HINANEX-evidence\official-20261013"
+python validation/validation/archive_edogawa_official_sources.py --verify-dir "C:\HINANEX-evidence\official-20261013"
+python -m unittest discover -s validation/validation -p "test_edogawa*.py" -v
+~~~
+
+「--verify-dir」はネットワーク不要で、7件の取得元URL・最終URLの発行元ホスト・全ファイル名・生バイト長・SHA256・必須フラグ・UTC取得時刻・余計なファイルの混入をfail-closedで検査します。結果が ARCHIVE_BYTES_CONSISTENT_REVIEW_REQUIRED なら**保存済みデータとそのManifestが整合**しただけです。原本発行元の真正性、Manifest自体の第三者改ざん、原本の現行性、施設の同一性、洪水適合性は証明できません。
+
+**独立性の限界:** RawとManifestを一緒に差し替えられると内部SHA256は一致し得ます。CはGit管理外の信頼できる別経路にManifest/SHA256を控え、公式本文の取得日と情報対象時期（旧下小岩の2023年選挙情報など）を独立に確認してください。人間のCレビュー承認false、承認ペア0、洪水分類追加0は変更しません。実ネットワークの収集は通常のオフラインCIに含めません。
+
+
+### 江戸川区の学校2件：Cのレビュー用資料生成（2026-10-13）
+
+原本取得と保存後のSHA256検証が成功し、同じ市公式HTML・位置CSVを使ったC独立監査が完了した場合のみ、葛西工科高校・関東第一高校について人間の照合確認用JSONを生成できます。
+
+~~~powershell
+python validation/validation/archive_edogawa_official_sources.py --verify-dir "C:\HINANEX-evidence\official-20261013"
+python validation/validation/verify_edogawa_water_join.py --water-html "C:\HINANEX-evidence\official-20261013\water_facilities.html" --location-csv "C:\HINANEX-evidence\official-20261013\municipal_locations.csv" --region-export "C:\HINANEX-evidence\edogawa-current.json" --a-ledger "C:\HINANEX-evidence\edogawa-current-a-ledger.json" --report "C:\HINANEX-evidence\c_audit_current.json"
+python validation/validation/build_edogawa_identity_review_packet.py --archive-dir "C:\HINANEX-evidence\official-20261013" --c-audit "C:\HINANEX-evidence\c_audit_current.json" --output "C:\HINANEX-evidence\c_priority_review_packet.json"
+~~~
+
+- **Important**: 上記のD出力・A台帳は、採取した公式位置CSV・HTMLと同一版を使って再生成すること。2026-09-27の歴史的 edogawa.json や旧A台帳を現在のデータと混在させない。元の正式コマンドは各担当仕様を優先してください。
+- build_edogawa_identity_review_packet.py は先に7件すべてのRaw+Manifestを再検証。C監査JSONに含まれる市の水害施設HTMLと位置CSVのSHA256が、公式アーカイブと一致しない場合は **fail-closed** にし、新しい版でD/A/Cの再監査を要求します。
+- 出力は市の学校一覧と学校運営者ページの**住所・電話番号文字列の存在有無**、取得バイトSHA256、公式水害一覧・Dレコードの引用元ID、Cの確認事項を併記します。文字列が存在しても同一施設の承認にはなりません。欠落しても避難施設ではないという判定にはなりません。
+- 旧下小岩・現下小岩の異なる物理施設、共有される学校Web URL、旧校舎の大規模水害時の非使用条件を別枠で保持します。資料の更新日・情報の対象時点も人間が独立に確認してください。
+- 出力ファイルはGit外に作成。C本人の署名・正式な施設ペア承認は**未実施**、洪水単独適合判定は**UNKNOWN**。2校のレビュー用資料生成と自治体の洪水適合指定は完全に別工程です。
+
+
+### 再取得した公式原本の差分検証（C / 2026-10-13）
+
+7件の公式アーカイブを実際に取得できた後、ユーザーが過去に保存した **水害施設HTML / 2025年12月11日施設位置CSV** と、新しい原本の差分を独立に検査できます。
+
+~~~powershell
+python validation/validation/compare_edogawa_official_revisions.py --baseline-water-html "C:\HINANEX-evidence\old_water_saved.html" --baseline-location-csv "C:\HINANEX-evidence\20251211_hinanhokan.csv" --current-archive "C:\HINANEX-evidence\official-20261013" --report "C:\HINANEX-evidence\official_revision_diff.json"
+~~~
+
+- 7件の最新Raw/Manifestを先に再ハッシュ検証し、水害施設一覧の全フィールド（名称・住所・電話・原文使用階数等）と位置CSVの原文6列をそれぞれ比較します。順序では施設同一性を決めません。
+- 結果は3種類：BASELINE_AND_CURRENT_BYTES_EQUAL_STILL_REVIEW_REQUIRED（2原本バイト一致）、SOURCE_BYTES_DIFFER_STRUCTURE_SAME_REVIEW_REQUIRED（バイト差はあるが構造化行は同じ）、STRUCTURED_SOURCE_DRIFT_REVIEW_REQUIRED（構造化行が変更）。いずれも要レビューであり正式承認ではありません。
+- 追加・削除されたRawの行を記録し、学校2件と旧・現下小岩を優先監査対象として別表示。**原文階数・住所の差分をAIの推測や名称照合で吸収しません。**
+- HTMLの改行や空白だけの差異は、SHA256では変化として記録しながら、構造化内容の比較時だけ空白正規化して区別します。
+- 新しい原本と古いD/A/C成果物を混在させない。新旧版に実質差分がある場合は、最新版に合わせA・D生成とC監査をやり直してからレビュー資料を生成します。
+- 履歴基準HTMLの真正性・取得日、最新原本の適用時期、公式の洪水適合指定、施設の開設・安全性は差分比較だけでは証明できません。**承認ペアと新規洪水適合判定はゼロのまま**です。
+
+
+### HTTP 200の誤コンテンツを拒否するC原本検査（2026-10-13）
+
+公式7件のHTTPS取得後、SHA256整合だけでなく「URLは200を返したが中身はエラーページ」という事故を除外するため、次の **C Content Preflight** を必ず実施します。
+
+~~~powershell
+python validation/validation/archive_edogawa_official_sources.py --verify-dir "C:\HINANEX-evidence\official-20261013"
+python validation/validation/validate_edogawa_official_archive.py --archive-dir "C:\HINANEX-evidence\official-20261013" --report "C:\HINANEX-evidence\c_content_preflight.json"
+~~~
+
+- 元位置CSVがCP932で読めること、オリジナルの6列見出しと各行・数値座標が正常なことを確認。HTTP 200でもHTMLがCSVのふりをしていた場合、Content-Typeや列構造で拒否します。
+- 水害施設一覧の正式表見出し・原文の施設データ・#108/#109の施設行・旧/現下小岩の別の所在地があることを確認。学校一覧・移転発表・学校運営者のページには各対象施設名などの基本文脈があることを確認します。
+- 固定の152件/111件の件数で合否を決めません。更新で実データ件数が増減することを許容し、変更は別の原本差分監査で人間に提示します。ただし構造や必要施設行が変わった場合は、それ自体を人間の再調査対象としてfail-closedにします。
+- 出力状態 ORIGINAL_CONTENT_STRUCTURE_CHECKED_HUMAN_REVIEW_REQUIRED は「中身が期待する形式と最低限の文脈だった」ことのみ。取得先の真正性、公式更新日・適用時期、別ソースのD施設IDとの同一性、洪水適合性は**証明しません**。承認ペアは0のまま。
+- 実サーバーへの外部通信はオフラインCIには組み込まず、合成テストでHTTP 200の誤コンテンツ・CSV偽装・ソース表欠落・旧新校舎混同を検出します。
+
+- このC Content Preflightは、2校のレビュー資料生成（build_edogawa_identity_review_packet.py）からも**必須ゲートとして自動実行**します。HTTP 200の偽装エラーページや原本の構造不一致が残る場合、レビュー資料の出力自体を中止します。
+
+
+### 2026-10-13 C human-review hardening: one school directory row per case
+
+After verifying all seven official raw bytes and exact A/current D/C digests, the review generator requires the municipality secondary-school directory to contain exactly ONE matching institution row with source headings 施設名称/所在地/電話番号. It compares municipality directory name/address/phone *from that same row* with the water source, rather than accepting strings scattered anywhere on a page. A duplicate or missing institution row stops the review packet (fail-closed). A phone belonging to another school does NOT count.
+
+For institution-operated pages, the packet retains a short original text excerpt around the contact phone, including the address spelling. For school names/addresses written with abbreviations, hyphens, or Japanese numerals, the packet retains the difference and marks address-format equivalence **NOT REVIEWED**. No text excerpt or same-row municipality corroboration certifies a shared D coordinate or flood-only suitability. Latest official original source bytes remain outside Git.
+
+Independent decision memo: validation/reviews/2026-10-13-edogawa-site-identity-and-flood-semantics-gates.md. It explicitly separates official source validity, physical school identity, water-standby vs flood-only semantics and real-time opening. The supplementary official guidance pages are linked but **not yet preserved in the seven-source original-byte archive**. Do not grant disaster eligibility from the memo.
+
+Expected C output state stays REVIEW_PACKET_PREPARED_NOT_APPROVED, cross-source approved pairs 0, CANDIDATE/EXCLUDED added 0. This is a review-quality improvement, not human signoff.
+
+
+### Optional current-D official location coordinate evidence for C reviewer
+
+If the A/current-D/C runner has generated a current Edogawa RegionExport, pass the exact file to the two-school C review generator:
+
+    python validation/validation/build_edogawa_identity_review_packet.py --archive-dir "C:\HINANEX-evidence\official-20261013" --c-audit "C:\HINANEX-evidence\c_audit_current.json" --d-export "C:\HINANEX-evidence\edogawa_current_D_UNREVIEWED.json" --output "C:\HINANEX-evidence\c_priority_review_packet.json"
+
+The generator rehashes those EXACT D input bytes against the D input SHA256 already independently recorded in the C source audit (currently stored under the legacy audit field name old_d_region_export). It requires the full current Scenario with all items UNKNOWN/UNVERIFIED, rechecks two priority institution D ID/name/source URLs, and adds source CSV-derived latitude/longitude to each human-review case. No guessed physical address is inserted: D CSV address remains null; the coordinate-to-campus association is explicitly **NOT YET VERIFIED**. Replacing D with a historic snapshot, a stale/altered D file, duplicate IDs or already-promoted flood result fails closed. When D is omitted, the review packet explicitly states CURRENT_D_NOT_SUPPLIED rather than pretending location coordinates were checked.
+
+
+### Current status (2026-10-13): municipality operational guidance original-byte archive captured
+
+The earlier statement that the two weather/water-evacuation guidance pages were not yet archived is now superseded. They are stored **separately** from the seven school/facility originals.
+
+~~~powershell
+python validation/validation/archive_edogawa_guidance.py --out-dir "C:\HINANEX-evidence\guidance-20261013"
+python validation/validation/archive_edogawa_guidance.py --verify-dir "C:\HINANEX-evidence\guidance-20261013"
+~~~
+
+Github Actions successfully ran this in the isolated evidence-capture workflow #38334363280 with two official source original bytes, HTTP metadata and SHA256 manifest in a 7-day UNREVIEWED artifact. The archive checks official domain, final HTTPS origin, bounded nonempty response bytes, municipal page context words and manifest/file digest consistency. It does **not** convert facility listing, weather response plans or an historical update date into flood-only designation or live opening.
+
+- Water evacuation guidance raw SHA256 abd5824e1595df5388d5b6cbb06a54a2fbef68463d663e9c769f29aa071e3ba0
+- Weather evacuation response plan raw SHA256 11205472c5feb45e10180319a32d9dd13f80d292ab8f86d18e534df1dbea4e53
+- Independent GSI nationally consistent evacuation data with hazard-specific columns is under **A-only initial investigation**, not yet source-captured/accepted for Edogawa: see data-research/scenarios/2026-10-13-gsi-emergency-evacuation-data-investigation.md.
+- C independent human site-identity approval: 0; D/C formally approved flood-only semantics: 0; new flood classifications: 0. No stage/live deployment changes.
+
+
+## 2026-10-13 旧下鎌田小学校の行政回答後C審査ゲート
+
+
+2026-04-01の外水・内水施設一覧と2026-07-01旧校舎解体契約議決は別時点の根拠。現時点の旧体育館の存否・立入可否・指定継続・当日開設は未確認。
+
+照会票: reviews/2026-10-13-old-shimokamata-inquiry-packet.json。未送信・未回答の初期状態を保持。旧下鎌田（東瑞江3丁目11番1号）と新下鎌田（瑞江4丁目19番10号）を混合しない。
+
+回答原本受入: validation/verify_edogawa_official_reply_intake.py。Git外の秘匿場所に置いたメール・文書・電話メモのSHA256、窓口、日時、同じ原本の使い回しを検証するが、自治体担当者の真正性や内容は自動承認しない。
+
+審査準備: validation/build_shimokamata_review_readiness.py。同じ原本検証を再利用し、外水、内水、旧建物の現況、旧新敷地同一性・時点、現在開設の5ゲートを分離。回答が両部署から届いても人間Cの署名、D/C制度審査と最新開設根拠は別条件。
+
+実行例: python validation/validation/build_shimokamata_review_readiness.py --packet validation/reviews/2026-10-13-old-shimokamata-inquiry-packet.json --original-dir /private/official-replies --out /private/decision_readiness_UNAPPROVED.json
+
+テスト: python -m unittest discover -s validation/validation -p 'test_shimokamata_review_readiness.py' -v
+
+回答原文・個人情報を公開PR/Issue/Gitに追加しない。Cの審査準備JSONも原文本文・ファイル名を公開しない。施設同一性承認0件、新規洪水判定0件、現行Edogawa Dの152施設UNKNOWN、main/Render変更なし。
+
+
+## 2026-10-13 旧下鎌田小：公開可能な3状態 Evidenceデモ
+
+CからB/Eへ渡す公開表示用の根拠ケースを実装。行政の非公開返信原文、送信者名、メール添付ファイル名、回答SHA256を公開出力へ持ち込まない。**災害シミュレーション再現・避難先推薦ではない**。
+
+- コード：`validation/build_shimokamata_evidence_demo.py`。C原本SHA検証（`verify_edogawa_official_reply_intake.py`）、C判断準備（`build_shimokamata_review_readiness.py`）を通過した未承認結果のみ処理。
+- 合成テスト：`validation/test_shimokamata_evidence_demo.py`。未照会・片方・両方の擬似回答、資料SHA改変、誤った現況確定、個人情報/返信原文の出力混入を拒否。
+- B/E引継仕様：`reviews/2026-10-13-shimokamata-three-state-evidence-demo-contract.md`。3段階のみ：`DOCUMENTARY_FACT`／`SOURCE_VERSION_RECONCILIATION`／`CURRENT_OPERATIONS_UNKNOWN`。
+- 出力の正式な状態名：`PUBLIC_EDUCATIONAL_EVIDENCE_NOT_SHELTER_GUIDANCE`。`presentation_only=true`、`may_be_used_as_live_shelter_recommendation=false` を必須とする。旧新下鎌田の住所は別々の原文として保持。
+- 原本4件は以前のGitHub-hosted A/C検証で確認したSHA256のみを公開資料の根拠として使用。この出力ツール自体は原本の再取得・PDF本文の再審査・Dの最新状態の再検証を実施しない。`D/RegionExport`は読み込まず変更しない。
+- B/E側の地図ピン、推薦ボタン、避難経路、当日開設状態、適合性ランクに使用してはならない。B/E側の変更はそれぞれ別PRとMerge Captainによる責務・契約確認が必要。
+
+実行例（`/private/official-replies` は既存のGit管理外ディレクトリ）：
+
+```bash
+python validation/validation/build_shimokamata_evidence_demo.py \
+  --packet validation/reviews/2026-10-13-old-shimokamata-inquiry-packet.json \
+  --original-dir /private/official-replies \
+  --out /private/shimokamata-demo-EVIDENCE-ONLY.json
+python -m unittest discover -s validation/validation \
+  -p 'test_shimokamata_evidence_demo.py' -v
+```
+
+**この3状態は災害予測の成功例・失敗例・評価結果3件ではない**。公式資料の更新時点差と現在の不確実性を学ぶための事例であり、現時点の施設安全性は未承認。

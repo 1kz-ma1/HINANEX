@@ -1,0 +1,52 @@
+{
+  "purpose": "C_SHIMOKAMATA_OFFICIAL_REPLY_INTAKE_NO_AUTOMATIC_APPROVAL",
+  "issue_number": 141,
+  "site_name": "旧下鎌田小学校",
+  "site_address_raw": "東瑞江3丁目11番1号",
+  "related_new_school_address_raw": "瑞江4丁目19番10号",
+  "source_sha256": {
+    "2026_external_internal_plan_pdf": "92e85981c16542e3e28bd80bafc56c8a71f3ded9a8b5e67bcb53919d16e1ebcb",
+    "2026_demolition_bill_pdf": "aa9051ef17e94da904e7e11fa228239d59a37e3eb256b0bc44f68991e19adc71",
+    "2026_demolition_vote_html": "83e6d3bac16705d3a842b7129883f8151e40426abd9f2e40c123ff220ec8ab20",
+    "2025_reuse_policy_pdf": "a4fee786088052e1bb787f0db0473245d01cc1cae9784c80ef40b3174ed089bf"
+  },
+  "human_c_site_identity_approved": false,
+  "human_c_hazard_semantics_approved": false,
+  "human_c_current_opening_approved": false,
+  "new_flood_classifications": 0,
+  "outreach_was_automatically_sent": false,
+  "office_requests": [
+    {
+      "office_id": "disaster_plan",
+      "office_name": "江戸川区 防災危機管理課 計画係",
+      "phone": "03-5662-1992",
+      "public_reference_url": "https://www.city.edogawa.tokyo.jp/e007/kuseijoho/gaiyo/soshiki/kikikanri/bousaikikikanri.html",
+      "state": "NOT_CONTACTED",
+      "contacted_at_utc": null,
+      "response_evidence": null,
+      "questions": [
+        "2026-10-13現在、旧下鎌田小学校（東瑞江3丁目11番1号）は外水氾濫／内水氾濫の水害待避施設として引き続き掲載・指定されていますか。",
+        "指定の一時停止・取消・変更がある場合、その決定日、効力発生日、根拠となる最新の施設一覧（URLまたは資料名）は何ですか。",
+        "旧校舎・旧体育館のどの棟と階を対象としており、工事中の使用・立入制限と運用上の代替施設はありますか。",
+        "2026年版防災計画の下鎌田小（瑞江4-19-1）と現在の学校台帳（瑞江4-19-10）は同一敷地でしょうか。公的な表記訂正・指定台帳を示せますか。",
+        "資料上の指定と、災害対策本部が当日に開設したかどうかは別情報として取り扱ってよいでしょうか。"
+      ]
+    },
+    {
+      "office_id": "property_use",
+      "office_name": "江戸川区 財産活用課 調整係",
+      "phone": "03-5662-9017",
+      "public_reference_url": "https://www.city.edogawa.tokyo.jp/e085/kuseijoho/zaisei/zaisankatsuyo/advertisement.html",
+      "state": "NOT_CONTACTED",
+      "contacted_at_utc": null,
+      "response_evidence": null,
+      "questions": [
+        "議案第64号（2026年7月1日可決）に係る旧下鎌田小学校の解体工事について、正式な契約締結日・実際の着工日はいつですか。",
+        "2026年10月13日現在、旧校舎・屋内運動場（体育館）・その他の棟は、それぞれ現存していますか。解体・閉鎖・仮囲い等の状況はどうなっていますか。",
+        "建物や敷地への立入制限が開始された日と範囲を、可能であれば公的な工事工程表・お知らせ・図面で確認できますか。",
+        "工期の予定日（2027年3月12日）に変更があれば、変更日と公表資料を教えてください。",
+        "水害待避施設の運用継続・停止に関する所管は防災危機管理課でしょうか。必要に応じて担当係を案内いただけますか。"
+      ]
+    }
+  ]
+}
