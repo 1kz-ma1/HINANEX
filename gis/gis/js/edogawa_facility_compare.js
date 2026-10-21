@@ -10,6 +10,7 @@
   const first = get("edogawaCompareFirst"), second = get("edogawaCompareSecond");
   const api = window.HINANEX_EDOGAWA_FACILITY_COMPARE;
   let sequence = 0, session = null, step = 0;
+  let activePair = null, activeStage = null;
 
   const steps = [
     ["01 / 03", "地図にある施設だけで、避難先は決められる？",
@@ -104,6 +105,43 @@
     card.append(detail);
     return card;
   }
+  function showStage(target) {
+    if(!activePair || step!==2 || !["A","B","summary"].includes(target))return;
+    const result=get("edogawaCompareResult");
+    const buttons=[
+      ["A","edogawaCompareShowA"],["B","edogawaCompareShowB"],
+      ["summary","edogawaCompareShowSummary"]
+    ];
+    for(const [stage,id] of buttons)
+      get(id).setAttribute("aria-pressed",String(target===stage));
+    activeStage=target;result.replaceChildren();
+    const summary=target==="summary";
+    get("edogawaCompareTakeaway").hidden=!summary;
+    if(target==="A"||target==="B"){
+      const record=target==="A"?activePair.first:activePair.second;
+      const key=target==="A"?first.value:second.value;
+      result.append(buildSite(record,target));
+      api?.focusSite?.(key,target);
+      get("edogawaCompareNext").textContent=target==="A"?"次：Bを見る →":"次：比較の結論 →";
+      get("edogawaComparePhase").textContent=target==="A"?"03 / 05":"04 / 05";
+      get("edogawaCompareTitle").textContent=target+"： "+record.name+"（取得記録）";
+      get("edogawaCompareMessage").textContent="元座標へズーム。住所・施設区分と洪水時の未判定を確認してください。";
+    }else{
+      api?.focus?.(first.value,second.value);
+      const paragraph=document.createElement("p");
+      paragraph.className="edogawa-compare-summary-labels";
+      const f=activePair.first,b=activePair.second;
+      paragraph.textContent="A："+f.name+"（"+(f.facilityType||"施設区分未確認")+"） ／ B："+
+        b.name+"（"+(b.facilityType||"施設区分未確認")+"）";
+      result.append(paragraph);
+      get("edogawaCompareNext").textContent="Aからもう一度見る ↺";
+      get("edogawaComparePhase").textContent="05 / 05";
+      get("edogawaCompareTitle").textContent="比較結果：分かること・分からないこと";
+      get("edogawaCompareMessage").textContent="施設情報の比較は可能でも、洪水時の安全・開設は未判定です。";
+    }
+    panel.dataset.siteStage=target;
+    panel.scrollTop=0;
+  }
   function selection() {
     if(!session)return;
     const a=first.value,b=second.value;
@@ -114,14 +152,15 @@
       ? "江戸川区として収録された施設を2件選択してください。"
       : !ok ? "異なる2件を選んでください。" : "2件選択済み。情報を比較できます。";
     if(step===2){
-      step=1;get("edogawaCompareResult").replaceChildren();updateStep();
+      step=1;activePair=null;activeStage=null;
+      get("edogawaCompareResult").replaceChildren();updateStep();
       api?.clear?.();
     }
   }
   function finish(){
     ++sequence;
     if(session)api?.end?.();
-    session=null;step=0;panel.hidden=true;banner.hidden=true;
+    session=null;step=0;activePair=null;activeStage=null;panel.hidden=true;banner.hidden=true;
     openButton?.setAttribute("aria-expanded","false");
     get("edogawaCompareResult").replaceChildren();
     get("edogawaComparePairBasis").hidden=true;
@@ -131,7 +170,7 @@
     if(!panel.hidden)return;
     if(!api||typeof api.begin!=="function"||typeof api.compare!=="function")return;
     const token=++sequence;
-    panel.hidden=false;banner.hidden=false;session=null;step=0;
+    panel.hidden=false;banner.hidden=false;session=null;step=0;activePair=null;activeStage=null;
     get("edogawaCompareAutoPick").disabled=true;
     get("edogawaCompareAutoPickFromPicker").disabled=true;
     get("edogawaComparePairBasis").hidden=true;
@@ -168,8 +207,7 @@
     if(!session||!first.value||!second.value||first.value===second.value)return;
     const compared=api.compare(first.value,second.value);
     if(compared?.state!=="compared")return;
-    const result=get("edogawaCompareResult");result.replaceChildren();
-    result.append(buildSite(compared.first,"A"),buildSite(compared.second,"B"));
+    activePair=compared;
     const bothUnknown=[compared.first,compared.second].every(r=>r.floodStatus.startsWith("UNKNOWN"));
     get("edogawaCompareTakeawayTitle").textContent=bothUnknown
       ? "結論：2施設とも洪水時の利用可否は未判定"
@@ -178,7 +216,7 @@
       ? "住所・施設区分は確認できます。しかし「未判定」は安全・危険のどちらでもありません。現時点ではこの比較から避難先を推奨できません。"
       : "記録された分類が異なっても、安全・開設・移動可能性を保証しません。出典の確認と追加の検証が必要です。";
     get("edogawaComparePairBasis").hidden=!autoSelected;
-    step=2;updateStep();panel.scrollTop=0;
+    step=2;updateStep();showStage("A");
   }
   function autoPick() {
     if(!session)return;
@@ -195,13 +233,16 @@
     if(!session||!first.value||!second.value||first.value===second.value)return;
     api.focus(first.value,second.value);
   });
-  get("edogawaCompareResultFocus").addEventListener("click",()=>{
-    if(session&&first.value&&second.value&&first.value!==second.value)
-      api.focus(first.value,second.value);
+  get("edogawaCompareShowA").addEventListener("click",()=>showStage("A"));
+  get("edogawaCompareShowB").addEventListener("click",()=>showStage("B"));
+  get("edogawaCompareShowSummary").addEventListener("click",()=>showStage("summary"));
+  get("edogawaCompareNext").addEventListener("click",()=>{
+    showStage(activeStage==="A"?"B":activeStage==="B"?"summary":"A");
   });
   get("edogawaCompareAgain").addEventListener("click",()=>{
     if(!session)return;
     api?.clear?.();
+    activePair=null;activeStage=null;
     step=1;updateStep();panel.scrollTop=0;first.focus();
   });
   get("edogawaCompareClose").addEventListener("click",finish);
@@ -209,5 +250,6 @@
   document.addEventListener("keydown",event=>{
     if(event.key==="Escape"&&!panel.hidden){event.preventDefault();finish();}
   });
-  window.HINANEX_EDOGAWA_COMPARE_UI=Object.freeze({open,close:finish});
+  window.HINANEX_EDOGAWA_COMPARE_UI=Object.freeze({open,close:finish,
+    showSite:showStage});
 })();
