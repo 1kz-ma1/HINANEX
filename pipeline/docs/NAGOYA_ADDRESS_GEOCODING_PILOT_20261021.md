@@ -252,6 +252,34 @@ python create_nagoya_independent_review_queue.py \
 - 台帳生成は元のスナップショット・各段階の判定・既存RegionExport/GIS/本番を変更しない。review_status はすべて NOT_REVIEWED で出力し、自動承認・外部公開・GISの書き込みは行わない。
 - 公式施設位置として受入済みは0件。独立した施設位置照合が行われるまで公開地図連携はNO-GOを維持。
 
+### 2026-10-21：34件の独立位置照合台帳が完成／GSI別データでの照合準備
+
+開発Macで独立位置照合台帳の生成に成功。匿名報告の `total_review_rows=34`（A_NEW 21、A_EXISTING 6、B_PARCEL 7）。50件の元パイロットから部分一致10件は除外。34行はすべて NOT_REVIEWED、施設位置としての公式受入0、地図反映権限なし。元データハッシュ d5f7191a49d4f531fa890ccf437918789ed534138b1e89973d6181cf6aa1c3a3、ABR API 3.0.52 / DB 3.0.29。**確認台帳自体は氏名ではなく施設名・住所・候補座標等を含み、GitHubやチャットにアップロードしない。**
+
+公開されている別の公的データとして、国土地理院の**指定緊急避難場所・指定避難所データ**を確認：
+- 国土地理院案内: https://web1.gsi.go.jp/bousaichiri/hinanbasho.html
+- 利用条件・ダウンロード: https://hinanmap.gsi.go.jp/index.html
+- データ仕様: https://hinanmap.gsi.go.jp/hinanjocp/hinanbasho/koukaidate.html （施設・場所名、住所、緯度、経度、共通ID等）。GSIデータは**自治体から登録されたもの**で、最新性・網羅性は保証されず、同一測位から派生している可能性がある。市が2026-10-07に更新した一覧は2026-09-01時点（https://www.city.nagoya.jp/bousaiportal/hinan/1013390/1013492.html）。**資料更新日と指定日の違いを維持する**。
+
+Stage 5として、**CSVはオペレーターがGSIサイトの利用条件を読み同意して明示的に取得する**方式とし、ブラウザーでの同意や取得をスクリプトが代行しない。Mac内でのみ、34件の台帳とGSI CSVを「施設名＋住所の保守的な表記正規化後の完全一致」で照合。名称のみ／住所のみ一致、重複座標、異なる参照点は別分類。ABR位置とGSI登録点の距離を比較するが、距離は**位置の正確性・施設同一性・安全性の承認ではない**。分類用の距離帯は分析上の便宜的閾値であり災害用の閾値ではない。
+
+~~~sh
+# ダウンロードしたCSVは必ず pipeline/data/geocoding_pilot/nagoya50 内に置く（Git ignore）。
+# ファイル名は例。サイト上の正式名称を確認後、適切なCSVを指定する。
+python compare_nagoya_gsi_offline.py \
+  --pilot-dir data/geocoding_pilot/nagoya50 \
+  --gsi-emergency data/geocoding_pilot/nagoya50/gsi_emergency.csv \
+  --gsi-shelter data/geocoding_pilot/nagoya50/gsi_shelter.csv
+
+# 一方のCSVしか対象自治体で提供されない場合は、存在する方の引数のみ渡す。
+~~~
+
+- 追加スクリプトは**ネットワークアクセスなし**。GSI CSVには保守的な項目名と明示された名古屋市・区の住所を要求。名古屋市の全ての屋内施設が含まれるとは推測しない。
+- private出力: gsi_cross_reference_PRIVATE.csv（施設情報・ABR参照点・GSI登録点・距離を含む。**アップロード禁止**）。
+- 共有可能な匿名出力: gsi_cross_reference_aggregate.json（照合結果・距離帯・A/B優先別件数、GSI CSVのSHA256、読込レコード数）。ローカルの既存34件台帳も更新しない。両方とも新規作成のみで上書きは拒否。
+- GSIと一致しても official_facility_positions_accepted=0、approved_for_map=false / data_promotion_authorized=false。建物の位置・入口・対象災害ごとの指定・開設状況・避難経路を独立確認しなければGIS反映は不可。
+- CIは合成レコード・架空座標のみ。実際のGSIデータでの34件突合と独立した位置確認は、Macローカル実行まで **NOT TESTED**。
+
 ## 発表質問への回答例
 
 「名古屋市の屋内施設の住所情報は取得できていますが、緯度経度の列はありません。そこで住所から座標候補を得る実験用のパイプラインを追加しました。候補点と公式施設座標は区別し、変換時の位置精度・版・不一致を記録します。座標が付いただけでは避難時の安全性・施設の開設状態・経路の通行可能性は証明できないため、正式な地図表示への自動昇格は行っていません。」
