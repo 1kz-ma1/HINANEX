@@ -64,3 +64,68 @@
     max-height:49dvh;padding:10px}
   .edogawa-compare-result{grid-template-columns:1fr}
 }
+
+
+/* Audience v2: the two selected source records, not a sea of unrelated
+   facility clusters, are the subject of this scene. All originals remain
+   available after the demo closes; opacity is purely presentational. */
+body:has(#edogawaComparePanel:not([hidden])) .leaflet-shelter-pane{
+  opacity:.12;
+  transition:opacity 160ms ease;
+}
+body:has(#edogawaComparePanel:not([hidden])) .leaflet-reference-site-pane{
+  opacity:.2;
+}
+.edogawa-compare-panel{
+  width:min(420px,calc(100% - 24px));
+  max-height:min(43dvh,385px);
+  padding:12px 13px;
+}
+.edogawa-compare-panel[data-stage="result"] .edogawa-compare-count{display:none}
+.edogawa-compare-panel[data-stage="result"] .edogawa-compare-panel-head span{display:none}
+.edogawa-compare-prompter{
+  font-size:15px;font-weight:800;color:#14445b;
+  padding:12px;background:#e9f8f7;border:1px solid #b2dcd9;
+  border-radius:10px;margin:10px 0;
+}
+.edogawa-compare-takeaway{
+  background:#e9f8f7;border:1px solid #83bab7;
+  border-radius:10px;padding:10px 11px;margin:10px 0 8px;
+}
+.edogawa-compare-takeaway strong{display:block;font-size:14px;color:#10535c}
+.edogawa-compare-takeaway p{font-size:12px;line-height:1.55;margin:4px 0 0}
+.edogawa-compare-result{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;margin:8px 0;
+}
+.edogawa-compare-card{padding:8px}
+.edogawa-compare-card[data-marker="A"]{border-top:4px solid #1279a5}
+.edogawa-compare-card[data-marker="B"]{border-top:4px solid #164f90}
+.edogawa-compare-card h3{font-size:13px;min-height:2.4em}
+.edogawa-compare-flood{
+  font-size:11px;background:#fff4e1;border-radius:6px;
+  color:#6e4c20;padding:6px;margin:6px 0;
+  overflow-wrap:anywhere;
+}
+.edogawa-compare-card-extra{border-top:1px solid #e0e7ef;padding-top:5px}
+.edogawa-compare-card-extra summary,
+.edogawa-compare-more summary{
+  font-size:11px;font-weight:750;cursor:pointer;
+}
+.edogawa-compare-card-extra[open] dl{margin-top:8px}
+.edogawa-compare-more{margin:9px 0 0;border-top:1px solid #d4e1e8;padding-top:7px}
+.edogawa-compare-more[open] summary{margin-bottom:6px}
+.edogawa-compare-panel .edogawa-compare-actions button:first-child{
+  background:#086777;color:white
+}
+.edogawa-compare-map-pin{width:36px;height:36px;font-size:17px;
+  border-color:#fff;box-shadow:0 0 0 4px #073f7a55,0 2px 12px #001d30c0}
+@media(max-width:780px){
+  .edogawa-compare-panel{width:auto;max-height:44dvh;padding:9px}
+  .edogawa-compare-result{grid-template-columns:1fr}
+  .edogawa-compare-card h3{min-height:0}
+  .edogawa-compare-prompter{font-size:12px;padding:8px}
+  .edogawa-compare-takeaway{padding:8px}
+  .edogawa-compare-takeaway strong{font-size:12px}
+  .edogawa-compare-takeaway p{font-size:11px}
+}
