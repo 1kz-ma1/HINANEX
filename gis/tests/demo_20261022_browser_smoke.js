@@ -685,6 +685,8 @@ async function screenshot(page, name) {
       "A stage should show only one facility at a time");
     assert.equal(await visitor.locator(".edogawa-compare-card").getAttribute("data-marker"),"A");
     assert.equal(await visitor.locator("#edogawaCompareShowA").getAttribute("aria-pressed"),"true");
+    assert.equal(await visitor.locator("#mapLocateMe").isVisible(),false,
+      "GPS shortcut may not cover the compact compare navigation");
     assert.equal(await visitor.locator("#edogawaCompareTakeaway").isVisible(),false,
       "the conclusion waits until the audience sees both facilities");
     assert.match(await visitor.locator("#edogawaComparePanel").innerText(),/洪水時の分類|UNKNOWN/);
@@ -737,6 +739,8 @@ async function screenshot(page, name) {
       "auto pair must choose two different existing source keys, not invented facilities");
     await visitor.locator("#edogawaCompareClose").click();
     assert.equal(await visitor.locator("#edogawaComparePanel").isVisible(),false);
+    assert.equal(await visitor.locator("#mapLocateMe").isVisible(),true,
+      "normal map GPS action must return after closing the audience demo");
     // Keep the previous GSI source-only presenter under explicit, separate
     // regression coverage. It is no longer the public MAIN DEMO.
     await visitor.evaluate(()=>document.getElementById("mapGsiFloodDemoOpen").click());
