@@ -476,16 +476,32 @@ open data/geocoding_pilot/nagoya50/team-review.html
 ~~~sh
 cd ~/Developer/HINANEX
 git fetch origin refs/pull/293/head
-git show FETCH_HEAD:pipeline/export_nagoya_team_review_json.py > pipeline/export_nagoya_team_review_json.py
-git show FETCH_HEAD:pipeline/nagoya_team_review_official_sources.py > pipeline/nagoya_team_review_official_sources.py
+# 既存の実行ファイルに触れず、新しいv2スクリプトへ取得（失敗時には配置しない）
+if git show FETCH_HEAD:pipeline/export_nagoya_team_review_json.py > pipeline/export_nagoya_team_review_json_v2.py.tmp &&
+   test -s pipeline/export_nagoya_team_review_json_v2.py.tmp; then
+  mv pipeline/export_nagoya_team_review_json_v2.py.tmp pipeline/export_nagoya_team_review_json_v2.py
+else
+  rm -f pipeline/export_nagoya_team_review_json_v2.py.tmp
+  echo "PR #293 exporter取得失敗"; exit 1
+fi
+if git show FETCH_HEAD:pipeline/nagoya_team_review_official_sources.py > pipeline/nagoya_team_review_official_sources.py.tmp &&
+   test -s pipeline/nagoya_team_review_official_sources.py.tmp; then
+  mv pipeline/nagoya_team_review_official_sources.py.tmp pipeline/nagoya_team_review_official_sources.py
+else
+  rm -f pipeline/nagoya_team_review_official_sources.py.tmp
+  echo "公式出典インデックス取得失敗"; exit 1
+fi
 cd pipeline
 source .venv/bin/activate
-python export_nagoya_team_review_json.py --pilot-dir data/geocoding_pilot/nagoya50 --output-name team_review_p1_sources_LOCAL.json
+python export_nagoya_team_review_json_v2.py --pilot-dir data/geocoding_pilot/nagoya50 --output-name team_review_p1_sources_LOCAL.json
 # B側の最新単体HTMLを、別ファイル名で取得。既存のJSON/HTMLを上書きしない
 cd ..
 git fetch origin refs/pull/292/head
-git show FETCH_HEAD:frontend/team-review.html > pipeline/data/geocoding_pilot/nagoya50/team-review-v2.html
-open -a Safari pipeline/data/geocoding_pilot/nagoya50/team-review-v2.html
+if git show FETCH_HEAD:frontend/team-review.html > pipeline/data/geocoding_pilot/nagoya50/team-review-v2.html.tmp &&
+   test -s pipeline/data/geocoding_pilot/nagoya50/team-review-v2.html.tmp; then
+  mv pipeline/data/geocoding_pilot/nagoya50/team-review-v2.html.tmp pipeline/data/geocoding_pilot/nagoya50/team-review-v2.html
+  open -a Safari pipeline/data/geocoding_pilot/nagoya50/team-review-v2.html
+fi
 ~~~
 
 HTMLでは `team_review_p1_sources_LOCAL.json` を基準に読み込んだ後、古い班員提出JSONを「班員の結果JSONをまとめて取り込む」でインポート。競合がなければ別名で出力する。**配布前にJSON内容・公式一覧の使用条件・配布権限を本人が確認**する。
