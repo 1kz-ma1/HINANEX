@@ -97,7 +97,7 @@ def validate_snapshot(s: dict) -> dict:
         raise ValueError("Snapshot safety flags changed")
     instant = s["captured_at_utc"]
     if not isinstance(instant, str) or not re.fullmatch(
-            r"\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z", instant):
+            r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", instant):
         raise ValueError("Snapshot capture timestamp malformed")
     try:
         datetime.fromisoformat(instant.replace("Z", "+00:00"))
@@ -152,7 +152,7 @@ def compare_snapshots(previous: dict, current: dict) -> dict:
 
 
 def local_file(folder: Path, basename: str) -> Path:
-    if re.fullmatch(r"official_pdf_(snapshot|comparison)_[a-z0-9_]*LOCAL\\.json", basename) is None:
+    if re.fullmatch(r"official_pdf_(snapshot|comparison)_[a-z0-9_]*LOCAL\.json", basename) is None:
         raise ValueError("Output must be a local official_pdf_*_LOCAL.json basename")
     return folder / basename
 
@@ -191,10 +191,10 @@ def main() -> None:
             result = compare_snapshots(previous, current)
         with output.open("x", encoding="utf-8") as stream:
             json.dump(result, stream, ensure_ascii=False, indent=2)
-            stream.write("\\n")
+            stream.write("\n")
     except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
         parser.exit(1, "Official PDF watch aborted [" + type(exc).__name__
-                    + "]: source was NOT accepted or promoted; review network/input.\\n")
+                    + "]: source was NOT accepted or promoted; review network/input.\n")
     # Do not print raw document content, URL-bearing evidence or facility records.
     print(json.dumps({
         "report_kind": result.get("report_kind", "NAGOYA_OFFICIAL_PDF_BASELINE_UNREVIEWED"),
