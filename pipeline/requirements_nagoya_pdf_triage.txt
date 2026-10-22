@@ -1,0 +1,1 @@
+PyMuPDF>=1.24,<2  # manual Nagoya PDF row-triage only; not used by D-MVP runtime or CI
