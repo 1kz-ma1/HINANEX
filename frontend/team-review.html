@@ -60,6 +60,12 @@
       <input id="mergeInput" type="file" accept=".json,application/json" multiple disabled aria-label="班員のレビュー結果JSON（複数選択可）" style="max-width:240px">
     </div>
     <p class="muted">同じ調査データから書き出された結果だけ統合します。<strong>同じ施設への異なる変更があれば統合全体を中止</strong>し、既存データを保持します。</p>
+    <div class="toolbar" style="margin-top:12px">
+      <label class="upload" for="triageInput">施設別PDF差分JSONを読み込む（任意）</label>
+      <input id="triageInput" type="file" accept=".json,application/json" disabled aria-label="公式PDFの施設別差分比較レポート" style="max-width:245px">
+    </div>
+    <p class="muted">公式PDF差分は<strong>班員の確認順を決める参考情報のみ</strong>。別JSONのまま扱い、レビューの状態・根拠・正式位置承認を変更しません。基準JSONとの施設名・住所・公式資料URLを照合してから表示します。</p>
+    <div id="triageSummary" class="notice" hidden role="note"></div>
     <p id="feedback" role="status" aria-live="polite">まだJSONは読み込まれていません。</p>
     <small>5MBを超えるファイルは受け付けません。入力中の施設は「作業内容を反映」後に切り替えてください。ブラウザー内の変更は、JSON書き出しが完了するまでファイルに保存されません。</small>
   </section>
@@ -84,6 +90,16 @@
             <option value="">すべて</option><option value="not_reviewed">未確認</option><option value="in_progress">調査中</option><option value="evidence_found">資料を発見</option><option value="needs_follow_up">追加調査</option>
           </select>
         </label>
+        <label>PDF差分による絞り込み
+          <select id="triageFilter" disabled>
+            <option value="">全施設（既存レビューを含む）</option>
+            <option value="review_required">今回のPDFで再確認が必要</option>
+            <option value="row_changed">施設行の文字列変更候補</option>
+            <option value="unresolved">抽出未解決・抽出結果の不整合</option>
+            <option value="source_changed">PDF自体が更新された施設</option>
+            <option value="no_diff">今回のPDFで行の変更候補なし</option>
+          </select>
+        </label>
         <label style="align-self:center"><input type="checkbox" id="needsActionOnly" checked style="width:auto"> 根拠・確認が未完了の施設だけ表示</label>
       </div>
     </div>
@@ -97,6 +113,7 @@
           <small id="recordPriority"></small>
           <h2 id="facilityName"></h2><p id="facilityAddress" class="muted"></p>
           <div><strong>要確認理由：</strong><span id="issueCodes"></span></div>
+          <div class="notice" id="triageCue" role="note" hidden></div>
           <div class="notice" id="reviewCue" role="note"></div>
           <section><strong>参照する公式資料</strong><ul class="sources" id="sourceList"></ul>
             <small>URLはJSON作成時に明示されたHTTPSリンクのみ。施設の現在の運用状況は別途確認してください。</small>
@@ -142,6 +159,18 @@ const priorities = ["P0","P1","P2"];
 const checks = ["official_source","identity","address","position_evidence"];
 const issueCodes = ["gsi_conflicting_reference_points","different_facility_name_at_same_address","abr_gsi_reference_distance_at_least_100m","parcel_reference_requires_special_review","other_gsi_incomplete_correspondence","near_coincident_gsi_references","source_renovation_notice"];
 const names = {not_reviewed:"未確認",in_progress:"調査中",evidence_found:"根拠あり（未承認）",needs_follow_up:"追加調査"};
+const triageLabels = {
+  SOURCE_BYTES_UNCHANGED_NOT_OFFICIAL_APPROVAL:"今回のPDFで行の変更候補なし（正式承認ではない）",
+  ROW_TEXT_CHANGED_HUMAN_REVIEW_REQUIRED:"施設行の文字列に変更候補あり・原文確認",
+  ROW_TEXT_UNCHANGED_SOURCE_CHANGED_REVIEW_REQUIRED:"PDF全体は変更、施設行は一致・脚注等を再確認",
+  ROW_EXTRACTION_UNRESOLVED_REVIEW_REQUIRED:"施設行の抽出が未解決・改称／削除／移転とは未確定",
+  SAME_BYTES_DIFFERENT_EXTRACTION_HUMAN_REVIEW_REQUIRED:"同じPDFなのに抽出内容が不一致・抽出器を再確認"
+};
+const triageNoChange = "SOURCE_BYTES_UNCHANGED_NOT_OFFICIAL_APPROVAL";
+const triageRowChanged = "ROW_TEXT_CHANGED_HUMAN_REVIEW_REQUIRED";
+const triageUnresolved = ["ROW_EXTRACTION_UNRESOLVED_REVIEW_REQUIRED",
+  "SAME_BYTES_DIFFERENT_EXTRACTION_HUMAN_REVIEW_REQUIRED"];
+const triageChangedSourceRowSame = "ROW_TEXT_UNCHANGED_SOURCE_CHANGED_REVIEW_REQUIRED";
 const issueExplanations = {
   gsi_conflicting_reference_points:"参照点が複数あり位置判断を保留",
   different_facility_name_at_same_address:"施設名称の一致を確認",
@@ -154,6 +183,8 @@ const issueExplanations = {
 let documentData = null;
 let selectedId = null;
 let lastExportedOrImportedJson = null;
+let triageReport = null;
+let triageByFacility = new Map();
 const el = (id) => document.getElementById(id);
 const own = (obj,key) => Object.prototype.hasOwnProperty.call(obj,key);
 const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
@@ -199,6 +230,122 @@ function validatePayload(data) {
   }
   return data;
 }
+function validateTriageReport(candidate, reviewData) {
+  // A separate read-only display contract. Refuse extra/private fields and
+  // mismatched records instead of merging triage into the review schema.
+  validatePayload(reviewData);
+  if (reviewData.dataset.id !== "nagoya-stage7-P1"
+      || reviewData.records.length !== 9
+      || reviewData.records.some(r=>r.priority !== "P1"))
+    throw new Error("この差分レポートは名古屋Stage7のP1・9施設用です。");
+  exact(candidate,["report_kind","status","previous_captured_at_utc",
+    "current_captured_at_utc","source_changed_count","facility_count",
+    "baseline_extract_matched_count","current_extract_matched_count",
+    "row_changed_candidate_count","unresolved_extraction_count",
+    "human_review_required_count","facilities","safety","warning"],"PDF差分");
+  if (candidate.report_kind !== "NAGOYA_P1_PDF_ROW_DIFF_CANDIDATES_NOT_OFFICIAL_APPROVAL")
+    throw new Error("施設単位のPDF差分レポートではありません。");
+  exact(candidate.safety,["approved_for_map","data_promotion_authorized","official_facility_positions_accepted"],"差分の安全ゲート");
+  if (candidate.safety.approved_for_map !== false
+      || candidate.safety.data_promotion_authorized !== false
+      || candidate.safety.official_facility_positions_accepted !== 0)
+    throw new Error("差分の安全ゲートは未承認である必要があります。");
+  const iso = (s) => typeof s === "string"
+    && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(s)
+    && !Number.isNaN(Date.parse(s));
+  if (!iso(candidate.previous_captured_at_utc)
+      || !iso(candidate.current_captured_at_utc)
+      || Date.parse(candidate.current_captured_at_utc) < Date.parse(candidate.previous_captured_at_utc))
+    throw new Error("差分取得日時が不正です。");
+  textField(candidate.warning,"差分の注意書き",600);
+  const integers = ["source_changed_count","facility_count",
+    "baseline_extract_matched_count","current_extract_matched_count",
+    "row_changed_candidate_count","unresolved_extraction_count",
+    "human_review_required_count"];
+  if (integers.some(k=>!Number.isInteger(candidate[k])
+      || candidate[k] < 0 || candidate[k] > 9))
+    throw new Error("PDF差分件数が不正です。");
+  if (!Array.isArray(candidate.facilities) || candidate.facilities.length !== 9
+      || candidate.facility_count !== 9)
+    throw new Error("PDF差分の施設件数が一致しません。");
+  const known=new Map(reviewData.records.map(r=>[JSON.stringify([r.name,r.address]),r]));
+  const used=new Set(), wards=new Map(), indices=new Map();
+  let rowChanged=0, unresolved=0, reviewRequired=0;
+  for (const item of candidate.facilities) {
+    exact(item,["ward","name","address","source_url","source_bytes_changed","classification"],"差分の施設");
+    textField(item.ward,"区",25);textField(item.name,"施設名",240);
+    textField(item.address,"掲載住所",300);
+    httpsUrl(item.source_url,"公式資料URL");
+    if (new URL(item.source_url).hostname !== "www.city.nagoya.jp"
+        || !new URL(item.source_url).pathname.toLowerCase().endsWith(".pdf"))
+      throw new Error("差分の出典は名古屋市公式PDFに限定します。");
+    if (typeof item.source_bytes_changed !== "boolean"
+        || !own(triageLabels,item.classification))
+      throw new Error("差分区分が不正です。");
+    const key=JSON.stringify([item.name,item.address]);
+    const r=known.get(key);
+    if (!r || used.has(key) || !r.sources.some(src=>src.url===item.source_url))
+      throw new Error("差分とレビュー施設の名称・住所・公式資料URLが一致しません。");
+    if (wards.has(item.ward)) {
+      const w=wards.get(item.ward);
+      if (w.url!==item.source_url || w.changed!==item.source_bytes_changed)
+        throw new Error("同じ区のPDF比較状態が矛盾しています。");
+    } else wards.set(item.ward,{url:item.source_url,changed:item.source_bytes_changed});
+    if (item.classification===triageNoChange && item.source_bytes_changed)
+      throw new Error("PDF変更と行一致分類が矛盾しています。");
+    if ([triageRowChanged,triageChangedSourceRowSame].includes(item.classification)
+        && !item.source_bytes_changed)
+      throw new Error("行差分とPDF変更状態が矛盾しています。");
+    if (item.classification==="SAME_BYTES_DIFFERENT_EXTRACTION_HUMAN_REVIEW_REQUIRED"
+        && item.source_bytes_changed)
+      throw new Error("抽出不整合とPDF変更状態が矛盾しています。");
+    used.add(key);indices.set(r.id,item);
+    if (item.classification===triageRowChanged) rowChanged++;
+    if (triageUnresolved.includes(item.classification)) unresolved++;
+    if (item.classification!==triageNoChange) reviewRequired++;
+  }
+  const sourceChanged=[...wards.values()].filter(w=>w.changed).length;
+  if (sourceChanged!==candidate.source_changed_count
+      || rowChanged!==candidate.row_changed_candidate_count
+      || unresolved!==candidate.unresolved_extraction_count
+      || reviewRequired!==candidate.human_review_required_count
+      || candidate.baseline_extract_matched_count < 9 - unresolved
+      || candidate.current_extract_matched_count < 9 - unresolved)
+    throw new Error("差分集計値が施設別判定と整合しません。");
+  const expected=reviewRequired?"HUMAN_REVIEW_REQUIRED":
+    "EXTRACTED_ROW_TEXT_UNCHANGED_NOT_APPROVAL";
+  if (candidate.status!==expected)
+    throw new Error("差分レポートの状態と件数が矛盾しています。");
+  return indices;
+}
+function triageMatches(item, filter) {
+  if (!filter || !item) return !filter;
+  if (filter==="review_required") return item.classification!==triageNoChange;
+  if (filter==="row_changed") return item.classification===triageRowChanged;
+  if (filter==="unresolved") return triageUnresolved.includes(item.classification);
+  if (filter==="source_changed") return item.source_bytes_changed;
+  if (filter==="no_diff") return item.classification===triageNoChange;
+  return false;
+}
+function importTriageJson(payload) {
+  if (!documentData) throw new Error("先に班員向けの施設レビューJSONを読み込んでください。");
+  if (rejectUnappliedEditorChanges()) throw new Error("入力中の変更を先に反映してください。");
+  const candidate=JSON.parse(payload);
+  const index=validateTriageReport(candidate,documentData);
+  // All-or-nothing read-only attachment. Never alter review data or flags.
+  triageReport=candidate;triageByFacility=index;
+  el("triageFilter").disabled=false;el("triageFilter").value="";
+  el("triageSummary").hidden=false;
+  el("triageSummary").textContent="PDF差分を参考表示：再確認 "
+    +candidate.human_review_required_count+"件／行の変化候補 "
+    +candidate.row_changed_candidate_count+"件／抽出未解決 "
+    +candidate.unresolved_extraction_count+"件。取得時刻 "
+    +candidate.current_captured_at_utc
+    +"。レビュー記録は変更していません。行に変化がなくても施設位置・安全性の承認にはなりません。"
+    +"（差分にはStage7のsource_fingerprintが含まれないため、名称・住所・公式資料URLの対応だけを確認しています。）";
+  renderList();fillEditor();
+}
+
 function currentRecord() {return documentData?.records.find(r=>r.id===selectedId)||null;}
 function hasUnappliedEditorChanges() {
   const r=currentRecord();
@@ -227,6 +374,12 @@ function fillEditor() {
   el("recordPriority").textContent=r.priority+" / "+names[r.review.status];
   el("facilityName").textContent=r.name;el("facilityAddress").textContent=r.address;
   el("issueCodes").textContent=r.issues.length?r.issues.map(k=>issueExplanations[k]).join(" / "):"独立した施設位置の確認";
+  const triage=triageByFacility.get(r.id);
+  el("triageCue").hidden=!triage;
+  if(triage) el("triageCue").textContent="PDF差分参考："
+    +triageLabels[triage.classification]
+    +"。PDF更新："+(triage.source_bytes_changed?"あり":"なし")
+    +"。この結果は調査の優先順位のみで、記録済みの根拠や施設位置を認可しません。";
   const missingEvidence = r.review.status==="evidence_found" && !r.review.evidence_url;
   el("reviewCue").textContent=missingEvidence
     ? "根拠ありの記録ですが、根拠資料URLが未記入です。班員へ引き継ぐ前に出典を記録してください。"
@@ -255,9 +408,13 @@ function renderList() {
       || r.sources.some(src=>src.url===el("sourceGroupFilter").value))
     && (!el("priorityFilter").value||r.priority===el("priorityFilter").value)
     && (!el("statusFilter").value||r.review.status===el("statusFilter").value)
-    && (!el("needsActionOnly").checked||requiresFollowUp(r)));
+    && triageMatches(triageByFacility.get(r.id),el("triageFilter").value)
+    && (!el("needsActionOnly").checked||requiresFollowUp(r)
+      || (triageByFacility.has(r.id)
+        && triageByFacility.get(r.id).classification!==triageNoChange)));
   const list=el("facilityList");list.replaceChildren();
-  for(const r of rows){const b=document.createElement("button");b.type="button";b.setAttribute("aria-current",String(r.id===selectedId));const strong=document.createElement("strong");strong.textContent=r.name;const small=document.createElement("small");small.textContent=r.priority+" · "+names[r.review.status];b.append(strong,small);b.addEventListener("click",()=>{if(rejectUnappliedEditorChanges())return;selectedId=r.id;renderList();fillEditor();});list.append(b);}
+  for(const r of rows){const b=document.createElement("button");b.type="button";b.setAttribute("aria-current",String(r.id===selectedId));const strong=document.createElement("strong");strong.textContent=r.name;const small=document.createElement("small");small.textContent=r.priority+" · "+names[r.review.status]
+    +(triageByFacility.has(r.id)?" · "+triageLabels[triageByFacility.get(r.id).classification]:"");b.append(strong,small);b.addEventListener("click",()=>{if(rejectUnappliedEditorChanges())return;selectedId=r.id;renderList();fillEditor();});list.append(b);}
   if(!rows.length){const p=document.createElement("p");p.textContent="条件に一致する施設はありません。";list.append(p);}
   const total=documentData.records.length, remaining=documentData.records.filter(r=>r.review.status==="not_reviewed").length;
   const followUps=documentData.records.filter(requiresFollowUp).length;
@@ -293,6 +450,10 @@ function importJson(payload) {
   if (hasUnexportedReviewChanges()) throw new Error("前のJSONを読み込んだ後に未書き出しの作業があります。先に結果JSONを書き出してください。");
   const parsed=validatePayload(JSON.parse(payload));
   documentData=parsed;selectedId=null;lastExportedOrImportedJson=JSON.stringify(parsed);
+  triageReport=null;triageByFacility=new Map();
+  el("triageSummary").hidden=true;el("triageSummary").textContent="";
+  el("triageFilter").value="";el("triageFilter").disabled=true;
+  el("triageInput").disabled=false;
   el("workArea").hidden=false;el("exportButton").disabled=false;el("mergeInput").disabled=false;
   el("datasetLabel").textContent=parsed.dataset.region+" / "+parsed.dataset.id;
   setSourceGroups(parsed);
@@ -411,13 +572,23 @@ window.addEventListener("DOMContentLoaded",()=>{
     try{importJson(await file.text());}catch(error){showMessage("読込を中止しました："+error.message,true);}
     e.target.value="";
   });
+  el("triageInput").addEventListener("change",async(e)=>{
+    const file=e.target.files?.[0];
+    if(!file)return;
+    if(file.size>5*1024*1024){showMessage("差分JSONが5MBを超えています。",true);e.target.value="";return;}
+    try{
+      importTriageJson(await file.text());
+      showMessage("施設別PDF差分を参考表示しました。既存レビューと安全ゲートは変更していません。");
+    }catch(error){showMessage("PDF差分の読込を中止しました："+error.message,true);}
+    e.target.value="";
+  });
   el("mergeInput").addEventListener("change",async(e)=>{
     await mergeFiles(Array.from(e.target.files||[]));
     e.target.value="";
   });
   el("saveRecord").addEventListener("click",saveSelected);
   el("exportButton").addEventListener("click",exportJson);
-  for(const id of ["priorityFilter","statusFilter","sourceGroupFilter","needsActionOnly"])el(id).addEventListener("change",renderList);
+  for(const id of ["priorityFilter","statusFilter","sourceGroupFilter","triageFilter","needsActionOnly"])el(id).addEventListener("change",renderList);
 });
 </script>
 </body>
