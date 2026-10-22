@@ -164,5 +164,57 @@ class FacilityRowDiffTests(unittest.TestCase):
                 local_output(folder, bad)
 
 
+    def test_synthetic_change_matrix_fail_closed_before_actual_pdf_acceptance(self):
+        """Deterministic source/row result matrix; in-memory real PDF test is
+        separately executable with optional PyMuPDF on an operator machine."""
+        baseline = self.prepare()
+        ward = next(w for w, _ in WATCH_SOURCES if len(BY_WARD[w]) > 1)
+        first = next(i for i, row in enumerate(baseline["facilities"])
+                     if row["ward"] == ward)
+        src_idx = next(i for i, src in enumerate(baseline["sources"])
+                       if src["ward"] == ward)
+        # All six are changed-PDF scenarios. Only a confirmed same-row text
+        # alteration is ROW_TEXT_CHANGED. Deleted/renamed/address edits may
+        # cause lookup to become ambiguous, not proven removal or relocation.
+        for scenario in ("added", "deleted", "renamed", "address_changed",
+                         "row_note_changed", "footnote_changed", "metadata_changed"):
+            with self.subTest(scenario=scenario):
+                current = copy.deepcopy(baseline)
+                current["sources"][src_idx]["sha256"] = "f" * 64
+                if scenario in ("deleted", "renamed", "address_changed"):
+                    current["facilities"][first]["extract_status"] = "UNRESOLVED"
+                    current["facilities"][first]["row_text_sha256"] = None
+                if scenario == "row_note_changed":
+                    current["facilities"][first]["row_text_sha256"] = "e" * 64
+                report = compare_facility_snapshots(baseline, current)
+                affected = [r for r in report["facilities"] if r["ward"] == ward]
+                other = [r for r in report["facilities"] if r["ward"] != ward]
+                self.assertEqual(report["source_changed_count"], 1)
+                self.assertEqual(report["human_review_required_count"],
+                                 len(BY_WARD[ward]))
+                self.assertTrue(all(r["classification"] != SOURCE_UNCHANGED
+                                    for r in affected))
+                self.assertTrue(all(r["classification"] == SOURCE_UNCHANGED
+                                    for r in other))
+                self.assertFalse(report["safety"]["approved_for_map"])
+                self.assertEqual(report["safety"]["official_facility_positions_accepted"], 0)
+                if scenario in ("deleted", "renamed", "address_changed"):
+                    self.assertEqual(report["unresolved_extraction_count"], 1)
+                    self.assertEqual(report["current_extract_matched_count"], 8)
+                    self.assertEqual(report["row_changed_candidate_count"], 0)
+                elif scenario == "row_note_changed":
+                    self.assertEqual(report["row_changed_candidate_count"], 1)
+                    self.assertEqual(report["unresolved_extraction_count"], 0)
+                    self.assertEqual(report["current_extract_matched_count"], 9)
+                else:
+                    # Additions outside the tracked nine, document footnotes
+                    # and PDF metadata changes never look like an approved
+                    # new site, even though all tracked row text is stable.
+                    self.assertEqual(report["row_changed_candidate_count"], 0)
+                    self.assertEqual(report["unresolved_extraction_count"], 0)
+                    self.assertEqual(report["current_extract_matched_count"], 9)
+
+
+
 if __name__ == "__main__":
     unittest.main()
