@@ -193,8 +193,11 @@ def main() -> None:
             json.dump(result, stream, ensure_ascii=False, indent=2)
             stream.write("\n")
     except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
-        parser.exit(1, "Official PDF watch aborted [" + type(exc).__name__
-                    + "]: source was NOT accepted or promoted; review network/input.\n")
+        # ValueError messages are locally authored guard reasons; don't print
+        # unexpected HTTP exception details, PRIVATE local paths or raw content.
+        detail = str(exc) if type(exc) is ValueError else type(exc).__name__
+        parser.exit(1, "Official PDF watch aborted: " + detail
+                    + ". No source accepted or promoted; local prior files unchanged.\n")
     # Do not print raw document content, URL-bearing evidence or facility records.
     print(json.dumps({
         "report_kind": result.get("report_kind", "NAGOYA_OFFICIAL_PDF_BASELINE_UNREVIEWED"),
