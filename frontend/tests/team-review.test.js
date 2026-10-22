@@ -13,6 +13,13 @@ const context = vm.createContext({
 });
 vm.runInContext(match[1], context, { timeout: 2000 });
 const check = vm.runInContext("validatePayload", context);
+const merge = vm.runInContext("planReviewMerge", context);
+const blankReview = () => clone(example.records[0].review);
+const reviewed = (note, time="2026-10-22T04:00:00.000Z") => ({
+  ...blankReview(), status:"in_progress", reviewer:"班員A", notes:note,
+  reviewed_at:time
+});
+
 
 const clone = (x) => JSON.parse(JSON.stringify(x));
 
@@ -105,4 +112,79 @@ test("sample is labeled synthetic and has no official location claims", () => {
   assert.equal(example.safety.approved_for_map, false);
   assert.ok(example.records.every(r => r.name.includes("架空")));
   assert.ok(example.records.every(r => r.sources.length === 0));
+});
+
+
+test("atomic merge combines independent reviewers without changing safety flags", () => {
+  const base = clone(example);
+  const a=clone(example), b=clone(example);
+  a.records[0].review=reviewed("Aの調査メモ");
+  b.records[1].review=reviewed("Bの調査メモ");
+  const before=JSON.stringify(base);
+  const result=merge(base,[a,b]);
+  assert.equal(result.applied,2);
+  assert.equal(result.merged.records[0].review.notes,"Aの調査メモ");
+  assert.equal(result.merged.records[1].review.notes,"Bの調査メモ");
+  assert.equal(result.merged.safety.official_facility_positions_accepted,0);
+  assert.equal(JSON.stringify(base),before);
+});
+
+test("conflicting same-facility edits abort entire merge without partial updates", () => {
+  const base=clone(example), a=clone(example), b=clone(example);
+  a.records[0].review=reviewed("Aの判断");
+  b.records[0].review=reviewed("Bの判断");
+  b.records[2].review=reviewed("他の施設");
+  const before=JSON.stringify(base);
+  assert.throws(()=>merge(base,[a,b]),/異なるレビュー/);
+  assert.equal(JSON.stringify(base),before);
+});
+
+test("new source PDF links in base don't prevent merging older approved-shape review JSON", () => {
+  const base=clone(example), old=clone(example);
+  base.records[0].sources.push({
+    title:"区の公式PDF（2026-09-01）",
+    url:"https://www.city.nagoya.jp/official-list.pdf"
+  });
+  old.records[0].review=reviewed("元のJSONを使って確認");
+  const result=merge(base,[old]);
+  assert.equal(result.applied,1);
+  // Incoming source lists are never copied. Newer official source links stay in base.
+  assert.equal(result.merged.records[0].sources.length,1);
+});
+
+test("wrong fingerprint, changed facility metadata and approval changes fail closed", () => {
+  const base=clone(example), wrong=clone(example);
+  wrong.dataset.source_fingerprint="a".repeat(64);
+  assert.throws(()=>merge(base,[wrong]),/異なるデータセット/);
+  const other=clone(example);
+  other.records[0].address="異なる住所";
+  assert.throws(()=>merge(base,[other]),/施設情報/);
+  const unsafe=clone(example);
+  unsafe.safety.approved_for_map=true;
+  assert.throws(()=>merge(base,[unsafe]),/安全ゲート/);
+});
+
+test("duplicate semantic reviews don't create conflicts just because timestamps differ", () => {
+  const base=clone(example), incoming=clone(example);
+  base.records[0].review=reviewed("同じ確認", "2026-10-22T03:00:00.000Z");
+  incoming.records[0].review=reviewed("同じ確認", "2026-10-22T04:00:00.000Z");
+  const result=merge(base,[incoming]);
+  assert.equal(result.applied,0);
+  assert.equal(result.merged.records[0].review.reviewed_at,"2026-10-22T04:00:00.000Z");
+});
+
+test("blank unreviewed files don't erase prior human evidence", () => {
+  const base=clone(example), blank=clone(example);
+  base.records[0].review=reviewed("先に確認済み");
+  const result=merge(base,[blank]);
+  assert.equal(result.applied,0);
+  assert.equal(result.merged.records[0].review.notes,"先に確認済み");
+  assert.throws(()=>merge(base,Array.from({length:21},()=>blank)),/1～20/);
+});
+
+test("incomplete evidence link is surfaced separately from site approval", () => {
+  assert.match(page, /根拠資料URLが未記入/);
+  assert.match(page, /参照点が100m以上/);
+  assert.match(page, /id="mergeInput"/);
+  assert.match(page, /multiple disabled/);
 });
