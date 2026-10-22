@@ -141,7 +141,7 @@ def main() -> None:
     filename = (args.output_name or
                 "team_review_" + "_".join(sorted(args.priorities)).lower() + "_LOCAL.json")
     if (len(filename) > 100
-            or re.fullmatch(r"team_review_[a-z0-9_]+_LOCAL\\.json", filename) is None):
+            or re.fullmatch(r"team_review_[a-z0-9_]+_LOCAL\.json", filename) is None):
         parser.error("Output must be a simple team_review_*_LOCAL.json filename")
     output = folder / filename
     if output.exists():
