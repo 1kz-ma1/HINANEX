@@ -47,12 +47,12 @@ def extract_rows(pdf_bytes: bytes, ward: str) -> dict[tuple[str, str], str | Non
     if ward not in BY_WARD:
         raise ValueError("Unrecognized official ward")
     try:
-        import fitz  # PyMuPDF, optional local/operator install
+        import pymupdf  # PyMuPDF >=1.24, optional local/operator install
     except ImportError as exc:
         raise ValueError("PyMuPDF missing; install dedicated optional requirements") from exc
     results = {pair: [] for pair in BY_WARD[ward]}
     try:
-        document = fitz.open(stream=pdf_bytes, filetype="pdf")
+        document = pymupdf.open(stream=pdf_bytes, filetype="pdf")
         try:
             if len(document) < 1 or len(document) > 30:
                 raise ValueError("Unexpected PDF page count")
@@ -204,6 +204,12 @@ def compare_facility_snapshots(old: dict, new: dict) -> dict:
         "current_captured_at_utc": new["captured_at_utc"],
         "source_changed_count": sum(source_changed.values()),
         "facility_count": len(changes),
+        # Compare reports have classification, not extract_status. Expose the
+        # real per-snapshot counts so CLI summaries never falsely show 0/9.
+        "baseline_extract_matched_count": sum(
+            r["extract_status"] == "MATCHED" for r in old["facilities"]),
+        "current_extract_matched_count": sum(
+            r["extract_status"] == "MATCHED" for r in new["facilities"]),
         "row_changed_candidate_count": changed_rows,
         "unresolved_extraction_count": unresolved,
         "human_review_required_count": human_review,
@@ -266,11 +272,17 @@ def main() -> None:
         reason = str(exc) if type(exc) is ValueError else type(exc).__name__
         p.exit(1, "Facility PDF triage aborted: " + reason
                + ". No previous local file overwritten or facility approved.\n")
+    # Snapshot rows have extract_status, comparison rows have classification.
+    # Never silently turn missing extract_status into a false zero count.
+    matched = (sum(x["extract_status"] == "MATCHED" for x in result["facilities"])
+               if args.mode == "baseline"
+               else result["current_extract_matched_count"])
     print(json.dumps({
         "report_kind": result.get("report_kind", "NAGOYA_P1_PDF_ROW_BASELINE_UNREVIEWED"),
         "facility_count": len(result["facilities"]),
-        "extract_matched_count": sum(x.get("extract_status") == "MATCHED"
-                                    for x in result["facilities"]),
+        "extract_matched_count": matched,
+        "baseline_extract_matched_count": result.get("baseline_extract_matched_count"),
+        "current_extract_matched_count": result.get("current_extract_matched_count"),
         "status": result.get("status", "BASELINE_UNREVIEWED"),
         "row_changed_candidate_count": result.get("row_changed_candidate_count"),
         "human_review_required_count": result.get("human_review_required_count"),
