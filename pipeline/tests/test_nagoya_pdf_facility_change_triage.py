@@ -58,6 +58,10 @@ class FacilityRowDiffTests(unittest.TestCase):
         self.assertEqual(validate_facility_snapshot(copy.deepcopy(first)), first)
         diff = compare_facility_snapshots(first, copy.deepcopy(first))
         self.assertEqual(diff["human_review_required_count"], 0)
+        # Previously, CLI wrongly printed 0/9 because comparison rows lack
+        # extract_status. Verify both snapshots report real success counts.
+        self.assertEqual(diff["baseline_extract_matched_count"], 9)
+        self.assertEqual(diff["current_extract_matched_count"], 9)
         self.assertTrue(all(x["classification"] == SOURCE_UNCHANGED for x in diff["facilities"]))
         self.assertEqual(diff["safety"], SAFETY)
 
@@ -95,6 +99,8 @@ class FacilityRowDiffTests(unittest.TestCase):
         self.assertEqual(diff["unresolved_extraction_count"], 1)
         self.assertTrue(any(x["classification"] == UNRESOLVED for x in diff["facilities"]))
         self.assertEqual(diff["human_review_required_count"], 1)
+        self.assertEqual(diff["baseline_extract_matched_count"], 9)
+        self.assertEqual(diff["current_extract_matched_count"], 8)
 
     def test_same_bytes_unstable_text_extraction_not_mistaken_for_official_change(self):
         before = self.prepare()
@@ -104,6 +110,8 @@ class FacilityRowDiffTests(unittest.TestCase):
         self.assertEqual(diff["facilities"][0]["classification"], INCONSISTENT)
         self.assertEqual(diff["source_changed_count"], 0)
         self.assertEqual(diff["human_review_required_count"], 1)
+        self.assertEqual(diff["baseline_extract_matched_count"], 9)
+        self.assertEqual(diff["current_extract_matched_count"], 9)
 
     def test_integrity_fail_closed_for_source_sha_or_malformed_records(self):
         first = self.prepare()
