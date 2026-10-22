@@ -169,11 +169,11 @@
     notice.textContent = message;
     notice.hidden = false;
     const banner = id("mapRasterBanner");
-    // Short but explicit map warning; the full original evidence remains in
-    // the 災害情報 menu and in the persistent legacy status/evidence section.
+    // Preserve the warning as evidence state without obscuring map controls.
     banner.textContent = "洪水情報の一部が未取得です（空白＝浸水なしではありません）";
     banner.title = message;
-    banner.hidden = false;
+    banner.dataset.partial = "true";
+    banner.hidden = true;
   }
   window.HINANEX_MAP_FIRST_UI = Object.freeze({
     showDetail,

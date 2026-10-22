@@ -209,7 +209,8 @@
       <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
     </button>
     <p id="mapGpsFeedback" class="map-gps-feedback" role="status" hidden></p>
-    <p id="mapRasterBanner" class="map-raster-banner" role="status" hidden></p>
+    <!-- Flood coverage warning remains available in the evidence sheet, not as a map overlay. -->
+    <span id="mapRasterBanner" data-partial="false" hidden></span>
     <p id="mapFloodRefreshStatus" class="map-flood-refresh-status" role="status" aria-live="polite" hidden></p>
     <!-- Evidence sheet source only; no floating status overlay on the map. -->
     <span id="mapViewportDStatus" hidden></span>
