@@ -120,3 +120,35 @@ D `RegionExport.scenarios[]` に `scenario_id=flood_shelter_selection` がある
 施設検索・一覧（PERF-07）、panel / MutationObserver（PERF-08）、marker / cluster表示（PERF-09）は、現行RepositoryではE所有の`gis/**`に実装があります。B feature branchからGIS実装を変更せず、計測baseline、UI要件、データ意味を維持する受入条件、Desktop / Mobile回帰項目を[`docs/GIS_PERFORMANCE_UX_ACCEPTANCE.md`](docs/GIS_PERFORMANCE_UX_ACCEPTANCE.md)にまとめています。
 
 BはEの実装後にこの仕様でUI/UXを確認します。性能改善を理由に、座標欠損record、`CANDIDATE` / `EXCLUDED` / `UNKNOWN`、DとGSIのSource区別、取得失敗状態を別の意味へ変換しません。
+
+
+## チーム向け施設レビュー（JSON交換・完全ブラウザ内）
+
+- エントリ：`/frontend/team-review.html`（静的HINANEXのFrontend）
+- 単体配布：`frontend/team-review.html` を班員へ共有し、ブラウザで直接開く。スタイルと処理はHTMLに内蔵し、サーバー・外部JS・通信は不要。
+- JSONサンプル：`frontend/mock/team-review-example.json` は**完全に合成データ**。実在施設に関する事実は含まず、正式データとして利用できない。
+- アプリはJSONの読み込み・施設別の確認メモ/根拠URL/作業状態編集・JSON書き出しに対応。**自動保存なし・同時編集なし**。班員間では各自の書き出し版を別ファイルとして保存すること。最新UIは出典fingerprintと施設ID・施設情報の一致を検証したうえで**複数JSONのレビューを統合**できる（同施設の異なる記録は競合として全件中止）。未反映フォームや未書き出しの変更を失わないよう操作をブロック／タブ閉鎖を警告する。ただし実ファイルの保存完了自体を自動検証する機能はない。
+- 公開サイト上のページには実施設の確認データを埋め込まず、配布専用JSONだけを**ユーザーがブラウザへ明示的に読み込む**。PRIVATE CSV/HTMLや未承認のABR/GSI候補座標は入力禁止。JSONのスキーマは厳密で、余計なフィールドは拒否する。
+- オフラインでもJSONをファイル選択で読み込める（file://からのfetchを使わない）。生成JSONもブラウザ内のBlob APIでダウンロードする。
+- 全レコードの施設位置・災害適合性・開設状況・経路安全性は**未承認**。作業状態`evidence_found`は資料を見つけたという意味でのみ使用。出力に`approved_for_map:false` / `data_promotion_authorized:false` / `official_facility_positions_accepted:0`を必須とする。
+- Schema（v1、入力時に余分なフィールドを拒否）：
+  `schema_id:hinanex.team-review.v1`
+  `dataset:{id,region,source_fingerprint}`（source_fingerprintは64桁hex）
+  `safety:{approved_for_map:false,data_promotion_authorized:false,official_facility_positions_accepted:0}`
+  `records:[{id,name,address,priority:P0|P1|P2,issues:[],sources:[{title,url}],review:{status,checks:{official_source,identity,address,position_evidence},reviewer,notes,evidence_url,reviewed_at}}]`
+  status = `not_reviewed|in_progress|evidence_found|needs_follow_up`。位置の評価結果、事実関係の採否、避難先としての安全性を一切表現しない。
+- 共有パッケージを生成するときは、**行政が公表している名称・掲載住所・共有を許可した確認理由/出典に限定すること**。座標、個別の実験経緯、監査に使用する秘密のID、GitHub認証情報は含めない。共有する相手や手段を確認する。
+- ブラウザーに読み込んだJSONはサーバーへ送信せず、ローカルまたは公開サイトで動く同一HTMLに保持するだけ。ただし公式外部リンクを押した場合は訪問先へアクセスするので、通常の閲覧ログは発生する。
+- テスト：`cd frontend && npm test`。Windows Edge/ChromeおよびMac Safariの**実機E2Eは未実施**。PRの統合判断前にファイルインポート・保存・再インポート、ブラウザ再読込後の非保持、オンラインとfile://の同等性を確認する。
+- `main`はRenderへ自動デプロイされるため、Merge Captainの承認前にはマージしない。共有UIの一般公開はアクセス制御ではない。守秘の対象をブラウザーへ読み込む運用が必要な場合、別途認証・配布権限制御を設計する。
+
+
+### 班員3人のJSON自動統合と差分確認（2026-10-22 Draft追加分）
+
+- 最初に**基準JSON**を読み込む。その後「班員の結果JSONをまとめて取り込む」から最大20ファイルを選ぶ（例: 3人の提出ファイル）。**基準データを直接上書きしない**。成功時に表示状態を更新し、必ず別名JSONで書き出す。
+- `dataset.id`/`dataset.region`/`dataset.source_fingerprint`、全施設数・不変の名称・住所・優先度・要確認コード・不変IDが揃うか厳密検証。同じ施設の異なるレビュー内容が見つかった場合は**統合全体を中止**し、元データを変更しない。片方の未確認初期状態は更新内容を持つ側を優先。レビュー内容が同じで日時だけ異なる場合は後の日時を保持。
+- 基準ファイルの公式PDF資料リンクを維持し、読み込んだ他者JSONから `sources` を自動取り込まない。元データが更新されて参照資料が増えていても、既存レビューの統合を妨げないようにする。異なる施設情報に対するレビューは拒否。
+- 「根拠・確認が未完了の施設だけ表示」チェックONがデフォルト。班員の確認記録として必要な4項目のチェック、`evidence_found`、根拠URLのどれかが欠けていれば確認待ちで表示する。**作業記録の形式上の完了は、実際の施設位置承認を意味しない**。
+- `evidence_found` なのに根拠URLが空の記録（初期パイロットで実際に発生）は警告し、報告時に補足出典を記録する。
+- 名古屋市公式の区別PDFリンクは D側PR #293 の `nagoya_team_review_official_sources.py` により**施設名+住所が完全一致**する9件のみに付与される（2026-09-01時点の公開一覧、2026-10-22確認）。PDF掲載は施設位置・現在の開設・災害適合性の立証とは異なる。
+- まだE2E実機未確認。**Draft PR #292, #293, #283 の統合順・展開はMerge Captainの判断。** 自動共有・自動公開・レビューの正式認可は実装していない。
