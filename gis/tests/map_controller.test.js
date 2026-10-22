@@ -1631,6 +1631,9 @@ nagoya.scenarios = [{
   }
   assert.match(html, /id="mapLocateMe"[^>]*type="button"/);
   assert.match(html, /<span id="mapViewportDStatus" hidden><\/span>/);
+  assert.match(html, /<span id="mapRasterBanner" data-partial="false" hidden><\/span>/);
+  assert.doesNotMatch(html, /class="map-raster-banner"/);
+  assert.doesNotMatch(css, /\.map-raster-banner/);
   assert.doesNotMatch(html, /class="map-viewport-d-status"/);
   assert.doesNotMatch(css, /\.map-viewport-d-status/);
   assert.match(html, /id="mapSettingsPanel"[^>]*hidden/);
@@ -1772,7 +1775,8 @@ nagoya.scenarios = [{
   facade.window.HINANEX_MAP_FIRST_UI.showRasterWarning("タイル未取得");
   assert.equal(nodes.mapRasterNotice.hidden, false);
   assert.equal(nodes.mapRasterNotice.textContent, "タイル未取得");
-  assert.equal(nodes.mapRasterBanner.hidden, false);
+  assert.equal(nodes.mapRasterBanner.hidden, true, "raster warning never overlays the map");
+  assert.equal(nodes.mapRasterBanner.dataset.partial, "true");
   assert.match(nodes.mapRasterBanner.textContent, /空白＝浸水なしではありません/);
   assert.equal(nodes.mapRasterBanner.title, "タイル未取得");
 
@@ -3173,7 +3177,7 @@ nagoya.scenarios = [{
     const attrs = new Map();
     const element = {
       id: name, hidden: false, open: false, textContent: "",
-      checked: true, value: "", listeners: {},
+      checked: true, value: "", dataset: {}, listeners: {},
       setAttribute(key, value) { attrs.set(key, String(value)); },
       getAttribute(key) {
         if (name === "gisLayout" && key.startsWith("data-")) return "closed";
@@ -3232,9 +3236,13 @@ nagoya.scenarios = [{
   assert.match(elem("mapEvidenceD").textContent, /件数未確認/);
   assert.match(elem("mapEvidenceFlood").textContent, /非表示/);
   elem("officialFlood").checked = true;
-  elem("mapRasterBanner").hidden = false;
+  elem("mapRasterBanner").dataset.partial = "true";
+  assert.equal(elem("mapRasterBanner").hidden, true, "warning state must stay nonvisual");
   elem("officialFlood").listeners.change();
   assert.match(elem("mapEvidenceFlood").textContent, /一部のタイルが未取得/);
+  elem("mapRasterBanner").dataset.partial = "false";
+  elem("officialFlood").listeners.change();
+  assert.match(elem("mapEvidenceFlood").textContent, /タイル全域の取得・精度/);
 
   // Menu exclusivity, outside click and keyboard escape must work.
   elem("mapToolMarks").open = true;
