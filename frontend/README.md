@@ -152,3 +152,13 @@ BはEの実装後にこの仕様でUI/UXを確認します。性能改善を理�
 - `evidence_found` なのに根拠URLが空の記録（初期パイロットで実際に発生）は警告し、報告時に補足出典を記録する。
 - 名古屋市公式の区別PDFリンクは D側PR #293 の `nagoya_team_review_official_sources.py` により**施設名+住所が完全一致**する9件のみに付与される（2026-09-01時点の公開一覧、2026-10-22確認）。PDF掲載は施設位置・現在の開設・災害適合性の立証とは異なる。
 - まだE2E実機未確認。**Draft PR #292, #293, #283 の統合順・展開はMerge Captainの判断。** 自動共有・自動公開・レビューの正式認可は実装していない。
+
+
+### 名古屋P1の施設別PDF変更候補を閲覧する（Draft #298）
+
+- 班員用 `team-review.html` は、既存の `hinanex.team-review.v1` とは別に、Dの `NAGOYA_P1_PDF_ROW_DIFF_CANDIDATES_NOT_OFFICIAL_APPROVAL` 比較JSONを**任意に**追加読込できる。入力順は施設レビューJSON→施設別PDF差分JSON。バイト監視だけのJSONや合成変更試験レポートは受け付けない。
+- 対象は名古屋Stage7 P1の9施設だけ。全レコードの施設名・公式掲載住所・資料URL（`www.city.nagoya.jp`のPDF）が一致し、差分分類・集計・安全フラグが厳格に整合する場合のみ参照表示。未知の項目・座標・未承認フラグ変更は拒否。
+- 画面に「行文字列変更候補」「抽出未解決」「PDF全体の更新（行は同じ）」「今回のPDFで行の変更候補なし」を表示し、絞込できる。既にレビュー完了扱いでも、PDF更新で再確認対象になった施設は隠さない。
+- 比較は**参考情報だけ**。作業済みの `review.status`・根拠URL・チェック・メモを変更せず、結果JSONへPDF差分情報を混在させない。HTMLを開き直した場合は別途再読込が必要。
+- DレポートにStage7の `source_fingerprint` がないため、**名寄せ・PDF URLの対応だけを確認**し、別時点のStage7出力との厳密な結合は主張しない。公式原文の意味・現地位置・指定災害・開設・安全性についての承認はない。
+- Mac SafariとWindows Edgeの更新版操作はまだ独立確認されていない。手順：`frontend/docs/NAGOYA_PDF_DIFF_REVIEW_QUEUE_ACCEPTANCE_20261022.md`。B Draft #292→#298、D Draft #283→#293→#295→#296→#297。main/Render未反映。
