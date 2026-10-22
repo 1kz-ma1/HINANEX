@@ -29,6 +29,7 @@
     .checks label{flex:1;min-width:220px;display:flex;gap:9px;align-items:start}
     .sources{padding-left:19px}.sources li{margin-bottom:6px;overflow-wrap:anywhere}
     .pill{background:#eaf0f3;padding:3px 8px;border-radius:20px;font-size:12px;display:inline-block}
+    .notice{border-left:4px solid #cc8930;padding:9px 12px;background:#fff7e9;margin:12px 0;line-height:1.5}
     #feedback{min-height:24px}#feedback[data-error=true]{color:#972d2d;font-weight:650}
     [hidden]{display:none!important}
     @media(max-width:730px){body{padding:12px}.layout{grid-template-columns:1fr}.facility-list{max-height:245px}.panel{padding:15px}}
@@ -54,6 +55,11 @@
       <input id="fileInput" type="file" accept=".json,application/json" aria-label="レビューJSONファイル" style="max-width:240px">
       <button id="exportButton" type="button" class="primary" disabled>結果JSONを書き出す</button>
     </div>
+    <div class="toolbar" style="margin-top:12px">
+      <label class="upload" for="mergeInput">班員の結果JSONをまとめて取り込む</label>
+      <input id="mergeInput" type="file" accept=".json,application/json" multiple disabled aria-label="班員のレビュー結果JSON（複数選択可）" style="max-width:240px">
+    </div>
+    <p class="muted">同じ調査データから書き出された結果だけ統合します。**同じ施設への異なる変更があれば統合全体を中止**し、既存データを保持します。</p>
     <p id="feedback" role="status" aria-live="polite">まだJSONは読み込まれていません。</p>
     <small>5MBを超えるファイルは受け付けません。インポート時は未保存の編集内容が置き換わります。</small>
   </section>
@@ -85,6 +91,7 @@
           <small id="recordPriority"></small>
           <h2 id="facilityName"></h2><p id="facilityAddress" class="muted"></p>
           <div><strong>要確認理由：</strong><span id="issueCodes"></span></div>
+          <div class="notice" id="reviewCue" role="note"></div>
           <section><strong>参照する公式資料</strong><ul class="sources" id="sourceList"></ul>
             <small>URLはJSON作成時に明示されたHTTPSリンクのみ。施設の現在の運用状況は別途確認してください。</small>
           </section>
@@ -129,6 +136,15 @@ const priorities = ["P0","P1","P2"];
 const checks = ["official_source","identity","address","position_evidence"];
 const issueCodes = ["gsi_conflicting_reference_points","different_facility_name_at_same_address","abr_gsi_reference_distance_at_least_100m","parcel_reference_requires_special_review","other_gsi_incomplete_correspondence","near_coincident_gsi_references","source_renovation_notice"];
 const names = {not_reviewed:"未確認",in_progress:"調査中",evidence_found:"根拠あり（未承認）",needs_follow_up:"追加調査"};
+const issueExplanations = {
+  gsi_conflicting_reference_points:"参照点が複数あり位置判断を保留",
+  different_facility_name_at_same_address:"施設名称の一致を確認",
+  abr_gsi_reference_distance_at_least_100m:"ABRとGSIの参照点が100m以上離れている",
+  parcel_reference_requires_special_review:"地番レベルの住所につき敷地・建物位置の追加確認が必要",
+  other_gsi_incomplete_correspondence:"公式資料とGSIの対応関係が未確認",
+  near_coincident_gsi_references:"参照点は近接しているが施設位置は未承認",
+  source_renovation_notice:"使用制限の記載があり、現在の運用状況は未確認"
+};
 let documentData = null;
 let selectedId = null;
 const el = (id) => document.getElementById(id);
@@ -184,7 +200,13 @@ function fillEditor() {
   if(!r)return;
   el("recordPriority").textContent=r.priority+" / "+names[r.review.status];
   el("facilityName").textContent=r.name;el("facilityAddress").textContent=r.address;
-  el("issueCodes").textContent=r.issues.length?r.issues.join(" / "):"標準の独立確認";
+  el("issueCodes").textContent=r.issues.length?r.issues.map(k=>issueExplanations[k]).join(" / "):"独立した施設位置の確認";
+  const missingEvidence = r.review.status==="evidence_found" && !r.review.evidence_url;
+  el("reviewCue").textContent=missingEvidence
+    ? "根拠ありの記録ですが、根拠資料URLが未記入です。班員へ引き継ぐ前に出典を記録してください。"
+    : r.review.status==="not_reviewed"
+    ? "事前にリンクされた自治体資料から名称と住所を確認し、別途、敷地・建物・入口位置を裏付ける資料を探してください。公式PDFに載ることと位置確認の完了は別です。"
+    : "資料を確認した理由と出典URLを記録してください。登録施設の運用・災害適合性・敷地位置は未承認です。";
   const links=el("sourceList");links.replaceChildren();
   if(!r.sources.length){const li=document.createElement("li");li.textContent="指定された公式資料はありません。";links.append(li);}
   for(const s of r.sources){
@@ -209,7 +231,7 @@ function importJson(payload) {
   // Validate before changing any displayed/edited data.
   const parsed=validatePayload(JSON.parse(payload));
   documentData=parsed;selectedId=null;
-  el("workArea").hidden=false;el("exportButton").disabled=false;
+  el("workArea").hidden=false;el("exportButton").disabled=false;el("mergeInput").disabled=false;
   el("datasetLabel").textContent=parsed.dataset.region+" / "+parsed.dataset.id;
   el("priorityFilter").value="";el("statusFilter").value="";
   renderList();showMessage("JSONを読み込みました。変更はJSONを書き出すまで一時的です。");
@@ -224,6 +246,80 @@ function saveSelected() {
   r.review.reviewed_at=new Date().toISOString();
   try{validatePayload(documentData);}catch(e){showMessage(e.message,true);return;}
   showMessage("この施設の作業内容を反映しました。JSON書き出しで保存してください。");renderList();fillEditor();
+}
+function baselineReview(review) {
+  return review.status === "not_reviewed"
+    && !Object.values(review.checks).some(Boolean)
+    && !review.reviewer && !review.notes && !review.evidence_url && review.reviewed_at === null;
+}
+function reviewSemantic(review) {
+  return JSON.stringify([
+    review.status, checks.map(k=>review.checks[k]), review.reviewer,
+    review.notes, review.evidence_url
+  ]);
+}
+function planReviewMerge(current, additions) {
+  // Pure all-or-nothing merge plan. Never mutates current or incoming JSON.
+  validatePayload(current);
+  if (!Array.isArray(additions) || !additions.length || additions.length > 20)
+    throw new Error("統合対象のJSONを1～20個選んでください。");
+  const merged=JSON.parse(JSON.stringify(current));
+  const byId=new Map(merged.records.map(r=>[r.id,r]));
+  let added=0;
+  const conflicts=[];
+  for(const incoming of additions) {
+    validatePayload(incoming);
+    if (current.dataset.id !== incoming.dataset.id
+      || current.dataset.region !== incoming.dataset.region
+      || current.dataset.source_fingerprint !== incoming.dataset.source_fingerprint
+      || incoming.records.length !== merged.records.length)
+      throw new Error("異なるデータセットのJSONは統合できません。");
+    const incomingIds = new Set();
+    for(const next of incoming.records) {
+      incomingIds.add(next.id);
+      const target=byId.get(next.id);
+      if (!target || JSON.stringify([target.name,target.address,target.priority,target.issues])
+                    !== JSON.stringify([next.name,next.address,next.priority,next.issues]))
+        throw new Error("施設IDまたは不変の施設情報が一致しません。");
+      // Source-reference links may be extended by a newer official preflight.
+      // Never automatically copy source links: only human review data is merged.
+      if (baselineReview(next.review)) continue;
+      if (baselineReview(target.review)) {
+        target.review=JSON.parse(JSON.stringify(next.review));
+        added++;
+      } else if (reviewSemantic(target.review) !== reviewSemantic(next.review)) {
+        conflicts.push(target.name);
+      } else if ((next.review.reviewed_at || "") > (target.review.reviewed_at || "")) {
+        target.review.reviewed_at = next.review.reviewed_at;
+      }
+    }
+    if (incomingIds.size !== merged.records.length)
+      throw new Error("施設一覧が一致しません。");
+  }
+  if (conflicts.length) {
+    throw new Error("同じ施設への異なるレビューが見つかりました（"
+      + [...new Set(conflicts)].join("、")
+      + "）。元のJSONは保持しました。担当者間で内容を確認してください。");
+  }
+  validatePayload(merged);
+  return {merged, applied:added};
+}
+async function mergeFiles(files) {
+  if (!documentData)return;
+  if (files.length > 20) {showMessage("統合は20ファイルまでです。",true);return;}
+  try {
+    const payloads=[];
+    for (const file of files) {
+      if (file.size > 5 * 1024 * 1024) throw new Error("5MBを超えるJSONは統合できません。");
+      payloads.push(JSON.parse(await file.text()));
+    }
+    const result=planReviewMerge(documentData,payloads);
+    documentData=result.merged;
+    showMessage("班員のレビュー "+result.applied+" 件を反映しました。結果JSONを書き出して保存してください。");
+    renderList();fillEditor();
+  } catch(error) {
+    showMessage("統合を中止しました："+error.message,true);
+  }
 }
 function exportJson() {
   if(!documentData)return;
@@ -241,6 +337,10 @@ window.addEventListener("DOMContentLoaded",()=>{
     const file=e.target.files?.[0];if(!file)return;
     if(file.size>5*1024*1024){showMessage("ファイルサイズが5MBを超えています。",true);return;}
     try{importJson(await file.text());}catch(error){showMessage("読込を中止しました："+error.message,true);}
+    e.target.value="";
+  });
+  el("mergeInput").addEventListener("change",async(e)=>{
+    await mergeFiles(Array.from(e.target.files||[]));
     e.target.value="";
   });
   el("saveRecord").addEventListener("click",saveSelected);
