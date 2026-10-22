@@ -266,3 +266,134 @@ test("offline UI has unload protection and no misleading legacy merge language",
   assert.doesNotMatch(page, /班員間の結果は自動統合されない/);
   assert.doesNotMatch(page, /\*\*同じ施設への異なる変更/);
 });
+
+
+// Fully synthetic facility names and addresses. The municipality PDF URLs
+// are only used to simulate exact origin binding, not to claim source facts.
+const pdfUrls=[
+  "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/013/492/okunai16tenpaku0809.pdf",
+  "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/013/492/okunai13moriyama0809.pdf",
+  "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/013/492/okunai14midori0806.pdf",
+  "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/013/492/okunai02higashi0809.pdf",
+  "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/013/492/okunai05nakamura0804.pdf"
+];
+const fakeWards=["架空一","架空一","架空一","架空二","架空二","架空二","架空三","架空四","架空五"];
+const pdfByFacility=[0,0,0,1,1,1,2,3,4];
+function makeTriageFixture() {
+  const review=clone(example);
+  review.dataset.id="nagoya-stage7-P1";
+  review.records=fakeWards.map((ward,i)=>{
+    const r=clone(example.records[i%example.records.length]);
+    r.id="synthetic-"+i;
+    r.name="架空検証施設"+i;
+    r.address="架空町"+i+"-10";
+    r.priority="P1";
+    r.sources=[{title:"合成テスト用公式リンク紐付け",url:pdfUrls[pdfByFacility[i]]}];
+    return r;
+  });
+  const report={
+    report_kind:"NAGOYA_P1_PDF_ROW_DIFF_CANDIDATES_NOT_OFFICIAL_APPROVAL",
+    status:"HUMAN_REVIEW_REQUIRED",
+    previous_captured_at_utc:"2026-10-21T01:00:00Z",
+    current_captured_at_utc:"2026-10-22T01:00:00Z",
+    source_changed_count:1,
+    facility_count:9,
+    baseline_extract_matched_count:9,
+    current_extract_matched_count:9,
+    row_changed_candidate_count:0,
+    unresolved_extraction_count:0,
+    human_review_required_count:3,
+    facilities:review.records.map((r,i)=>({
+      ward:fakeWards[i], name:r.name,address:r.address,
+      source_url:pdfUrls[pdfByFacility[i]],
+      source_bytes_changed:i<3,
+      classification:i<3
+        ?"ROW_TEXT_UNCHANGED_SOURCE_CHANGED_REVIEW_REQUIRED"
+        :"SOURCE_BYTES_UNCHANGED_NOT_OFFICIAL_APPROVAL"
+    })),
+    safety:{approved_for_map:false,data_promotion_authorized:false,
+      official_facility_positions_accepted:0},
+    warning:"Synthetic PDF row diff report, no source meaning or site approved"
+  };
+  return {review, report};
+}
+const checkTriage=vm.runInContext("validateTriageReport",context);
+const filterTriage=vm.runInContext("triageMatches",context);
+test("real report schema overlays nine P1 records without mutating source reviews", () => {
+  const {review,report}=makeTriageFixture();
+  const before=JSON.stringify(review);
+  const matching=checkTriage(report,review);
+  assert.equal(matching.size,9);
+  assert.equal(JSON.stringify(review),before);
+  assert.equal(report.safety.official_facility_positions_accepted,0);
+  const first=matching.get(review.records[0].id);
+  const other=matching.get(review.records[3].id);
+  assert.equal(filterTriage(first,"review_required"),true);
+  assert.equal(filterTriage(first,"source_changed"),true);
+  assert.equal(filterTriage(first,"row_changed"),false);
+  assert.equal(filterTriage(other,"no_diff"),true);
+  assert.equal(filterTriage(other,"review_required"),false);
+});
+test("actual-style zero-change report keeps all reviews intact; no promotion",()=>{
+  const {review,report}=makeTriageFixture();
+  report.facilities.forEach(row=>{
+    row.source_bytes_changed=false;
+    row.classification="SOURCE_BYTES_UNCHANGED_NOT_OFFICIAL_APPROVAL";
+  });
+  report.status="EXTRACTED_ROW_TEXT_UNCHANGED_NOT_APPROVAL";
+  report.source_changed_count=0;
+  report.human_review_required_count=0;
+  review.records[0].review.status="evidence_found";
+  review.records[0].review.notes="架空レビュー：元の記録";
+  assert.equal(checkTriage(report,review).size,9);
+  assert.equal(review.records[0].review.status,"evidence_found");
+  assert.equal(review.records[0].review.notes,"架空レビュー：元の記録");
+  assert.equal(review.safety.approved_for_map,false);
+});
+test("triage rejects approval, extra coordinate, wrong source URL, identity and forged counts",()=>{
+  const scenarios=[
+    d=>{d.report.safety.approved_for_map=true;},
+    d=>{d.report.facilities[0].candidate_coordinates={lat:35,long:136};},
+    d=>{d.report.facilities[0].source_url="https://external.example/shelter.pdf";},
+    d=>{d.report.facilities[0].source_url="https://www.city.nagoya.jp.evil.example/a.pdf";},
+    d=>{d.report.facilities[0].name="異なる施設";},
+    d=>{d.report.facilities[1].name=d.report.facilities[0].name;
+        d.report.facilities[1].address=d.report.facilities[0].address;},
+    d=>{d.report.row_changed_candidate_count=1;},
+    d=>{d.report.human_review_required_count=0;},
+    d=>{d.report.source_changed_count=0;},
+    d=>{d.report.facilities.pop();},
+    d=>{d.report.is_safe_for_flood=true;},
+    d=>{d.report.current_captured_at_utc="not-a-date";},
+    d=>{d.review.dataset.id="edogawa-something";},
+    d=>{d.review.records[0].sources=[];},
+    d=>{d.report.facilities[0].classification="APPROVED";},
+    d=>{d.report.facilities[0].source_bytes_changed=false;},
+    d=>{d.report.status="EXTRACTED_ROW_TEXT_UNCHANGED_NOT_APPROVAL";},
+  ];
+  for(let i=0;i<scenarios.length;i++){
+    const d=makeTriageFixture();
+    scenarios[i](d);
+    assert.throws(()=>checkTriage(d.report,d.review),undefined, "case "+i);
+  }
+});
+test("all five PDF triage statuses retain distinct human review semantics",()=>{
+  const {review,report}=makeTriageFixture();
+  report.facilities[0].classification="ROW_TEXT_CHANGED_HUMAN_REVIEW_REQUIRED";
+  report.row_changed_candidate_count=1;
+  assert.equal(checkTriage(report,review).size,9);
+  assert.equal(filterTriage(report.facilities[0],"row_changed"),true);
+  report.facilities[0].classification="ROW_EXTRACTION_UNRESOLVED_REVIEW_REQUIRED";
+  report.row_changed_candidate_count=0;
+  report.unresolved_extraction_count=1;
+  report.current_extract_matched_count=8;
+  assert.equal(checkTriage(report,review).size,9);
+  assert.equal(filterTriage(report.facilities[0],"unresolved"),true);
+});
+test("triage is optional, offline and not part of reviewer JSON export",()=>{
+  assert.match(page,/id="triageInput"/);
+  assert.match(page,/id="triageFilter" disabled/);
+  assert.match(page,/triageReport=null;triageByFacility=new Map/);
+  assert.match(page,/const json=JSON\.stringify\(documentData,null,2\)/);
+  assert.doesNotMatch(page, /fetch\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
+});
