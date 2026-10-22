@@ -184,17 +184,8 @@ footer{display:none}
 /* Keep Leaflet zoom buttons clear of the four top tools and the left rail. */
 .map-wrap .leaflet-top.leaflet-left{left:auto;right:12px;top:70px}
 .map-wrap .leaflet-top.leaflet-left .leaflet-control{margin-left:0;margin-right:0}
-.map-raster-banner{
-  position:absolute;z-index:1390;left:70px;top:78px;
-  max-width:min(380px,calc(100% - 140px));box-sizing:border-box;
-  margin:0;padding:9px 12px;background:#34291a;color:#f7d5a7;
-  border:1px solid #ab8151;border-radius:9px;font-size:11px;line-height:1.55;
-  box-shadow:0 6px 18px rgba(0,0,0,.3);
-}
-.map-raster-banner[hidden]{display:none}
 @media(max-width:680px){
   .map-wrap .leaflet-top.leaflet-left{top:65px;right:8px}
-  .map-raster-banner{left:62px;top:66px;max-width:calc(100% - 119px);font-size:10px}
 }
 
 /* Leave the locate control accessible above an open details bottom sheet. */
@@ -234,16 +225,10 @@ footer{display:none}
   overflow:auto;overscroll-behavior:contain;box-sizing:border-box;
   padding:11px 12px;max-height:min(37dvh,320px);
 }
-.map-raster-banner{
-  top:79px;left:13px;right:auto;
-  max-width:min(320px,calc(100% - 100px));
-  padding:7px 10px;font-size:10px;border-radius:10px;
-}
 /* The footer/nav remains available while a transient sheet is open. */
 @media(max-width:680px){
   .reference-map-summary{width:min(265px,calc(100% - 96px))}
   .reference-map-disclosure-body{max-height:min(30dvh,240px)}
-  .map-raster-banner{left:8px;top:68px;max-width:calc(100% - 102px)}
 }
 
 /* Map-first v3: keep expert evidence as a standalone B frontend route.
