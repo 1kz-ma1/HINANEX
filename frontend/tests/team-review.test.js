@@ -201,3 +201,68 @@ test("attention-first filter explicitly treats incomplete reviews as needing hum
   // This tests work-record completeness ONLY, not independent site acceptance.
   assert.equal(example.safety.approved_for_map,false);
 });
+
+
+test("saved-in-memory but not exported review cannot be overwritten by a new import", () => {
+  const data=clone(example);
+  context.testData=data;
+  try {
+    vm.runInContext("documentData=testData; selectedId=null; lastExportedOrImportedJson=JSON.stringify(testData)", context);
+    const unexported=vm.runInContext("hasUnexportedReviewChanges", context);
+    assert.equal(unexported(),false);
+    data.records[0].review.notes="重要な班員の新規メモ";
+    assert.equal(unexported(),true);
+    assert.throws(
+      () => vm.runInContext("importJson(JSON.stringify(testData))",context),
+      /未書き出し/
+    );
+    assert.equal(data.records[0].review.notes,"重要な班員の新規メモ");
+  } finally {
+    vm.runInContext("documentData=null; selectedId=null; lastExportedOrImportedJson=null",context);
+    delete context.testData;
+  }
+});
+
+test("unsaved form edits are detectable before switching, merging, or exporting", () => {
+  const data=clone(example);
+  const rec=data.records[0];
+  const ui={
+    recordEditor:{hidden:false},
+    reviewStatus:{value:rec.review.status},
+    reviewer:{value:rec.review.reviewer},
+    reviewNote:{value:rec.review.notes},
+    evidenceUrl:{value:rec.review.evidence_url},
+    checklist:{querySelectorAll(){return checks.map(k=>({
+      dataset:{check:k}, checked:rec.review.checks[k]
+    }));}},
+  };
+  const checks=["official_source","identity","address","position_evidence"];
+  context.document={getElementById(id){return ui[id];}};
+  context.testData=data;
+  try {
+    vm.runInContext("documentData=testData; selectedId=testData.records[0].id",context);
+    const changed=vm.runInContext("hasUnappliedEditorChanges",context);
+    assert.equal(changed(),false);
+    ui.reviewNote.value="保存前のメモ";
+    assert.equal(changed(),true);
+    ui.reviewNote.value="";
+    assert.equal(changed(),false);
+    ui.evidenceUrl.value="https://www.city.nagoya.jp/source";
+    assert.equal(changed(),true);
+    ui.evidenceUrl.value="";
+    ui.checklist.querySelectorAll=()=>[{dataset:{check:"identity"},checked:true}];
+    assert.equal(changed(),true);
+  } finally {
+    vm.runInContext("documentData=null; selectedId=null; lastExportedOrImportedJson=null",context);
+    delete context.testData;
+    delete context.document;
+  }
+});
+
+test("offline UI has unload protection and no misleading legacy merge language", () => {
+  assert.match(page, /beforeunload/);
+  assert.match(page, /hasUnexportedReviewChanges/);
+  assert.match(page, /rejectUnappliedEditorChanges/);
+  assert.doesNotMatch(page, /班員間の結果は自動統合されない/);
+  assert.doesNotMatch(page, /\*\*同じ施設への異なる変更/);
+});
