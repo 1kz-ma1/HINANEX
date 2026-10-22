@@ -254,7 +254,8 @@ function validateTriageReport(candidate, reviewData) {
     && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(s)
     && !Number.isNaN(Date.parse(s));
   if (!iso(candidate.previous_captured_at_utc)
-      || !iso(candidate.current_captured_at_utc))
+      || !iso(candidate.current_captured_at_utc)
+      || Date.parse(candidate.current_captured_at_utc) < Date.parse(candidate.previous_captured_at_utc))
     throw new Error("差分取得日時が不正です。");
   textField(candidate.warning,"差分の注意書き",600);
   const integers = ["source_changed_count","facility_count",
@@ -408,7 +409,9 @@ function renderList() {
     && (!el("priorityFilter").value||r.priority===el("priorityFilter").value)
     && (!el("statusFilter").value||r.review.status===el("statusFilter").value)
     && triageMatches(triageByFacility.get(r.id),el("triageFilter").value)
-    && (!el("needsActionOnly").checked||requiresFollowUp(r)));
+    && (!el("needsActionOnly").checked||requiresFollowUp(r)
+      || (triageByFacility.has(r.id)
+        && triageByFacility.get(r.id).classification!==triageNoChange)));
   const list=el("facilityList");list.replaceChildren();
   for(const r of rows){const b=document.createElement("button");b.type="button";b.setAttribute("aria-current",String(r.id===selectedId));const strong=document.createElement("strong");strong.textContent=r.name;const small=document.createElement("small");small.textContent=r.priority+" · "+names[r.review.status]
     +(triageByFacility.has(r.id)?" · "+triageLabels[triageByFacility.get(r.id).classification]:"");b.append(strong,small);b.addEventListener("click",()=>{if(rejectUnappliedEditorChanges())return;selectedId=r.id;renderList();fillEditor();});list.append(b);}
