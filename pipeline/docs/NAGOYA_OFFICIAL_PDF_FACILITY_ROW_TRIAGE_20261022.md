@@ -33,6 +33,30 @@ python triage_nagoya_pdf_facility_changes.py --mode compare --pilot-dir data/geo
 
 生成物は `official_pdf_facility_snapshot_LOCAL.json` と `official_pdf_facility_comparison_LOCAL.json`。既に存在する場合は上書きせず、後続比較は `--output-name official_pdf_facility_comparison_round2_LOCAL.json` とする。
 
+## Mac実PDFの受入記録（2026-10-22、オペレーターのCLI出力に基づく）
+
+- baseline: `facility_count=9`、`extract_matched_count=9`、`status=BASELINE_UNREVIEWED`。PyMuPDFの実際の公式PDF5件に対する文字列同一行の抽出が9/9件成功。
+- compare: `facility_count=9`、`status=EXTRACTED_ROW_TEXT_UNCHANGED_NOT_APPROVAL`、`row_changed_candidate_count=0`、`human_review_required_count=0`。**あくまでこの比較において新しいPDF行テキストの変更候補を検出しなかった**。
+- 初期実装の比較CLIに表示された `extract_matched_count=0` は**誤表示**。比較用 `facilities[]` は `classification` キーを持つのに、baseline専用の `extract_status` を数えたため。元の比較JSON自体には独立した抽出済み件数の記録がない。
+- 同日、`import fitz` に起因する非推奨警告を修正し、`import pymupdf` に変更。比較レポートにも `baseline_extract_matched_count` / `current_extract_matched_count` を追加し、CLIの `extract_matched_count` が比較時にも実際の現行抽出件数を返すように修正。
+- 既存のローカルbaselineと比較JSONは**変更・削除しない**。修正版の導入後は次のように新しい比較ファイル名を使う：
+
+```bash
+cd ~/Developer/HINANEX
+git fetch origin refs/pull/296/head
+if git show FETCH_HEAD:pipeline/triage_nagoya_pdf_facility_changes.py > pipeline/triage_nagoya_pdf_facility_changes.py.tmp \
+  && test -s pipeline/triage_nagoya_pdf_facility_changes.py.tmp; then
+  mv pipeline/triage_nagoya_pdf_facility_changes.py.tmp pipeline/triage_nagoya_pdf_facility_changes.py
+fi
+cd pipeline
+source .venv/bin/activate
+python triage_nagoya_pdf_facility_changes.py --mode compare \
+  --pilot-dir data/geocoding_pilot/nagoya50 \
+  --output-name official_pdf_facility_comparison_round2_LOCAL.json
+```
+
+修正版の比較を実行した後は、`extract_matched_count=9`、`baseline_extract_matched_count=9`、`current_extract_matched_count=9` となることを確認する。結果はその時点のPDFが基準と同じ場合に限り、変更候補0件を期待する。
+
 ## 受入上の未完事項
 
-合成PDFバイトと独立抽出器によるCIテストは実装済みだが、**実PDF文字抽出で9施設すべてMATCHEDになるかは未検証**。合致数が少ない場合、誤判定で穴埋めせず本文のレイアウトを確認して処理を再設計する。Windowsでのオペレーター実行、資料本文の意味の再評価、班員HTMLへの自動投入は未実施。Draft依存 #283→#293→#295→後続PR。
+Macの実PDF行抽出はオペレーターの報告に基づき9/9件成功。**抽出された行がPDF原文の正しい表セル一式と一致しているかの独立目視照合、実際に改版されたPDFでの変更検知、Windows実機、班員HTMLへの自動連携は未実施。** 位置・開設・災害安全性は引き続き未承認。Draftの依存は #283 → #293 → #295 → #296。
