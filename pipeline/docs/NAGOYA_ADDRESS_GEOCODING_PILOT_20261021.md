@@ -514,7 +514,7 @@ HTMLでは `team_review_p1_sources_LOCAL.json` を基準に読み込んだ後、
 
 ```bash
 cd ~/Developer/HINANEX
-git fetch origin refs/pull/294/head     # PR番号はこの機能の実PRを参照してから指定する
+git fetch origin refs/pull/295/head     # D公式PDF更新差分PR
 # 必ず取得元・内容・ファイルサイズを確認し、既存ファイルを上書きしない
 git show FETCH_HEAD:pipeline/check_nagoya_official_pdf_updates.py > pipeline/check_nagoya_official_pdf_updates.py.tmp
 test -s pipeline/check_nagoya_official_pdf_updates.py.tmp && mv pipeline/check_nagoya_official_pdf_updates.py.tmp pipeline/check_nagoya_official_pdf_updates.py
