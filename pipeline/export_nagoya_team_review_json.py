@@ -15,6 +15,7 @@ from collections import Counter
 from pathlib import Path
 
 from refine_nagoya_gsi_stage7 import RANKS
+from nagoya_team_review_official_sources import official_ward_pdf
 from view_nagoya_stage7_private import read_stage7_private, validate as validate_stage7
 
 SCHEMA_ID = "hinanex.team-review.v1"
@@ -83,14 +84,18 @@ def make_package(rows: list[dict], summary: dict, priorities: tuple[str, ...]) -
             raise ValueError("Missing official facility name or listed address")
         if len(name) > 240 or len(address) > 300:
             raise ValueError("Official display field too long for review schema")
+        ward_pdf = official_ward_pdf(name, address)
+        sources = [{"title": "名古屋市・指定緊急避難場所／指定避難所一覧（公式一覧、2026-09-01時点）",
+                    "url": OFFICIAL_PORTAL}]
+        if ward_pdf:
+            sources.append(ward_pdf)
         records.append({
             "id": "nagoya-" + anonymous_id,
             "name": name,
             "address": address,
             "priority": priority,
             "issues": clean_codes(row),
-            "sources": [{"title": "名古屋市・指定緊急避難場所／指定避難所一覧（施設別資料は要照合）",
-                         "url": OFFICIAL_PORTAL}],
+            "sources": sources,
             "review": {
                 "status": "not_reviewed",
                 "checks": {key: False for key in CHECKS},
