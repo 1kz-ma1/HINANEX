@@ -188,3 +188,16 @@ test("incomplete evidence link is surfaced separately from site approval", () =>
   assert.match(page, /id="mergeInput"/);
   assert.match(page, /multiple disabled/);
 });
+
+test("attention-first filter explicitly treats incomplete reviews as needing human follow-up", () => {
+  const needs = vm.runInContext("requiresFollowUp", context);
+  const rec = clone(example.records[0]);
+  assert.equal(needs(rec),true);
+  rec.review.status="evidence_found";
+  rec.review.checks={official_source:true,identity:true,address:true,position_evidence:true};
+  assert.equal(needs(rec),true);
+  rec.review.evidence_url="https://www.city.nagoya.jp/";
+  assert.equal(needs(rec),false);
+  // This tests work-record completeness ONLY, not independent site acceptance.
+  assert.equal(example.safety.approved_for_map,false);
+});
