@@ -464,6 +464,32 @@ open data/geocoding_pilot/nagoya50/team-review.html
 
 実データの配布可否はレビュー結果の根拠となるライセンス・利用条件および班内の取扱い方針を人間が確認。データを公開サイトへアップロードしない。
 
+### P1公式一覧の事前照合と班員JSON統合（2026-10-22）
+
+- 名古屋市の公式一覧は**2026年9月1日時点**。公開ページ自体は2026-10-07更新。区別屋内施設PDFを2026-10-22に参照し、対象P1**9施設の施設名・掲載住所の一致を個別に確認**。天白3、守山3、緑1、東1、中村1。元資料は CC BY 4.0、出典は「名古屋市 指定緊急避難場所・指定避難所の指定」（`https://www.city.nagoya.jp/bousaiportal/hinan/1013390/1013492.html`）。公式資料の「指定」と実際の開設・避難適合・建物入口を混同しない。
+- `pipeline/nagoya_team_review_official_sources.py` は**公式に公開された施設名・住所・区別PDF URLだけ**の厳格な一致インデックス。個別施設名と住所の双方が一致した場合だけ、該当区PDFリンクを配布用JSON `sources[]` に付与する。部分一致や名称のみでは自動登録しない。時点の固定情報であり公式PDFの将来の変更監視・再検証は行わない。
+- `review.status`・全確認チェックは**未確認のまま**。公式資料に名前があることは位置の独立した承認や運用状況・安全性の判断根拠にはならない。候補座標やprivate監査列を共有JSONへ移さない。
+- 以前の `team_review_p1_LOCAL.json` を作ったMacでは、**既存ファイルを残して新しい名前で生成**する。記録済みの提出結果を上書きしないため `--output-name team_review_p1_sources_LOCAL.json` を新設（フォルダ移動できない単純なgitignoredファイル名のみ許可）。
+- B側Draft PR #292は「未確認・出典不足のみ表示」・P0/P1/P2要確認理由の説明・最大20ファイルの**全件原子的な結果JSON統合**を追加。基準JSONの施設ID・名称・住所・優先度・要確認コード・元ソースSHAが同じかチェックし、同じ施設の異なる記録は競合として**一切統合せず**報告する。既存班員版から基準版へ**確認メモ等だけ**反映し、公式リンクは基準版に残す。
+- CI成功でも人間の出典原文確認・Windows Edge/Mac Safariでの読込・再エクスポート・再インポートを経るまで受け入れ確定しない。PR #283 → #293 の依存関係・PR #292 の静的UI統合を慎重に扱う。Render/main自動公開はしない。
+
+~~~sh
+cd ~/Developer/HINANEX
+git fetch origin refs/pull/293/head
+git show FETCH_HEAD:pipeline/export_nagoya_team_review_json.py > pipeline/export_nagoya_team_review_json.py
+git show FETCH_HEAD:pipeline/nagoya_team_review_official_sources.py > pipeline/nagoya_team_review_official_sources.py
+cd pipeline
+source .venv/bin/activate
+python export_nagoya_team_review_json.py --pilot-dir data/geocoding_pilot/nagoya50 --output-name team_review_p1_sources_LOCAL.json
+# B側の最新単体HTMLを、別ファイル名で取得。既存のJSON/HTMLを上書きしない
+cd ..
+git fetch origin refs/pull/292/head
+git show FETCH_HEAD:frontend/team-review.html > pipeline/data/geocoding_pilot/nagoya50/team-review-v2.html
+open -a Safari pipeline/data/geocoding_pilot/nagoya50/team-review-v2.html
+~~~
+
+HTMLでは `team_review_p1_sources_LOCAL.json` を基準に読み込んだ後、古い班員提出JSONを「班員の結果JSONをまとめて取り込む」でインポート。競合がなければ別名で出力する。**配布前にJSON内容・公式一覧の使用条件・配布権限を本人が確認**する。
+
 ## 発表質問への回答例
 
 「名古屋市の屋内施設の住所情報は取得できていますが、緯度経度の列はありません。そこで住所から座標候補を得る実験用のパイプラインを追加しました。候補点と公式施設座標は区別し、変換時の位置精度・版・不一致を記録します。座標が付いただけでは避難時の安全性・施設の開設状態・経路の通行可能性は証明できないため、正式な地図表示への自動昇格は行っていません。」
