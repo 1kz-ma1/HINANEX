@@ -153,6 +153,7 @@ const issueExplanations = {
 };
 let documentData = null;
 let selectedId = null;
+let lastExportedOrImportedJson = null;
 const el = (id) => document.getElementById(id);
 const own = (obj,key) => Object.prototype.hasOwnProperty.call(obj,key);
 const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
@@ -209,6 +210,10 @@ function hasUnappliedEditorChanges() {
   return Array.from(el("checklist").querySelectorAll("[data-check]")).some(
     node=>r.review.checks[node.dataset.check] !== node.checked);
 }
+function hasUnexportedReviewChanges() {
+  return !!documentData && lastExportedOrImportedJson !== null
+    && JSON.stringify(documentData) !== lastExportedOrImportedJson;
+}
 function rejectUnappliedEditorChanges() {
   if (!hasUnappliedEditorChanges()) return false;
   showMessage("現在の施設に未反映の編集があります。先に「この施設の作業内容を反映」を押してください。",true);
@@ -258,7 +263,10 @@ function renderList() {
   const followUps=documentData.records.filter(requiresFollowUp).length;
   el("stats").replaceChildren();
   for(const label of ["合計 "+total+"件","作業確認が必要 "+followUps+"件","未確認 "+remaining+"件","P0 "+documentData.records.filter(r=>r.priority==="P0").length+"件","P1 "+documentData.records.filter(r=>r.priority==="P1").length+"件","P2 "+documentData.records.filter(r=>r.priority==="P2").length+"件"]){const s=document.createElement("span");s.textContent=label;el("stats").append(s);}
-  if(!rows.some(r=>r.id===selectedId)) {selectedId=rows[0]?.id||null;fillEditor();}
+  if(!rows.some(r=>r.id===selectedId)) {
+    if (rejectUnappliedEditorChanges()) return;
+    selectedId=rows[0]?.id||null;fillEditor();
+  }
 }
 function setSourceGroups(data) {
   const select=el("sourceGroupFilter");
@@ -282,8 +290,9 @@ function setSourceGroups(data) {
 function importJson(payload) {
   // Validate before changing any displayed/edited data.
   if (rejectUnappliedEditorChanges()) throw new Error("未反映の編集を先に反映してください。");
+  if (hasUnexportedReviewChanges()) throw new Error("前のJSONを読み込んだ後に未書き出しの作業があります。先に結果JSONを書き出してください。");
   const parsed=validatePayload(JSON.parse(payload));
-  documentData=parsed;selectedId=null;
+  documentData=parsed;selectedId=null;lastExportedOrImportedJson=JSON.stringify(parsed);
   el("workArea").hidden=false;el("exportButton").disabled=false;el("mergeInput").disabled=false;
   el("datasetLabel").textContent=parsed.dataset.region+" / "+parsed.dataset.id;
   setSourceGroups(parsed);
@@ -386,8 +395,15 @@ function exportJson() {
   a.href=u;a.download="hinanex-team-review-"+new Date().toISOString().slice(0,10)+".json";
   document.body.append(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(u),10000);
+  lastExportedOrImportedJson=JSON.stringify(documentData);
   showMessage("結果JSONの保存操作を開始しました。統合済みの結果も別の名前で保存し、実際に保存されたファイルを確認してください。");
 }
+window.addEventListener("beforeunload",(event)=>{
+  if (hasUnappliedEditorChanges() || hasUnexportedReviewChanges()) {
+    event.preventDefault();
+    event.returnValue="";
+  }
+});
 window.addEventListener("DOMContentLoaded",()=>{
   el("fileInput").addEventListener("change",async(e)=>{
     const file=e.target.files?.[0];if(!file)return;
