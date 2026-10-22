@@ -59,9 +59,9 @@
       <label class="upload" for="mergeInput">班員の結果JSONをまとめて取り込む</label>
       <input id="mergeInput" type="file" accept=".json,application/json" multiple disabled aria-label="班員のレビュー結果JSON（複数選択可）" style="max-width:240px">
     </div>
-    <p class="muted">同じ調査データから書き出された結果だけ統合します。**同じ施設への異なる変更があれば統合全体を中止**し、既存データを保持します。</p>
+    <p class="muted">同じ調査データから書き出された結果だけ統合します。<strong>同じ施設への異なる変更があれば統合全体を中止</strong>し、既存データを保持します。</p>
     <p id="feedback" role="status" aria-live="polite">まだJSONは読み込まれていません。</p>
-    <small>5MBを超えるファイルは受け付けません。インポート時は未保存の編集内容が置き換わります。</small>
+    <small>5MBを超えるファイルは受け付けません。入力中の施設は「作業内容を反映」後に切り替えてください。ブラウザー内の変更は、JSON書き出しが完了するまでファイルに保存されません。</small>
   </section>
   <section id="workArea" hidden>
     <div class="panel">
@@ -199,6 +199,21 @@ function validatePayload(data) {
   return data;
 }
 function currentRecord() {return documentData?.records.find(r=>r.id===selectedId)||null;}
+function hasUnappliedEditorChanges() {
+  const r=currentRecord();
+  if (!r || el("recordEditor").hidden) return false;
+  if (r.review.status !== el("reviewStatus").value
+      || r.review.reviewer !== el("reviewer").value
+      || r.review.notes !== el("reviewNote").value
+      || r.review.evidence_url !== el("evidenceUrl").value.trim()) return true;
+  return Array.from(el("checklist").querySelectorAll("[data-check]")).some(
+    node=>r.review.checks[node.dataset.check] !== node.checked);
+}
+function rejectUnappliedEditorChanges() {
+  if (!hasUnappliedEditorChanges()) return false;
+  showMessage("現在の施設に未反映の編集があります。先に「この施設の作業内容を反映」を押してください。",true);
+  return true;
+}
 function showMessage(message,error=false){el("feedback").textContent=message;el("feedback").dataset.error=error?"true":"false";}
 function fillEditor() {
   const r=currentRecord();
@@ -237,7 +252,7 @@ function renderList() {
     && (!el("statusFilter").value||r.review.status===el("statusFilter").value)
     && (!el("needsActionOnly").checked||requiresFollowUp(r)));
   const list=el("facilityList");list.replaceChildren();
-  for(const r of rows){const b=document.createElement("button");b.type="button";b.setAttribute("aria-current",String(r.id===selectedId));const strong=document.createElement("strong");strong.textContent=r.name;const small=document.createElement("small");small.textContent=r.priority+" · "+names[r.review.status];b.append(strong,small);b.addEventListener("click",()=>{selectedId=r.id;renderList();fillEditor();});list.append(b);}
+  for(const r of rows){const b=document.createElement("button");b.type="button";b.setAttribute("aria-current",String(r.id===selectedId));const strong=document.createElement("strong");strong.textContent=r.name;const small=document.createElement("small");small.textContent=r.priority+" · "+names[r.review.status];b.append(strong,small);b.addEventListener("click",()=>{if(rejectUnappliedEditorChanges())return;selectedId=r.id;renderList();fillEditor();});list.append(b);}
   if(!rows.length){const p=document.createElement("p");p.textContent="条件に一致する施設はありません。";list.append(p);}
   const total=documentData.records.length, remaining=documentData.records.filter(r=>r.review.status==="not_reviewed").length;
   const followUps=documentData.records.filter(requiresFollowUp).length;
@@ -266,6 +281,7 @@ function setSourceGroups(data) {
 }
 function importJson(payload) {
   // Validate before changing any displayed/edited data.
+  if (rejectUnappliedEditorChanges()) throw new Error("未反映の編集を先に反映してください。");
   const parsed=validatePayload(JSON.parse(payload));
   documentData=parsed;selectedId=null;
   el("workArea").hidden=false;el("exportButton").disabled=false;el("mergeInput").disabled=false;
@@ -344,6 +360,7 @@ function planReviewMerge(current, additions) {
 }
 async function mergeFiles(files) {
   if (!documentData)return;
+  if (rejectUnappliedEditorChanges()) return;
   if (files.length > 20) {showMessage("統合は20ファイルまでです。",true);return;}
   try {
     const payloads=[];
@@ -361,6 +378,7 @@ async function mergeFiles(files) {
 }
 function exportJson() {
   if(!documentData)return;
+  if (rejectUnappliedEditorChanges()) return;
   try {validatePayload(documentData);} catch(e){showMessage(e.message,true);return;}
   const json=JSON.stringify(documentData,null,2)+"\n";
   const blob=new Blob([json],{type:"application/json;charset=utf-8"});
@@ -368,7 +386,7 @@ function exportJson() {
   a.href=u;a.download="hinanex-team-review-"+new Date().toISOString().slice(0,10)+".json";
   document.body.append(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(u),10000);
-  showMessage("結果JSONの保存操作を開始しました。班員間の結果は自動統合されないため、上書きに注意してください。");
+  showMessage("結果JSONの保存操作を開始しました。統合済みの結果も別の名前で保存し、実際に保存されたファイルを確認してください。");
 }
 window.addEventListener("DOMContentLoaded",()=>{
   el("fileInput").addEventListener("change",async(e)=>{
