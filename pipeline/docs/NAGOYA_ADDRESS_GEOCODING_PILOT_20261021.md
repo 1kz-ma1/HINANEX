@@ -506,6 +506,29 @@ fi
 
 HTMLでは `team_review_p1_sources_LOCAL.json` を基準に読み込んだ後、古い班員提出JSONを「班員の結果JSONをまとめて取り込む」でインポート。競合がなければ別名で出力する。**配布前にJSON内容・公式一覧の使用条件・配布権限を本人が確認**する。
 
+### 公式区別PDFのバイト更新検知（独立オペレーター実行、2026-10-22）
+
+`pipeline/check_nagoya_official_pdf_updates.py` は、既存P1・9施設の資料としてリンク登録済みの名古屋市**5区の公開PDF**だけを対象とする。URLはD側で固定した allowlist のみ。自動スケジュール・外部公開・Gitコミット・施設位置や安全性の自動承認は行わない。取得失敗、リダイレクト、意図しないContent-Type、PDFでない応答、12MiB超はfail-closedでレポート更新しない。個人がローカル環境で明示実行したときだけHTTPSで取得する。
+
+最初に基準（**未審査のバイト列スナップショット**）を取得。その後で再取得と比較を行う。基準自体が正しい版かどうか、PDF本文が人の意味上変わったかどうかは**別途レビュー**。以前の基準に比較しない初回取得は変更検出ではない。
+
+```bash
+cd ~/Developer/HINANEX
+git fetch origin refs/pull/294/head     # PR番号はこの機能の実PRを参照してから指定する
+# 必ず取得元・内容・ファイルサイズを確認し、既存ファイルを上書きしない
+git show FETCH_HEAD:pipeline/check_nagoya_official_pdf_updates.py > pipeline/check_nagoya_official_pdf_updates.py.tmp
+test -s pipeline/check_nagoya_official_pdf_updates.py.tmp && mv pipeline/check_nagoya_official_pdf_updates.py.tmp pipeline/check_nagoya_official_pdf_updates.py
+cd pipeline
+python check_nagoya_official_pdf_updates.py --mode baseline --pilot-dir data/geocoding_pilot/nagoya50
+python check_nagoya_official_pdf_updates.py --mode compare --pilot-dir data/geocoding_pilot/nagoya50
+```
+
+- 初回：`official_pdf_snapshot_LOCAL.json`。2回目：`official_pdf_comparison_LOCAL.json`。既存ファイルの上書きは禁止。3回目以降は `--output-name official_pdf_comparison_day3_LOCAL.json` 等を明示する。
+- 差分があれば `SOURCE_BYTES_CHANGED_REVIEW_REQUIRED`。一致していても `SOURCE_BYTES_UNCHANGED_CONTENT_NOT_VERIFIED`（公的意味・指定・開設や実地点の安全性は未評価）。
+- 比較レポートには区名・固定公式URL・変更真偽・前後SHA256・前後のバイト数・取得日時・常に偽の安全ゲートだけを記録する。PDF原文ファイルは自動保存・配布しない。
+- 自動巡回・PDF版管理・ページ別意味差分・班員通知は**Future Design**。バイト差分検出成功は「公式名簿の内容変更」の立証ではない。ネットワークを使う実行とオフラインCIテストを混同しない。
+- 前提はD段階PR #283 → #293 → 本機能PR。main/Renderや既存Stage7 PRIVATE資産・D RegionExportは変更しない。
+
 ## 発表質問への回答例
 
 「名古屋市の屋内施設の住所情報は取得できていますが、緯度経度の列はありません。そこで住所から座標候補を得る実験用のパイプラインを追加しました。候補点と公式施設座標は区別し、変換時の位置精度・版・不一致を記録します。座標が付いただけでは避難時の安全性・施設の開設状態・経路の通行可能性は証明できないため、正式な地図表示への自動昇格は行っていません。」
