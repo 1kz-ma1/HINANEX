@@ -79,6 +79,7 @@
             <option value="">すべて</option><option value="not_reviewed">未確認</option><option value="in_progress">調査中</option><option value="evidence_found">資料を発見</option><option value="needs_follow_up">追加調査</option>
           </select>
         </label>
+        <label style="align-self:center"><input type="checkbox" id="needsActionOnly" checked style="width:auto"> 根拠・確認が未完了の施設だけ表示</label>
       </div>
     </div>
     <div class="layout">
@@ -216,15 +217,25 @@ function fillEditor() {
   el("reviewStatus").value=r.review.status;el("reviewer").value=r.review.reviewer;el("evidenceUrl").value=r.review.evidence_url;
   el("reviewNote").value=r.review.notes;
 }
+function requiresFollowUp(r) {
+  // Completeness of human review record only. Never site, route, or operation acceptance.
+  return r.review.status !== "evidence_found"
+    || !r.review.evidence_url
+    || checks.some(key=>!r.review.checks[key]);
+}
 function renderList() {
   if(!documentData)return;
-  const rows=documentData.records.filter(r=>(!el("priorityFilter").value||r.priority===el("priorityFilter").value)&&(!el("statusFilter").value||r.review.status===el("statusFilter").value));
+  const rows=documentData.records.filter(r=>
+    (!el("priorityFilter").value||r.priority===el("priorityFilter").value)
+    && (!el("statusFilter").value||r.review.status===el("statusFilter").value)
+    && (!el("needsActionOnly").checked||requiresFollowUp(r)));
   const list=el("facilityList");list.replaceChildren();
   for(const r of rows){const b=document.createElement("button");b.type="button";b.setAttribute("aria-current",String(r.id===selectedId));const strong=document.createElement("strong");strong.textContent=r.name;const small=document.createElement("small");small.textContent=r.priority+" · "+names[r.review.status];b.append(strong,small);b.addEventListener("click",()=>{selectedId=r.id;renderList();fillEditor();});list.append(b);}
   if(!rows.length){const p=document.createElement("p");p.textContent="条件に一致する施設はありません。";list.append(p);}
   const total=documentData.records.length, remaining=documentData.records.filter(r=>r.review.status==="not_reviewed").length;
+  const followUps=documentData.records.filter(requiresFollowUp).length;
   el("stats").replaceChildren();
-  for(const label of ["合計 "+total+"件","未確認 "+remaining+"件","P0 "+documentData.records.filter(r=>r.priority==="P0").length+"件","P1 "+documentData.records.filter(r=>r.priority==="P1").length+"件","P2 "+documentData.records.filter(r=>r.priority==="P2").length+"件"]){const s=document.createElement("span");s.textContent=label;el("stats").append(s);}
+  for(const label of ["合計 "+total+"件","作業確認が必要 "+followUps+"件","未確認 "+remaining+"件","P0 "+documentData.records.filter(r=>r.priority==="P0").length+"件","P1 "+documentData.records.filter(r=>r.priority==="P1").length+"件","P2 "+documentData.records.filter(r=>r.priority==="P2").length+"件"]){const s=document.createElement("span");s.textContent=label;el("stats").append(s);}
   if(!rows.some(r=>r.id===selectedId)) {selectedId=rows[0]?.id||null;fillEditor();}
 }
 function importJson(payload) {
@@ -233,7 +244,7 @@ function importJson(payload) {
   documentData=parsed;selectedId=null;
   el("workArea").hidden=false;el("exportButton").disabled=false;el("mergeInput").disabled=false;
   el("datasetLabel").textContent=parsed.dataset.region+" / "+parsed.dataset.id;
-  el("priorityFilter").value="";el("statusFilter").value="";
+  el("priorityFilter").value="";el("statusFilter").value="";el("needsActionOnly").checked=true;
   renderList();showMessage("JSONを読み込みました。変更はJSONを書き出すまで一時的です。");
 }
 function saveSelected() {
@@ -345,7 +356,7 @@ window.addEventListener("DOMContentLoaded",()=>{
   });
   el("saveRecord").addEventListener("click",saveSelected);
   el("exportButton").addEventListener("click",exportJson);
-  for(const id of ["priorityFilter","statusFilter"])el(id).addEventListener("change",renderList);
+  for(const id of ["priorityFilter","statusFilter","needsActionOnly"])el(id).addEventListener("change",renderList);
 });
 </script>
 </body>
