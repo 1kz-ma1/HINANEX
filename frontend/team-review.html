@@ -74,6 +74,11 @@
             <option value="">すべて</option><option value="P0">P0</option><option value="P1">P1</option><option value="P2">P2</option>
           </select>
         </label>
+        <label>公式資料ごとにまとめて確認
+          <select id="sourceGroupFilter">
+            <option value="">すべての公式資料</option>
+          </select>
+        </label>
         <label>作業状態を絞り込む
           <select id="statusFilter">
             <option value="">すべて</option><option value="not_reviewed">未確認</option><option value="in_progress">調査中</option><option value="evidence_found">資料を発見</option><option value="needs_follow_up">追加調査</option>
@@ -226,7 +231,9 @@ function requiresFollowUp(r) {
 function renderList() {
   if(!documentData)return;
   const rows=documentData.records.filter(r=>
-    (!el("priorityFilter").value||r.priority===el("priorityFilter").value)
+    (!el("sourceGroupFilter").value
+      || r.sources.some(src=>src.url===el("sourceGroupFilter").value))
+    && (!el("priorityFilter").value||r.priority===el("priorityFilter").value)
     && (!el("statusFilter").value||r.review.status===el("statusFilter").value)
     && (!el("needsActionOnly").checked||requiresFollowUp(r)));
   const list=el("facilityList");list.replaceChildren();
@@ -238,12 +245,32 @@ function renderList() {
   for(const label of ["合計 "+total+"件","作業確認が必要 "+followUps+"件","未確認 "+remaining+"件","P0 "+documentData.records.filter(r=>r.priority==="P0").length+"件","P1 "+documentData.records.filter(r=>r.priority==="P1").length+"件","P2 "+documentData.records.filter(r=>r.priority==="P2").length+"件"]){const s=document.createElement("span");s.textContent=label;el("stats").append(s);}
   if(!rows.some(r=>r.id===selectedId)) {selectedId=rows[0]?.id||null;fillEditor();}
 }
+function setSourceGroups(data) {
+  const select=el("sourceGroupFilter");
+  select.replaceChildren();
+  const all=document.createElement("option");all.value="";all.textContent="すべての公式資料";select.append(all);
+  const count=new Map();
+  for(const r of data.records) {
+    for(const src of r.sources) {
+      if (!src.url.startsWith("https://www.city.nagoya.jp/")
+          || !src.url.toLowerCase().endsWith(".pdf")) continue;
+      const entry=count.get(src.url)||{title:src.title,count:0};
+      entry.count++;
+      count.set(src.url,entry);
+    }
+  }
+  for(const [url,item] of [...count].sort((a,b)=>a[1].title.localeCompare(b[1].title,"ja"))) {
+    const option=document.createElement("option");
+    option.value=url;option.textContent=item.title+"（"+item.count+"件）";select.append(option);
+  }
+}
 function importJson(payload) {
   // Validate before changing any displayed/edited data.
   const parsed=validatePayload(JSON.parse(payload));
   documentData=parsed;selectedId=null;
   el("workArea").hidden=false;el("exportButton").disabled=false;el("mergeInput").disabled=false;
   el("datasetLabel").textContent=parsed.dataset.region+" / "+parsed.dataset.id;
+  setSourceGroups(parsed);
   el("priorityFilter").value="";el("statusFilter").value="";el("needsActionOnly").checked=true;
   renderList();showMessage("JSONを読み込みました。変更はJSONを書き出すまで一時的です。");
 }
@@ -356,7 +383,7 @@ window.addEventListener("DOMContentLoaded",()=>{
   });
   el("saveRecord").addEventListener("click",saveSelected);
   el("exportButton").addEventListener("click",exportJson);
-  for(const id of ["priorityFilter","statusFilter","needsActionOnly"])el(id).addEventListener("change",renderList);
+  for(const id of ["priorityFilter","statusFilter","sourceGroupFilter","needsActionOnly"])el(id).addEventListener("change",renderList);
 });
 </script>
 </body>
