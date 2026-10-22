@@ -132,12 +132,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pilot-dir", type=Path, required=True)
     parser.add_argument("--priorities", nargs="+", choices=("P0", "P1", "P2"), default=["P1"])
+    parser.add_argument("--output-name", help="New local JSON basename only, ending _LOCAL.json")
     args = parser.parse_args()
     root = (Path(__file__).resolve().parent / "data/geocoding_pilot").resolve()
     folder = args.pilot_dir.resolve()
     if folder != root and root not in folder.parents:
         parser.error("Only a gitignored local pilot directory is allowed")
-    filename = "team_review_" + "_".join(sorted(args.priorities)).lower() + "_LOCAL.json"
+    filename = (args.output_name or
+                "team_review_" + "_".join(sorted(args.priorities)).lower() + "_LOCAL.json")
+    if (len(filename) > 100
+            or re.fullmatch(r"team_review_[a-z0-9_]+_LOCAL\\.json", filename) is None):
+        parser.error("Output must be a simple team_review_*_LOCAL.json filename")
     output = folder / filename
     if output.exists():
         parser.error("Local team JSON already exists; refusing to overwrite or lose reviewer updates")
