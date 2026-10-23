@@ -2910,7 +2910,7 @@ nagoya.scenarios = [{
   assert.match(page, /js\/audience_share[.]js[?]v=edogawa-local-compare-20261021-v1/);
   assert.match(page, /id="mapEdogawaCompareOpen"/);
   assert.match(page, /id="edogawaComparePanel"[^>]*hidden/);
-  assert.match(page, /css\/map_first[.]css[?]v=audience-sticky-cta-20261021-v1/);
+  assert.match(page, /css\/map_first[.]css[?]v=mobile-quiet-map-20261023-v1/);
   assert.match(styles, /\.map-share-panel\[hidden\],\.map-audience-intro\[hidden\]\{display:none\}/);
   assert.match(shareSource, /const AUDIENCE_URL = "https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
   assert.doesNotMatch(shareSource, /geolocation|getCurrentPosition|flyTo|map\.setView|fetch\(|sendBeacon|XMLHttpRequest|<iframe/);
