@@ -3,6 +3,11 @@
 
   const SHELTER_REQUIREMENT_CODE = "shelter_location";
   const SUPPORTED_SCHEMA_VERSION = "0.9";
+  const FACILITY_STATUSES = new Set(["CANDIDATE", "EXCLUDED", "UNKNOWN"]);
+  const SCENARIO_STATUSES = new Set(["FULL", "DEGRADED", "BLOCKED", "UNKNOWN", "NOT_APPLICABLE"]);
+  const DISCOVERY_STATUSES = new Set(["AVAILABLE", "PARTIAL", "NOT_MACHINE_READABLE",
+    "ACCESS_RESTRICTED", "NOT_FOUND", "UNKNOWN", "NOT_APPLICABLE"]);
+  const JOIN_STATUSES = new Set(["DIRECT_SAME_SOURCE", "UNVERIFIED"]);
 
   function isFiniteCoordinate(value) {
     return typeof value === "number" && Number.isFinite(value);
@@ -39,9 +44,11 @@
 
   function findShelterDataset(payload) {
     assertRegionExport(payload);
-    return payload.datasets.find(
+    const matches = payload.datasets.filter(
       dataset => dataset && dataset.requirement_code === SHELTER_REQUIREMENT_CODE
-    ) || null;
+    );
+    if (matches.length > 1) throw new Error("Duplicate shelter_location datasets");
+    return matches[0] || null;
   }
 
   function normalizeShelterRecord(record, index) {
@@ -108,13 +115,18 @@
     // Scenario is optional, and is a separate D-owned assessment. E only
     // attaches exact facility IDs; it NEVER decides flood eligibility or
     // uses the GSI raster to classify facility locations.
-    const source = Array.isArray(payload.scenarios)
-      ? payload.scenarios.find(item => item?.scenario_id === "flood_shelter_selection")
-      : null;
-    if (!source) return null;
+    // Malformed/multiple Scenario payloads must not be treated as 'not evaluated'.
+    const scenarios = payload.scenarios === undefined ? [] : payload.scenarios;
+    if (!Array.isArray(scenarios)) throw new Error("Invalid scenarios array");
+    const matches = scenarios.filter(item => item?.scenario_id === "flood_shelter_selection");
+    if (matches.length > 1) throw new Error("Duplicate flood Scenario");
+    if (matches.length === 0) return null;
+    const source = matches[0];
     if (source.region_code !== payload.region.code ||
-        !Array.isArray(source.facility_results)) {
-      throw new Error("Flood Scenario region/records contract mismatch");
+        !Array.isArray(source.facility_results) ||
+        !SCENARIO_STATUSES.has(source.status) ||
+        !DISCOVERY_STATUSES.has(source.requirement_assessment?.discovery_status)) {
+      throw new Error("Flood Scenario region/status/records contract mismatch");
     }
 
     const knownIds = new Set(records.map(record => record.id));
@@ -126,9 +138,16 @@
         throw new Error("Flood Scenario facility ID exact join mismatch");
       }
       const fact = item.fact;
+      if (!FACILITY_STATUSES.has(item.status) ||
+          typeof item.reason !== "string" || !item.reason.trim() ||
+          typeof fact.hazard_scope_raw !== "string" || !fact.hazard_scope_raw.trim() ||
+          !JOIN_STATUSES.has(fact.join_status) ||
+          typeof fact.source_url !== "string" || !fact.source_url.trim()) {
+        throw new Error("Flood Scenario facility status/fact contract mismatch");
+      }
       byId.set(facilityId, {
-        status: typeof item.status === "string" ? item.status : "UNKNOWN",
-        reason: typeof item.reason === "string" ? item.reason : "",
+        status: item.status,
+        reason: item.reason,
         officialStatusRaw: fact.official_status_raw ?? null,
         usableFloorRaw: fact.usable_floor_raw ?? null,
         hazardScopeRaw: fact.hazard_scope_raw ?? null,
@@ -141,7 +160,7 @@
       throw new Error("Flood Scenario does not exactly cover shelter_location IDs");
     }
     return {
-      status: typeof source.status === "string" ? source.status : "UNKNOWN",
+      status: source.status,
       discoveryStatus: source.requirement_assessment?.discovery_status ?? null,
       recordCount: byId.size,
       unknownCount: [...byId.values()].filter(item => item.status === "UNKNOWN").length,

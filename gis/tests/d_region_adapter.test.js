@@ -176,3 +176,45 @@ console.log("d_region_adapter.test.js: OK");
 // CI's dedicated E adapter test entrypoint also exercises the exact same
 // consumer adapter against synthetic local file inventories (no real D raw).
 require("./inspect_local_region_exports.test.js");
+
+{
+  // Fail closed: malformed evaluation is NOT an accepted UNKNOWN and duplicates
+  // are NOT silently reduced to the first RegionExport match.
+  const valid = payload();
+  valid.scenarios = [{
+    scenario_id: "flood_shelter_selection",
+    region_code: "13123",
+    status: "UNKNOWN",
+    requirement_assessment: { discovery_status: "AVAILABLE" },
+    facility_results: valid.datasets[0].records.map((r, index) => ({
+      facility_id: r.id, status: "UNKNOWN", reason: "合成データの意味未確認",
+      fact: {
+        facility_id: r.id, hazard_scope_raw: "災害種別_洪水",
+        join_status: "DIRECT_SAME_SOURCE", source_url: "https://example.test/synthetic.csv",
+        source_record_trace: "csv_row=" + (index + 2), official_status_raw: "○"
+      }
+    }))
+  }];
+  assert.equal(adapter.extractShelterLocation(valid, "13123").floodScenario.unknownCount, 2);
+  const makeBad = alter => {
+    const copy = structuredClone(valid);
+    alter(copy);
+    return copy;
+  };
+  for(const alter of [
+    x => { x.scenarios[0].facility_results[0].status = "SAFE"; },
+    x => { x.scenarios[0].facility_results[0].status = null; },
+    x => { x.scenarios[0].facility_results[0].reason = ""; },
+    x => { x.scenarios[0].status = "SAFE"; },
+    x => { x.scenarios[0].requirement_assessment.discovery_status = "APPROVED"; },
+    x => { x.scenarios[0].facility_results[0].fact.join_status = "FUZZY"; },
+    x => { x.scenarios[0].facility_results[0].fact.hazard_scope_raw = ""; },
+    x => { x.scenarios[0].facility_results[0].fact.source_url = null; },
+    x => { x.scenarios.push(structuredClone(x.scenarios[0])); },
+    x => { x.scenarios = "unexpected"; },
+    x => { x.datasets.push(structuredClone(x.datasets[0])); }
+  ]) {
+    assert.throws(() => adapter.extractShelterLocation(makeBad(alter), "13123"),
+      /Invalid|mismatch|Duplicate|contract/);
+  }
+}
