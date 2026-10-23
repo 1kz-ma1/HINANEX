@@ -26,7 +26,8 @@
     const original = summary.records;
     const facts = summary.floodScenario.byId;
     if (!summary.region?.code || !Array.isArray(original) ||
-        !(facts instanceof Map) || facts.size !== original.length) {
+        (typeof facts?.get !== "function" || typeof facts?.has !== "function" ||
+          typeof facts?.size !== "number") || facts.size !== original.length) {
       return { state: "INVALID", message: "地域と洪水評価の施設対応を確認できません。比較を停止しました。" };
     }
     const known = new Set();

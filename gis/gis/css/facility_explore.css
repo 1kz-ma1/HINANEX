@@ -1,0 +1,28 @@
+/* Reuse the Edogawa two-card comparison styling; no new map pins. */
+.facility-explore-panel[hidden]{display:none!important}
+.facility-explore-panel{position:absolute;right:12px;bottom:12px;z-index:1026;width:min(530px,calc(100% - 24px));max-height:75dvh;overflow:auto;overscroll-behavior:contain;background:#092738;color:#effafd;border:1px solid #72afbe;border-radius:14px;padding:14px;box-shadow:0 18px 45px #001d2cbb;font:13px/1.5 system-ui,"Noto Sans JP",sans-serif}
+.facility-explore-panel :is(input,select,button){font:inherit}
+.facility-explore-panel button{cursor:pointer;border:1px solid #73bacc;border-radius:8px;background:#15566d;color:#fff;min-height:42px;padding:8px}
+.facility-explore-panel button:disabled{cursor:not-allowed;opacity:.48}
+.facility-explore-panel :is(button,input,select,a):focus-visible{outline:3px solid #ffe29a;outline-offset:2px}
+.facility-explore-heading{display:flex;justify-content:space-between;align-items:start;gap:12px}
+.facility-explore-heading strong{font-size:16px}
+.facility-explore-heading p{margin:4px 0;color:#bbdce4}
+.facility-explore-heading button{min-width:42px;font-size:20px}
+.facility-explore-criteria{display:grid;grid-template-columns:1fr 150px;gap:8px;margin:12px 0}
+.facility-explore-criteria label{display:grid;gap:4px}
+.facility-explore-criteria :is(input,select){min-width:0;min-height:44px;border-radius:8px;border:1px solid #98c2cd;background:white;color:#102b39;padding:8px}
+.facility-explore-count{color:#b2efe9;font-weight:750}
+.facility-explore-list{display:grid;gap:7px;max-height:210px;overflow:auto}
+.facility-explore-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px;border-radius:8px;background:#154355}
+.facility-explore-item-description{min-width:0;display:grid;gap:3px;overflow-wrap:anywhere}
+.facility-explore-item-description small{color:#d1e3e8}
+.facility-explore-item button{flex-shrink:0}
+.facility-explore-pages{display:flex;align-items:center;justify-content:center;gap:12px;margin:9px}
+.facility-explore-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px}
+.facility-explore-card{color:#193342}
+.facility-explore-actions{display:flex;gap:8px;flex-wrap:wrap}
+.facility-explore-chosen{color:#aaf1d9;font-weight:700}
+.facility-explore-policy{font-size:12px;border-top:1px solid #527b89;padding-top:8px;color:#d0e1e8}
+@media(max-width:780px){.facility-explore-panel{left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));width:auto;max-height:72dvh;padding:10px}.facility-explore-columns{grid-template-columns:1fr}.facility-explore-criteria{grid-template-columns:minmax(0,1fr) 130px}}
+@media(max-width:360px){.facility-explore-criteria{grid-template-columns:1fr}}
