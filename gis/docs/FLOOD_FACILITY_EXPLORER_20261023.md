@@ -30,3 +30,7 @@
 1. Review source provenance and exact dataset pinning with D/C; decide whether to promote the internal #302 helper via independently reviewed output or only run it upstream.
 2. Run physical/mobile browser tests for text panel and compare actions.
 3. After human approval of actual source semantics and position, consider context-aware reference route as a distinct phase with consent/terms/fallback review. No implicit automatic recommendation.
+
+## Automated real-browser acceptance
+
+The existing E Chromium wheel job now also invokes `gis/tests/facility_explore_browser.js` before zoom gestures. It exercises actual generated D RegionExport records in desktop (Edogawa) and 390px mobile (Nagoya) contexts: list, pair comparison, personal choice, filter-reset, empty search, DOM text rendering, viewport bounds, and absence of any new map pin logic. Reports and screenshots are browser-only CI evidence, **not** official municipality meaning approval or a physical Safari test.

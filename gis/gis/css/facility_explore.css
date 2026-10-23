@@ -24,5 +24,5 @@
 .facility-explore-actions{display:flex;gap:8px;flex-wrap:wrap}
 .facility-explore-chosen{color:#aaf1d9;font-weight:700}
 .facility-explore-policy{font-size:12px;border-top:1px solid #527b89;padding-top:8px;color:#d0e1e8}
-@media(max-width:780px){.facility-explore-panel{left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));width:auto;max-height:72dvh;padding:10px}.facility-explore-columns{grid-template-columns:1fr}.facility-explore-criteria{grid-template-columns:minmax(0,1fr) 130px}}
+@media(max-width:780px){.facility-explore-panel{left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));width:auto;max-height:65dvh;padding:10px}.facility-explore-columns{grid-template-columns:1fr}.facility-explore-criteria{grid-template-columns:minmax(0,1fr) 130px}}
 @media(max-width:360px){.facility-explore-criteria{grid-template-columns:1fr}}
