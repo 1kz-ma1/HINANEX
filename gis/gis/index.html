@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="css/style.css?v=d-marker-entrance-20261015-v1">
   <link rel="stylesheet" href="css/current_theme.css?v=gis-facility-drawer-20261009-v6">
-  <link rel="stylesheet" href="css/map_first.css?v=audience-sticky-cta-20261021-v1">
+  <link rel="stylesheet" href="css/map_first.css?v=mobile-quiet-map-20261023-v1">
   <link rel="stylesheet" href="css/evidence_replay.css?v=spatial-evidence-20261014-v2">
   <link rel="stylesheet" href="css/presentation_story.css?v=presenter-55s-20261014-v1">
   <link rel="stylesheet" href="css/filter_demo.css?v=d-source-criteria-20261014-v1">
@@ -22,7 +22,7 @@
   <div class="header-actions">
     <span class="role">地域の施設・洪水情報</span>
     <button id="mapShareOpen" class="header-evidence-link header-share-button" type="button"
-      aria-controls="mapSharePanel" aria-expanded="false">共有・体験 <span aria-hidden="true">▣</span></button>
+      aria-controls="mapSharePanel" aria-expanded="false" aria-label="地図の共有・体験パネルを開く">共有 <span aria-hidden="true">▣</span></button>
     <a class="header-evidence-link" href="../../frontend/" target="_blank" rel="noopener noreferrer"
       aria-label="分析・根拠を別タブで開く">分析・根拠 <span aria-hidden="true">↗</span></a>
   </div>
@@ -164,11 +164,11 @@
       aria-controls="gisLayout" tabindex="-1">シナリオ探索</button>
   </div>
 
-  <p class="gis-view-caption">同じ地図とデータを使って情報を確認します。<span>災害の時間経過予測ではありません。</span></p>
-</nav><label class="map-tool-field" for="mapRegionQuickSelect">地域へ移動（ショートカット）</label><select id="mapRegionQuickSelect" aria-label="表示する地域"><option value="13123">東京都 江戸川区</option><option value="15100">新潟県 新潟市</option><option value="23100">愛知県 名古屋市</option></select><p class="map-tool-note">災害シミュレーション／災害後シミュレーション／避難経路シミュレーションは今後実装予定です。予測結果を表示していません。</p>
+  <p class="gis-view-caption">表示方法を切り替えます。<span>予測や安全判定は行いません。</span></p>
+</nav><label class="map-tool-field" for="mapRegionQuickSelect">地域を選ぶ</label><select id="mapRegionQuickSelect" aria-label="表示する地域"><option value="13123">東京都 江戸川区</option><option value="15100">新潟県 新潟市</option><option value="23100">愛知県 名古屋市</option></select><p class="map-tool-note">予測・経路案内は未提供です。詳しい対応範囲は「分析・根拠」で確認できます。</p>
 <button id="mapTourOpen" class="map-tool-action" type="button" aria-controls="mapTourPanel">江戸川区の施設比較</button>
 <button id="mapOpenAdvanced" class="map-tool-action" type="button" aria-controls="gisLeftPanel">詳細設定・公式データの確認</button></div></details>
-      <details class="map-tool map-tool--scenario" id="mapToolScenario"><summary><span class="map-tool-symbol" aria-hidden="true">☷</span><span>シナリオ</span><span class="map-tool-arrow" aria-hidden="true">⌄</span></summary><div class="map-tool-panel"><p class="map-tool-note">現在利用可能：公式掲載地点の参考探索（シミュレーション予測ではありません）。</p><label class="map-tool-field" for="coordinateSearchInput">地点を指定して参考情報を照合</label>      <form id="coordinateSearchForm" class="coordinate-search-form" novalidate>
+      <details class="map-tool map-tool--scenario" id="mapToolScenario"><summary><span class="map-tool-symbol" aria-hidden="true">☷</span><span>シナリオ</span><span class="map-tool-arrow" aria-hidden="true">⌄</span></summary><div class="map-tool-panel"><p class="map-tool-note">公式掲載地点を参考として探せます。安全な避難先の推薦ではありません。</p><label class="map-tool-field" for="coordinateSearchInput">地点を指定して参考情報を照合</label>      <form id="coordinateSearchForm" class="coordinate-search-form" novalidate>
         <label for="coordinateSearchInput">緯度・経度で地点を指定</label>
         <div class="coordinate-search-row">
           <input id="coordinateSearchInput" type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
@@ -180,8 +180,8 @@
       </form>
       <button id="mapOriginShortcut" type="button">地図をクリックして探索</button>
       <p id="mapOriginShortcutStatus" role="status" aria-live="polite">ボタンを押してから地図をクリック</p>
-<button class="map-tool-action" id="mapScenarioSelectOrigin" type="button">地図上の地点を選択</button><p class="map-tool-note">災害条件・時間変化のシナリオは今後実装予定です。</p></div></details>
-      <details class="map-tool map-tool--marks" id="mapToolMarks"><summary><span class="map-tool-symbol" aria-hidden="true">⌖</span><span>マーク</span><span class="map-tool-arrow" aria-hidden="true">⌄</span></summary><div class="map-tool-panel"><label class="map-tool-check"><input id="mapShowShelter" type="checkbox" checked>表示範囲の避難施設マーク</label><p class="map-tool-note">施設の表示切替は出典ごとに扱います。安全性・開設は未判定です。</p>      <label for="facilityDisplayMode" class="display-mode-label">地図に表示する施設</label>
+<button class="map-tool-action" id="mapScenarioSelectOrigin" type="button">地図上の地点を選択</button></div></details>
+      <details class="map-tool map-tool--marks" id="mapToolMarks"><summary><span class="map-tool-symbol" aria-hidden="true">⌖</span><span>マーク</span><span class="map-tool-arrow" aria-hidden="true">⌄</span></summary><div class="map-tool-panel"><label class="map-tool-check"><input id="mapShowShelter" type="checkbox" checked>表示範囲の避難施設マーク</label><p class="map-tool-note">施設の安全性・開設状況は未判定です。</p>      <label for="facilityDisplayMode" class="display-mode-label">地図に表示する施設</label>
       <select id="facilityDisplayMode" aria-label="表示する施設データ">
         <option value="region">地域の避難施設</option>
         <option value="nearby">選択地点周辺のGSI公式掲載</option>
@@ -202,7 +202,7 @@
       </p>
       <p id="mapDDecisionFilterStatus" class="map-tool-note" role="status">判定の取得状況を確認中。非表示は施設なしを意味しません。</p>
 </div></details>
-      <details class="map-tool map-tool--hazards" id="mapToolHazards"><summary><span class="map-tool-symbol" aria-hidden="true">▤</span><span>災害情報</span><span class="map-tool-arrow" aria-hidden="true">⌄</span></summary><div class="map-tool-panel"><label class="map-tool-check"><input id="mapShowFlood" type="checkbox" checked>洪水浸水想定（想定最大規模）</label><label class="map-tool-check"><input id="mapShowBasemap" type="checkbox" checked>背景地図（国土地理院）</label><p class="map-tool-note">土砂災害・高潮などのレイヤーは今後対応予定です。非表示や未取得を「安全」とは判断できません。</p><p id="mapRasterNotice" class="map-tool-warning" role="status" hidden></p>
+      <details class="map-tool map-tool--hazards" id="mapToolHazards"><summary><span class="map-tool-symbol" aria-hidden="true">▤</span><span>災害情報</span><span class="map-tool-arrow" aria-hidden="true">⌄</span></summary><div class="map-tool-panel"><label class="map-tool-check"><input id="mapShowFlood" type="checkbox" checked>洪水浸水想定（想定最大規模）</label><label class="map-tool-check"><input id="mapShowBasemap" type="checkbox" checked>背景地図（国土地理院）</label><p class="map-tool-note">非表示や未取得を「安全」と判断しないでください。</p><p id="mapRasterNotice" class="map-tool-warning" role="status" hidden></p>
 <button id="mapEvidenceOpen" class="map-tool-action" type="button" aria-controls="mapEvidencePanel" aria-expanded="false">この画面の根拠・確認状況</button></div></details>
     </div>
     <button id="mapLocateMe" class="map-locate-button" type="button" aria-label="現在地を地図に表示（位置情報の許可が必要）" title="現在地を表示">
@@ -229,6 +229,11 @@
       <p id="mapEvidenceViewport" class="map-evidence-viewport">閲覧範囲に応じた施設データの確認状況は未取得です。</p>
       <p class="map-evidence-warning">地域の避難施設と国土地理院の公式掲載地点は別情報源です。取得件数は網羅数ではありません。元座標がない施設は地図に置きません。タイル未取得・施設が見えないことは安全を意味しません。</p>
       <p class="map-evidence-warning">洪水時の安全性、現在の開設状況、避難経路や公式データの未確認条件は評価していません。個別施設の元情報は地図マークから確認できます。</p>
+      <details class="map-evidence-technical">
+        <summary>対応範囲・今後の機能を見る</summary>
+        <p>災害シミュレーション／災害後シミュレーション／避難経路シミュレーションは今後実装予定です。予測結果を表示していません。</p>
+        <p>土砂災害・高潮などの地図レイヤーも未提供です。出典ごとの判定状況・不明な情報の詳細は「分析・根拠」で確認できます。</p>
+      </details>
       <a class="map-evidence-details-link" href="../../frontend/" target="_blank" rel="noopener noreferrer">詳しい分析・根拠を見る ↗</a>
     </section>
     <section id="mapTourPanel" class="map-tour-panel" role="region" aria-label="HINANEXガイド付きデモ" hidden>
