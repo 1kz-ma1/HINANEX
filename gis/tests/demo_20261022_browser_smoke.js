@@ -18,6 +18,7 @@ const path = require("node:path");
 const { chromium } = require("playwright");
 const { auditDirectory } = require("./inspect_local_region_exports.js");
 const { runReferenceSiteCompareBrowser } = require("./reference_site_compare_browser.js");
+const { runFacilityExploreBrowser } = require("./facility_explore_browser.js");
 
 const [distArg, outArg] = process.argv.slice(2);
 if (!distArg || !outArg || process.argv.length !== 4) {
@@ -122,6 +123,12 @@ async function screenshot(page, name) {
     await page.waitForFunction(() => !!window.L && !!window.HINANEX_D_ADAPTER,
       null, { timeout: 30000 });
     await waitUntilLoaded(page, "13123");
+    // Validate the new independent D facility exploration before the wheel-only
+    // zoom smoke; a wheel regression must not mask its own E acceptance result.
+    if (process.env.HINANEX_WHEEL_ONLY === "1") {
+      const facilityChecks = await runFacilityExploreBrowser({ context, base, out, waitUntilLoaded });
+      assert.equal(facilityChecks.length, 2);
+    }
     assert.equal(new URL(page.url()).searchParams.get("region"), "13123");
 
     // Real-browser gesture smoke, distinct from Node's option-level unit test:

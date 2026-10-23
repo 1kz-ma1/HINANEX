@@ -69,3 +69,6 @@ function record(id, name, address, area) {
 }
 
 console.log("facility_list.test.js: OK");
+
+// Include the new E-only selector regressions in the existing required CI runner.
+require("./facility_explore.test.js");
