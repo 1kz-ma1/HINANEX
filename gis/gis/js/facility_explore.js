@@ -25,6 +25,12 @@
     }
     const original = summary.records;
     const facts = summary.floodScenario.byId;
+    // A real GIS adapter reports source shape consistency. Hand-made test
+    // fixtures may omit the flag, but an explicit false must fail closed.
+    if (summary.floodScenario.sourceContractConsistent === false) {
+      return { state: "INVALID", message:
+        "洪水Scenarioに未検証の分類・欠損・重複があります。安全に比較できません。" };
+    }
     if (!summary.region?.code || !Array.isArray(original) ||
         (typeof facts?.get !== "function" || typeof facts?.has !== "function" ||
           typeof facts?.size !== "number") || facts.size !== original.length) {

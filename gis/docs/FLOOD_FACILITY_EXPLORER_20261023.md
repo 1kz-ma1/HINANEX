@@ -35,6 +35,6 @@
 
 The existing E Chromium wheel job now also invokes `gis/tests/facility_explore_browser.js` before zoom gestures. It exercises actual generated D RegionExport records in desktop (Edogawa) and 390px mobile (Nagoya) contexts: list, pair comparison, personal choice, filter-reset, empty search, DOM text rendering, viewport bounds, and absence of any new map pin logic. Reports and screenshots are browser-only CI evidence, **not** official municipality meaning approval or a physical Safari test.
 
-## E consumer malformed Scenario handling (2026-10-23)
+## E research-only source-shape consistency gate
 
-The GIS RegionExport adapter rejects malformed Scenario field/status enums, empty reasons, invalid source/join fields and duplicate Scenario or shelter_location dataset entries. An absent Scenario is still a valid legacy `NO_SCENARIO` case; an **invalid** Scenario is a contract error, never silently converted to `UNKNOWN`. The adapter continues to consume existing D source meanings without treating these checks as independent A/C approval or as proof of source freshness. Additional synthetic negative regression cases are in `gis/tests/d_region_adapter.test.js`.
+The adapter supplies an additive E-internal `sourceContractConsistent` boolean alongside the existing `floodScenario` model. The legacy map and presenter deliberately retain their display behavior for partial historical/synthetic fixtures. **The new pair-explorer alone** rejects `sourceContractConsistent=false` and refuses any malformed, duplicated, or incomplete Scenario status/source fields. This is source-*shape* validation, not independent A/C approval, official URL verification, or publication clearance. No RegionExport Schema or contract fields are changed.

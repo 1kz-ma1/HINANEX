@@ -68,6 +68,9 @@ function fixture() {
 }
 {
   assert.equal(createSession(null).state,"NO_DATASET");
+  const inconsistent = fixture();
+  inconsistent.floodScenario.sourceContractConsistent = false;
+  assert.equal(createSession(inconsistent).state, "INVALID");
   const data=fixture();
   data.floodScenario=null;
   assert.equal(createSession(data).state,"NO_SCENARIO");
