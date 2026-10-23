@@ -73,8 +73,9 @@ class ActionContextTests(unittest.TestCase):
     def test_fake_live_and_fake_official_fixture_rejected(self):
         with self.assertRaises(ValidationError):
             ActionSession(mode="LIVE")
-        with self.assertRaises(ValidationError):
-            self.fixture().model_copy(update={"fixture_kind": "OFFICIAL"})  # model_copy bypasses validation
+        unsafe_copy = self.fixture().model_copy(update={"fixture_kind": "OFFICIAL"})
+        self.assertEqual(unsafe_copy.fixture_kind, "OFFICIAL")
+        # model_copy bypasses validation: never use it for untrusted input.
         # Validate externally supplied objects, not internal model_copy.
         payload = self.fixture().model_dump()
         payload["fixture_kind"] = "OFFICIAL"
