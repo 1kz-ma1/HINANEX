@@ -121,6 +121,8 @@ function open() {
   if(!panel.hidden)return;
   if(!get("referenceComparePanel")?.hidden)get("referenceCompareClose")?.click();
   if(!get("edogawaComparePanel")?.hidden)get("edogawaCompareClose")?.click();
+  // A left-open toolbar dropdown is another overlay over the research panel.
+  document.querySelectorAll(".map-toolbar .map-tool[open]").forEach(menu => { menu.open = false; });
   panel.hidden=false;opener.setAttribute("aria-expanded","true");
   render();get("facilityExploreClose").focus();
 }
