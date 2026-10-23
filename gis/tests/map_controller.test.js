@@ -3466,3 +3466,30 @@ require("./guided_tour_compare.test.js");
 })().catch(e=>{console.error(e);process.exitCode=1;});
 require("./filter_demo.test.js");
 require("./gsi_flood_demo.test.js");
+
+
+// Mobile feedback (2026-10-23): simplify map surface, preserve detailed facts.
+{
+  const html=fs.readFileSync(path.resolve(__dirname,"../gis/index.html"),"utf8");
+  const css=fs.readFileSync(path.resolve(__dirname,"../gis/css/map_first.css"),"utf8");
+  const top=html.slice(html.indexOf('<div class="map-toolbar"'), html.indexOf('id="mapLocateMe"'));
+  const evidence=html.slice(html.indexOf('id="mapEvidencePanel"'),html.indexOf('id="mapTourPanel"'));
+  assert.match(top,/予測・経路案内は未提供です/);
+  assert.doesNotMatch(top,/災害後シミュレーション／避難経路シミュレーションは今後実装予定/);
+  assert.match(evidence,/対応範囲・今後の機能を見る/);
+  assert.match(evidence,/災害後シミュレーション／避難経路シミュレーションは今後実装予定/);
+  assert.match(evidence,/安全性、現在の開設状況/);
+  assert.match(evidence,/href="\.\.\/\.\.\/frontend\/" target="_blank"/);
+  for(const id of ["mapToolScene","mapToolScenario","mapToolMarks","mapToolHazards"])
+    assert.equal((html.match(new RegExp('id="'+id+'"',"g"))||[]).length,1);
+  assert.match(html,/id="mapShareOpen"[^>]*aria-label="地図の共有・体験パネルを開く"/);
+  assert.match(css,/\.map-tool>summary\{min-height:48px;font-size:12px/);
+  assert.match(css,/\.header-share-button\{min-height:44px;font-size:13px/);
+  assert.match(css,/\.bottom-nav-entry\.is-planned\{opacity:1;color:#b9cbd4\}/);
+  assert.match(css,/\.map-tool-panel \.gis-view-tab\{min-height:44px/);
+  assert.match(css,/\.map-tool-check\{min-height:44px\}/);
+  assert.match(css,/\.map-tool-arrow\{display:none\}/);
+  assert.match(html,/<span class="bottom-nav-entry is-planned" title="今後実装予定">/);
+  assert.match(html,/id="mapSettingsToggle"/);
+  assert.doesNotMatch(css,/(?:#map|\.leaflet-tile)[^\{]*\{[^}]*\bfilter\s*:/);
+}
