@@ -530,3 +530,46 @@ footer{display:none}
   .map-audience-intro-footer{padding:8px 12px 10px}
   .map-audience-intro-footer .map-audience-intro-start{min-height:48px}
 }
+
+/* 2026-10-23: phone-first readability and clear action hierarchy.
+   Keep the data/safety warnings; move verbose scope notes to existing
+   evidence/analysis surfaces instead of adding new map overlays. */
+.map-evidence-technical{
+  margin-top:12px;padding:12px;
+  border:1px solid var(--line-strong);border-radius:10px;
+  background:var(--surface-raised);
+}
+.map-evidence-technical summary{
+  cursor:pointer;min-height:44px;display:flex;align-items:center;
+  font-size:13px;font-weight:750;color:var(--text);
+}
+.map-evidence-technical p{font-size:12px;line-height:1.65;color:var(--text);margin:8px 0}
+.map-evidence-technical summary:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+.bottom-nav-entry.is-planned{opacity:1;color:#b9cbd4}
+.bottom-nav-entry.is-planned small{color:#b9cbd4}
+@media(max-width:680px){
+  /* Brand and essential actions take precedence over a tiny tagline. */
+  .header .brand span:not(.brand-mark){display:none}
+  .header .brand{gap:8px;min-width:0;flex-shrink:1}
+  .header-actions{gap:5px;flex-shrink:0}
+  .header-share-button{min-height:44px;font-size:13px;padding:10px 11px}
+  .header-evidence-link{min-height:44px;font-size:12px;padding:10px 9px}
+  /* Four full-width touch targets, without an extra noninteractive chevron. */
+  .map-tool>summary{min-height:48px;font-size:12px;gap:3px;padding:9px 3px}
+  .map-tool-symbol{font-size:18px}
+  .map-tool-arrow{display:none}
+  .map-tool-panel .gis-view-tab{min-height:44px;font-size:12px}
+  .map-tool-panel button:not(.gis-view-tab){min-height:44px;font-size:12px}
+  .map-tool-check{min-height:44px}
+  .map-tool-panel :is(.map-tool-note,.gis-view-caption,.map-tool-field){
+    font-size:12px;line-height:1.5
+  }
+  .bottom-nav-entry{min-height:48px;font-size:12px}
+  .bottom-nav-entry small{font-size:10px}
+  .map-share-close,.map-audience-intro-head button{min-width:44px;min-height:44px}
+}
+@media(max-width:350px){
+  .header .brand strong{font-size:14px;letter-spacing:.04em}
+  .header-evidence-link{font-size:11px;padding:10px 7px}
+  .header-share-button{font-size:12px;padding:10px 8px}
+}
