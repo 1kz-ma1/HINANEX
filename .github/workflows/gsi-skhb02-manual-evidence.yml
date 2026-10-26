@@ -23,13 +23,21 @@ permissions:
 
 jobs:
   capture_unreviewed:
-    if: ${{ inputs.acknowledged_gsi_terms == true }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
     env:
       TILE_X: ${{ inputs.tile_x }}
       TILE_Y: ${{ inputs.tile_y }}
     steps:
+      - name: Reject missing notice acknowledgment
+        shell: bash
+        env:
+          ACKNOWLEDGED_GSI_TERMS: ${{ inputs.acknowledged_gsi_terms }}
+        run: |
+          if [ "$ACKNOWLEDGED_GSI_TERMS" != "true" ]; then
+            echo 'Read GSI usage notices and explicitly opt in; acquisition BLOCKED.' >&2
+            exit 1
+          fi
       - name: Checkout locked revision
         uses: actions/checkout@v4
         with:

@@ -19,7 +19,8 @@ class ManualCaptureWorkflowContract(unittest.TestCase):
         for trigger in ("\n  push:", "\n  pull_request:",
                         "\n  schedule:", "\n  workflow_run:"):
             self.assertNotIn(trigger, self.raw)
-        self.assertIn("acknowledged_gsi_terms == true", self.raw)
+        self.assertIn('ACKNOWLEDGED_GSI_TERMS', self.raw)
+        self.assertIn('exit 1', self.raw)
 
     def test_no_write_permissions_or_self_approval(self):
         self.assertIn("permissions:\n  contents: read", self.raw)
