@@ -17,7 +17,7 @@ from pathlib import Path
 import sys
 
 DOC_URL = "https://hinanmap.gsi.go.jp/hinanjocp/hinanbasho/koukaidate.html"
-MAX_ARCHIVE_BYTES = 16_000_000
+MAX_ARCHIVE_BYTES = 32_000_000
 BASE_COLS = 16  # municipality and prefecture emergency-place CSV
 ALLOWED_SCOPES = {"municipality": 16, "prefecture": 16, "national": 17}
 ALLOWED_ENCODINGS = {"utf-8-sig", "cp932"}
