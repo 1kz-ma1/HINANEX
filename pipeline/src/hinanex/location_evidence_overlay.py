@@ -87,7 +87,7 @@ def _relation(point, ring):
         cross = (b[0]-a[0])*(y-a[1]) - (b[1]-a[1])*(x-a[0])
         if (abs(cross) <= 1e-12
                 and min(a[0],b[0]) <= x <= max(a[0],b[0])
-                and min(a[1],b[1]) <= y <= max(a[1],b[1]):
+                and min(a[1],b[1]) <= y <= max(a[1],b[1])):
             return "ON_CANDIDATE_BOUNDARY_UNVERIFIED"
         if (a[1] > y) != (b[1] > y):
             ix = a[0] + (y-a[1])*(b[0]-a[0])/(b[1]-a[1])
