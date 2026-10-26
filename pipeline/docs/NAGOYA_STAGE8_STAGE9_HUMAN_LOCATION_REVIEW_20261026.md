@@ -151,7 +151,90 @@ GSI登録点の意味と今回の確認: （根拠・相違、未確認は未確
 - Draft PR #283 / #293 / #292がmainへ統合されたことを前提としない。依存PR・最新main・CI・権限・配布許可を個別に審査する。
 - 本作業ではコード、位置座標、REGION出力、GIS、正式安全判定に触れない。**資料のみのPRであり、実データ検証や実機E2Eを実施したことにはならない。**
 
-## 6. 次の実務作業（上から）
+## 6. 重複したABR参照点の原因調査（2026-10-26、暫定）
+
+**調査対象**: Stage 8で報告された「住所が異なる2施設について、ABR候補座標が完全一致し、GSI登録点は異なる」事象。個別名称・座標・PRIVATE行はここには公開しない。
+
+### 6.1 コードから確定できたこと
+
+- `geocode_nagoya_pilot.py`の`classify`は、ABRのGeoJSONの`geometry.coordinates`から経緯度を取り出し、選択済み候補として返す。自分で座標を補間・平均化していない。
+- 同`resolve`は、**初期50件の候補内でのみ**完全一致座標を検出し、`shared_reference_coordinate`を付して`NEEDS_REVIEW`にする。
+- `create_nagoya_independent_review_queue.py`はStage 4で再照会された候補と初期候補を`reference_origin`付きでPRIVATE台帳に出力する。`reference_origin`は`ORIGINAL_UNVERIFIED_ABR_REFERENCE`／`CHOME_TEXT_EQUAL_ABR_REFERENCE`／`PARCEL_ABR_REFERENCE`等。したがって、**2施設が初期候補だったのか再照会候補だったのかは台帳で区別できる**。
+- Stage 4の重複判定は初期候補と再照会候補を横断して行われるが、`screen_exact_reference`は**地番精度（parcel）の要確認分類を座標重複分類より先に評価する**。このため、重複候補であっても重複という理由が分類名から明らかでない場合がある。**重複を位置正しいと承認しているわけではない**。
+- Stage 5の`compare_nagoya_gsi_offline.py`はPRIVATEレビュー台帳のABR座標を読み取り、別のGSI座標までの距離を求めている。Stage 6/7も元の位置参照点を維持する。**Stage 5以降の距離計算が二施設のABR参照点を同一化したという証拠はない**。
+
+### 6.2 あり得る原因（未確定）
+
+| 仮説 | 確認する情報 |
+| --- | --- |
+| ABRが複数住所に同じ地番／住所参照点を返した | 2住所それぞれのABRの`matched_address`、`unmatched_address`、`match_level`、`coordinates_level`とGeoJSON応答点 |
+| 代表点の粒度が施設の所在地と一致していない | ABRの地番階層・参照点定義、公的施設位置資料・GSI登録点との比較 |
+| 初期候補とStage 4再照会候補の混在 | PRIVATE台帳の`reference_origin`、`resolution.json`のレコード状態 |
+| 旧スナップショットと現在のABRデータ版が異なる | `provider_version`、`provider_db_version`、入力fingerprint、2回再照会の正規化結果 |
+
+ABRの`match_level`（住所の一致の粒度）と`coordinates_level`（代表点の粒度）は別である。地番住所が一致していても施設の敷地・建物・入口位置まで一致するわけではない。**同じ座標を返すこと自体だけでABRの実装不具合とは断定しない**。
+
+### 6.3 Mac内だけで実施する最小確認（読み取り専用）
+
+既存のStage 7ブランチと、生成済みPRIVATE台帳を保持している承認済み端末の`pipeline/`で実行する。**コマンドはファイルを書き換えない。施設名はローカルで手入力し、出力に名前・住所・生緯度経度・施設IDを含めない。** 実行は担当者本人が行い、AIがPRIVATEファイルを受け取って代行しない。
+
+~~~sh
+python3 - <<'PY'
+from pathlib import Path
+import json
+from view_nagoya_stage7_private import read_stage7_private, validate
+
+p = Path("data/geocoding_pilot/nagoya50")
+rows = read_stage7_private(p / "gsi_stage7_refined_PRIVATE.csv")
+summary = json.loads((p / "gsi_stage7_refined_aggregate.json").read_text("utf-8"))
+validate(rows, summary)
+resolution = json.loads((p / "resolution.json").read_text("utf-8"))
+by_id = {r["record_id"]: r for r in resolution["results"]}
+
+names = [input(f"調査対象の施設{i}名（ローカル入力）: ").strip() for i in (1, 2)]
+if not names[0] or not names[1] or names[0] == names[1]:
+    raise SystemExit("STOP: 施設指定が不正です")
+pair = []
+for name in names:
+    found = [r for r in rows if r["facility_name"] == name]
+    if len(found) != 1:
+        raise SystemExit("STOP: 施設を一意に特定できません")
+    pair.append(found[0])
+
+def point(row, prefix):
+    return (float(row[prefix + "_latitude"]), float(row[prefix + "_longitude"]))
+
+print("stage7_rows_valid=True")
+print("same_abr_reference=", point(pair[0], "abr_reference") == point(pair[1], "abr_reference"))
+print("different_gsi_reference=", point(pair[0], "gsi_reference") != point(pair[1], "gsi_reference"))
+print("provider_version=", resolution.get("provider_version"))
+print("provider_db_version=", resolution.get("provider_db_version"))
+print("source_fingerprint_matches=", resolution.get("source_dataset_sha256") == summary.get("source_dataset_sha256"))
+for i, row in enumerate(pair, 1):
+    prior = by_id.get(row["pilot_record_id"])
+    geom = prior.get("derived_geometry", {}) if prior else {}
+    older = (float(geom["latitude"]), float(geom["longitude"])) if "latitude" in geom and "longitude" in geom else None
+    print(f"facility_{i}_reference_origin=", row["reference_origin"])
+    print(f"facility_{i}_abr_coordinates_level=", row["abr_coordinates_level"])
+    print(f"facility_{i}_original_pilot_status=", prior.get("status") if prior else "MISSING")
+    print(f"facility_{i}_original_point_preserved=", older == point(row, "abr_reference") if older else "NOT_APPLICABLE")
+    print(f"facility_{i}_original_duplicate_flag=", "shared_reference_coordinate" in prior.get("reason", "") if prior else False)
+PY
+~~~
+
+**出力に住所や座標がないことを人間が確認してから、上記の匿名結果だけをチームへ報告する。** エラー時のPRIVATE行やトレースバックは貼らない。`provider_version`やfingerprintの文字列自体もチームの共有ルールに従い必要最小限で報告する。
+
+この確認で明らかになるのは**重複候補の来歴と既存処理での維持状況**であり、ABRの現在の生応答が同じ点を返すか・その点が施設位置として正しいかではない。次に必要なら、**同じABR API版・DB版、ローカル127.0.0.1限定**で2住所を人が再照会し、出力に生座標を出さずに一致/不一致・代表点精度のみ匿名集計する。版が異なる場合は現在と当時の再現を混同しない。
+
+### 6.4 完了の定義
+
+1. 2施設それぞれについて`reference_origin`と初期`resolution`の状態を照合できた。
+2. ABR座標重複がどの工程ですでに存在したか、または未解明かを明記した。
+3. 元ABRの住所照合レベル・座標参照レベルと、施設の公式位置を混同しない。
+4. 根拠がそろわない場合は`ROOT_CAUSE_UNCONFIRMED`としてStage 9のHOLDを維持する。現時点はこれに該当。
+5. 位置受入0、全安全フラグfalse、GIS/RegionExport NO-GOを維持する。
+
+## 7. 次の実務作業（上から）
 
 1. 権限ある環境で重複ABR参照点2件のマッチ粒度・施設同一性と公的位置根拠を照合。
 2. 残りの敷地外4件について独立資料を集め、ABR・GSI点の意味と施設位置の相違を記録。
@@ -159,7 +242,7 @@ GSI登録点の意味と今回の確認: （根拠・相違、未確認は未確
 4. GSI参照点9件すべての資料版・参照対象・独立性を整理。
 5. 別担当者と受入責任者が個別の承認／保留を判定し、**匿名集計のみ**を共有。正式承認数と公開適用可能数を混同しない。
 
-## 7. 参照元・来歴
+## 8. 参照元・来歴
 
 - 2026-10-26の人間による目視確認報告（ローカル提出原本。GitHubに施設別PRIVATE表を載せない）。
 - [Stage 7 / ABR-GSI照合仕様 — Draft PR #283](https://github.com/1kz-ma1/HINANEX/pull/283) : `pipeline/docs/NAGOYA_ADDRESS_GEOCODING_PILOT_20261021.md`
