@@ -38,6 +38,10 @@ jobs:
       - name: Guard manual GSI evidence workflow contract
         working-directory: .
         run: python -m unittest discover -s scripts/tests -p 'test_skhb02_manual_workflow_guard.py' -v
+      - name: Guard GSI national CSV manual acquisition
+        working-directory: .
+        run: python -m unittest discover -s scripts/tests -p 'test_gsi_csv_manual_workflow_guard.py' -v
+
       - name: Enforce role PR scope
         if: github.event_name == 'pull_request'
         working-directory: .

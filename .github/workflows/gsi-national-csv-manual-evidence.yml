@@ -1,0 +1,72 @@
+name: GSI national emergency CSV manual source capture (UNREVIEWED)
+
+'on':
+  workflow_dispatch:
+    inputs:
+      acknowledged_gsi_terms:
+        description: 'I read GSI usage cautions and explicitly request one national CSV acquisition for an UNREVIEWED 3-day research artifact'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  research_only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Require GSI usage notice acknowledgment
+        shell: bash
+        env:
+          ACCEPTED: ${{ inputs.acknowledged_gsi_terms }}
+        run: |
+          if [ "$ACCEPTED" != "true" ]; then
+            echo 'GSI notice acknowledgment missing. No network request.' >&2
+            exit 1
+          fi
+      - name: Checkout without persisted token
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Require A inspector and capture tools
+        shell: bash
+        run: |
+          test -f data-research/tools/inspect_gsi_emergency_csv_archive.py
+          test -f data-research/tools/capture_gsi_emergency_csv_original.py
+      - name: Acquire one candidate original GSI national emergency CSV
+        env:
+          DEST: ${{ runner.temp }}/gsi-national-emergency-UNREVIEWED
+        shell: bash
+        run: |
+          set -euo pipefail
+          python data-research/tools/capture_gsi_emergency_csv_original.py \
+            --fetch --acknowledged-gsi-terms --out-dir "$DEST"
+      - name: Store mandatory cautions alongside raw evidence
+        env:
+          DEST: ${{ runner.temp }}/gsi-national-emergency-UNREVIEWED
+        shell: bash
+        run: |
+          cat > "$DEST/USAGE_NOTICE_AND_STATUS.txt" <<'EOF'
+          Data source: Geospatial Information Authority of Japan (GSI).
+          https://hinanmap.gsi.go.jp/hinanjocp/hinanbasho/koukaidate.html
+          https://www.gsi.go.jp/bousaichiri/hinanbasho-menseki.html
+          The candidate direct download endpoint's response has not been
+          independently authenticated by a second channel. The data may be
+          missing some municipalities or out of date; check current status
+          with local government. Designated emergency place != open/safe site.
+          CSV common IDs are NOT authenticated matches for GeoJSON features.
+          This research archive is UNREVIEWED. Never auto-publish or route.
+          EOF
+      - name: Upload short-lived unreviewed original CSV bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: GSI-national-emergency-CSV-UNREVIEWED
+          path: ${{ runner.temp }}/gsi-national-emergency-UNREVIEWED/
+          if-no-files-found: error
+          retention-days: 3
