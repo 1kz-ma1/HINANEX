@@ -74,7 +74,7 @@ def analyze(rows, summary, resolution, names):
         if abr is None:
             raise ValueError("missing ABR point")
         geo = old.get("derived_geometry")
-        original_point = (_point(geo, "") if False else None)
+        original_point = None
         if isinstance(geo, dict):
             # Historical pilot stores geometry as latitude/longitude (not prefix).
             original_point = _point({"old_latitude": geo.get("latitude"),
