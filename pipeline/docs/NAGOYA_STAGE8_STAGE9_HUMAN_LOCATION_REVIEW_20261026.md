@@ -179,51 +179,15 @@ ABRの`match_level`（住所の一致の粒度）と`coordinates_level`（代表
 既存のStage 7ブランチと、生成済みPRIVATE台帳を保持している承認済み端末の`pipeline/`で実行する。**コマンドはファイルを書き換えない。施設名はローカルで手入力し、出力に名前・住所・生緯度経度・施設IDを含めない。** 実行は担当者本人が行い、AIがPRIVATEファイルを受け取って代行しない。
 
 ~~~sh
-printf "施設1名（ローカル入力）: "; IFS= read -r HINANEX_SITE_A
-printf "施設2名（ローカル入力）: "; IFS= read -r HINANEX_SITE_B
-HINANEX_SITE_A="$HINANEX_SITE_A" HINANEX_SITE_B="$HINANEX_SITE_B" python3 - <<'PY'
-from pathlib import Path
-import json
-import os
-from view_nagoya_stage7_private import read_stage7_private, validate
-
-p = Path("data/geocoding_pilot/nagoya50")
-rows = read_stage7_private(p / "gsi_stage7_refined_PRIVATE.csv")
-summary = json.loads((p / "gsi_stage7_refined_aggregate.json").read_text("utf-8"))
-validate(rows, summary)
-resolution = json.loads((p / "resolution.json").read_text("utf-8"))
-by_id = {r["record_id"]: r for r in resolution["results"]}
-
-names = [os.environ.get("HINANEX_SITE_A", "").strip(), os.environ.get("HINANEX_SITE_B", "").strip()]
-if not names[0] or not names[1] or names[0] == names[1]:
-    raise SystemExit("STOP: 施設指定が不正です")
-pair = []
-for name in names:
-    found = [r for r in rows if r["facility_name"] == name]
-    if len(found) != 1:
-        raise SystemExit("STOP: 施設を一意に特定できません")
-    pair.append(found[0])
-
-def point(row, prefix):
-    return (float(row[prefix + "_latitude"]), float(row[prefix + "_longitude"]))
-
-print("stage7_rows_valid=True")
-print("same_abr_reference=", point(pair[0], "abr_reference") == point(pair[1], "abr_reference"))
-print("different_gsi_reference=", point(pair[0], "gsi_reference") != point(pair[1], "gsi_reference"))
-print("provider_version=", resolution.get("provider_version"))
-print("provider_db_version=", resolution.get("provider_db_version"))
-print("source_fingerprint_matches=", resolution.get("source_dataset_sha256") == summary.get("source_dataset_sha256"))
-for i, row in enumerate(pair, 1):
-    prior = by_id.get(row["pilot_record_id"])
-    geom = prior.get("derived_geometry", {}) if prior else {}
-    older = (float(geom["latitude"]), float(geom["longitude"])) if "latitude" in geom and "longitude" in geom else None
-    print(f"facility_{i}_reference_origin=", row["reference_origin"])
-    print(f"facility_{i}_abr_coordinates_level=", row["abr_coordinates_level"])
-    print(f"facility_{i}_original_pilot_status=", prior.get("status") if prior else "MISSING")
-    print(f"facility_{i}_original_point_preserved=", older == point(row, "abr_reference") if older else "NOT_APPLICABLE")
-    print(f"facility_{i}_original_duplicate_flag=", "shared_reference_coordinate" in prior.get("reason", "") if prior else False)
-PY
+# 作業ツリーに未コミット変更がないことを確認してから行う。
+git status --short
+git fetch origin feature/d-nagoya-stage9-abr-duplicate-diagnostic-20261026
+git switch --detach origin/feature/d-nagoya-stage9-abr-duplicate-diagnostic-20261026
+cd pipeline
+python3 diagnose_nagoya_stage9_duplicate_abr.py --pilot-dir data/geocoding_pilot/nagoya50
 ~~~
+
+**重要な訂正（2026-10-26）**: Stage 7の`gsi_stage7_refined_PRIVATE.csv`にはABR座標とGSI座標がありますが、`reference_origin`と`abr_coordinates_level`は**別の元台帳** `independent_facility_position_review_PRIVATE.csv` にあります。診断にはその元台帳と`independent_review_queue_aggregate.json`が必要です。上記コマンドは[Draft PR #324](https://github.com/1kz-ma1/HINANEX/pull/324)のスクリプトを使用し、両台帳を元施設ID・fingerprint・ABR座標で照合します。Gitのcheckout前に作業中の変更があれば中止して保全すること。PR #324は未統合であり、利用時はコードレビューとCI状態の確認が必要です。
 
 **出力に住所や座標がないことを人間が確認してから、上記の匿名結果だけをチームへ報告する。** エラー時のPRIVATE行やトレースバックは貼らない。`provider_version`やfingerprintの文字列自体もチームの共有ルールに従い必要最小限で報告する。
 
