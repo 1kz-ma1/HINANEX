@@ -73,3 +73,28 @@
     python validation/validation/compare_ichikawa_skhb02_text.py --raw /outside-repo/skhb02-10-909-403.geojson --reference validation/reference/ichikawa_skhb02_20261026_AI_UNREVIEWED.json --report-out /outside-repo/ichikawa_text_crosscheck_UNAPPROVED.json
 
 検証結果が期待値と異なれば、成果物を更新してgreenに見せかけず、資料の版/不一致を調査すること。受入前に人間による公式資料再読が必要。
+
+## 2026-10-26 利用者提供の表画像5点に対する追加の目視再照合
+
+**追加判定：`USER_SUPPLIED_SCREENSHOT_VISUAL_REVIEW_UNAPPROVED`。画像内の転記内容をAIが目視再確認したものであり、利用者が独立C審査者として署名・承認した証拠ではない。**
+
+- 市川市PDFの該当29行をスクリーンショット上で確認：55017.pdfの28行、55026.pdfの1行。
+- 監査台帳に転記した**施設名称・所在地・土砂災害欄「○」は29/29行で画像と整合**。これはPDF画像⇔台帳の目視結果で、GSI地点の実施設同一性を承認するものではない。
+- GSI原本とのテキスト照合は以前と同じ**名称＋住所の完全一致28、名称一致・住所範囲相違1（index 571）**。スクリーンショットを根拠に自動同一化しない。
+- 55017.pdfのNo.3「江戸川河川敷緑地」は**土砂災害 ○、江戸川洪水 －、中小河川洪水・内水氾濫 －**。異なる災害種別の指定を合成して、避難先の総合安全判定に用いない。記号「－」は市資料の表記そのものとして保持する。
+- 市のPDFと称する画像は利用者がチャット上で提供。**市サイトから独立してPDF原本バイトを再取得・SHA固定したわけではない**。画像そのものはGitにコミットせず、PDF配信元の真正性・版・掲載時期については引き続き要確認。
+- 画像の元データも現時点ではGitリポジトリに保管していない。将来の第三者再現のため、画像SHA-256と該当行を下記別JSONに固定した。画像ファイルの原本の永続保管は別途必要。
+
+### 画像の対応範囲（SHA-256は提供PNGバイトに対する値）
+
+| 提供画像 | 対象 | SHA-256 |
+| --- | --- | --- |
+| `image(20261026-030212).png` | `USER_SUPPLIED_LEDGER_SCREENSHOT_FIRST_16` | `3243c0025652812269d716f9331da432f688eabf6fe2fd159da5a9ad3a2d3562` |
+| `image(20261026-030305).png` | `USER_SUPPLIED_LEDGER_SCREENSHOT_LAST_13` | `d72beba4f940157e475f89422de2b0d60b91dab5a8d8abdc64df3997c8405473` |
+| `image(20261026-030325).png` | `USER_SUPPLIED_CITY_PDF_TABLE_55026_ROWS_1_16` | `a162fb87133fba975c8243ca8b979b9b33bf14e622770773fb1c6aaf4c6da4f2` |
+| `image(20261026-030357).png` | `USER_SUPPLIED_CITY_PDF_TABLE_55017_ROWS_1_34` | `678a50183debdef5c619850cae8930e521cf4524ce067882955e7f62343421e3` |
+| `image(20261026-030442).png` | `USER_SUPPLIED_CITY_PDF_TABLE_55017_ROWS_35_53` | `422ee58788f25813f0de65eedb5e3eb25094a632a6613fd426e7ed5834878457` |
+
+行単位の記録は [`validation/reference/ichikawa_skhb02_20261026_SCREENSHOT_VISUAL_REVIEW_UNAPPROVED.json`](../reference/ichikawa_skhb02_20261026_SCREENSHOT_VISUAL_REVIEW_UNAPPROVED.json) を参照。**29件の記載整合性と、29件の施設を安全に案内できることは全く別の判断**。
+
+残る人間の仕事：①正規の自治体PDF原本を確認し、行と出典版を保証する、②index 571の場所の同一性・住所の範囲・座標の意味を審査する、③開設・実際の土砂災害危険区域・経路・多災害同時発生時の安全性を別途判定する。
