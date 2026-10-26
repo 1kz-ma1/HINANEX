@@ -179,9 +179,12 @@ ABRの`match_level`（住所の一致の粒度）と`coordinates_level`（代表
 既存のStage 7ブランチと、生成済みPRIVATE台帳を保持している承認済み端末の`pipeline/`で実行する。**コマンドはファイルを書き換えない。施設名はローカルで手入力し、出力に名前・住所・生緯度経度・施設IDを含めない。** 実行は担当者本人が行い、AIがPRIVATEファイルを受け取って代行しない。
 
 ~~~sh
-python3 - <<'PY'
+printf "施設1名（ローカル入力）: "; IFS= read -r HINANEX_SITE_A
+printf "施設2名（ローカル入力）: "; IFS= read -r HINANEX_SITE_B
+HINANEX_SITE_A="$HINANEX_SITE_A" HINANEX_SITE_B="$HINANEX_SITE_B" python3 - <<'PY'
 from pathlib import Path
 import json
+import os
 from view_nagoya_stage7_private import read_stage7_private, validate
 
 p = Path("data/geocoding_pilot/nagoya50")
@@ -191,7 +194,7 @@ validate(rows, summary)
 resolution = json.loads((p / "resolution.json").read_text("utf-8"))
 by_id = {r["record_id"]: r for r in resolution["results"]}
 
-names = [input(f"調査対象の施設{i}名（ローカル入力）: ").strip() for i in (1, 2)]
+names = [os.environ.get("HINANEX_SITE_A", "").strip(), os.environ.get("HINANEX_SITE_B", "").strip()]
 if not names[0] or not names[1] or names[0] == names[1]:
     raise SystemExit("STOP: 施設指定が不正です")
 pair = []
