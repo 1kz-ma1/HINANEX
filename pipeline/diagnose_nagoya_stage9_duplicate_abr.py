@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 from view_nagoya_stage7_private import read_stage7_private, validate
+from compare_nagoya_gsi_offline import read_csv, validate_queue
 
 ORIGINS = frozenset({
     "ORIGINAL_UNVERIFIED_ABR_REFERENCE",
@@ -34,9 +35,23 @@ def _point(row, prefix):
     return lat, lon
 
 
-def analyze(rows, summary, resolution, names):
+def analyze(rows, summary, queue, queue_summary, resolution, names):
     """Pure, fail-closed analysis: output contains no facility attributes."""
     validate(rows, summary)
+    validate_queue(queue, queue_summary)
+    if (len(queue) != len(rows)
+            or queue_summary.get("source_dataset_sha256") != summary["source_dataset_sha256"]
+            or queue_summary.get("provider_version") != summary["provider_version"]
+            or queue_summary.get("provider_db_version") != summary["provider_db_version"]):
+        raise ValueError("review queue snapshot mismatch")
+    by_queue = {row["pilot_record_id"]: row for row in queue}
+    for row in rows:
+        prior = by_queue.get(row["pilot_record_id"])
+        if (prior is None or prior["facility_name"] != row["facility_name"]
+                or prior["official_listed_address"] != row["official_listed_address"]
+                or prior["review_priority"] != row["review_priority"]
+                or _point(prior, "abr_reference") != _point(row, "abr_reference")):
+            raise ValueError("stage7 and original queue differ")
     if (not isinstance(resolution, dict)
             or resolution.get("source_dataset_sha256") != summary["source_dataset_sha256"]
             or resolution.get("provider_version") != summary["provider_version"]
@@ -68,7 +83,9 @@ def analyze(rows, summary, resolution, names):
             raise ValueError("facility not uniquely found in P1")
         row = matches[0]
         old = by_id.get(row["pilot_record_id"])
-        if old is None or row["reference_origin"] not in ORIGINS:
+        metadata = by_queue[row["pilot_record_id"]]
+        origin = metadata["reference_origin"]
+        if old is None or origin not in ORIGINS:
             raise ValueError("unknown origin or original record")
         abr = _point(row, "abr_reference")
         if abr is None:
@@ -79,7 +96,7 @@ def analyze(rows, summary, resolution, names):
             # Historical pilot stores geometry as latitude/longitude (not prefix).
             original_point = _point({"old_latitude": geo.get("latitude"),
                                      "old_longitude": geo.get("longitude")}, "old")
-        is_initial = row["reference_origin"] == "ORIGINAL_UNVERIFIED_ABR_REFERENCE"
+        is_initial = origin == "ORIGINAL_UNVERIFIED_ABR_REFERENCE"
         if is_initial and (old["status"] not in ("UNVERIFIED_CANDIDATE", "NEEDS_REVIEW")
                            or original_point is None):
             raise ValueError("initial candidate provenance invalid")
@@ -87,9 +104,9 @@ def analyze(rows, summary, resolution, names):
             raise ValueError("stage4 candidate provenance invalid")
         selected.append(row)
         facts.append({
-            "reference_origin": row["reference_origin"],
-            "coordinate_level": row["abr_coordinates_level"]
-                if row["abr_coordinates_level"] in ("parcel", "rsdtdsp_blk", "rsdtdsp_rsdt") else "UNCLASSIFIED",
+            "reference_origin": origin,
+            "coordinate_level": metadata["abr_coordinates_level"]
+                if metadata["abr_coordinates_level"] in ("parcel", "rsdtdsp_blk", "rsdtdsp_rsdt") else "UNCLASSIFIED",
             "original_pilot_status": old["status"],
             "initial_reference_preserved": abr == original_point if original_point else None,
             "original_duplicate_flag": "shared_reference_coordinate" in old.get("reason", "")
@@ -102,8 +119,8 @@ def analyze(rows, summary, resolution, names):
         gsi_relation = "INSUFFICIENT_DATA"
     else:
         gsi_relation = "SAME" if gsi_1 == gsi_2 else "DIFFERENT"
-    initial_count = sum(r["reference_origin"] == "ORIGINAL_UNVERIFIED_ABR_REFERENCE"
-                        for r in selected)
+    initial_count = sum(f["reference_origin"] == "ORIGINAL_UNVERIFIED_ABR_REFERENCE"
+                        for f in facts)
     stage = ("ORIGINAL_PILOT_BOTH" if initial_count == 2
              else "STAGE4_BOTH" if initial_count == 0 else "MIXED_ORIGINS")
     return {
@@ -136,11 +153,13 @@ def main():
     try:
         rows = read_stage7_private(folder / "gsi_stage7_refined_PRIVATE.csv")
         summary = json.loads((folder / "gsi_stage7_refined_aggregate.json").read_text("utf-8"))
+        queue, _ = read_csv(folder / "independent_facility_position_review_PRIVATE.csv")
+        queue_summary = json.loads((folder / "independent_review_queue_aggregate.json").read_text("utf-8"))
         resolution = json.loads((folder / "resolution.json").read_text("utf-8"))
         # Private input stays on terminal; neither values nor file content are written out.
         names = (input("対象施設1名（ローカル入力）: ").strip(),
                  input("対象施設2名（ローカル入力）: ").strip())
-        report = analyze(rows, summary, resolution, names)
+        report = analyze(rows, summary, queue, queue_summary, resolution, names)
     except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError, EOFError):
         print("ABORT: LOCAL_DIAGNOSTIC_INPUT_INVALID; no data changed", file=sys.stderr)
         return 2
