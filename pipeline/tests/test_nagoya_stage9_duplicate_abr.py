@@ -105,24 +105,24 @@ class Stage9DuplicateDiagnosticTests(unittest.TestCase):
             ("approved_for_map", True),
             ("data_promotion_authorized", True),
         ):
-            rows, summary, resolution, names = sample()
+            rows, summary, queue, queue_summary, resolution, names = sample()
             resolution[key] = value
             with self.subTest(key=key), self.assertRaises(ValueError):
                 analyze(rows, summary, queue, queue_summary, resolution, names)
 
     def test_rejects_an_approved_stage7_row_and_bad_identity(self):
-        rows, summary, resolution, names = sample()
+        rows, summary, queue, queue_summary, resolution, names = sample()
         rows[0]["independent_site_position_approved"] = "YES"
         with self.assertRaises(ValueError):
             analyze(rows, summary, queue, queue_summary, resolution, names)
-        rows, summary, resolution, names = sample()
+        rows, summary, queue, queue_summary, resolution, names = sample()
         with self.assertRaises(ValueError):
             analyze(rows, summary, queue, queue_summary, resolution, [names[0], names[0]])
         with self.assertRaises(ValueError):
             analyze(rows, summary, queue, queue_summary, resolution, ["no such place", names[1]])
 
     def test_detects_point_changes_and_missing_gsi_without_approval(self):
-        rows, summary, resolution, names = sample()
+        rows, summary, queue, queue_summary, resolution, names = sample()
         old = resolution["results"][0]["derived_geometry"]
         old["latitude"] = 35.35
         report = analyze(rows, summary, queue, queue_summary, resolution, names)
