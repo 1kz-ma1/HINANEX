@@ -1,0 +1,118 @@
+name: GSI skhb02 manual evidence capture (UNREVIEWED)
+run-name: 'skhb02 research z10/${{ inputs.tile_x }}/${{ inputs.tile_y }} (UNREVIEWED)'
+
+'on':
+  workflow_dispatch:
+    inputs:
+      tile_x:
+        description: 'Verified z10 GSI tile X (0-1023), manually selected'
+        required: true
+        type: number
+      tile_y:
+        description: 'Verified z10 GSI tile Y (0-1023), manually selected'
+        required: true
+        type: number
+      acknowledged_gsi_terms:
+        description: 'I reviewed GSI usage notices; one raw tile and evidence may be attached to this Actions run'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  capture_unreviewed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      TILE_X: ${{ inputs.tile_x }}
+      TILE_Y: ${{ inputs.tile_y }}
+    steps:
+      - name: Reject missing notice acknowledgment
+        shell: bash
+        env:
+          ACKNOWLEDGED_GSI_TERMS: ${{ inputs.acknowledged_gsi_terms }}
+        run: |
+          if [ "$ACKNOWLEDGED_GSI_TERMS" != "true" ]; then
+            echo 'Read GSI usage notices and explicitly opt in; acquisition BLOCKED.' >&2
+            exit 1
+          fi
+      - name: Checkout locked revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Ensure dependent A and C tools exist
+        shell: bash
+        run: |
+          test -f data-research/tools/capture_gsi_skhb02_original.py
+          test -f data-research/tools/inspect_gsi_skhb02_archive.py
+          test -f validation/validation/verify_gsi_skhb02_archive.py
+          test -f validation/validation/verify_gsi_skhb02_capture_chain.py
+      - name: Explicit one-tile official HTTPS acquisition (A)
+        shell: bash
+        env:
+          OUT_DIR: ${{ runner.temp }}/skhb02-UNREVIEWED-evidence
+        run: |
+          set -euo pipefail
+          python data-research/tools/capture_gsi_skhb02_original.py \
+            --fetch --tile-x "$TILE_X" --tile-y "$TILE_Y" \
+            --out-dir "$OUT_DIR"
+      - name: Independent local original-byte and manifest replay (C)
+        shell: bash
+        env:
+          OUT_DIR: ${{ runner.temp }}/skhb02-UNREVIEWED-evidence
+        run: |
+          set -euo pipefail
+          RAW="$OUT_DIR/skhb02-10-${TILE_X}-${TILE_Y}.geojson"
+          SOURCE_URL="https://cyberjapandata.gsi.go.jp/xyz/skhb02/10/${TILE_X}/${TILE_Y}.geojson"
+          python validation/validation/verify_gsi_skhb02_capture_chain.py \
+            --raw "$RAW" \
+            --a-report "$OUT_DIR/a_inspection_UNREVIEWED.json" \
+            --capture-manifest "$OUT_DIR/capture_manifest_UNREVIEWED.json" \
+            --source-url "$SOURCE_URL" \
+            --report-out "$OUT_DIR/c_capture_chain_UNAPPROVED.json"
+          python - "$OUT_DIR" <<'PY'
+          from pathlib import Path
+          import json, sys
+          evidence = Path(sys.argv[1])
+          result = json.loads((evidence / 'c_capture_chain_UNAPPROVED.json').read_text())
+          if (result.get('status') not in {
+                  'C_LOCAL_CAPTURE_CHAIN_MATCH_UNAPPROVED',
+                  'C_EMPTY_TILE_COVERAGE_UNKNOWN'}
+                  or result.get('published_for_disaster_use') is not False
+                  or result.get('independent_human_approved') is not False
+                  or result.get('official_https_origin_authenticated') is not False):
+              raise SystemExit('C report violated UNAPPROVED safety boundary')
+          print('LOCAL_ONLY_REPLAY_PASSED; official provenance/human approval still NOT VERIFIED')
+          PY
+      - name: Bundle source limitations and usage notice
+        shell: bash
+        env:
+          OUT_DIR: ${{ runner.temp }}/skhb02-UNREVIEWED-evidence
+        run: |
+          cat > "$OUT_DIR/USAGE_NOTICE_AND_STATUS.txt" <<'EOF'
+          Source: Geospatial Information Authority of Japan (GSI).
+          Official usage terms and cautions:
+          https://www.gsi.go.jp/bousaichiri/hinanbasho-menseki.html
+          https://www.gsi.go.jp/bousaichiri/hinanbasho.html
+          Site listings may be outdated or absent; confirm current and detailed
+          conditions with each municipality. GSI skhb02 lists designated
+          emergency evacuation places for landslide-type hazards, NOT a
+          landslide hazard polygon, verified opening status, safe destination,
+          or travel-route recommendation.
+          ARCHIVED_UNREVIEWED and C_LOCAL_*_UNAPPROVED are NOT acceptance.
+          Human independent review and official-source freshness checks remain pending.
+          Do not publish as current disaster-use data.
+          EOF
+      - name: Upload short-lived UNREVIEWED research bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: 'GSI-skhb02-UNREVIEWED-z10-${{ inputs.tile_x }}-${{ inputs.tile_y }}'
+          path: ${{ runner.temp }}/skhb02-UNREVIEWED-evidence/
+          if-no-files-found: error
+          retention-days: 3
