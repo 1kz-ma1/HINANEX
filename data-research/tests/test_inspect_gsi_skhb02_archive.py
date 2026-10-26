@@ -8,7 +8,7 @@ TOOL = Path(__file__).resolve().parents[1] / "tools" / "inspect_gsi_skhb02_archi
 spec = importlib.util.spec_from_file_location("gsi_skhb02_a", TOOL)
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
-URL = "https://cyberjapandata.gsi.go.jp/xyz/skhb02/10/908/402.geojson"
+URL = "https://cyberjapandata.gsi.go.jp/xyz/skhb02/10/909/403.geojson"
 
 
 def sample(properties=None, coords=None):
@@ -17,7 +17,7 @@ def sample(properties=None, coords=None):
         "features": [{"type": "Feature", "properties": properties or {
             "name": "合成の避難場所", "address": "訓練用",
             "disaster2": 1, "disaster1": 1,
-        }, "geometry": {"type": "Point", "coordinates": coords or [139.0, 35.0]}}],
+        }, "geometry": {"type": "Point", "coordinates": coords or [139.9, 35.7]}}],
     }, ensure_ascii=False).encode()
 
 
@@ -55,9 +55,9 @@ class SourceTileTests(unittest.TestCase):
             URL.replace("skhb02", "skhb03"),
             URL.replace("/10/", "/11/"),
             URL + "?token=test",
-            "https://example.org/xyz/skhb02/10/908/402.geojson",
-            "https://cyberjapandata.gsi.go.jp@evil.test/xyz/skhb02/10/908/402.geojson",
-            URL.replace("/908/", "/1024/"),
+            "https://example.org/xyz/skhb02/10/909/403.geojson",
+            "https://cyberjapandata.gsi.go.jp@evil.test/xyz/skhb02/10/909/403.geojson",
+            URL.replace("/909/", "/1024/"),
         ):
             with self.subTest(url=url), self.assertRaises(
                 mod.GsiLandslideInspectionError
@@ -70,6 +70,12 @@ class SourceTileTests(unittest.TestCase):
                 mod.GsiLandslideInspectionError
             ):
                 mod.inspect_archived_tile(sample(coords=point), URL)
+
+    def test_source_feature_outside_tile_refused_even_if_disaster2_one(self):
+        with self.assertRaisesRegex(
+            mod.GsiLandslideInspectionError, "outside source z10 tile"
+        ):
+            mod.inspect_archived_tile(sample(coords=[140.1, 35.7]), URL)
 
     def test_empty_tile_is_not_no_shelters_for_city(self):
         b = b'{"type":"FeatureCollection","features":[]}'

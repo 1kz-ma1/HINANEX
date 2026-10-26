@@ -14,7 +14,7 @@
 
 コマンド例（**実原本はGitリポジトリへcommitしない**）:
 
-    python data-research/tools/inspect_gsi_skhb02_archive.py --archive /outside-repo/skhb02-z10.geojson --source-url https://cyberjapandata.gsi.go.jp/xyz/skhb02/10/908/402.geojson
+    python data-research/tools/inspect_gsi_skhb02_archive.py --archive /outside-repo/skhb02-z10.geojson --source-url https://cyberjapandata.gsi.go.jp/xyz/skhb02/10/909/403.geojson
 
 ここでの座標とタイルは**コマンドの書式例**であり当該地域の証拠ではない。実作業では原本のURLと一致した座標・ファイルを使用する。
 

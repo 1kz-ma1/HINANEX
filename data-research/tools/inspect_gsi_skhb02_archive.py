@@ -50,6 +50,18 @@ def validate_source_url(source_url: str) -> tuple[int, int]:
     return x, y
 
 
+def _point_tile(lon: float, lat: float) -> tuple[int, int]:
+    """Use z10 Web Mercator; checking a tile is not municipal membership."""
+    if not (-180 <= lon < 180 and -85.05112878 < lat < 85.05112878):
+        raise GsiLandslideInspectionError("point cannot be projected")
+    return (
+        math.floor((lon + 180) * 1024 / 360),
+        math.floor(
+            (1 - math.asinh(math.tan(math.radians(lat))) / math.pi) * 1024 / 2
+        ),
+    )
+
+
 def inspect_archived_tile(raw: bytes, source_url: str) -> dict:
     """Fail closed on malformed input; return no suitability/candidate data."""
     x, y = validate_source_url(source_url)
@@ -94,6 +106,8 @@ def inspect_archived_tile(raw: bytes, source_url: str) -> dict:
         for key in ("address", "remarks"):
             if p.get(key) is not None and not isinstance(p[key], str):
                 raise GsiLandslideInspectionError("invalid source text")
+        if _point_tile(lon, lat) != (x, y):
+            raise GsiLandslideInspectionError("point outside source z10 tile")
         inspected.append({
             "feature_index": index,
             "name_raw": p["name"],
