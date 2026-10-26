@@ -1,0 +1,387 @@
+{
+  "schema_version": 1,
+  "status": "USER_SUPPLIED_SCREENSHOT_VISUAL_REVIEW_UNAPPROVED",
+  "review_observed_date_jst": "2026-10-26",
+  "review_method": "ASSISTANT_VISUAL_COMPARISON_NO_OCR",
+  "reviewer_authority": "NONE_NO_INDEPENDENT_HUMAN_SIGNOFF",
+  "github_reference_pr": 316,
+  "raw_gsi_sha256": "cef1058d29dba55c6f4f9257f94ffd51bb2215051078c23c881ebbb1c4343f84",
+  "municipal_source_urls": [
+    "https://www.city.ichikawa.lg.jp/uploaded/attachment/55017.pdf",
+    "https://www.city.ichikawa.lg.jp/uploaded/attachment/55026.pdf"
+  ],
+  "user_supplied_screenshots": [
+    {
+      "filename": "image(20261026-030212).png",
+      "role": "USER_SUPPLIED_LEDGER_SCREENSHOT_FIRST_16",
+      "sha256": "3243c0025652812269d716f9331da432f688eabf6fe2fd159da5a9ad3a2d3562",
+      "size": 143135
+    },
+    {
+      "filename": "image(20261026-030305).png",
+      "role": "USER_SUPPLIED_LEDGER_SCREENSHOT_LAST_13",
+      "sha256": "d72beba4f940157e475f89422de2b0d60b91dab5a8d8abdc64df3997c8405473",
+      "size": 113878
+    },
+    {
+      "filename": "image(20261026-030325).png",
+      "role": "USER_SUPPLIED_CITY_PDF_TABLE_55026_ROWS_1_16",
+      "sha256": "a162fb87133fba975c8243ca8b979b9b33bf14e622770773fb1c6aaf4c6da4f2",
+      "size": 120924
+    },
+    {
+      "filename": "image(20261026-030357).png",
+      "role": "USER_SUPPLIED_CITY_PDF_TABLE_55017_ROWS_1_34",
+      "sha256": "678a50183debdef5c619850cae8930e521cf4524ce067882955e7f62343421e3",
+      "size": 288585
+    },
+    {
+      "filename": "image(20261026-030442).png",
+      "role": "USER_SUPPLIED_CITY_PDF_TABLE_55017_ROWS_35_53",
+      "sha256": "422ee58788f25813f0de65eedb5e3eb25094a632a6613fd426e7ed5834878457",
+      "size": 163918
+    }
+  ],
+  "screenshot_images_archived_in_git": false,
+  "original_city_pdf_bytes_and_hashes_verified": false,
+  "independent_human_c_approved": false,
+  "municipality_document_version_independently_authenticated": false,
+  "cross_source_facility_identity_approved": false,
+  "currently_open_verified": false,
+  "route_safety_verified": false,
+  "disaster_use_approved": false,
+  "row_observations": [
+    {
+      "gsi_feature_index": 2,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 5,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 17,
+      "municipal_pdf_attachment": "55026",
+      "municipal_row_number": 7,
+      "reviewed_screenshot_filename": "image(20261026-030325).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 543,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 11,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 551,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 21,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 558,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 33,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 559,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 13,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 571,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 3,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AGREES_ADDRESS_SCOPE_DIFFERS",
+      "separate_human_facility_identity_review_required": true,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 592,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 37,
+      "reviewed_screenshot_filename": "image(20261026-030442).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 593,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 29,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 594,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 43,
+      "reviewed_screenshot_filename": "image(20261026-030442).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 613,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 2,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 614,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 1,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 635,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 23,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 639,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 24,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 643,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 28,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 644,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 27,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 671,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 38,
+      "reviewed_screenshot_filename": "image(20261026-030442).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 680,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 4,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 681,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 6,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 682,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 7,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 687,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 10,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 688,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 34,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 695,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 25,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 696,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 8,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 707,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 35,
+      "reviewed_screenshot_filename": "image(20261026-030442).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 717,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 9,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 743,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 30,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 764,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 12,
+      "reviewed_screenshot_filename": "image(20261026-030357).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    },
+    {
+      "gsi_feature_index": 798,
+      "municipal_pdf_attachment": "55017",
+      "municipal_row_number": 36,
+      "reviewed_screenshot_filename": "image(20261026-030442).png",
+      "municipal_name_address_transcription_vs_supplied_screenshot": "VISUALLY_CONSISTENT",
+      "municipal_landslide_mark_in_supplied_screenshot": "○",
+      "gsi_city_text_comparison": "NAME_AND_ADDRESS_TEXT_AGREE",
+      "separate_human_facility_identity_review_required": false,
+      "facility_identity_approved": false
+    }
+  ],
+  "special_hazard_semantics_observation": {
+    "gsi_feature_index": 571,
+    "city_pdf_attachment": "55017",
+    "city_row_number": 3,
+    "city_facility_name": "江戸川河川敷緑地",
+    "city_landslide_mark": "○",
+    "city_edogawa_river_flood_mark": "－",
+    "city_small_river_inland_flood_mark": "－",
+    "city_address_text": "市川南3・4丁目地先",
+    "gsi_address_text": "千葉県市川市市川南3",
+    "hazard_designation_not_runtime_safety": true,
+    "cross_source_identity_pending": true
+  }
+}
