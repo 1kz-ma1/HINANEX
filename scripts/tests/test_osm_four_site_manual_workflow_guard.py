@@ -55,7 +55,7 @@ class ManualOSMCaptureGuard(unittest.TestCase):
         self.assertEqual(self.raw.count("retention-days: 3"), 2)
         self.assertIn("run-id: 40258746945", self.raw)
         self.assertIn("workflow_dispatch:", self.raw)
-        self.assertNotIn("\\n  schedule:", self.raw)
+        self.assertNotIn("\n  schedule:", self.raw)
 
     def test_read_only_no_recommendations(self):
         self.assertIn("permissions:\n  contents: read\n  actions: read",self.raw)
