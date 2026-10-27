@@ -17,8 +17,7 @@ spec.loader.exec_module(mod)
 
 
 def prepare(folder, elements):
-    digest, _ = fixture(folder, elements=elements)
-    return digest
+    return fixture(folder, elements=elements)
 
 
 class VicinityTests(unittest.TestCase):
