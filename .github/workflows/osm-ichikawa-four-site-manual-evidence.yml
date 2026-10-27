@@ -24,6 +24,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Reject dispatch from any branch other than main
+        shell: bash
+        env:
+          DISPATCH_REF: ${{ github.ref }}
+        run: |
+          if [ "$DISPATCH_REF" != "refs/heads/main" ]; then
+            echo 'Research source capture must be dispatched from main.' >&2
+            exit 1
+          fi
       - name: Enforce explicit usage acknowledgments before network
         shell: bash
         env:
@@ -87,6 +96,8 @@ jobs:
           for key, filename in originals.items():
               assert sha256((p/filename).read_bytes()).hexdigest() == info[key], 'SHA_FAIL_'+key
           assert info['status'] == 'OSM_FOUR_SITES_SOURCE_CANDIDATES_UNREVIEWED'
+          assert info['gsi_sha256'] == 'cef1058d29dba55c6f4f9257f94ffd51bb2215051078c23c881ebbb1c4343f84'
+          assert [x['feature_index'] for x in info['four_target_points_unverified']] == [571, 639, 682, 707]
           assert len(info['four_target_points_unverified']) == 4
           for key in (
               'candidate_to_official_facility_identity_verified',
