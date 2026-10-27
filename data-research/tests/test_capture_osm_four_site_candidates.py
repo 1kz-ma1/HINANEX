@@ -129,6 +129,85 @@ class CaptureTests(unittest.TestCase):
         self.assertNotIn("CERT_NONE", text)
         self.assertNotIn("sleep(", text)
 
+    def test_one_request_http_codes_without_retry_or_body_leak(self):
+        from unittest.mock import patch
+        from urllib.error import HTTPError
+
+        class OneFailure:
+            def __init__(self, error):
+                self.error = error
+                self.calls = 0
+
+            def open(self, request, timeout):
+                self.calls += 1
+                raise self.error
+
+        for code in (400, 403, 429, 500, 504):
+            with self.subTest(status=code):
+                fake_opener = OneFailure(HTTPError(
+                    mod.OSM_ENDPOINT, code, "PRIVATE_ERROR_MESSAGE", {}, None))
+                with patch.object(mod, "build_opener", return_value=fake_opener):
+                    with self.assertRaises(mod.EvidenceBlocked) as caught:
+                        mod.fetch_once("[out:json];node(0,0,0,0);out;")
+                self.assertEqual(
+                    str(caught.exception),
+                    f"OSM_HTTP_STATUS_{code}_NO_AUTOMATIC_RETRY")
+                self.assertEqual(fake_opener.calls, 1)
+                self.assertNotIn("PRIVATE_ERROR_MESSAGE", str(caught.exception))
+
+    def test_one_request_transport_error_classes_without_secret_leak(self):
+        import socket
+        import ssl
+        from unittest.mock import patch
+        from urllib.error import URLError
+
+        class OneFailure:
+            def __init__(self, error):
+                self.error = error
+                self.calls = 0
+
+            def open(self, request, timeout):
+                self.calls += 1
+                raise self.error
+
+        cases = [
+            (URLError(ssl.SSLError("PRIVATE_HOSTNAME")), "TLS"),
+            (URLError(TimeoutError("PRIVATE_HOSTNAME")), "TIMEOUT"),
+            (URLError(socket.gaierror(-2, "PRIVATE_HOSTNAME")), "DNS"),
+            (URLError(ConnectionRefusedError("PRIVATE_HOSTNAME")), "CONNECTION_REFUSED"),
+            (URLError(ValueError("PRIVATE_HOSTNAME")), "UNKNOWN"),
+        ]
+        for error, category in cases:
+            with self.subTest(category=category):
+                fake_opener = OneFailure(error)
+                with patch.object(mod, "build_opener", return_value=fake_opener):
+                    with self.assertRaises(mod.EvidenceBlocked) as caught:
+                        mod.fetch_once("[out:json];node(0,0,0,0);out;")
+                self.assertEqual(
+                    str(caught.exception),
+                    f"OSM_TRANSPORT_{category}_NO_AUTOMATIC_RETRY")
+                self.assertEqual(fake_opener.calls, 1)
+                self.assertNotIn("PRIVATE_HOSTNAME", str(caught.exception))
+
+    def test_raw_os_transport_failure_is_fail_closed(self):
+        from unittest.mock import patch
+
+        class OneFailure:
+            calls = 0
+
+            def open(self, request, timeout):
+                self.calls += 1
+                raise OSError("PRIVATE_PROXY")
+
+        opener = OneFailure()
+        with patch.object(mod, "build_opener", return_value=opener):
+            with self.assertRaisesRegex(
+                mod.EvidenceBlocked, "^OSM_TRANSPORT_OS_ERROR_NO_AUTOMATIC_RETRY$"
+            ) as caught:
+                mod.fetch_once("[out:json];node(0,0,0,0);out;")
+        self.assertEqual(opener.calls, 1)
+        self.assertNotIn("PRIVATE_PROXY", str(caught.exception))
+
     def test_private_git_directory_blocked(self):
         with self.assertRaisesRegex(mod.EvidenceBlocked, "CANNOT_BE_WRITTEN_TO_GIT"):
             mod.capture_osm_candidates(source(), mod.REPO_ROOT / "data-research"
