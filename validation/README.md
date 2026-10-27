@@ -1,5 +1,11 @@
 # HINANEX — C / Validation
 
+## 再利用可能なレビューと検証知識の蓄積（2026-10-27）
+
+- **共通の進め方:** [REUSABLE_REVIEW_EVIDENCE_LEARNING_LOOP_20261027.md](docs/REUSABLE_REVIEW_EVIDENCE_LEARNING_LOOP_20261027.md) — 原本・AI候補・人間レビュー・判断範囲・反例・再審査条件を別々に記録し、次の地域向け回帰テスト候補へつなぐ。**記録仕様のみ**で、全国自動判定や安全性承認の実装ではない。
+- **今回までの検証事例:** [市川4地点のGSI/OSM実原本・一次検証記録](reviews/2026-10-27-ichikawa-osm-four-site-research-gate.md) — 実取得37 OSM地物、A技術監査PASS、4地点の観測位置候補2/6/5/24、Cによる施設・敷地・入口検証は未受領。過去の江戸川区・名古屋での反例も関連付ける。
+- **未完了の人間レビュー:** [Issue #333](https://github.com/1kz-ma1/HINANEX/issues/333)。班員から戻る記録は元資料・SHA・個別の検証命題を再確認して追記し、勝手に承認/公開せず、オーナーの判断と回帰テスト採用を別ゲートにする。
+
 ## 本番発表向け Phase 1：公式原本の差分を独立検証
 
 公式原本を再取得する際は、[Cの原本比較手順](docs/FINAL_SOURCE_RECAPTURE_20261016.md)と[2026-10-16実取得・未承認の監査記録](docs/EDOGAWA_CAPTURE_38857462945_UNREVIEWED.md)を参照してください。
