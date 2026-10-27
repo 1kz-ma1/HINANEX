@@ -63,7 +63,7 @@
 ## 5. 現在の適用状態と後続実装ゲート
 
 - **CURRENT PASS**: 市川4地点のGSI/OSM原本取得とSHA・固定クエリ・37地物の独立整合監査、Aの近傍ヒント生成。[研究記録](../reviews/2026-10-27-ichikawa-osm-four-site-research-gate.md) 参照。
-- **CURRENT NOT RUN/HOLD**: #333の班員による施設同一性/敷地/入口/災害別確認は**依頼中で、結果未受領**。本書は人間の結論・署名・C承認を代筆しない。
+- **CURRENT AI DESK REVIEW RECEIVED / HUMAN HOLD**: #333の班員から[AI机上検算の追加資料](../reviews/2026-10-27-ichikawa-ai-desk-review-independent-replay.md)（Markdown・JSON）を受領。4地点のOSM幾何包含と頂点距離を別に再計算できた一方、**人間が実際に一次資料・敷地・入口・災害別条件を確認した記録は未受領**。市公式ページの更新日は提出値と表示値が矛盾し保留。本書は人間の結論・署名・C承認を代筆しない。
 - **FUTURE**: 承認/保留の記録をチェックする入力スキーマ、保留理由の分類器、回帰fixture生成、差分時の再審査キュー、D/C/下流公開ゲートの接続。いずれも別PR、独立テスト、必要な人間判断を要求する。
 
 関連：市川 [Issue #333](https://github.com/1kz-ma1/HINANEX/issues/333)、名古屋 [Issue #286](https://github.com/1kz-ma1/HINANEX/issues/286)、江戸川区の [既存レビュー](../reviews/2026-10-19-edogawa-ai-cross-source-prereview.md)。
