@@ -113,10 +113,51 @@ jobs:
           assert info['osm_license'] == 'ODbL-1.0'
           print('ORIGINAL_BYTES_VALID_UNREVIEWED; route/entrance approvals remain blocked')
           PY
+      - name: Independently audit the five captured originals (UNREVIEWED)
+        shell: bash
+        env:
+          OUT: ${{ runner.temp }}/osm-4-ichikawa-UNREVIEWED
+          AUDIT: ${{ runner.temp }}/osm-4-ichikawa-audit-UNREVIEWED
+        run: |
+          set -euo pipefail
+          mkdir -p "$AUDIT"
+          # The A independent verifier reads EXACTLY five originals.
+          # Write the audit outside OUT to preserve the raw archive contract.
+          python data-research/tools/inspect_osm_four_site_evidence.py \
+            --evidence-dir "$OUT" > "$AUDIT/a_source_audit_UNREVIEWED.json"
+          python - "$AUDIT/a_source_audit_UNREVIEWED.json" <<'PY'
+          import json
+          from pathlib import Path
+          import sys
+          report = json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
+          assert report['status'] == 'A_OSM_ORIGINAL_ARCHIVE_INSPECTED_UNREVIEWED'
+          assert report['gsi_sha256'] == 'cef1058d29dba55c6f4f9257f94ffd51bb2215051078c23c881ebbb1c4343f84'
+          assert report['candidate_to_official_facility_identity_verified'] is False
+          assert report['human_c_approved'] is False
+          assert report['navigation_allowed'] is False
+          assert report['may_publish_or_route'] is False
+          assert report['safe_destination_count_approved'] == 0
+          assert report['zero_elements_is_no_facility_evidence'] is False
+          assert sum(report['osm_element_counts'].values()) == report['unassigned_candidate_count']
+          for candidate in report['unassigned_candidates']:
+              assert candidate['associated_gsi_feature_index'] is None
+              assert candidate['official_facility_identity_verified'] is False
+              assert candidate['facility_geometry_verified'] is None
+              assert candidate['navigation_endpoint'] is None
+              assert candidate['navigation_allowed'] is False
+          print('INDEPENDENT_AUDIT_PASSED; OSM candidates remain UNASSIGNED')
+          PY
       - name: Upload short-lived GSI/OSM research original bytes
         uses: actions/upload-artifact@v4
         with:
           name: OSM-Ichikawa-4-sites-UNREVIEWED
           path: ${{ runner.temp }}/osm-4-ichikawa-UNREVIEWED/
+          if-no-files-found: error
+          retention-days: 3
+      - name: Upload independent UNREVIEWED source audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: OSM-Ichikawa-4-sites-UNREVIEWED-AUDIT
+          path: ${{ runner.temp }}/osm-4-ichikawa-audit-UNREVIEWED/
           if-no-files-found: error
           retention-days: 3
