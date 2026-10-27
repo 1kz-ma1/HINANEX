@@ -12,6 +12,7 @@ from hashlib import sha256
 import json
 import math
 import os
+import socket
 from pathlib import Path
 import ssl
 import sys
@@ -132,9 +133,36 @@ def fetch_once(query: str) -> tuple[bytes, dict]:
                 "content_type_observed": content_type,
                 "date_observed": response.headers.get("Date"),
             }
-    except (HTTPError, URLError, OSError) as exc:
-        # Do NOT retry 429, 504, or any other server errors automatically.
-        raise EvidenceBlocked("OSM_REQUEST_FAILED_NO_AUTOMATIC_RETRY") from exc
+    except HTTPError as exc:
+        # Log only an allow-listed numeric HTTP status, never server body,
+        # exception URL/header text or any arbitrary exception message.
+        status = exc.code if type(exc.code) is int and 100 <= exc.code <= 599 else "UNKNOWN"
+        raise EvidenceBlocked(
+            f"OSM_HTTP_STATUS_{status}_NO_AUTOMATIC_RETRY") from None
+    except URLError as exc:
+        # A small allow-list of transport classes; do not echo exc.reason,
+        # which can include local proxy, machine, or URL details.
+        reason = exc.reason
+        if isinstance(reason, ssl.SSLError):
+            category = "TLS"
+        elif isinstance(reason, (TimeoutError, socket.timeout)):
+            category = "TIMEOUT"
+        elif isinstance(reason, socket.gaierror):
+            category = "DNS"
+        elif isinstance(reason, ConnectionRefusedError):
+            category = "CONNECTION_REFUSED"
+        else:
+            category = "UNKNOWN"
+        raise EvidenceBlocked(
+            f"OSM_TRANSPORT_{category}_NO_AUTOMATIC_RETRY") from None
+    except TimeoutError:
+        # Direct socket timeout outside a URLError wrapper.
+        raise EvidenceBlocked(
+            "OSM_TRANSPORT_TIMEOUT_NO_AUTOMATIC_RETRY") from None
+    except OSError:
+        # Remaining socket failures not wrapped in URLError.
+        raise EvidenceBlocked(
+            "OSM_TRANSPORT_OS_ERROR_NO_AUTOMATIC_RETRY") from None
 
 
 def inspect_osm_response(raw: bytes) -> dict:
