@@ -39,9 +39,12 @@ def sample(stage4=False):
     original = []
     for row in (a, b):
         queue_by_id[row["pilot_record_id"]]["reference_origin"] = (
-            "CHOME_TEXT_EQUAL_ABR_REFERENCE" if stage4
+            "PARCEL_ABR_REFERENCE" if stage4
             else "ORIGINAL_UNVERIFIED_ABR_REFERENCE"
         )
+        if stage4:
+            # A parcel-level address match may use a coarser town reference.
+            queue_by_id[row["pilot_record_id"]]["abr_coordinates_level"] = "machiaza_detail"
         entry = {
             "record_id": row["pilot_record_id"],
             "approved_for_map": False,
@@ -96,6 +99,28 @@ class Stage9DuplicateDiagnosticTests(unittest.TestCase):
         self.assertEqual(report["earliest_recorded_origin_group"], "STAGE4_BOTH")
         self.assertIsNone(report["facility_1"]["initial_reference_preserved"])
         self.assertFalse(report["facility_2"]["original_duplicate_flag"])
+        self.assertEqual(report["facility_1"]["reference_origin"], "PARCEL_ABR_REFERENCE")
+        self.assertEqual(report["facility_1"]["coordinate_level"], "machiaza_detail")
+        self.assertEqual(report["facility_1"]["parcel_review_trigger"],
+                         "MATCH_LEVEL_PARCEL_INFERRED_FROM_STAGE4_GATE")
+
+    def test_nonallowlisted_coordinate_metadata_never_leaks(self):
+        rows, summary, queue, queue_summary, resolution, names = sample(stage4=True)
+        q = next(r for r in queue if r["facility_name"] == names[0])
+        q["abr_coordinates_level"] = "secret-PRIVATE-long-coordinate-metadata"
+        report = analyze(rows, summary, queue, queue_summary, resolution, names)
+        self.assertEqual(report["facility_1"]["coordinate_level"],
+                         "OTHER_OR_UNRECOGNIZED")
+        self.assertNotIn("secret-PRIVATE", json.dumps(report))
+
+    def test_parcel_coordinate_level_stays_parcel_when_explicit(self):
+        rows, summary, queue, queue_summary, resolution, names = sample(stage4=True)
+        q = next(r for r in queue if r["facility_name"] == names[0])
+        q["abr_coordinates_level"] = "parcel"
+        report = analyze(rows, summary, queue, queue_summary, resolution, names)
+        self.assertEqual(report["facility_1"]["coordinate_level"], "parcel")
+        self.assertEqual(report["facility_1"]["parcel_review_trigger"],
+                         "COORDINATE_LEVEL_PARCEL_MATCH_LEVEL_NOT_RECORDED")
 
     def test_aborted_for_drift_or_tampering(self):
         for key, value in (
