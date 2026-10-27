@@ -189,6 +189,34 @@ class CaptureTests(unittest.TestCase):
                 self.assertEqual(fake_opener.calls, 1)
                 self.assertNotIn("PRIVATE_HOSTNAME", str(caught.exception))
 
+    def test_direct_timeout_and_forged_http_code_are_redacted(self):
+        from unittest.mock import patch
+        from urllib.error import HTTPError
+
+        class OneFailure:
+            def __init__(self, error):
+                self.error = error
+                self.calls = 0
+
+            def open(self, request, timeout):
+                self.calls += 1
+                raise self.error
+
+        cases = [
+            (TimeoutError("PRIVATE_PROXY"), "OSM_TRANSPORT_TIMEOUT_NO_AUTOMATIC_RETRY"),
+            (HTTPError(mod.OSM_ENDPOINT, "PRIVATE_FAKE_CODE", "PRIVATE_PROXY", {}, None),
+             "OSM_HTTP_STATUS_UNKNOWN_NO_AUTOMATIC_RETRY"),
+        ]
+        for error, expected in cases:
+            with self.subTest(expected=expected):
+                opener = OneFailure(error)
+                with patch.object(mod, "build_opener", return_value=opener):
+                    with self.assertRaises(mod.EvidenceBlocked) as caught:
+                        mod.fetch_once("[out:json];node(0,0,0,0);out;")
+                self.assertEqual(str(caught.exception), expected)
+                self.assertEqual(opener.calls, 1)
+                self.assertNotIn("PRIVATE", str(caught.exception))
+
     def test_raw_os_transport_failure_is_fail_closed(self):
         from unittest.mock import patch
 
