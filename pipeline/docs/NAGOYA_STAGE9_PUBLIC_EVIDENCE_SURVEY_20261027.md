@@ -81,7 +81,7 @@ GSI候補と資料の関係: 合致して見える／不一致／判定不能／
 ## 6. 受入状態・変更禁止
 
 - この文書の成果: **公開ソース候補の机上調査完了**。人間の独立位置照合は未実施。
-- 公式施設位置の受入: **0件**。
+- 公式施設位置の受入: **0件**（`official_facility_positions_accepted=0`）。
 - `approved_for_map=false`、`data_promotion_authorized=false`、`site_position_independently_verified=false`。
 - 匿名集計や建物地図の発見から公式位置・安全な避難先・開設可否・経路を自動生成しない。
 - RegionExport、GIS、Canon座標、PRIVATE台帳、既存Team Review JSONは本作業では変更していない。
