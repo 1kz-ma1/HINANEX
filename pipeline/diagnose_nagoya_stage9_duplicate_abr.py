@@ -24,6 +24,33 @@ STATUSES = frozenset({
 })
 REPORT_KIND = "NAGOYA_STAGE9_ABR_DUPLICATE_PROVENANCE_DIAGNOSTIC_ONLY"
 
+# ABR's match_level and coordinates_level are distinct. Preserve supported,
+# non-sensitive enum labels but never copy arbitrary PRIVATE cell text to stdout.
+COORDINATE_LEVELS = frozenset({
+    "unknown", "prefecture", "city", "machiaza", "machiaza_detail",
+    "residential_block", "residential_detail", "rsdtdsp_blk",
+    "rsdtdsp_rsdt", "parcel",
+})
+
+
+def coordinate_level_label(value):
+    if value in COORDINATE_LEVELS:
+        return value
+    if value in ("", None):
+        return "MISSING"
+    return "OTHER_OR_UNRECOGNIZED"
+
+
+def parcel_review_trigger(origin, raw_level):
+    if origin != "PARCEL_ABR_REFERENCE":
+        return "NOT_A_PARCEL_STAGE4_REVIEW"
+    if raw_level == "parcel":
+        return "COORDINATE_LEVEL_PARCEL_MATCH_LEVEL_NOT_RECORDED"
+    # Under Stage4 screen_exact_reference, if coordinates_level != parcel,
+    # the parcel review category implies match_level == parcel. Inference only,
+    # not independent evidence of the geocoder's current response.
+    return "MATCH_LEVEL_PARCEL_INFERRED_FROM_STAGE4_GATE"
+
 
 def _point(row, prefix):
     lat, lon = row.get(prefix + "_latitude"), row.get(prefix + "_longitude")
@@ -105,8 +132,9 @@ def analyze(rows, summary, queue, queue_summary, resolution, names):
         selected.append(row)
         facts.append({
             "reference_origin": origin,
-            "coordinate_level": metadata["abr_coordinates_level"]
-                if metadata["abr_coordinates_level"] in ("parcel", "rsdtdsp_blk", "rsdtdsp_rsdt") else "UNCLASSIFIED",
+            "coordinate_level": coordinate_level_label(metadata["abr_coordinates_level"]),
+            "parcel_review_trigger": parcel_review_trigger(
+                origin, metadata["abr_coordinates_level"]),
             "original_pilot_status": old["status"],
             "initial_reference_preserved": abr == original_point if original_point else None,
             "original_duplicate_flag": "shared_reference_coordinate" in old.get("reason", "")
