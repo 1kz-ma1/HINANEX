@@ -35,6 +35,28 @@ class ManualOSMCaptureGuard(unittest.TestCase):
         self.assertNotIn("capture_gsi_skhb02_original.py",self.raw)
         self.assertNotIn("github.event.schedule",self.raw)
 
+    def test_independent_archive_audit_precedes_any_upload(self):
+        self.assertIn("inspect_osm_four_site_evidence.py", self.raw)
+        self.assertIn("a_source_audit_UNREVIEWED.json", self.raw)
+        self.assertLess(
+            self.raw.index("Independently audit the five captured originals"),
+            self.raw.index("Upload short-lived GSI/OSM research original bytes"))
+        self.assertLess(
+            self.raw.index("Independently audit the five captured originals"),
+            self.raw.index("Upload independent UNREVIEWED source audit"))
+        self.assertIn("INDEPENDENT_AUDIT_PASSED", self.raw)
+        self.assertIn("candidate['associated_gsi_feature_index'] is None", self.raw)
+        self.assertIn("report['may_publish_or_route'] is False", self.raw)
+
+    def test_audit_is_outside_original_directory_and_manual_only(self):
+        self.assertIn('mkdir -p "$AUDIT"', self.raw)
+        self.assertIn('--evidence-dir "$OUT" > "$AUDIT/a_source_audit_UNREVIEWED.json"', self.raw)
+        self.assertIn("OSM-Ichikawa-4-sites-UNREVIEWED-AUDIT", self.raw)
+        self.assertEqual(self.raw.count("retention-days: 3"), 2)
+        self.assertIn("run-id: 40258746945", self.raw)
+        self.assertIn("workflow_dispatch:", self.raw)
+        self.assertNotIn("\\n  schedule:", self.raw)
+
     def test_read_only_no_recommendations(self):
         self.assertIn("permissions:\n  contents: read\n  actions: read",self.raw)
         self.assertNotIn("contents: write",self.raw)
