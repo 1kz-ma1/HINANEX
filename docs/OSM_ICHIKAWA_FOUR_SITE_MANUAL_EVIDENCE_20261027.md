@@ -13,6 +13,8 @@
 - GSI referencePointを入口として使わず、OSM entranceタグや建物・公園の座標を `navigation_endpoint` に自動的に入れない。河川敷 #571の所在地範囲差もHOLD。
 
 ## 手動実行
-#326 をmain統合し、本Shared PRをmain統合した後、GitHub Actions → `Ichikawa four-site OSM candidate capture (UNREVIEWED)` → Run workflow → 両方の利用注意確認チェック。
+#326 をmain統合し、本Shared PRをmain統合した後、**`main` を選択した状態でのみ** GitHub Actions → `Ichikawa four-site OSM candidate capture (UNREVIEWED)` → Run workflow → 両方の利用注意確認チェック。main以外のブランチからのworkflow_dispatchはネットワーク取得前に拒否する。
+
+ワークフロー側でも、元の取得コードから独立して保存済みGSI原本の固定SHA-256 `cef1058d29dba55c6f4f9257f94ffd51bb2215051078c23c881ebbb1c4343f84` と対象feature index `[571, 639, 682, 707]` を照合する。失敗時は原本アーティファクトを公開しない。
 
 **未実行:** 本PR CIはworkflow構文/静的安全ガード検証のみ。実Overpassへのアクセスや候補地物の取得・施設ごとの割当・C人的承認は、手動実行して初めて別途確認できる。
