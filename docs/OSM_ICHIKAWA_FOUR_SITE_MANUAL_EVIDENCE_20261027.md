@@ -1,0 +1,18 @@
+# 市川市4施設 OSM原本取得 GitHub Actions（2026-10-27）
+
+**手動ワークフロー・未承認。データ取得を自動起動しない。** 依存先は [A Draft #326](https://github.com/1kz-ma1/HINANEX/pull/326)（取得ロジック）。先に#326のレビュー/統合が必要。GitHub Actionsは `main` にこのワークフローが入ってから手動選択できる。
+
+## 設計とデータ境界
+
+- GSI skhb02取込済み原本は [run #40258746945](https://github.com/1kz-ma1/HINANEX/actions/runs/40258746945) のアーティファクトを `actions/download-artifact@v4` で復元する。**GSI公式サイトへ再ダウンロードしない**。GSI原本のSHA-256はA #326のコード内の固定値と照合。
+- 以前のGSIソースアーティファクトの有効期限は**2026-10-29 11時頃 JST**。期限切れやアクセス不能の場合はBLOCK。自動再取得・勝手な代替データ利用はしない。期限が切れたときは、アーカイブ保全と公式データ利用について別途人間の判断が必要。
+- 利用者が先に [OSMライセンス](https://www.openstreetmap.org/copyright/ja) と [GSIの注意事項](https://www.gsi.go.jp/bousaichiri/hinanbasho-menseki.html) を確認し、2つのboolean入力をtrueにした場合のみ開始する。OSMデータはODbL 1.0、© OpenStreetMap contributorsの帰属表示が必要。
+- A #326のコードで、単一の限定[Overpass API](https://overpass-api.de/api/interpreter)クエリ（4地点、各半径300m、候補ノード/way/relation）を1回送信。429/504は自動再試行しない。エラーを「入口ゼロ」「避難先ゼロ」に変更しない。
+- アーティファクトにGSI・OSMの**原本**、OverpassQL原文、SHA-256、取得時刻・HTTP観測、ライセンス、全安全承認falseの状態を保存（3日間）。
+- 出力は *周辺候補地物* であり、施設名や共通IDとの公式同一性・敷地・入口の位置・災害時の利用可否を検証したものではない。**避難先案内/GISへ自動接続しない**。
+- GSI referencePointを入口として使わず、OSM entranceタグや建物・公園の座標を `navigation_endpoint` に自動的に入れない。河川敷 #571の所在地範囲差もHOLD。
+
+## 手動実行
+#326 をmain統合し、本Shared PRをmain統合した後、GitHub Actions → `Ichikawa four-site OSM candidate capture (UNREVIEWED)` → Run workflow → 両方の利用注意確認チェック。
+
+**未実行:** 本PR CIはworkflow構文/静的安全ガード検証のみ。実Overpassへのアクセスや候補地物の取得・施設ごとの割当・C人的承認は、手動実行して初めて別途確認できる。
