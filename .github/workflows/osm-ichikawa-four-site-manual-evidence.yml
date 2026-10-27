@@ -1,0 +1,122 @@
+name: Ichikawa four-site OSM candidate capture (UNREVIEWED)
+run-name: 'OSM 4 Ichikawa sites research only (UNREVIEWED)'
+
+'on':
+  workflow_dispatch:
+    inputs:
+      acknowledged_osm_license:
+        description: 'I reviewed OSM ODbL attribution and want one bounded Overpass source capture'
+        required: true
+        type: boolean
+        default: false
+      acknowledged_gsi_notice:
+        description: 'I reviewed GSI disaster data usage notice and approve reusing archived tile source'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  capture_unreviewed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Reject dispatch from any branch other than main
+        shell: bash
+        env:
+          DISPATCH_REF: ${{ github.ref }}
+        run: |
+          if [ "$DISPATCH_REF" != "refs/heads/main" ]; then
+            echo 'Research source capture must be dispatched from main.' >&2
+            exit 1
+          fi
+      - name: Enforce explicit usage acknowledgments before network
+        shell: bash
+        env:
+          OSM_OK: ${{ inputs.acknowledged_osm_license }}
+          GSI_OK: ${{ inputs.acknowledged_gsi_notice }}
+        run: |
+          if [ "$OSM_OK" != "true" ] || [ "$GSI_OK" != "true" ]; then
+            echo 'OSM ODbL and GSI source notices both require human acknowledgment.' >&2
+            exit 1
+          fi
+      - name: Checkout approved source revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Retrieve existing short-lived archived GSI source (NO GSI re-fetch)
+        uses: actions/download-artifact@v4
+        with:
+          name: GSI-skhb02-UNREVIEWED-z10-909-403
+          repository: 1kz-ma1/HINANEX
+          run-id: 40258746945
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/locked-gsi-original
+      - name: Verify A tool and captured GSI byte presence
+        shell: bash
+        env:
+          RAW: ${{ runner.temp }}/locked-gsi-original/skhb02-10-909-403.geojson
+        run: |
+          test -f data-research/tools/capture_osm_four_site_candidates.py
+          test -f "$RAW"
+      - name: One bounded public Overpass query (4 places, UNREVIEWED)
+        shell: bash
+        env:
+          RAW: ${{ runner.temp }}/locked-gsi-original/skhb02-10-909-403.geojson
+          OUT: ${{ runner.temp }}/osm-4-ichikawa-UNREVIEWED
+        run: |
+          set -euo pipefail
+          python data-research/tools/capture_osm_four_site_candidates.py \
+            --gsi-raw "$RAW" --out-dir "$OUT" \
+            --fetch --acknowledged-osm-license --acknowledged-gsi-notice
+      - name: Check raw evidence hashes and enforce no-location-approval
+        shell: bash
+        env:
+          OUT: ${{ runner.temp }}/osm-4-ichikawa-UNREVIEWED
+        run: |
+          python - "$OUT" <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+          import json
+          import sys
+          p = Path(sys.argv[1])
+          info = json.loads((p/'a_candidate_capture_manifest_UNREVIEWED.json').read_text(encoding='utf-8'))
+          originals = {
+              'gsi_sha256': 'gsi-skhb02-original.geojson',
+              'response_sha256': 'osm-overpass-original.json',
+              'query_sha256': 'osm-query.overpassql',
+          }
+          for key, filename in originals.items():
+              assert sha256((p/filename).read_bytes()).hexdigest() == info[key], 'SHA_FAIL_'+key
+          assert info['status'] == 'OSM_FOUR_SITES_SOURCE_CANDIDATES_UNREVIEWED'
+          assert info['gsi_sha256'] == 'cef1058d29dba55c6f4f9257f94ffd51bb2215051078c23c881ebbb1c4343f84'
+          assert [x['feature_index'] for x in info['four_target_points_unverified']] == [571, 639, 682, 707]
+          assert len(info['four_target_points_unverified']) == 4
+          for key in (
+              'candidate_to_official_facility_identity_verified',
+              'candidate_geometry_officially_verified',
+              'entrance_position_verified',
+              'current_open_access_verified',
+              'hazard_safety_verified',
+              'human_c_approved',
+              'navigation_allowed',
+          ):
+              assert info[key] is False, 'UNSAFE_APPROVAL_'+key
+          assert info['safe_destination_count_approved'] == 0
+          assert info['osm_license'] == 'ODbL-1.0'
+          print('ORIGINAL_BYTES_VALID_UNREVIEWED; route/entrance approvals remain blocked')
+          PY
+      - name: Upload short-lived GSI/OSM research original bytes
+        uses: actions/upload-artifact@v4
+        with:
+          name: OSM-Ichikawa-4-sites-UNREVIEWED
+          path: ${{ runner.temp }}/osm-4-ichikawa-UNREVIEWED/
+          if-no-files-found: error
+          retention-days: 3

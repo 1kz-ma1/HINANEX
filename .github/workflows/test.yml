@@ -42,6 +42,10 @@ jobs:
         working-directory: .
         run: python -m unittest discover -s scripts/tests -p 'test_gsi_csv_manual_workflow_guard.py' -v
 
+      - name: Guard OSM four-site manual workflow
+        working-directory: .
+        run: python -m unittest discover -s scripts/tests -p 'test_osm_four_site_manual_workflow_guard.py' -v
+
       - name: Enforce role PR scope
         if: github.event_name == 'pull_request'
         working-directory: .
