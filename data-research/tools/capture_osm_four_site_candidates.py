@@ -12,6 +12,7 @@ from hashlib import sha256
 import json
 import math
 import os
+import socket
 from pathlib import Path
 import ssl
 import sys
@@ -132,9 +133,31 @@ def fetch_once(query: str) -> tuple[bytes, dict]:
                 "content_type_observed": content_type,
                 "date_observed": response.headers.get("Date"),
             }
-    except (HTTPError, URLError, OSError) as exc:
-        # Do NOT retry 429, 504, or any other server errors automatically.
-        raise EvidenceBlocked("OSM_REQUEST_FAILED_NO_AUTOMATIC_RETRY") from exc
+    except HTTPError as exc:
+        # Log only the numeric status, never a server body or potentially
+        # sensitive exception URL/header text. Do not retry any HTTP failure.
+        raise EvidenceBlocked(
+            f"OSM_HTTP_STATUS_{exc.code}_NO_AUTOMATIC_RETRY") from None
+    except URLError as exc:
+        # A small allow-list of transport classes; do not echo exc.reason,
+        # which can include local proxy, machine, or URL details.
+        reason = exc.reason
+        if isinstance(reason, ssl.SSLError):
+            category = "TLS"
+        elif isinstance(reason, (TimeoutError, socket.timeout)):
+            category = "TIMEOUT"
+        elif isinstance(reason, socket.gaierror):
+            category = "DNS"
+        elif isinstance(reason, ConnectionRefusedError):
+            category = "CONNECTION_REFUSED"
+        else:
+            category = "UNKNOWN"
+        raise EvidenceBlocked(
+            f"OSM_TRANSPORT_{category}_NO_AUTOMATIC_RETRY") from None
+    except (TimeoutError, OSError):
+        # Includes socket failures not wrapped in URLError.
+        raise EvidenceBlocked(
+            "OSM_TRANSPORT_OS_ERROR_NO_AUTOMATIC_RETRY") from None
 
 
 def inspect_osm_response(raw: bytes) -> dict:
