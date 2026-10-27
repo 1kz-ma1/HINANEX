@@ -5,10 +5,16 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from tools.inspect_osm_four_site_evidence import (
-    inspect_evidence_dir, EvidenceBlocked, TARGETS, GSI_URL, OSM_URL,
-    _expected_query,
-)
+import importlib.util
+
+MODULE = Path(__file__).resolve().parents[1] / "tools" / "inspect_osm_four_site_evidence.py"
+spec = importlib.util.spec_from_file_location("osm_archive_audit_test_target", MODULE)
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+inspect_evidence_dir = mod.inspect_evidence_dir
+EvidenceBlocked = mod.EvidenceBlocked
+TARGETS, GSI_URL, OSM_URL = mod.TARGETS, mod.GSI_URL, mod.OSM_URL
+_expected_query = mod._expected_query
 
 
 def fixture(directory: Path, *, elements=None):
