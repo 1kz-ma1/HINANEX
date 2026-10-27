@@ -25,3 +25,12 @@ python data-research/tools/capture_osm_four_site_candidates.py \
 未検証：①取得したOSM地物の施設所属、②データ鮮度、③敷地・入口が網羅されるか、④自治体の公式指定場所の範囲、⑤水害時の危険・入口アクセス。C独立審査とD #317/#318への照合は**別PR**で実施し、OSMノードを直ちに `navigation_endpoint` に入れない。
 
 原本の手元保存は限られた期間のみ。GSI原本のGitHub Actions artifactは2026-10-29頃期限、ローカルに既存アーカイブがある場合はそれを再使用。新しいGSIタイルの自動再取得は設計にない。
+
+## 2026-10-27 初回の手動実行と障害の切り分け
+
+- [Actions #40449512069](https://github.com/1kz-ma1/HINANEX/actions/runs/40449512069) にて、`main` の指定、OSM/GSIの2種類の明示確認、保存済みGSI原本取得とファイル存在検査はPASS。
+- 取得ステップのみ `OSM_REQUEST_FAILED_NO_AUTOMATIC_RETRY` でFAILED。旧版はHTTPコードと通信例外種別を同じコードに潰しており、**実際の失敗原因は不明**。監査・候補抽出・原本アップロードは未実行、OSM実原本は存在しない。
+- この改修は、HTTPでは`OSM_HTTP_STATUS_<code>_NO_AUTOMATIC_RETRY`、通信では`OSM_TRANSPORT_TLS/TIMEOUT/DNS/CONNECTION_REFUSED/UNKNOWN_NO_AUTOMATIC_RETRY`または`OSM_TRANSPORT_OS_ERROR_NO_AUTOMATIC_RETRY`を出すだけ。**秘密情報を含みうるエラー本文、例外reason、ネットワークURL、レスポンス本文はログに書き出さない**。
+- 取得先 `https://overpass-api.de/api/interpreter`、固定の4点・300mクエリ、TLS検証・リダイレクト拒否、原本GSI SHA、承認用ブール入力、再試行禁止、原本アーティファクト構成は**変更しない**。
+- 実行の再試行は自動化せず、人間の新たな明示的判断に委ねる。HTTP 429/504等が出ても自動で接続先を切り替えない。取得先が受け付けない場合も、施設・避難可能性をゼロと推定しない。
+- 本改修のテストは疑似例外を使用するオフライン単体テスト。HTTP 400/403/429/500/504、TLS/DNS/timeout/接続拒否を検査するが、実接続成功の証明ではない。期限は元のGSI artifact 2026-10-29 11:22:16 JST。
