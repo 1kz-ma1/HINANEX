@@ -12,6 +12,16 @@
 - 出力は *周辺候補地物* であり、施設名や共通IDとの公式同一性・敷地・入口の位置・災害時の利用可否を検証したものではない。**避難先案内/GISへ自動接続しない**。
 - GSI referencePointを入口として使わず、OSM entranceタグや建物・公園の座標を `navigation_endpoint` に自動的に入れない。河川敷 #571の所在地範囲差もHOLD。
 
+## 取得成功後の独立監査（#329に依存）
+
+`#329` で統合されたA領域の `inspect_osm_four_site_evidence.py` を、OSM取得の直後・いずれのartifactアップロードよりも前にオフライン実行する。**実取得自体は従来どおり手動のみ**であり、この変更により自動取得や定期実行は追加しない。
+
+- GSI・OSM・クエリ原本とmanifest・利用注意の**5ファイルだけ**をA独立監査器で検証。SHA、固定GSI原本、4施設の参照点、300m×4の固定クエリ、HTTP証跡、OSMの一意な地物ID、すべてfalseの承認状態を独立に確認する。
+- 監査JSONを原本フォルダの**外**に出力する。元の5ファイルだけを再監査できる原本artifact `OSM-Ichikawa-4-sites-UNREVIEWED` の構成を変更しない。
+- 新たに `OSM-Ichikawa-4-sites-UNREVIEWED-AUDIT` artifact（保存期間3日間）を分離して保存する。監査器や承認状態の検証が失敗したら、両artifactのアップロード前に停止する。
+- OSM地物は4施設のどれにも自動割当せず、`associated_gsi_feature_index=null`、`navigation_endpoint=null`、`navigation_allowed=false` のまま保持。**監査のPASSは施設同一性・入場可能性・災害時安全性の承認ではない。**
+- 新しい独立監査のCI検証は静的ワークフローガードと合成データのA単体テストであり、実OSM取得・取得後監査の成功実績とは区別する。
+
 ## 手動実行
 #326 をmain統合し、本Shared PRをmain統合した後、**`main` を選択した状態でのみ** GitHub Actions → `Ichikawa four-site OSM candidate capture (UNREVIEWED)` → Run workflow → 両方の利用注意確認チェック。main以外のブランチからのworkflow_dispatchはネットワーク取得前に拒否する。
 
