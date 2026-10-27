@@ -182,7 +182,7 @@ ABRの`match_level`（住所の一致の粒度）と`coordinates_level`（代表
 # 作業ツリーに未コミット変更がないことを確認してから行う。
 git status --short
 git fetch origin feature/d-nagoya-stage9-abr-duplicate-diagnostic-20261026
-git switch --detach origin/feature/d-nagoya-stage9-abr-duplicate-diagnostic-20261026
+git switch --detach FETCH_HEAD
 cd pipeline
 python3 diagnose_nagoya_stage9_duplicate_abr.py --pilot-dir data/geocoding_pilot/nagoya50
 ~~~
@@ -193,7 +193,32 @@ python3 diagnose_nagoya_stage9_duplicate_abr.py --pilot-dir data/geocoding_pilot
 
 この確認で明らかになるのは**重複候補の来歴と既存処理での維持状況**であり、ABRの現在の生応答が同じ点を返すか・その点が施設位置として正しいかではない。次に必要なら、**同じABR API版・DB版、ローカル127.0.0.1限定**で2住所を人が再照会し、出力に生座標を出さずに一致/不一致・代表点精度のみ匿名集計する。版が異なる場合は現在と当時の再現を混同しない。
 
-### 6.4 完了の定義
+### 6.4 2026-10-27 オペレーター実測：重複の取得工程と粒度
+
+人間のオペレーターが [Draft PR #324](https://github.com/1kz-ma1/HINANEX/pull/324) の読み取り専用診断（HEAD `e59e96b`）をMacローカルの既存PRIVATE台帳に適用し、**匿名カテゴリ結果のみ**を報告した。下記は提出済み結果の記録であり、原本行・緯度経度・個別施設IDをGitHubへ送らない。
+
+| 提出フィールド | 報告値 | 判断できる内容 |
+| --- | --- | --- |
+| `dataset_fingerprint_and_provider_versions_match` | `true` | Stage 7および元キューと初期解決結果の版整合 |
+| `earliest_recorded_origin_group` | `STAGE4_BOTH` | 対象2件とも初期パイロット確定候補ではなくStage 4由来 |
+| 両件 `original_pilot_status` | `UNRESOLVED` | 初期パイロットでは正式候補にならなかった |
+| 両件 `reference_origin` | `PARCEL_ABR_REFERENCE` | 地番要確認ゲートから取り込まれた参照点 |
+| 両件 `coordinate_level` | `machiaza_detail` | **座標の代表点は丁目・小字レベル** |
+| 両件 `parcel_review_trigger` | `MATCH_LEVEL_PARCEL_INFERRED_FROM_STAGE4_GATE` | **Stage 4の分類ロジックから** `match_level=parcel` を推定。ABR生応答を直接提示したものではない |
+| `same_abr_reference` | `true` | 記録されたABR参照点が2件で完全一致 |
+| `gsi_reference_relation` | `DIFFERENT` | GSI登録点は2件で異なる |
+| 公開／承認 | false／0件 | Stage 9 HOLD・GIS NO-GO継続 |
+
+**現段階での原因分析**: HINANEXのStage 4はABRが返した参照点を候補として保持し、Stage 5以降はそのABR点を保存してGSIと比較する。住所の照合が地番レベルでも、**位置としては丁目・小字代表点までしか付いていない**ため、別の住所に同一座標が記録されたことを合理的に説明できる。ABRの[公式仕様](https://lp.geocoder.address-br.digital.go.jp/)および[公式事例](https://lp.geocoder.address-br.digital.go.jp/case.html)もこの二つのレベルの違いを明記しており、`parcel` × `machiaza_detail`の組み合わせを例示する。
+
+- **特定済み**: 重複候補の取り込み工程（Stage 4）と参照座標の粒度（`machiaza_detail`）。
+- **最も有力な説明**: ABRが別地番に同一の丁目・小字代表点を関連付けている。
+- **未確定**: ABR生応答の二件の`match_level`（診断ではStage4判定からの推定）、DBにおける参照点定義・割当の内部理由、自治体が確認する施設位置。
+- **誤ってはいけない結論**: 「2施設の敷地が同一地点」「ABRの不具合が確定」「GSIが正しい」「位置承認完了」。
+
+**次の業務判断**: この2件のABR参照座標は施設位置として採用せず、Stage 9で公的な施設配置・所在地証拠による人間の独立確認に進む。必要な場合だけ、同一のABR/DB版を用いる**ローカル**再照会により生応答の照合レベル・代表点レベルを確認する。その際もPRIVATEの生データはアップロードせず、結果は匿名要約のみ記録。
+
+### 6.5 完了の定義
 
 1. 2施設それぞれについて`reference_origin`と初期`resolution`の状態を照合できた。
 2. ABR座標重複がどの工程ですでに存在したか、または未解明かを明記した。
