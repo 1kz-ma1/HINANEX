@@ -19,6 +19,14 @@ class ManualOSMCaptureGuard(unittest.TestCase):
         self.assertIn("GSI_OK",self.raw)
         self.assertIn('if [ "$OSM_OK" != "true" ] || [ "$GSI_OK" != "true" ]',self.raw)
 
+    def test_default_branch_only_for_manual_source_capture(self):
+        self.assertIn('if [ "$DISPATCH_REF" != "refs/heads/main" ]', self.raw)
+        self.assertIn("DISPATCH_REF: ${{ github.ref }}", self.raw)
+
+    def test_fixed_source_sha_and_four_indices_checked_independently(self):
+        self.assertIn("assert info['gsi_sha256'] == 'cef1058d29dba55c6f4f9257f94ffd51bb2215051078c23c881ebbb1c4343f84'", self.raw)
+        self.assertIn("== [571, 639, 682, 707]", self.raw)
+
     def test_fixed_gsi_artifact_reused_not_reacquired(self):
         self.assertIn("actions/download-artifact@v4",self.raw)
         self.assertIn("run-id: 40258746945",self.raw)
