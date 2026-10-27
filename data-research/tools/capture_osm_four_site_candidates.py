@@ -134,10 +134,11 @@ def fetch_once(query: str) -> tuple[bytes, dict]:
                 "date_observed": response.headers.get("Date"),
             }
     except HTTPError as exc:
-        # Log only the numeric status, never a server body or potentially
-        # sensitive exception URL/header text. Do not retry any HTTP failure.
+        # Log only an allow-listed numeric HTTP status, never server body,
+        # exception URL/header text or any arbitrary exception message.
+        status = exc.code if type(exc.code) is int and 100 <= exc.code <= 599 else "UNKNOWN"
         raise EvidenceBlocked(
-            f"OSM_HTTP_STATUS_{exc.code}_NO_AUTOMATIC_RETRY") from None
+            f"OSM_HTTP_STATUS_{status}_NO_AUTOMATIC_RETRY") from None
     except URLError as exc:
         # A small allow-list of transport classes; do not echo exc.reason,
         # which can include local proxy, machine, or URL details.
@@ -154,8 +155,12 @@ def fetch_once(query: str) -> tuple[bytes, dict]:
             category = "UNKNOWN"
         raise EvidenceBlocked(
             f"OSM_TRANSPORT_{category}_NO_AUTOMATIC_RETRY") from None
-    except (TimeoutError, OSError):
-        # Includes socket failures not wrapped in URLError.
+    except TimeoutError:
+        # Direct socket timeout outside a URLError wrapper.
+        raise EvidenceBlocked(
+            "OSM_TRANSPORT_TIMEOUT_NO_AUTOMATIC_RETRY") from None
+    except OSError:
+        # Remaining socket failures not wrapped in URLError.
         raise EvidenceBlocked(
             "OSM_TRANSPORT_OS_ERROR_NO_AUTOMATIC_RETRY") from None
 
