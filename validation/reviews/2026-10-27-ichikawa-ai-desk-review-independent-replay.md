@@ -54,3 +54,36 @@
 **現状**：`candidate_to_official_facility_identity_verified=false`, `facility_geometry_verified=null`, `entrance_position_verified=false`, `human_c_approved=false`, `navigation_endpoint=null`, `navigation_allowed=false`, `may_publish_or_route=false`。**USER-FACING/GIS/REGIONEXPORT/ROUTINGへの自動反映なし**。
 
 **作業状態**：AI報告書受領=YES、独立ローカル技術再計算=PASS、ウェブ表掲載の個別表示照合=PASS、公式ページ更新日整合=UNRESOLVED、実際の人間C照合=NOT RECEIVED、公式敷地/入口/運用の正式承認=HOLD。
+
+
+## 6. 追加の市川市公式一次資料：地区別減災マップ4枚（2026-10-28閲覧）
+
+**性質**：市川市地域防災課の[公式配布ページ](https://www.city.ichikawa.lg.jp/page/4627.html)で公開される**令和8年1月改訂版**「地区別減災マップ（閲覧用）裏面・地図面」。**配布ページ**には更新日 **2026-03-24** と表示される。これは別の[避難場所・避難所一覧](https://www.city.ichikawa.lg.jp/page/40332.html)に関する提出値 `2026-09-08` と**別ページ・別資料の時点**であり、前節の一覧ページ更新日の矛盾をこの地図の発行日で解消しない。
+
+この資料はPDF内に抽出可能なテキスト層がなく、全1ページの画像面。AIが目視で確認した範囲は、**市が地図に描いた位置・名称・凡例・広域避難場所の表示**であり、文字認識による全面機械抽出や公式地番の確定、自治体による最新の避難指定確認は行っていない。PDF内部メタデータの編集日時（2026-01-26付）は配布ページの公表・更新日とは別概念。
+
+| 配布ページの種別 | 原本URL（市公式） | 添付PDFのSHA-256（今回受領バイト） |
+| --- | --- | --- |
+| 北西部・地図面 | [42244.pdf](https://www.city.ichikawa.lg.jp/uploaded/attachment/42244.pdf) | `24ce18beda7fad1b483a3a635807a917ce56d8fd74b9d6d919df12d70b100791` |
+| 北東部・地図面 | [42245.pdf](https://www.city.ichikawa.lg.jp/uploaded/attachment/42245.pdf) | `10f9dae3beff650460c40e33eaa0b82dbb3c4f68e6cef4be7f8aed73d3cfc7c8` |
+| 中部・地図面 | [42246.pdf](https://www.city.ichikawa.lg.jp/uploaded/attachment/42246.pdf) | `a8ae63225635b7807f054e7d80ffa4135a029fd97212994c5881751319a0f3cd` |
+| 南部・地図面 | [42247.pdf](https://www.city.ichikawa.lg.jp/uploaded/attachment/42247.pdf) | `bec27ed256c6f97b70ff305cd3ca971470c0b41f0d63a3b72ab271ebbbcf1f0a` |
+
+### 北西部版の地図で視認できる4つの表記（AIが画像上で確認、未人間検収）
+
+- **江戸川河川敷緑地**：北西部地図の江戸川東岸側、地図掲載番号 **62** 付近に名称表示。
+- **須和田公園**：国府台～須和田付近に名称表示、地図掲載番号 **36**。
+- **大洲防災公園**：大洲付近に名称表示、地図掲載番号 **78**。
+- **筑波大学附属聴覚特別支援学校（グラウンド等）**：国府台付近に名称表示（地図上で「グラウンド等」の注記）。
+
+**番号62/36/78は市の地図内の掲載番号**であり、GSI原本の feature index `571/639/682/707` とは別の名前空間。名称が一致/近いことだけで対応付けキーや施設同一性の承認に使わない。
+
+地図には「広域避難場所D/E」等の区域表現もあるが、**広域避難場所Eの表示と個別の「江戸川河川敷緑地」地物の正式な指定区画は同一と断定しない**。また、この地図は地震減災を主題とし津波や土砂・施設情報も混載する総合マップで、**GSI `skhb02` の個別土砂災害指定、災害発生時に開設すること、敷地内で通れる門、OSM Way の外周境界の公式承認を提供するものではない**。
+
+### 省力化できた作業と残りの人間確認
+
+- **新たに得た根拠**：市が4施設名を**地図上で明示的に掲載**しているため、「近隣Google Maps上の自治会館等を同一避難場所として誤採用」する危険を減らし、班員が現地名称・おおまかな掲載位置を一次資料から照合できる。資料の令和8年1月改訂版と一覧ページは**異なる版管理**を行う。
+- **次の独立C人間レビュー**：北西部地図上の4名称と凡例・位置を現物で確認し、閲覧日・1ページ中の根拠箇所・地図凡例の意味を記録。可能なら各施設の管理者/市が発行する**指定区域の境界図や出入口の利用条件**を探し、無ければ `UNRESOLVED` と明記。**地図とOSMの図形が見かけ上重なることは位置の候補調査ヒントに限り**、ポリゴン・入口・経路の運用承認は `HOLD`。
+- **再利用可能なテスト仮説**：`OFFICIAL_MAP_PRESENT_BUT_NO_GEOMETRY_CONTRACT`、`MAP_LIST_NUMBER_NOT_SOURCE_ID`、`MAP_EDITION_VS_WEB_PAGE_UPDATED_AT` を、別の地域で検証する資料参照のルール候補として記録。自動PDF画像の幾何推定、GIS境界生成、正式指定の判断は実装しない。
+
+**承認状態に変化なし**：`candidate_to_official_facility_identity_verified=false`、`facility_geometry_verified=null`、`human_c_approved=false`、`navigation_endpoint=null`、`navigation_allowed=false`、`may_publish_or_route=false`。既存Issue [#333](https://github.com/1kz-ma1/HINANEX/issues/333)はOPEN。
