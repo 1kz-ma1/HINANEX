@@ -87,3 +87,37 @@
 - **再利用可能なテスト仮説**：`OFFICIAL_MAP_PRESENT_BUT_NO_GEOMETRY_CONTRACT`、`MAP_LIST_NUMBER_NOT_SOURCE_ID`、`MAP_EDITION_VS_WEB_PAGE_UPDATED_AT` を、別の地域で検証する資料参照のルール候補として記録。自動PDF画像の幾何推定、GIS境界生成、正式指定の判断は実装しない。
 
 **承認状態に変化なし**：`candidate_to_official_facility_identity_verified=false`、`facility_geometry_verified=null`、`human_c_approved=false`、`navigation_endpoint=null`、`navigation_allowed=false`、`may_publish_or_route=false`。既存Issue [#333](https://github.com/1kz-ma1/HINANEX/issues/333)はOPEN。
+
+
+## 7. 班員からの市公式地図目視確認・返却ZIP受領（2026-10-28）
+
+**受領したのは「人が公式PDFを直接見た」という申告付きの限定レビュー。独立Cの認証可能な最終承認ではない。** 第6節のAI目視だけの状態から、提出された記録の受領まで進んだ。人間の実閲覧日と役割名はZIP内に具体値がなく、**署名/本人照合・レビュー時点の完全な監査レコードは未完成**。当初の未承認ゲートは維持する。
+
+### 提出原本と機械的な整合性
+
+- 受領ZIP：`ichikawa_submission_compact_20261028.zip`、ZIP SHA-256 `dfee7e79dd0a4bca9e8b6ffcb36fe878b2f9cbc2000be5ea83f18aa572ab4c09`。
+- `review_results.csv` SHA-256 `e52166d12cd802cfdfe1007de470c812a4681cd1cbf93df08ec7c06b83e7d830`、`submission_report.md` SHA-256 `f4561d8a30eaf03150c8b7f63d583d0fe072266d3a8ce44b69c75ab79fcb865b`。4データ行、7枚のPDF由来JPEG切り出し、README、SHAマニフェストを受領。
+- マニフェストに記載された **10対象ファイルは10件ともSHAが一致**。マニフェスト自身は対象外で、ZIPの`__MACOSX`メタデータは監査対象にしない。**ZIPファイルのSHA一致は公式サイト上の最新版との一致を証明しない。**
+- JPG7枚は**AIが先に同梱された市公式PDFから作成した切り出し**であり、提出者が現地で撮影した画像・本人が直接閲覧したときのオリジナルスクリーンショットではない。提出者は公式PDFを開いたと申告しているが、この画像7枚だけから本人の操作/日付/本人性は検証できない。
+- 本提出ZIPにはPDF原本バイトを再同梱しておらず、公的URL版と保管PDFの当日バイト同一性の確認は**NOT RUN**。Cに保全済みの4公式PDF原本SHAと、当該別保管資料があることは第6節に記載。
+
+### 地図掲載・凡例照合に限る4件の自己申告結果
+
+| Map no.（市公式地図） | 公式地図上の名称 | 提出者の掲載・凡例判定 | 報告されたアイコン | 参考：GSI技術index |
+| --- | --- | --- | --- | ---: |
+| 62 | 江戸川河川敷緑地 | `CONFIRMED`（**本人確認の自己申告**） | 避難場所 | 571 |
+| 36 | 須和田公園 | `CONFIRMED`（**本人確認の自己申告**） | 避難場所・津波避難場所 | 639 |
+| 78 | 大洲防災公園 | `CONFIRMED`（**本人確認の自己申告**） | 避難場所・津波避難場所 | 682 |
+| 25 | 筑波大学附属聴覚特別支援学校（グラウンド等） | `CONFIRMED`（**本人確認の自己申告**） | 避難場所・避難所・津波避難場所 | 707 |
+
+元の画像切り出しを**Cが再目視**して名称・番号・地図中のアイコンと凡例の表示は表と整合。**「救」（医療救護所）はNo.78の付近の別表示**であり、「大洲防災公園全域が救護所・開設中」や「避難所マーク」と認定しない。No.78は北西部版の地図本体、**中部版42246.pdfの一覧表**で掲載番号と記号を照合。No.62/36/25の一覧表は北西部版42244.pdf。市Web一覧の行番号（No.3/24/7/35）、地図番号（62/36/78/25）、GSI index（571/639/682/707）は**別名前空間**として保持。
+
+### 未完了の監査情報と改善点
+
+1. **実閲覧年月日が4行とも空欄**。`申告受領日=2026-10-28`を実際の閲覧日として勝手に代入しない。
+2. **確認者の役割名が未提示**。「記録済みと申告」は具体的な役割・本人認証・監査証跡ではない。氏名等は非公開で保管し、Git上は本人確認可能な受領記録の参照番号などで連携する。
+3. **Web一覧の更新日差異**（以前のAI文書 `2026-07-28` と `2026-09-08`）は引き続き`UNRESOLVED`。この提出にある`2026-03-24`は**別の地区別減災マップ配布ページ**の日付であり、矛盾を埋めるために流用しない。
+4. 公式地図の凡例と自治体一覧への掲載は、**GSI skhb02（土砂災害）としての個別適合性や公式指定区域の外周線、OSM wayの施設同一性、入口・開設状況・災害時通行可能な経路**を承認するものではない。
+5. 事例の再利用: `MAP_LIST_NUMBER_NOT_SOURCE_ID`、`OFFICIAL_MAP_PRESENT_BUT_NO_GEOMETRY_CONTRACT`、`NEARBY_RESCUE_STATION_ICON_NOT_SITE_ATTRIBUTE`、`SELF_REPORTED_REVIEW_MISSING_ATTESTED_DATE`。将来のチェック・回帰テスト候補であり実装済みの自動判断や全国向け自動承認ではない。
+
+**完了範囲：** 地図掲載・番号・凡例の4/4件の**提出者申告結果を受領し、補助画像との整合を再確認**。**未完了：** 実閲覧日、確認者役割、本人認証付きCの限定受理、および個別施設の行政上の正確な区域・入口・災害別運用。運用承認フラグはすべてHOLD、`human_c_approved=false`、`navigation_allowed=false`、`navigation_endpoint=null`、`may_publish_or_route=false`。[Issue #333](https://github.com/1kz-ma1/HINANEX/issues/333)を閉じない。
