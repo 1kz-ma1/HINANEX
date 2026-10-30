@@ -9,6 +9,10 @@
 - 実装対象領域：A/B/C/D/E（責務ごとにPR分割）
 - レビュー担当者と未決定項目：
 - 関連Issue/PR/正本Contract：
+- 優先度マスターでのID・P0/P1/P2/P3/ICEBOX（優先は本書内で決めない）：
+- 作業状態（IDEA/SPEC_DRAFT/RESEARCH/PROTOTYPE/READY_FOR_SLICE/IN_PROGRESS/REVIEW/HOLD等）：
+- 次に必要な承認・着手ゲート・交換する現在の作業：
+- WIP枠と独立した担当候補（アサイン完了とは区別）：
 
 ## 利用者価値と範囲
 - 誰が何をできるようになるか（1〜2文）：
