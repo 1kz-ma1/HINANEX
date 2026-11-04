@@ -72,3 +72,5 @@ console.log("facility_list.test.js: OK");
 
 // Include the new E-only selector regressions in the existing required CI runner.
 require("./facility_explore.test.js");
+// Pre-event module remains UI-disconnected; synthetic storage regression.
+require("./pre_event_preparation.test.js");
