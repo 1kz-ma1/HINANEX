@@ -598,3 +598,13 @@ footer{display:none}
     max-height:min(69%,510px)}
   .hazard-guide-legend ul{columns:2}
 }
+
+
+/* F01 H-02: scope/version/coverage must be visible independently of facilities. */
+.hazard-guide-scope{margin:14px 0;padding:10px 12px;border:1px solid var(--line-strong);
+  border-radius:10px;background:var(--surface-raised)}
+.hazard-guide-scope>div{display:grid;grid-template-columns:minmax(85px,33%) minmax(0,1fr);
+  gap:8px;padding:8px 0;border-bottom:1px solid var(--line-strong);font-size:11px;line-height:1.65}
+.hazard-guide-scope>div:last-child{border:0}
+.hazard-guide-scope dt{font-weight:700;color:var(--muted)}
+.hazard-guide-scope dd{margin:0;overflow-wrap:anywhere}
