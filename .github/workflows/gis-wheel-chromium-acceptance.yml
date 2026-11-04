@@ -17,7 +17,10 @@ permissions:
 
 jobs:
   gis-real-browser:
-    runs-on: ubuntu-latest
+    # Playwright@1.56.1 supports Ubuntu 24.04, but the 2026-11-04
+    # ubuntu-latest runner moved to Ubuntu 26.04. Chromium install failed
+    # before the real-browser smoke: unsupported ubuntu26.04-x64.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout exact PR head
