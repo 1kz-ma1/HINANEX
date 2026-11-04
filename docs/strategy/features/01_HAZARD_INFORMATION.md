@@ -40,3 +40,10 @@
 ## 依存と後段
 
 F02に依存しない。将来F05が「選んだ地域/シナリオの文脈（識別子・出典・対象時間）」を参照することはできるが、特定施設への安全認定は渡さない。参考：[広域化 #343](https://github.com/1kz-ma1/HINANEX/issues/343)、[E GIS README](../../../gis/README.md)。
+
+## 2026-11-04 試作の進捗（未統合）
+
+- [E Draft PR #347](https://github.com/1kz-ma1/HINANEX/pull/347) でH-01の**独立した洪水情報パネル**を実装・合成テスト追加（施設選択なしの操作入口、既存地域/洪水レイヤーの手動切替、公式凡例・出典、非表示/取得中/一部取得失敗の説明）。
+- required CI `test` はPR HEADでPASS。ただし独立ChromiumワークフローはPlaywrightのUbuntu 26.04対応問題でブラウザの起動前に失敗し、**実機の画面受入は未実施**。
+- 現行mainへの統合/Render公開は未実施。F01-H-02の詳細な公式資料版/範囲、H-03の数値、H-04地震/津波、F04時系列、F05統合は依然としてFUTURE。
+- 技術詳細とテストの境界は[GISスライス記録](https://github.com/1kz-ma1/HINANEX/blob/feature/e-f01-flood-independent-entry-20261104/gis/docs/F01_HAZARD_INDEPENDENT_ENTRY_20261104.md)。マージ後のみCURRENTへ更新する。
