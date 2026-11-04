@@ -608,3 +608,19 @@ footer{display:none}
 .hazard-guide-scope>div:last-child{border:0}
 .hazard-guide-scope dt{font-weight:700;color:var(--muted)}
 .hazard-guide-scope dd{margin:0;overflow-wrap:anywhere}
+
+/* F06: region-scoped links to official publishers, not live alert state. */
+.official-alerts-panel{left:14px;right:auto;width:min(380px,calc(100% - 28px))}
+.official-alerts-panel[hidden]{display:none}
+.official-alerts-source{padding:11px 0;border-bottom:1px solid var(--line-strong)}
+.official-alerts-source strong{display:block;font-size:13px;margin-bottom:8px}
+.official-alerts-source p{margin:0 0 9px;font-size:12px;line-height:1.65}
+.official-alerts-source a{display:block;margin:6px 0;padding:10px 9px;
+  border:1px solid var(--line-strong);border-radius:9px;
+  background:var(--surface-raised);font-size:12px;line-height:1.5}
+.official-alerts-source a[hidden]{display:none}
+.official-alerts-source a:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+@media(max-width:680px){
+  .official-alerts-panel{left:8px;right:8px;bottom:70px;width:calc(100% - 16px);
+    max-height:min(69%,510px)}
+}

@@ -20,6 +20,7 @@ const { auditDirectory } = require("./inspect_local_region_exports.js");
 const { runReferenceSiteCompareBrowser } = require("./reference_site_compare_browser.js");
 const { runFacilityExploreBrowser } = require("./facility_explore_browser.js");
 const { runHazardInformationBrowser } = require("./hazard_information_browser.js");
+const { runOfficialAlertLinksBrowser } = require("./official_alert_links_browser.js");
 
 const [distArg, outArg] = process.argv.slice(2);
 if (!distArg || !outArg || process.argv.length !== 4) {
@@ -131,6 +132,12 @@ async function screenshot(page, name) {
       context, base, out, waitUntilLoaded
     });
     assert.equal(f01BrowserChecks.length,5,"F01 Chromium coverage must be complete");
+    // F06 independent official link directory is separate from F01 hazard map
+    // and from any real-time API. Check it in a real browser before wheel smoke.
+    const f06BrowserChecks = await runOfficialAlertLinksBrowser({
+      context, base, out, waitUntilLoaded
+    });
+    assert.equal(f06BrowserChecks.length,5,"F06 Chromium checks incomplete");
     // Validate the new independent D facility exploration before the wheel-only
     // zoom smoke; a wheel regression must not mask its own E acceptance result.
     if (process.env.HINANEX_WHEEL_ONLY === "1") {
