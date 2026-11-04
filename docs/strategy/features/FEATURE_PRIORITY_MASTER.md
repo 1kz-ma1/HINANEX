@@ -29,7 +29,7 @@
 | F03 | [事前準備・簡易アクセス](03_PRE_EVENT_PREPARATION.md) | **P1 独立UIの試作** | 外部ZIPでP-01試作・修正（13/13合成PASS）／本体未統合 | 信頼できる班員が合成UIを作る想定。保存基盤[PR #311](https://github.com/1kz-ma1/HINANEX/pull/311)はDraft/未接続 |
 | F04 | [洪水時系列シミュレーター](04_FLOOD_TIMELINE.md) | **P1 API技術調査** / P2限定Prototype | RESEARCH予定 / SPEC_DRAFT | 新メンバーの公式仕様/権利/CORS/制限の調査報告を優先。実APIのUI接続は別判断 |
 | F05 | [最終統合ジャーニー](05_INTEGRATED_JOURNEY.md) | **P0 結合の最小デモ（後段）** | FUTURE / SPEC_DRAFT | F01/F02が独立で機能し、表示許可された属性が揃ってから統合。今から新しい全体UIは作らない |
-| F06 | [公式警報へのアクセス](06_OFFICIAL_ALERTS.md) | P1 公式リンク / P3ライブ | FUTURE / SPEC_DRAFT | リンク先・対象地域を点検。リアルタイム取得やプッシュ通知の実装は保留 |
+| F06 | [公式警報へのアクセス](06_OFFICIAL_ALERTS.md) | P1 公式リンク / P3ライブ | **L-01 [Draft #352](https://github.com/1kz-ma1/HINANEX/pull/352) （静的リンク試作、未統合）** / P3ライブはHOLD | リンク先・対象地域を点検。リアルタイム取得やプッシュ通知の実装は保留 |
 | F07 | [参考経路](07_REFERENCE_ROUTE.md) | **P0 MVPの可否/禁止条件の定義** / P2外部連携 | FUTURE / HOLD（位置等の根拠） | 本人選択、終点の公開承認、サービス規約/同意を分離。条件未成立なら経路デモは未提供 |
 | F08 | [オフライン・キャッシュ](08_OFFLINE_MODE.md) | P2 | FUTURE / SPEC_DRAFT | まずデータ再配布/期限/保存範囲と端末失効を確認。オフライン保証はしない |
 | F09 | [備蓄チェックリスト](09_PREPAREDNESS_CHECKLIST.md) | P2 | FUTURE / SPEC_DRAFT | 出典付きの一般的項目、保存不要でも使える静的チェックから |
@@ -91,6 +91,7 @@
 | 2026-11-04 | F01/H-01 | SPEC_DRAFT→PROTOTYPE（Draft） | 独立洪水閲覧の小スライスを別E PRへ。優先度P0の変更はなく、実機・main受入は未完 | [PR #347](https://github.com/1kz-ma1/HINANEX/pull/347) |
 | 2026-11-04 | F03/P-01 | SPEC_DRAFT→独立試作レビュー（未統合） | 班員のZIP受領、保存更新失敗/削除確認/共有端末文言をオーナー側で修正、Chromiumモック13/13 PASS、実localStorage NOT_RUN。既存PR #311との統合は後回し | [Issue #348](https://github.com/1kz-ma1/HINANEX/issues/348)（次の班員作業） |
 | 2026-11-04 | F01/H-01・H-02一部 | PROTOTYPE→main統合（限定範囲） | [PR #347](https://github.com/1kz-ma1/HINANEX/pull/347) Squashでmain統合。required testとE Chromium UIの最新HEADはPASS、元図面版/範囲の受入とSafari/実機/Renderの手動操作は**未完了**。P0の残範囲は引き続き計画対象 | `3b60051a306fc0c3e01d9a1ba6f213992d9b3f22` |
+| 2026-11-04 | F06/L-01 | SPEC_DRAFT→PROTOTYPE（Draft） | F01の平時想定図と現在の公的発表を区別するため、3自治体＋気象庁の公式リンクを独立実装。速報取得/通知なし、E独立PR、最新CI待ち、P1のまま | [PR #352](https://github.com/1kz-ma1/HINANEX/pull/352) |
 | 2026-10-30 | F01〜F19 | 初期案 | 2/9の洪水MVPを守り、独立開発と3人のWIP上限を設けるため。**承認待ち** | [PR #346](https://github.com/1kz-ma1/HINANEX/pull/346) |
 
 ## 7. 実装・承認との分離
