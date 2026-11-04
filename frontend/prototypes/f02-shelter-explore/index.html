@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>施設を調べる | HINANEX F02 合成データ試作</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="fixtures.js" defer></script>
+  <script src="model.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">本文へスキップ</a>
+  <div class="safety-strip" role="note">
+    <span class="safety-dot" aria-hidden="true"></span>
+    <strong>試作 ／ 合成データ</strong>
+    <span>安全な避難先・開設中の保証ではありません。実在の施設情報ではありません。</span>
+  </div>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand" aria-label="HINANEX 避難施設を調べる デモ">
+        <span class="brand-mark" aria-hidden="true">H</span>
+        <div><strong>HINANEX</strong><span>地域防災情報・試作ラボ</span></div>
+      </div>
+      <div class="header-right"><span class="proto-tag">F02 · PROTOTYPE</span><span class="header-cap">独立した施設一覧・詳細</span></div>
+    </div>
+  </header>
+  <main id="main" class="main-frame">
+    <div class="crumb">機能試作 <span aria-hidden="true">／</span> F02 施設情報の探索</div>
+    <section class="hero" aria-labelledby="page-title">
+      <div class="hero-body">
+        <div class="eyebrow"><span class="eyebrow-line"></span> 調べる、確認する、まだ決めない</div>
+        <h1 id="page-title">避難施設を<br><em>調べる。</em></h1>
+        <p>施設の掲載情報と、まだ確認できていないことを一覧・詳細から見られます。施設の選択や災害への適合判定は行いません。</p>
+        <div class="hero-pills" aria-label="試作の特徴"><span>架空施設のみ</span><span>位置不明も表示</span><span>出典・未確認を分離</span></div>
+      </div>
+      <div class="hero-illustration" aria-hidden="true">
+        <svg viewBox="0 0 335 250" width="335" height="250" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="168" cy="123" r="105" stroke="#D6E8EC" stroke-width="1.3" stroke-dasharray="5 7"/>
+          <circle cx="168" cy="123" r="73" stroke="#D6E8EC" stroke-width="1.3"/>
+          <path d="M54 179L125 133L195 163L279 85" stroke="#B3D7D7" stroke-width="1.5" stroke-dasharray="5 5"/>
+          <rect x="96" y="80" width="148" height="126" rx="13" fill="white" stroke="#BDDBDB" stroke-width="2"/>
+          <path d="M113 105H228M113 127H176M113 149H228M113 171H194" stroke="#D6E7E8" stroke-width="9" stroke-linecap="round"/>
+          <rect x="111" y="138" width="119" height="20" rx="5" fill="#E3F4F1"/>
+          <rect x="118" y="143" width="55" height="10" rx="4" fill="#2A857D" opacity=".48"/>
+          <path d="M191 46C191 28 205 16 222 16C239 16 253 28 253 46C253 65 222 91 222 91C222 91 191 65 191 46Z" fill="#0C746C"/>
+          <circle cx="222" cy="46" r="11" fill="white"/>
+          <path d="M65 100C65 87 75 77 88 77C101 77 111 87 111 100C111 115 88 134 88 134C88 134 65 115 65 100Z" fill="#F4BC68"/>
+          <circle cx="88" cy="100" r="7" fill="white"/>
+          <circle cx="270" cy="183" r="16" fill="#E1F3F0"/><path d="M270 175V184M270 190V191" stroke="#0C746C" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <span class="illus-caption">この図は装飾であり、施設の実位置を示しません</span>
+      </div>
+    </section>
+    <section class="workspace" aria-label="施設検索と詳細">
+      <div class="panel panel-list">
+        <div class="panel-head">
+          <div><span class="section-index">01 / SEARCH</span><h2>施設を探す</h2><p>地域と施設名から、架空の掲載記録を探します。</p></div>
+          <span class="tiny-mark">合成<br>FIXTURE</span>
+        </div>
+        <form class="controls" id="searchForm" role="search" onsubmit="return false">
+          <label for="region">対象地域</label>
+          <div class="select-wrap"><select id="region" name="region"><option value="sample-blue">青地区（架空）</option><option value="sample-amber">橙地区（架空）</option><option value="sample-empty">空白地区（記録0件のテスト用）</option></select></div>
+          <label for="query">施設名で検索</label>
+          <div class="search-wrap"><span class="search-symbol" aria-hidden="true">⌕</span><input id="query" name="query" type="search" placeholder="例：青空、交流室" autocomplete="off"></div>
+          <div class="demo-control"><label for="scenario">表示ケース（テスト用）</label><select id="scenario" name="scenario"><option value="normal">通常データ</option><option value="error">データ読込エラーを再現</option></select></div>
+        </form>
+        <div class="result-head" aria-live="polite"><strong id="resultTitle">施設一覧</strong><span id="resultCount">—</span></div>
+        <div class="stats" id="stats" aria-label="表示件数の内訳"></div>
+        <div id="statusMessage" class="status-message" hidden></div>
+        <div id="facilityList" class="facility-list" aria-label="施設一覧"></div>
+        <p class="list-foot">座標の有無に関係なく一覧へ表示します。地図機能はありません。</p>
+      </div>
+      <section class="panel panel-detail" id="detailPanel" aria-labelledby="detailHeading">
+        <div class="detail-intro"><span class="section-index">02 / DETAIL</span><h2 id="detailHeading" tabindex="-1">施設の詳細</h2><p>掲載内容・出典・未確認事項を分けて表示します。</p></div>
+        <div id="detailBody" class="detail-body"><div class="detail-placeholder"><span class="placeholder-circle" aria-hidden="true">⌕</span><strong>施設を選択してください</strong><p>左の一覧から施設を選ぶと、詳細をここに表示します。</p></div></div>
+      </section>
+    </section>
+    <section class="reading-note" aria-labelledby="reading-title"><div class="note-icon" aria-hidden="true">i</div><div><h2 id="reading-title">この画面の情報について</h2><p>一覧にある施設・住所・資料・元記号はすべて合成データです。「記載がある」と「公式指定である」、参考地点と正式な指定範囲、掲載情報と開設状況は別々の事実です。不明な情報を推測で埋めず、公式な避難行動案内にも使用しません。</p></div></section>
+  </main>
+  <footer class="footer"><span>HINANEX / F02独立試作</span><span>Issue #348 · オーナー確認前 / main未統合</span></footer>
+</body>
+</html>
