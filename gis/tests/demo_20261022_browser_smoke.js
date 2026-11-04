@@ -19,6 +19,7 @@ const { chromium } = require("playwright");
 const { auditDirectory } = require("./inspect_local_region_exports.js");
 const { runReferenceSiteCompareBrowser } = require("./reference_site_compare_browser.js");
 const { runFacilityExploreBrowser } = require("./facility_explore_browser.js");
+const { runHazardInformationBrowser } = require("./hazard_information_browser.js");
 
 const [distArg, outArg] = process.argv.slice(2);
 if (!distArg || !outArg || process.argv.length !== 4) {
@@ -123,6 +124,13 @@ async function screenshot(page, name) {
     await page.waitForFunction(() => !!window.L && !!window.HINANEX_D_ADAPTER,
       null, { timeout: 30000 });
     await waitUntilLoaded(page, "13123");
+    // E F01 independent hazard-only UI: actual Chromium, phone+desktop,
+    // existing raster toggle, manual region selection, Escape and source limits.
+    // Official GSI raster requests are intentionally blocked only in CI.
+    const f01BrowserChecks = await runHazardInformationBrowser({
+      context, base, out, waitUntilLoaded
+    });
+    assert.equal(f01BrowserChecks.length,5,"F01 Chromium coverage must be complete");
     // Validate the new independent D facility exploration before the wheel-only
     // zoom smoke; a wheel regression must not mask its own E acceptance result.
     if (process.env.HINANEX_WHEEL_ONLY === "1") {
