@@ -26,7 +26,7 @@
 | --- | --- | --- | --- | --- |
 | F01 | [災害情報・ハザード](01_HAZARD_INFORMATION.md) | **P0 洪水単独** / P2 地震・津波 | CURRENT部分あり / H-01 [Draft PR #347](https://github.com/1kz-ma1/HINANEX/pull/347)（未統合） | 既存GISで洪水原本・凡例・対象/未掲載を施設なしで説明。新レイヤーは公式版/ライセンス検証後 |
 | F02 | [避難施設](02_SHELTER_REFERENCE.md) | **P0 公式掲載とUNKNOWNの単独表示** | CURRENT部分あり / SPEC_DRAFT | 座標なしも一覧に残し、根拠/対象災害を分離。旧比較UIを最終形に固定しない |
-| F03 | [事前準備・簡易アクセス](03_PRE_EVENT_PREPARATION.md) | **P1 独立UIの試作** | PROTOTYPE候補 / SPEC_DRAFT | 信頼できる班員が合成UIを作る想定。保存基盤[PR #311](https://github.com/1kz-ma1/HINANEX/pull/311)はDraft/未接続 |
+| F03 | [事前準備・簡易アクセス](03_PRE_EVENT_PREPARATION.md) | **P1 独立UIの試作** | 外部ZIPでP-01試作・修正（13/13合成PASS）／本体未統合 | 信頼できる班員が合成UIを作る想定。保存基盤[PR #311](https://github.com/1kz-ma1/HINANEX/pull/311)はDraft/未接続 |
 | F04 | [洪水時系列シミュレーター](04_FLOOD_TIMELINE.md) | **P1 API技術調査** / P2限定Prototype | RESEARCH予定 / SPEC_DRAFT | 新メンバーの公式仕様/権利/CORS/制限の調査報告を優先。実APIのUI接続は別判断 |
 | F05 | [最終統合ジャーニー](05_INTEGRATED_JOURNEY.md) | **P0 結合の最小デモ（後段）** | FUTURE / SPEC_DRAFT | F01/F02が独立で機能し、表示許可された属性が揃ってから統合。今から新しい全体UIは作らない |
 | F06 | [公式警報へのアクセス](06_OFFICIAL_ALERTS.md) | P1 公式リンク / P3ライブ | FUTURE / SPEC_DRAFT | リンク先・対象地域を点検。リアルタイム取得やプッシュ通知の実装は保留 |
@@ -89,6 +89,7 @@
 | 日付 | 対象 | 旧→新 | 理由/交換する開発時間/判断者 | 参照PR |
 | --- | --- | --- | --- | --- |
 | 2026-11-04 | F01/H-01 | SPEC_DRAFT→PROTOTYPE（Draft） | 独立洪水閲覧の小スライスを別E PRへ。優先度P0の変更はなく、実機・main受入は未完 | [PR #347](https://github.com/1kz-ma1/HINANEX/pull/347) |
+| 2026-11-04 | F03/P-01 | SPEC_DRAFT→独立試作レビュー（未統合） | 班員のZIP受領、保存更新失敗/削除確認/共有端末文言をオーナー側で修正、Chromiumモック13/13 PASS、実localStorage NOT_RUN。既存PR #311との統合は後回し | [Issue #348](https://github.com/1kz-ma1/HINANEX/issues/348)（次の班員作業） |
 | 2026-10-30 | F01〜F19 | 初期案 | 2/9の洪水MVPを守り、独立開発と3人のWIP上限を設けるため。**承認待ち** | [PR #346](https://github.com/1kz-ma1/HINANEX/pull/346) |
 
 ## 7. 実装・承認との分離
