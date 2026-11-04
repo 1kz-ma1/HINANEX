@@ -20,6 +20,10 @@ assert.match(html, /aria-label="この洪水画像で確認できる情報の範
 assert.match(html, /元図面の作成年・改訂日を特定できません/);
 assert.match(html, /選択した地域の全域にデータが掲載され/);
 assert.match(html, /表示設定・通信上の取得状況と、公的データの対象範囲・最新性は別/);
+assert.match(html, /都道府県管理河川の画像は一部の都道府県/);
+assert.match(html, /東京都の公表図面では浸水深0\.1m未満/);
+assert.match(html, /タイルの提供開始日は2020年3月17日/);
+assert.match(html, /disaportal\.gsi\.go\.jp\/hazardmap\/copyright\/opendata\.html/);
 
 assert.doesNotMatch(script, /geolocation|localStorage|fetch\s*\(/);
 
