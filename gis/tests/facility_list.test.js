@@ -72,3 +72,6 @@ console.log("facility_list.test.js: OK");
 
 // Include the new E-only selector regressions in the existing required CI runner.
 require("./facility_explore.test.js");
+
+// F01 hazard-only experience remains independent of facility records.
+require("./hazard_information.test.js");
