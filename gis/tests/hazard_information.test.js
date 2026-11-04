@@ -16,6 +16,11 @@ assert.match(html, /js\/hazard_information\.js\?v=f01-flood-20261104-v1/);
 assert.match(css, /\.hazard-guide-panel\[hidden\]\{display:none\}/);
 assert.match(html, /disaportal\.gsi\.go\.jp/);
 assert.match(html, /施設を選択せずに/);
+assert.match(html, /aria-label="この洪水画像で確認できる情報の範囲"/);
+assert.match(html, /元図面の作成年・改訂日を特定できません/);
+assert.match(html, /選択した地域の全域にデータが掲載され/);
+assert.match(html, /表示設定・通信上の取得状況と、公的データの対象範囲・最新性は別/);
+
 assert.doesNotMatch(script, /geolocation|localStorage|fetch\s*\(/);
 
 function element(name) {
