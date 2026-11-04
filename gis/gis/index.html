@@ -206,6 +206,7 @@
 </div></details>
       <details class="map-tool map-tool--hazards" id="mapToolHazards"><summary><span class="map-tool-symbol" aria-hidden="true">▤</span><span>災害情報</span><span class="map-tool-arrow" aria-hidden="true">⌄</span></summary><div class="map-tool-panel"><label class="map-tool-check"><input id="mapShowFlood" type="checkbox" checked>洪水浸水想定（想定最大規模）</label><label class="map-tool-check"><input id="mapShowBasemap" type="checkbox" checked>背景地図（国土地理院）</label><p class="map-tool-note">非表示や未取得を「安全」と判断しないでください。</p><p id="mapRasterNotice" class="map-tool-warning" role="status" hidden></p>
 <button id="hazardGuideOpen" class="map-tool-action" type="button" aria-controls="hazardGuidePanel" aria-expanded="false">洪水情報だけを見る</button>
+<button id="officialAlertsOpen" class="map-tool-action" type="button" aria-controls="officialAlertsPanel" aria-expanded="false">公式の警報・避難情報を確認</button>
 <button id="mapEvidenceOpen" class="map-tool-action" type="button" aria-controls="mapEvidencePanel" aria-expanded="false">この画面の根拠・確認状況</button></div></details>
     </div>
     <button id="mapLocateMe" class="map-locate-button" type="button" aria-label="現在地を地図に表示（位置情報の許可が必要）" title="現在地を表示">
@@ -279,6 +280,39 @@
       </details>
       <a class="map-evidence-details-link" href="https://disaportal.gsi.go.jp/"
         target="_blank" rel="noopener noreferrer">ハザードマップポータルサイト（公式）</a>
+    </section>
+    <section id="officialAlertsPanel" class="map-evidence-panel official-alerts-panel"
+      role="region" aria-labelledby="officialAlertsTitle" hidden>
+      <div class="map-evidence-heading">
+        <div>
+          <strong id="officialAlertsTitle">公式の警報・避難情報</strong>
+          <p>外部サイトで最新の情報を確認してください。</p>
+        </div>
+        <button id="officialAlertsClose" type="button" aria-label="公式情報の案内を閉じる">×</button>
+      </div>
+      <p class="map-evidence-warning">
+        この画面は公式サイトへのリンク集です。HINANEXは警報・避難指示の取得、
+        更新確認、通知、現在の安全確認を行っていません。
+        平時の洪水浸水想定図と、いま発表されている情報は別です。
+      </p>
+      <div class="official-alerts-source">
+        <strong>選択中の地域：<span id="officialAlertsRegionName">確認中</span></strong>
+        <p id="officialAlertsRegionNote" role="status" aria-live="polite">公式リンクを確認中です。</p>
+        <a id="officialAlertsLocalLink" class="map-evidence-details-link official-alerts-local"
+          target="_blank" rel="noopener noreferrer" hidden></a>
+      </div>
+      <div class="official-alerts-source">
+        <strong>気象庁（全国共通）</strong>
+        <p>移動先で対象地域を選択し、発表中の情報と発表時刻を確認してください。</p>
+        <a href="https://www.jma.go.jp/bosai/" target="_blank" rel="noopener noreferrer">
+          気象庁：あなたの街の防災情報</a>
+        <a href="https://www.jma.go.jp/bosai/risk/" target="_blank" rel="noopener noreferrer">
+          気象庁：キキクル（危険度分布）</a>
+      </div>
+      <p class="map-evidence-viewport">
+        外部サイトが表示できないときは、自治体の公式ホームページやテレビ・ラジオ等の公的発表を確認してください。
+        リンクの表示は発表内容の確認済み・警報なし・避難先の安全を意味しません。
+      </p>
     </section>
     <section id="mapEvidencePanel" class="map-evidence-panel" role="region" aria-label="表示情報の根拠・確認状況" hidden>
       <div class="map-evidence-heading">
@@ -824,5 +858,6 @@
 <script src="js/gsi_flood_demo.js?v=gsi-camera-consent-20261021-v1"></script>
 <script src="js/evidence_sheet.js?v=evidence-sheet-20261010-v1"></script>
 <script src="js/hazard_information.js?v=f01-flood-20261104-v1"></script>
+<script src="js/official_alert_links.js?v=f06-links-20261104-v1"></script>
 </body>
 </html>
