@@ -47,3 +47,9 @@ F01（地域の表示文脈）、F03（任意保存地域）。ライブ配信�
 - **品質ゲート**: Node合成DOMテストと実Chromium（3地域/未知地域/モバイル/キーボード）をPR内で追加。CI最新HEADと実機受入は別に記録し、main統合判断まで `PROTOTYPE` とする。
 - **未実装**: 自動更新・通知・公式API・速報キャッシュ・自治体別の細かな対象区域/発令地区・F02/F05連携。これらはP3/独立審査のまま。
 - 技術詳細・根拠とHOLD事項: [GISのスライス記録](https://github.com/1kz-ma1/HINANEX/blob/feature/e-f06-official-links-20261104/gis/docs/F06_OFFICIAL_INFORMATION_LINKS_20261104.md)。
+
+### F06-L01 自動検証結果（2026-11-04）
+
+- [PR #352](https://github.com/1kz-ma1/HINANEX/pull/352) の最新HEAD `23470a25ed626e5bca364a2891af904f44454438` で、[required `test`](https://github.com/1kz-ma1/HINANEX/actions/runs/41767862883)・[実Chromium E回帰](https://github.com/1kz-ma1/HINANEX/actions/runs/41767862897) は**どちらもSUCCESS**。
+- 試験範囲：3自治体の静的リンク、気象庁2リンク、未登録自治体の誤リンク防止、モバイル・デスクトップ、Esc、F01と独立したパネル開閉。
+- 未実施：外部公式ページの実HTTP/可用性・各時点の発表内容確認、Safari/Android実機、Renderデプロイ・人間受入。**PR未統合、P1の部分試作である**。
