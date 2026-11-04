@@ -38,3 +38,12 @@ F01（地域の表示文脈）、F03（任意保存地域）。ライブ配信�
 ## 保留の理由
 
 F01（地域の表示文脈）、F03（任意保存地域）。ライブ配信段階では公式API・運用監査。 本機能の統合・優先度変更・担当アサインはマスター上の明示的な決定まで行わない。
+
+## 2026-11-04 F06-L01 静的な公式発表元リンク（試作中）
+
+- **実装候補: [E Draft PR #352](https://github.com/1kz-ma1/HINANEX/pull/352)**。新たなGISメニューから、`region`（13123江戸川区、15100新潟市、23100名古屋市）に応じて**自治体の公式発表元へ移動する静的リンク**を表示する。気象庁の「あなたの街の防災情報」「キキクル」も全国共通リンクとして表示。
+- **限定スライス**: リンクへの明示的なユーザー操作のみ。外部サイトへのアクセス状況・現在の警報/避難指示の有無/発表時刻をHINANEXは取得せず、地域の全域を自動認定しない。未対応コードでは以前の自治体リンクを残さず、未登録=警報なしと表示しない。
+- **確認した出典**: https://bosai.city.edogawa.tokyo.jp/ （江戸川区公式の防災ポータル紹介ページから）、https://www.city.niigata.lg.jp/kurashi/bosai/index.html （新潟市の公式「災害時の情報発信」から）、https://www.city.nagoya.jp/bousaiportal/index.html 、https://www.jma.go.jp/bosai/ 、https://www.jma.go.jp/bosai/risk/ 。URLの掲載可否は2026-11-04時点の公式サイト参照であり、発表の現在時刻を検証したわけではない。
+- **品質ゲート**: Node合成DOMテストと実Chromium（3地域/未知地域/モバイル/キーボード）をPR内で追加。CI最新HEADと実機受入は別に記録し、main統合判断まで `PROTOTYPE` とする。
+- **未実装**: 自動更新・通知・公式API・速報キャッシュ・自治体別の細かな対象区域/発令地区・F02/F05連携。これらはP3/独立審査のまま。
+- 技術詳細・根拠とHOLD事項: [GISのスライス記録](https://github.com/1kz-ma1/HINANEX/blob/feature/e-f06-official-links-20261104/gis/docs/F06_OFFICIAL_INFORMATION_LINKS_20261104.md)。
