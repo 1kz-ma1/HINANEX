@@ -68,7 +68,10 @@ async function runHazardInformationBrowser({context,base,out,waitUntilLoaded}) {
     await browserPage.keyboard.press("Escape");
     assert.equal(await guide.isVisible(),false);
     assert.equal(await browserPage.locator("#hazardGuideOpen").getAttribute("aria-expanded"),"false");
-    assert.equal(await browserPage.evaluate(()=>document.activeElement?.id),"hazardGuideOpen");
+    assert.equal(await browserPage.evaluate(() => {
+      const focused=document.activeElement;
+      return focused?.tagName==="SUMMARY" && focused?.parentElement?.id==="mapToolHazards";
+    }),true,"Escape should restore keyboard focus to visible 災害情報 menu trigger");
     checks.push("F01_ESCAPE_FOCUS_AND_A11Y_STATE");
 
     // On desktop the entry still fits and remains separate from the source panel.
