@@ -47,3 +47,10 @@ F02に依存しない。将来F05が「選んだ地域/シナリオの文脈（�
 - required CI `test` はPR HEADでPASS。ただし独立ChromiumワークフローはPlaywrightのUbuntu 26.04対応問題でブラウザの起動前に失敗し、**実機の画面受入は未実施**。
 - 現行mainへの統合/Render公開は未実施。F01-H-02の詳細な公式資料版/範囲、H-03の数値、H-04地震/津波、F04時系列、F05統合は依然としてFUTURE。
 - 技術詳細とテストの境界は[GISスライス記録](https://github.com/1kz-ma1/HINANEX/blob/feature/e-f01-flood-independent-entry-20261104/gis/docs/F01_HAZARD_INDEPENDENT_ENTRY_20261104.md)。マージ後のみCURRENTへ更新する。
+
+### 2026-11-04 H-02限定改善と実ブラウザCIの区別
+
+- [Draft PR #347](https://github.com/1kz-ma1/HINANEX/pull/347)にH-02の**一部**（画像の情報種別、元図面の基準日不明、地域全域を保証しないこと、表示/取得と元データの最新性の違い）を追加。独立した原本版・地区カバレッジのデータ契約は未実装。
+- exact-head required `test` はPASS。F01 PR自身の実Chromiumジョブは`ubuntu-latest`→Ubuntu26.04でPlaywright Chromiumがテスト開始前に失敗。
+- [共有CIのDraft PR #349](https://github.com/1kz-ma1/HINANEX/pull/349)はUbuntu24.04を固定し、**そのPR上のGIS wheel Chromium smokeはSUCCESS**。これはF01独立画面の実ブラウザ操作受入ではない。#349未統合の状態で#347のブラウザ受入を完了扱いにしない。
+- F01の次ゲート: CI環境更新のマージ審査、#347最新HEADでのブラウザ確認、公式タイルの失敗/範囲とスマホ画面の人間確認。これらが終わるまでmain統合・公開はしない。
