@@ -54,3 +54,12 @@ F02に依存しない。将来F05が「選んだ地域/シナリオの文脈（�
 - exact-head required `test` はPASS。F01 PR自身の実Chromiumジョブは`ubuntu-latest`→Ubuntu26.04でPlaywright Chromiumがテスト開始前に失敗。
 - [共有CIのDraft PR #349](https://github.com/1kz-ma1/HINANEX/pull/349)はUbuntu24.04を固定し、**そのPR上のGIS wheel Chromium smokeはSUCCESS**。これはF01独立画面の実ブラウザ操作受入ではない。#349未統合の状態で#347のブラウザ受入を完了扱いにしない。
 - F01の次ゲート: CI環境更新のマージ審査、#347最新HEADでのブラウザ確認、公式タイルの失敗/範囲とスマホ画面の人間確認。これらが終わるまでmain統合・公開はしない。
+
+### 2026-11-04 P0の情報範囲の改善（F01/H-02）
+
+- [CI修正PR #349](https://github.com/1kz-ma1/HINANEX/pull/349) はSquashで**mainに統合**（`e60a886e323e0b39187f63d493286eebbf3208b8`）。従来のPlaywright Ubuntu 26.04制約を解消し、旧E Chromium wheel検証の成功を確認した。
+- [F01 Draft PR #347](https://github.com/1kz-ma1/HINANEX/pull/347) を新しいmainに追従させた。**F01独立UIの実Chromium E-only smoke**（スマホ/デスクトップ、洪水トグル、手動地域、Esc、公式出典）を追加。Esc後のフォーカス移動不具合を実ブラウザで検出し、非表示のボタンではなく見えている「災害情報」メニューのsummaryへ戻すよう修正。
+- 実ブラウザ回帰はフォーカス修正後のPR HEAD `3762acdb352d8669cab965648c95ecd3f82ca8f1` でPASS。ただしその後の**出典説明の追記があるため、最新HEADのCI結果は別途確認が必要**。本番タイル画像はCIで通信を遮断するため、外部配信の実カバレッジ・Safari/Android実機は未受入。
+- 国土地理院の[公式オープンデータ配信](https://disaportal.gsi.go.jp/hazardmap/copyright/opendata.html)に照らし、配信タイルが国管理河川と都道府県管理河川をまとめ、**都道府県側の配信が一部に限られること、東京都の0.1m未満の未着色、配信開始日が図面日付と異なること**を確認。出典リンクと説明をF01パネルの詳細欄へ記載した。
+- 未確定：自治体・地区ごとの完全カバレッジ、各河川の改訂日、地点浸水深の公的数値、避難施設の安全/経路、時系列浸水、実タイルの通信条件。これらはPR #347の成立を理由に埋めない。
+- 技術調査と確認できていない点は[GISの出典/範囲検証メモ](https://github.com/1kz-ma1/HINANEX/blob/feature/e-f01-flood-independent-entry-20261104/gis/docs/F01_OFFICIAL_FLOOD_RASTER_PROVENANCE_20261104.md)を参照。
