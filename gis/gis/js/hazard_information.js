@@ -66,10 +66,17 @@
     regionInput.focus();
   }
 
+  // The opener is inside a <details> menu that closes when F01 opens.
+  // After the sheet closes, return focus to the visible menu summary instead.
+  function returnFocus() {
+    const menu = get("mapToolHazards");
+    const visibleSummary = menu && !menu.open ? menu.querySelector?.("summary") : null;
+    (visibleSummary || openButton).focus();
+  }
   openButton.addEventListener("click", () => setOpen(panel.hidden));
   closeButton.addEventListener("click", () => {
     setOpen(false);
-    openButton.focus();
+    returnFocus();
   });
   regionInput.addEventListener("change", () => {
     if (!knownRegions.has(regionInput.value) || regionInput.value === region.value) return;
@@ -89,7 +96,7 @@
     if (panel.hidden || event.key !== "Escape") return;
     event.preventDefault();
     setOpen(false);
-    openButton.focus();
+    returnFocus();
   });
   document.addEventListener("click", event => {
     if (panel.hidden || panel.contains(event.target) || openButton.contains(event.target)) return;
