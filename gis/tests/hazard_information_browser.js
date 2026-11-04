@@ -42,7 +42,13 @@ async function runHazardInformationBrowser({context,base,out,waitUntilLoaded}) {
     assert.match(await guide.innerText(),/選択した地域の全域にデータが掲載され/);
     assert.match(await guide.innerText(),/最新性は別/);
     assert.equal(await browserPage.locator("#mapEvidencePanel").isVisible(),false);
-    await browserPage.screenshot({path:path.join(out,"f01-hazard-mobile-390.png"),
+    await browserPage.locator("#hazardGuideOfficialScope > summary").click();
+    assert.match(await guide.innerText(),/都道府県管理河川の画像は一部の都道府県/);
+    assert.match(await guide.innerText(),/浸水深0.1m未満/);
+    assert.equal(await browserPage.locator(
+      '#hazardGuideOfficialScope a[href="https://disaportal.gsi.go.jp/hazardmap/copyright/opendata.html"]'
+    ).count(),1);
+        await browserPage.screenshot({path:path.join(out,"f01-hazard-mobile-390.png"),
       animations:"disabled",fullPage:false});
     checks.push("F01_MOBILE_HAZARD_ONLY_VISIBLE_WITH_SOURCE_LIMITS");
 
