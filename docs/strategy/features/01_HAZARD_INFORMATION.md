@@ -41,25 +41,32 @@
 
 F02に依存しない。将来F05が「選んだ地域/シナリオの文脈（識別子・出典・対象時間）」を参照することはできるが、特定施設への安全認定は渡さない。参考：[広域化 #343](https://github.com/1kz-ma1/HINANEX/issues/343)、[E GIS README](../../../gis/README.md)。
 
-## 2026-11-04 試作の進捗（未統合）
+## 2026-11-04 試作からmain統合までの履歴
 
-- [E Draft PR #347](https://github.com/1kz-ma1/HINANEX/pull/347) でH-01の**独立した洪水情報パネル**を実装・合成テスト追加（施設選択なしの操作入口、既存地域/洪水レイヤーの手動切替、公式凡例・出典、非表示/取得中/一部取得失敗の説明）。
+- [E PR #347](https://github.com/1kz-ma1/HINANEX/pull/347) でH-01の**独立した洪水情報パネル**を実装・合成テスト追加（施設選択なしの操作入口、既存地域/洪水レイヤーの手動切替、公式凡例・出典、非表示/取得中/一部取得失敗の説明）。
 - required CI `test` はPR HEADでPASS。ただし独立ChromiumワークフローはPlaywrightのUbuntu 26.04対応問題でブラウザの起動前に失敗し、**実機の画面受入は未実施**。
-- 現行mainへの統合/Render公開は未実施。F01-H-02の詳細な公式資料版/範囲、H-03の数値、H-04地震/津波、F04時系列、F05統合は依然としてFUTURE。
+- 初稿時点ではmain未統合だったが、同日後続更新で**限定スライスをmain統合済み**。F01-H-02の詳細な公式資料版/範囲、H-03の数値、H-04地震/津波、F04時系列、F05統合は依然としてFUTURE。
 - 技術詳細とテストの境界は[GISスライス記録](https://github.com/1kz-ma1/HINANEX/blob/feature/e-f01-flood-independent-entry-20261104/gis/docs/F01_HAZARD_INDEPENDENT_ENTRY_20261104.md)。マージ後のみCURRENTへ更新する。
 
 ### 2026-11-04 H-02限定改善と実ブラウザCIの区別
 
-- [Draft PR #347](https://github.com/1kz-ma1/HINANEX/pull/347)にH-02の**一部**（画像の情報種別、元図面の基準日不明、地域全域を保証しないこと、表示/取得と元データの最新性の違い）を追加。独立した原本版・地区カバレッジのデータ契約は未実装。
+- [PR #347](https://github.com/1kz-ma1/HINANEX/pull/347)にH-02の**一部**（画像の情報種別、元図面の基準日不明、地域全域を保証しないこと、表示/取得と元データの最新性の違い）を追加。独立した原本版・地区カバレッジのデータ契約は未実装。
 - exact-head required `test` はPASS。F01 PR自身の実Chromiumジョブは`ubuntu-latest`→Ubuntu26.04でPlaywright Chromiumがテスト開始前に失敗。
-- [共有CIのDraft PR #349](https://github.com/1kz-ma1/HINANEX/pull/349)はUbuntu24.04を固定し、**そのPR上のGIS wheel Chromium smokeはSUCCESS**。これはF01独立画面の実ブラウザ操作受入ではない。#349未統合の状態で#347のブラウザ受入を完了扱いにしない。
-- F01の次ゲート: 公式タイルの実取得/対応範囲・Safari/スマホ実機とRenderステージングの人間確認。これらが終わるまでmain統合・公開はしない。
+- 共有CI修正[PR #349](https://github.com/1kz-ma1/HINANEX/pull/349) はUbuntu24.04固定で統合済み。#347独立UIは**最新HEADでChromium実ブラウザ操作テスト成功**。いずれも公的データの正本・実タイル通信・人間の画面受入を保証しない。
+- F01の次ゲート: **mainへのコード統合とは別に**、公式タイルの実取得/対応範囲・Safari/スマホ実機とRenderステージングの人間確認を実施する。受入完了まで防災上の正当性や利用許可を宣言しない。
 
 ### 2026-11-04 P0の情報範囲の改善（F01/H-02）
 
 - [CI修正PR #349](https://github.com/1kz-ma1/HINANEX/pull/349) はSquashで**mainに統合**（`e60a886e323e0b39187f63d493286eebbf3208b8`）。従来のPlaywright Ubuntu 26.04制約を解消し、旧E Chromium wheel検証の成功を確認した。
-- [F01 Draft PR #347](https://github.com/1kz-ma1/HINANEX/pull/347) を新しいmainに追従させた。**F01独立UIの実Chromium E-only smoke**（スマホ/デスクトップ、洪水トグル、手動地域、Esc、公式出典）を追加。Esc後のフォーカス移動不具合を実ブラウザで検出し、非表示のボタンではなく見えている「災害情報」メニューのsummaryへ戻すよう修正。
+- [F01 PR #347](https://github.com/1kz-ma1/HINANEX/pull/347) を新しいmainに追従させた。**F01独立UIの実Chromium E-only smoke**（スマホ/デスクトップ、洪水トグル、手動地域、Esc、公式出典）を追加。Esc後のフォーカス移動不具合を実ブラウザで検出し、非表示のボタンではなく見えている「災害情報」メニューのsummaryへ戻すよう修正。
 - 実ブラウザ回帰はフォーカス修正後のPR HEAD `3762acdb352d8669cab965648c95ecd3f82ca8f1` でPASS。さらに出典説明と実ブラウザ確認を追加した**latest HEAD `66358b5eb8bec53501dab3506a1833181d581f17` で required `test` と F01実Chromiumの双方がSUCCESS**。本番タイル画像はCIで通信を遮断するため、外部配信の実カバレッジ・Safari/Android実機は未受入。
 - 国土地理院の[公式オープンデータ配信](https://disaportal.gsi.go.jp/hazardmap/copyright/opendata.html)に照らし、配信タイルが国管理河川と都道府県管理河川をまとめ、**都道府県側の配信が一部に限られること、東京都の0.1m未満の未着色、配信開始日が図面日付と異なること**を確認。出典リンクと説明をF01パネルの詳細欄へ記載した。
 - 未確定：自治体・地区ごとの完全カバレッジ、各河川の改訂日、地点浸水深の公的数値、避難施設の安全/経路、時系列浸水、実タイルの通信条件。これらはPR #347の成立を理由に埋めない。
 - 技術調査と確認できていない点は[GISの出典/範囲検証メモ](https://github.com/1kz-ma1/HINANEX/blob/feature/e-f01-flood-independent-entry-20261104/gis/docs/F01_OFFICIAL_FLOOD_RASTER_PROVENANCE_20261104.md)を参照。
+
+### 2026-11-04 main統合記録（最新の判断）
+
+- **CURRENT（限定スライス）**: [F01 PR #347](https://github.com/1kz-ma1/HINANEX/pull/347) を明示承認に基づきSquashマージ。統合main SHA `3b60051a306fc0c3e01d9a1ba6f213992d9b3f22`。施設を選ばない独立パネル、既存地域/公的洪水ラスタの参照、出典・不明/通信状態の表示、Escのフォーカス回復を含む。
+- **PRE-MERGE PASSED**: PR HEAD `66358b5eb8bec53501dab3506a1833181d581f17` の required `test` および実Chromium F01/UI + wheel smokeがいずれもSUCCESS。Review thread無し、main追従、Eのみ9ファイル。
+- **NOT ACCEPTED**: 公式画像の実HTTP配信/対象地域の完全性・資料版、Safari/Android実機とRender配信の人間受入、施設や経路安全性・公的データ独立承認。CIの公式タイル取得は意図的に遮断。
+- **次の手動確認**: 実際のmain反映後のデプロイ先でPC/スマホから洪水パネルの開閉、地域切替、表示ON/OFF、凡例/出典、エラー時の安全側表示を確認し、対象SHAとPASS/FAIL/NOT_RUNをPR記録に残す。公開の安全性とは別に評価する。
