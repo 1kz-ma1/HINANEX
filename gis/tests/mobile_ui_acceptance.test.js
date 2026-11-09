@@ -26,6 +26,7 @@ for(const [contents] of planned){
 }
 assert.match(css,/\.bottom-nav-entry\.is-planned\{opacity:1;color:#b9cbd4\}/);
 assert.match(css,/\.map-tool>summary\{min-height:48px;font-size:12px/);
+assert.match(css,/\.map-wrap \.leaflet-control-zoom a\{[\s\S]*?width:44px;height:44px;line-height:44px/);
 assert.match(css,/\.header-share-button\{min-height:44px;font-size:13px/);
 assert.match(css,/env\(safe-area-inset-bottom/);
 for(const size of ['320,568','375,812','390,844','430,932']) {
