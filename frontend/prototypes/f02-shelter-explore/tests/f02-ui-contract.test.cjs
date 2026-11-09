@@ -15,5 +15,5 @@ test('T11: closing detail targets the previously chosen record, not the first ca
 test('T12: focused mobile detail is offset below the persistent warning', () => {
   assert.match(css, /#detailHeading\s*\{scroll-margin-top:100px\}/);
   assert.match(app, /safetyBottom=document\.querySelector\('\.safety-strip'\)/);
-  assert.match(app, /window\.scrollBy\(\{top:headingTop-safetyBottom-12/);
+  assert.match(app, /window\.scrollBy\(\{top:introTop-safetyBottom-12/);
 });
