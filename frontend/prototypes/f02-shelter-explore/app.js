@@ -71,7 +71,9 @@
     if(ui.selectedId && !matches.some(item=>item.id===ui.selectedId)){ui.selectedId=null;resetDetail();}
     matches.forEach(item=>{
       const button=node(elements.list,'button','facility-card');
-      button.type='button';button.setAttribute('aria-pressed',String(ui.selectedId===item.id));
+      button.type='button';button.dataset.facilityId=item.id;
+      button.setAttribute('aria-controls','detailBody');
+      button.setAttribute('aria-pressed',String(ui.selectedId===item.id));
       button.setAttribute('aria-label',`${item.name} の詳細を表示。${model.locationLabel(item)}`);
       const head=node(button,'div','facility-card-head');
       node(head,'span','facility-icon','▦').setAttribute('aria-hidden','true');
@@ -89,7 +91,12 @@
         renderList();
         renderDetail(item);
         elements.heading.focus({preventScroll:true});
-        if(window.matchMedia('(max-width: 850px)').matches){elements.heading.scrollIntoView({block:'start',behavior:'auto'});}
+        if(window.matchMedia('(max-width: 850px)').matches){
+          elements.heading.scrollIntoView({block:'start',behavior:'auto'});
+          const safetyBottom=document.querySelector('.safety-strip')?.getBoundingClientRect().bottom||0;
+          const headingTop=elements.heading.getBoundingClientRect().top;
+          if(headingTop<safetyBottom+12){window.scrollBy({top:headingTop-safetyBottom-12,behavior:'auto'});}
+        }
       });
     });
   }
@@ -101,7 +108,8 @@
     const close=node(over,'button','close-detail','×  詳細を閉じる');close.type='button';
     close.addEventListener('click',()=>{
       ui.selectedId=null;renderList();
-      const first=elements.list.querySelector('button'); if(first)first.focus();
+      const selected=Array.from(elements.list.querySelectorAll('button')).find(button=>button.dataset.facilityId===item.id);
+      if(selected)selected.focus();
     });
     node(top,'h3','',item.name);
     const tags=node(top,'div','detail-tags');chip(tags,'架空施設・実在しません');
