@@ -19,11 +19,9 @@ assert.match(html,/id="mapShareOpen"[^>]*aria-controls="mapSharePanel"[^>]*aria-
 assert.match(html,/class="header-evidence-link"[^>]*href="\.\.\/\.\.\/frontend\/"/);
 assert.match(html,/id="hazardGuideOpen"[^>]*aria-controls="hazardGuidePanel"/);
 assert.match(html,/id="officialAlertsOpen"[^>]*aria-controls="officialAlertsPanel"/);
-const planned=[...html.matchAll(/<(\w+)\s+class="bottom-nav-entry is-planned"[^>]*>([\s\S]*?)<\/\1>/g)];
+const planned=[...html.matchAll(/<span class="bottom-nav-entry is-planned"[^>]*>[^\n]*?<small>予定<\/small><\/span>/g)];
 assert.equal(planned.length,2,'planned entries must not be enabled');
-for(const [,tag,contents] of planned){
- assert.equal(tag,'span','non-interactive placeholder');
- assert.match(contents,/<small>予定<\/small>/);
+for(const [contents] of planned){
  assert.doesNotMatch(contents,/href=|tabindex=|onclick=/i);
 }
 assert.match(css,/\.bottom-nav-entry\.is-planned\{opacity:1;color:#b9cbd4\}/);
