@@ -21,6 +21,7 @@ const { runReferenceSiteCompareBrowser } = require("./reference_site_compare_bro
 const { runFacilityExploreBrowser } = require("./facility_explore_browser.js");
 const { runHazardInformationBrowser } = require("./hazard_information_browser.js");
 const { runOfficialAlertLinksBrowser } = require("./official_alert_links_browser.js");
+const { runMobileUIAcceptanceBrowser } = require("./mobile_ui_acceptance_browser.js");
 
 const [distArg, outArg] = process.argv.slice(2);
 if (!distArg || !outArg || process.argv.length !== 4) {
@@ -138,6 +139,14 @@ async function screenshot(page, name) {
       context, base, out, waitUntilLoaded
     });
     assert.equal(f06BrowserChecks.length,5,"F06 Chromium checks incomplete");
+    // Independent four-width mobile QA against the same temporary HTTP build.
+    // Chromium emulation does not constitute iOS/Android physical acceptance.
+    if (process.env.HINANEX_WHEEL_ONLY === "1") {
+      const mobileChecks = await runMobileUIAcceptanceBrowser({
+        context, base, out, waitUntilLoaded
+      });
+      assert.ok(mobileChecks.length >= 40, "Mobile UI regression coverage incomplete");
+    }
     // Validate the new independent D facility exploration before the wheel-only
     // zoom smoke; a wheel regression must not mask its own E acceptance result.
     if (process.env.HINANEX_WHEEL_ONLY === "1") {
