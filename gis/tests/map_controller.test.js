@@ -3493,3 +3493,6 @@ require("./gsi_flood_demo.test.js");
   assert.match(html,/id="mapSettingsToggle"/);
   assert.doesNotMatch(css,/(?:#map|\.leaflet-tile)[^\{]*\{[^}]*\bfilter\s*:/);
 }
+
+// Mobile static gates participate in the required GitHub Actions `test` job.
+require("./mobile_ui_acceptance.test.js");
