@@ -1,7 +1,7 @@
 # F01 洪水情報だけで閲覧できる入口 — GIS実装スライス H-01
 
 - 記録日: 2026-11-04
-- 状態: **PROTOTYPE / PR REVIEW**（main統合・実機受入・一般公開許可とは別）
+- 状態（2026-11-09更新）: **F01/H-01・H-02はPR #347でmain統合済み（2026-11-04）／実機・Render・公的原図面の独立受入と一般公開判断は別**
 - 設計の元: [F01 災害情報仕様（Draft #346）](https://github.com/1kz-ma1/HINANEX/blob/docs/feature-specs-20261030/docs/strategy/features/01_HAZARD_INFORMATION.md)
 - 優先順位: [F01/P0](https://github.com/1kz-ma1/HINANEX/blob/docs/feature-specs-20261030/docs/strategy/features/FEATURE_PRIORITY_MASTER.md)
 - 実装領域: `gis/**` のみ。DのRegionExport v0.9、C審査、Aの出典/座標、本番環境は変更しない。
@@ -60,3 +60,10 @@
 - 公式公開ページ [オープンデータ配信](https://disaportal.gsi.go.jp/hazardmap/copyright/opendata.html) を確認し、当該タイルURLの説明（国管理河川・都道府県管理河川の統合、一部都道府県のみ、東京都0.1m未満の未着色、配信開始2020-03-17）を**閉じた詳細欄**に表示。個別元図面の更新日・地区全域の網羅は引き続きUNKNOWN。
 - 正本URLと既知/未知の命題、事前確認と安全上の禁止を[別のE出典メモ](F01_OFFICIAL_FLOOD_RASTER_PROVENANCE_20261104.md)で管理。
 - 外部洪水画像をキャッシュ保存/再配布・ピクセル深さ変換・公式原本版の推定・個別施設や経路の適合評価は行わない。
+
+## 2026-11-09 E担当の異常系QA（統合後の追補）
+
+- 対象main: `f7841b88eccedd25823c31020d97ab1187651e44`。PR #347は統合済み。以降の実装・CI確認は新しいQAブランチのHEAD SHAで別記録する。
+- 新しいオフライン回帰 `gis/tests/f01_f06_edge_cases.test.js` により、反復地域切替、空/未知コード、ON/OFFの反復と変更イベント、取得中・部分失敗・過去失敗、Escape、パネル往復の状態整合性を追加検査する。
+- 取得失敗時の表示はあくまで既存UI上の**通信・表示状況**。タイルの未着色、空白、未取得、実災害時の安全や避難可否を判定しない。
+- 2026-11-09のオフライン回帰PASSは、公式元図面の基準時点/地区別カバレッジ、実タイルHTTP、Render反映、Safari/Android実機、アクセシビリティの最終受入を意味しない。
