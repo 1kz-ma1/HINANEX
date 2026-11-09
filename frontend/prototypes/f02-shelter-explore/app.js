@@ -94,8 +94,8 @@
         if(window.matchMedia('(max-width: 850px)').matches){
           elements.heading.scrollIntoView({block:'start',behavior:'auto'});
           const safetyBottom=document.querySelector('.safety-strip')?.getBoundingClientRect().bottom||0;
-          const headingTop=elements.heading.getBoundingClientRect().top;
-          if(headingTop<safetyBottom+12){window.scrollBy({top:headingTop-safetyBottom-12,behavior:'auto'});}
+          const introTop=elements.heading.parentElement.querySelector('.section-index')?.getBoundingClientRect().top||elements.heading.getBoundingClientRect().top;
+          if(introTop<safetyBottom+12){window.scrollBy({top:introTop-safetyBottom-12,behavior:'auto'});}
         }
       });
     });
