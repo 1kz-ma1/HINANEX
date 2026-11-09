@@ -111,6 +111,18 @@ async function runMobileUIAcceptanceBrowser({context,base,out,waitUntilLoaded}) 
           {mapBottom:r.map.bottom,locateBottom:r.locate.bottom,navTop:r.nav.top},label);
         record('header-label-not-clipped',!r.share.textClipped&&!r.evidence.textClipped,
           {share:r.share.textClipped,evidence:r.evidence.textClipped},label);
+        // Actual keyboard flow: native summary must be reachable with Tab
+        // and operable with Enter; this is still not a screen-reader test.
+        await page.locator('#mapToolScene > summary').focus();
+        await page.keyboard.press('Tab');
+        const tabTarget=await page.evaluate(()=>document.activeElement?.parentElement?.id);
+        record('tab-navigates-to-next-menu',tabTarget==='mapToolScenario',
+          {focusedParent:tabTarget},label);
+        await page.locator('#mapToolScene > summary').focus();
+        await page.keyboard.press('Enter');
+        const enterOpened=await page.locator('#mapToolScene').evaluate(el=>el.open);
+        record('enter-opens-scene',enterOpened,{open:enterOpened},label);
+        await page.keyboard.press('Escape');
         for (const id of ['mapToolScene','mapToolScenario','mapToolMarks','mapToolHazards']) {
           const summary=page.locator(`#${id} > summary`);
           await summary.click();
