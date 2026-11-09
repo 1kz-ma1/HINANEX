@@ -11,6 +11,20 @@ const SIZES = [[320,568],[375,812],[390,844],[430,932]];
 async function runMobileUIAcceptanceBrowser({context,base,out,waitUntilLoaded}) {
   const auditDir = path.join(out, "mobile-ui-qa");
   fs.mkdirSync(auditDir, {recursive:true});
+  // Preserve exactly the PR-tested public GIS source in the CI evidence artifact.
+  // This also makes offline re-review possible without embedding private data.
+  const repoRoot=path.resolve(__dirname,'../..');
+  for(const relative of [
+    'gis/gis/css/map_first.css',
+    'gis/tests/mobile_ui_acceptance_browser.js',
+    'gis/tests/mobile_ui_acceptance.test.js',
+    'gis/tests/map_controller.test.js',
+    'gis/tests/demo_20261022_browser_smoke.js',
+  ]) {
+    const target=path.join(auditDir,'source',relative);
+    fs.mkdirSync(path.dirname(target),{recursive:true});
+    fs.copyFileSync(path.join(repoRoot,relative),target);
+  }
   const report = {source:"temporary Render-equivalent HTTP build with actual D exports",
     browser:"headless Chromium / Playwright CSS-viewport emulation (not a phone device)",
     staging_tested:false, physical_devices_tested:false,
