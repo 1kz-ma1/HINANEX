@@ -95,6 +95,7 @@ function buildF02ShelterReference(payload, expectedRegion = "13123") {
     return {
       name: source.source_name,
       publisher: optionalString(source.publisher, "evidence.publisher"),
+      licenseRaw: optionalString(source.license, "evidence.license"),
       publishedAt: optionalString(source.published_at, "evidence.published_at"),
       fetchedAt: optionalString(source.fetched_at, "evidence.fetched_at"),
       url: httpsSourceUrl(source.source_url)
