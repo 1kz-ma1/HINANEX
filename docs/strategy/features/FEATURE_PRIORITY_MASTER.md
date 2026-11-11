@@ -25,7 +25,7 @@
 | ID | 機能・仕様 | 優先スライス | 現在の扱い | 最初の次アクション／着手ゲート |
 | --- | --- | --- | --- | --- |
 | F01 | [災害情報・ハザード](01_HAZARD_INFORMATION.md) | **P0 洪水単独** / P2 地震・津波 | **H-01とH-02一部をmain統合** [PR #347](https://github.com/1kz-ma1/HINANEX/pull/347)、実画面の手動受入は未完 | 既存GISで洪水原本・凡例・対象/未掲載を施設なしで説明。新レイヤーは公式版/ライセンス検証後 |
-| F02 | [避難施設](02_SHELTER_REFERENCE.md) | **P0 公式掲載とUNKNOWNの単独表示** | CURRENT部分あり / [#351](https://github.com/1kz-ma1/HINANEX/pull/351) 合成Prototype実HTTP検証済み（未統合） | 座標なしも一覧に残し、根拠/対象災害を分離。旧比較UIを最終形に固定しない |
+| F02 | [避難施設](02_SHELTER_REFERENCE.md) | **P0 公式掲載とUNKNOWNの単独表示** | **合成Prototype [#351](https://github.com/1kz-ma1/HINANEX/pull/351) main統合済み**、実RegionExport接続は未実装 | 座標なしも一覧に残し、根拠/対象災害を分離。旧比較UIを最終形に固定しない |
 | F03 | [事前準備・簡易アクセス](03_PRE_EVENT_PREPARATION.md) | **P1 独立UIの試作** | 外部ZIPでP-01試作・修正（13/13合成PASS）／本体未統合 | 信頼できる班員が合成UIを作る想定。保存基盤[PR #311](https://github.com/1kz-ma1/HINANEX/pull/311)はDraft/未接続 |
 | F04 | [洪水時系列シミュレーター](04_FLOOD_TIMELINE.md) | **P1 API技術調査** / P2限定Prototype | RESEARCH予定 / SPEC_DRAFT | 新メンバーの公式仕様/権利/CORS/制限の調査報告を優先。実APIのUI接続は別判断 |
 | F05 | [最終統合ジャーニー](05_INTEGRATED_JOURNEY.md) | **P0 結合の最小デモ（後段）** | FUTURE / SPEC_DRAFT | F01/F02が独立で機能し、表示許可された属性が揃ってから統合。今から新しい全体UIは作らない |
@@ -94,6 +94,7 @@
 | 2026-11-04 | F06/L-01 | SPEC_DRAFT→PROTOTYPE（Draft） | F01の平時想定図と現在の公的発表を区別するため、3自治体＋気象庁の公式リンクを独立実装。速報取得/通知なし、E独立PR、最新CI待ち、P1のまま | [PR #352](https://github.com/1kz-ma1/HINANEX/pull/352) |
 | 2026-11-04 | F06/L-01 | PROTOTYPE→main統合（限定スライス） | PR #352をSquash統合。exact-head required testと実ChromiumはPASS。Render/外部リンク/実機の人間受入は未完了、速報取得・通知P3はHOLD | `f7841b88eccedd25823c31020d97ab1187651e44` |
 | 2026-11-11 | F02/S-01・S-02 | PROTOTYPE独立Chrome HTTP QA | [Draft #351](https://github.com/1kz-ma1/HINANEX/pull/351)にChrome CDP + ローカルHTTPサーバーのE2Eを追加。初回HEADでrequired testとHTTP実読込PASS、最新main同期済み。**実データ接続/公式承認/人間受入は別** | [Actions #42935557252](https://github.com/1kz-ma1/HINANEX/actions/runs/42935557252) |
+| 2026-11-11 | F02/S-01・S-02合成試作 | PROTOTYPE→DONE_IN_SCOPE（独立試作のみ） | [PR #351](https://github.com/1kz-ma1/HINANEX/pull/351)をSquashでmainへ統合、PR latest-head Chrome HTTP E2E/CIとmain CI success。**実施設の出典・判定・GIS/F05接続・実機受入は別ゲート** | `e0d6f7a01644948acc8be787b727b22c926b2442` |
 | 2026-10-30 | F01〜F19 | 初期案 | 2/9の洪水MVPを守り、独立開発と3人のWIP上限を設けるため。**承認待ち** | [PR #346](https://github.com/1kz-ma1/HINANEX/pull/346) |
 
 ## 7. 実装・承認との分離
