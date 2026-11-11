@@ -191,6 +191,8 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       assert.equal(await evaluate("document.querySelector('#sources a')?.href"),
         "https://example.invalid/synthetic-f02");
       assert.equal(await evaluate("document.querySelectorAll('#results script').length"), 0);
+      assert.ok(await evaluate("document.querySelector('#sources').innerText.includes('利用ライセンス（D記録）: 未確認')"));
+      assert.ok(await evaluate("document.querySelector('#sources').innerText.includes('HINANEXが表示用に再構成')"));
       assert.ok(await evaluate("document.querySelector('#record-count').textContent.includes('座標なし 1件')"));
       console.log("F02_CONSUMER_HTTP: real HTTP HTML/CSS/ESM/JSON, safety, evidence and escaping PASS");
 
