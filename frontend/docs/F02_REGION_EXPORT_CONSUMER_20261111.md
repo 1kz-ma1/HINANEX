@@ -73,16 +73,15 @@ Remove-Item Env:F02_REAL_EXPORT_PATH
 3. 行単位のC/公式一次資料照合、位置・入口・災害適合・開設情報: 別の独立検証が必要（本PRは未承認）。
 4. クレジット・再配信条件の最終確認と公開範囲判断、Merge Captainのレビュー: 公開前の別ゲート。
 
-## Verification status（2026-11-11 / PR #357 最新の検証）
-- Source/contract review: root/frontend AGENTS、pipeline/contracts/region_export.schema.json、pipeline/docs/HANDOFF_B.md、既存B loader、GIS D adapterを確認。
-- **Passed:** [GitHub Actions test run #42943642652](https://github.com/1kz-ma1/HINANEX/actions/runs/42943642652)、検証HEAD `d6d8e04c86f64548631f4c0453bf00e065d348e3`。required `test` SUCCESS。
-- **Passed:** B `npm test` 88/88（失敗0・skip0）。既存F02合成Prototypeの実HTTP Chrome E2EもPASS。新F02 Consumerの実HTTP Chrome E2EもPASS（HTML/CSS/ESM/JSON各assetをHTTP配信、合成の正常/取得エラー/契約エラー/未収録/0件/検索0件、NFKC検索、元記号、出典、座標欠損、フォーカス、320/390/1440px横はみ出し、JS例外、外部通信）。
-- **Passed:** B `npm run lint`、`npm run build`。E GIS等の追加Nodeテスト24/24 PASS。
-- **Failed:** 現HEADで確認したCIテストではなし。
-- **Not run:** ローカル機での手動操作、Safari/Android実機、物理タッチとスクリーンリーダー、**生成済み実D JSONを使うHTTP動作検証とCLI検証**、公式施設の行ごとのC受入と再配信/公開の最終審査。
-- **Reason:** GitHubコネクタ経由の実装で本作業のローカルcheckoutと公式CSV実体がなく、`pipeline/data/output/edogawa.json` はGitHubに格納されていない生成成果物。今回のChromeテストは**合成データのみ**をlocalhostから配信した。Chromeの成功は実データ検証・公式位置承認・安全判定・公開許可ではない。
-- Test repeat (frontend root): `node --test tests/f02-page-http-browser.test.cjs`（実Chrome必須、GitHub Actions CIではChrome未導入の場合FAIL、ローカル未導入ではSKIP）。
-- Integration state: **Draft / merge: blocked**。実データ受入手順は用意したが実行していない。独立C検証と公式再配信/公開審査、実Dデータでの確認、Merge Captainレビュー前にmainへ統合しない。
+## Verification status（2026-11-11 / PR #357）
+- **Passed:** [GitHub Actions run #42945680354](https://github.com/1kz-ma1/HINANEX/actions/runs/42945680354) at implementation HEAD `3ff193e3cf48021464f4e7f7139c7e7ffbde5093`: required `test` SUCCESS。
+- **Passed:** B `npm test` **94/94**、失敗0・skip0。合成データでの既存F02 Prototype実HTTP Chrome E2E、今回のF02 Consumer実HTTP Chrome E2E、出典ライセンス/未確認表示、CLI判定を自動検証。
+- **Passed:** B `npm run lint`、`npm run build`、関連Node追加テスト24/24。D Adapterと実データ生成元URL、公式公開ページの掲載・CC BY 2.1 JP原則を資料上で照合（出典は上記参照）。
+- **Failed:** 最新の実装HEAD CIテストでは0。
+- **Not run:** **生成済み実D JSONを使うCLI/HTTP Chrome動作検証**、公式CSV実バイトとCマニフェストの独立照合、施設行ごとのC受入、Safari/Android実機、物理タッチ/読み上げ、個別再配信・公開承認の最終審査。
+- **Reason:** `pipeline/data/output/edogawa.json` はGit管理外の生成物で、現実のファイルは本実行環境から入手・生成できなかった。公式公開HTMLの一次資料は確認できたがCSVは取得できなかった。E側`gis/tests/fixtures/edogawa.json` は**合成contract fixture**で実Dデータではない。
+- **Verification commands:** `node frontend/scripts/check-f02-real-export.js` と、frontend directoryで `F02_REAL_EXPORT_PATH=../pipeline/data/output/edogawa.json node --test tests/f02-page-http-browser.test.cjs`（詳細は前節）。CLI成功はB構造互換のみ・位置/指定/開設/災害適合の承認ではない。
+- **Integration state:** **Draft / merge: blocked**。実データ受入手順は実装済み。行単位の独立C検証、実ファイルでの動作確認、公開審査、Merge Captainレビュー前にmainへ統合しない。
 
 ## Next decision
 このPRでは安全なB読み取り専用ページが成立するかを検証する。次のF05でのF01地域文脈引継ぎ、F07の終点承認、地図/GISへの統合を含めない。仕様の拡張は本IssueとDraft PRで人間のレビューを受ける。
