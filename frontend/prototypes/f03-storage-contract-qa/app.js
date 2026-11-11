@@ -36,12 +36,12 @@
         state.region = null;
         state.mode = 'none';
         state.loadIssue = '以前の保存内容を読み込めませんでした。地域を選び直してください。';
-        return;
+      } else {
+        state.region = data.selected_region;
+        state.mode = 'saved';
+        state.loadIssue = null;
+        setFeedback('保存済み設定を確認しました。', 'success');
       }
-      state.region = data.selected_region;
-      state.mode = 'saved';
-      state.loadIssue = null;
-      setFeedback('保存済み設定を確認しました。', 'success');
     } catch (err) {
       // Storage denial and invalid data are different cases.
       state.region = null;
