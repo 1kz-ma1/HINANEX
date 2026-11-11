@@ -37,3 +37,11 @@
 ## 連携予定
 
 F01が渡した地域・ハザード文脈を将来F05で受け取っても、F02が勝手に施設適合性を計算しない。F02単体の参照情報はF05で選択肢に利用可能だが、施設/地点/路線の安全認定ではない。関連：[D洪水Scenario](../../../pipeline/docs/FLOOD_SCENARIO_CONTRACT.md)、[市川の個別検証 #333](https://github.com/1kz-ma1/HINANEX/issues/333)。
+
+## 2026-11-11 F02 S-01/S-02 独立試作の実HTTPブラウザ検証
+
+- 班員提出物の保管は [Draft PR #351](https://github.com/1kz-ma1/HINANEX/pull/351)。Issue #348 の**合成fixture限定**で、公式掲載施設を取得・承認する機能ではない。S-01/S-02の**表示体験のみ試作**した。旧GIS/RegionExport/F01/F05には未接続。
+- 従来の提出者 `page.set_content` とNode合成テストに加え、**本物のChromeでHTML/CSS/JSをローカルHTTPから読み込む回帰**をBの必須CI `npm test`に追加。検索・一覧/詳細、選択元フォーカス復帰、UNKNOWN、検索0件と地域0件と疑似読込失敗の区別、320/390/1440px幅の表示、JavaScript例外/外部リクエストなしを検証。
+- **初回実HTTP E2E PASS**: PR HEAD `b36b2ea6bf45d43c3f8b12ecc4508a151d2fb05b`、[GitHub Actions #42935557252](https://github.com/1kz-ma1/HINANEX/actions/runs/42935557252)のB Frontend testsに`F02_REAL_HTTP`ログあり。これは実URL読込成功であって、提出者のin-memory Chromium試験ではない。
+- PRは2026-11-11に**最新mainへ同期（behind=0）**、テスト報告を追補した。最終HEADのCI結果とMerge Captainレビューは継続。**未統合Draft**で、本番での公開・実施設データ接続を認めるものではない。
+- **NOT_RUN**: iOS/Android物理端末、Safari、音声読み上げ、実在公的出典の独立照合、位置承認、実データ/RegionExport契約へのマッピング・GIS/F05統合。以上は別ゲート。
