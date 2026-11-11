@@ -159,7 +159,7 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
   { timeout: 120000 }, async t => {
     const bin = browserBinary();
     if (!bin) {
-      if (process.env.CI) throw Error("Actual Chrome required in CI; fixture DOM mocks are insufficient");
+      if (process.env.CI || process.env.F02_REAL_EXPORT_PATH) throw Error("Actual Chrome required for CI or requested real-data acceptance");
       t.skip("Chrome not installed locally");
       return;
     }
