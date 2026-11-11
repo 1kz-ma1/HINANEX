@@ -17,6 +17,8 @@
 - frontend/src/f02-page.js: DOM textContent only, remote/unsafe URL notリンク化
 - frontend/src/f02-shelter-reference.js: D v0.9のfail-closed表示モデル
 - frontend/tests/f02-shelter-reference.test.js: 合成の契約テスト
+- frontend/tests/f02-page-http-browser.test.cjs: 実HTTPのHTML/CSS/ESM/JSONをChromeで読み込むEnd-to-Endテスト（合成RegionExportのみ）
+- frontend/package.json / frontend/scripts/build-check.js: 新モジュールの構文チェック、F02ページ必須参照の検査
 
 ## Data and safety gates
 - DのDataset records配列はJSON Schema上additionalProperties=trueだが、Consumerは実際に利用するフィールドの型を確認する。ID重複・region不一致・schema変更・不正座標は表示停止。
@@ -25,13 +27,16 @@
 - 公式資料の更新時点が不明なら「未確認」。未確認を「なし」「安全」「非公開」に読み替えない。
 - 統合候補になるには、生成済み実D JSONでのHTTP読込、Chrome実操作、独立C検証・再配信条件、最新mainでのCI、Merge Captainによるスコープ審査が必要。Draft PRの通過だけでは公開許可なし。
 
-## Verification status
+## Verification status（2026-11-11 / PR #357 最新の検証）
 - Source/contract review: root/frontend AGENTS、pipeline/contracts/region_export.schema.json、pipeline/docs/HANDOFF_B.md、既存B loader、GIS D adapterを確認。
-- Locally run: **NOT RUN**（GitHub専用実装環境。ローカルcheckoutなし）。
-- Browser HTTP: **NOT RUN**（今回の提出時。後続検証が必要）。
-- Real D JSON read: **NOT RUN**（pipeline/data/output/*.json は生成成果物でrepository未収録）。
-- Official row-level evidence/C acceptance: **NOT RUN**。
-- CI: Draft PR作成後に確認。成功してもC/公式意味の承認とは区別。
+- **Passed:** [GitHub Actions test run #42943642652](https://github.com/1kz-ma1/HINANEX/actions/runs/42943642652)、検証HEAD `d6d8e04c86f64548631f4c0453bf00e065d348e3`。required `test` SUCCESS。
+- **Passed:** B `npm test` 88/88（失敗0・skip0）。既存F02合成Prototypeの実HTTP Chrome E2EもPASS。新F02 Consumerの実HTTP Chrome E2EもPASS（HTML/CSS/ESM/JSON各assetをHTTP配信、合成の正常/取得エラー/契約エラー/未収録/0件/検索0件、NFKC検索、元記号、出典、座標欠損、フォーカス、320/390/1440px横はみ出し、JS例外、外部通信）。
+- **Passed:** B `npm run lint`、`npm run build`。E GIS等の追加Nodeテスト24/24 PASS。
+- **Failed:** 現HEADで確認したCIテストではなし。
+- **Not run:** ローカル機での手動操作、Safari/Android実機、物理タッチとスクリーンリーダー、**生成済み実D JSONを使うHTTP動作検証**、公式施設の行ごとのC受入と再配信条件審査。
+- **Reason:** GitHubコネクタ経由の実装でローカルcheckoutがなく、`pipeline/data/output/edogawa.json` はGitHubに格納されていない生成成果物。今回のChromeテストは**合成データのみ**をlocalhostから配信した。Chromeの成功は実データ検証・公式位置承認・安全判定・公開許可ではない。
+- Test repeat (frontend root): `node --test tests/f02-page-http-browser.test.cjs`（実Chrome必須、GitHub Actions CIではChrome未導入の場合FAIL、ローカル未導入ではSKIP）。
+- Integration state: **Draft / merge: blocked**。独立C検証と公式再配信/公開審査、実Dデータでの確認、Merge Captainレビュー前にmainへ統合しない。
 
 ## Next decision
 このPRでは安全なB読み取り専用ページが成立するかを検証する。次のF05でのF01地域文脈引継ぎ、F07の終点承認、地図/GISへの統合を含めない。仕様の拡張は本IssueとDraft PRで人間のレビューを受ける。
