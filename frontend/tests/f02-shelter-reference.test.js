@@ -15,7 +15,7 @@ function regionExport() {
         { id: "b", name: "架空青空学園", address: "架空町 1-1", facility_type: "元資料の種別",
           supported_disasters: ["○", "－"], latitude: 35.0, longitude: 139.0 }
       ],
-      evidence: [{source_name: "テスト資料", publisher: null, published_at: null,
+      evidence: [{source_name: "テスト資料", publisher: null, license: "CC BY 2.1 JP", published_at: null,
         fetched_at: "2026-01-01T00:00:00Z", source_url: "https://example.invalid/test"}]
     }]
   };
@@ -29,6 +29,7 @@ test("F02 reads one D shelter_location dataset without hazard interpretation", (
   assert.equal(model.records[0].addressRaw, null);
   assert.deepEqual(model.records[1].disasterValues, ["○", "－"]);
   assert.equal(model.evidence[0].publishedAt, null);
+  assert.equal(model.evidence[0].licenseRaw, "CC BY 2.1 JP");
   assert.equal(model.evidence[0].url, "https://example.invalid/test");
 });
 
@@ -103,4 +104,13 @@ test("Scenario is not used to reclassify facility data", () => {
   const model = buildF02ShelterReference(doc);
   assert.equal(model.records[0].id, "a");
   assert.equal(Object.hasOwn(model.records[0], "status"), false);
+});
+
+test("F02 preserves absent license as unknown and rejects malformed metadata", () => {
+  const missing = regionExport();
+  delete missing.datasets[0].evidence[0].license;
+  assert.equal(buildF02ShelterReference(missing).evidence[0].licenseRaw, null);
+  const invalid = regionExport();
+  invalid.datasets[0].evidence[0].license = { guessed: "CC" };
+  assert.throws(() => buildF02ShelterReference(invalid), /evidence.license/);
 });
