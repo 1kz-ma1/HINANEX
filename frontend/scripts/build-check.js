@@ -2,6 +2,10 @@ import { access, readFile } from "node:fs/promises";
 
 const requiredFiles = [
   "index.html",
+  "f02.html",
+  "f02.css",
+  "src/f02-page.js",
+  "src/f02-shelter-reference.js",
   "historical-evidence-demo.html",
   "decision-lab.html",
   "decision-lab.css",
@@ -55,4 +59,15 @@ for (const marker of requiredMarkers) {
 }
 
 JSON.parse(await readFile(new URL("../mock/region-export.json", import.meta.url), "utf8"));
+const f02 = await readFile(new URL("../f02.html", import.meta.url), "utf8");
+for (const marker of [
+  'id="search"', 'id="results"', 'id="detail"', 'id="sources"',
+  'id="load-state"', 'id="record-count"', 'id="detail-title"',
+  'src="./src/f02-page.js"', 'href="./f02.css"',
+]) {
+  if (!f02.includes(marker)) {
+    throw new Error("f02.html required marker missing: " + marker);
+  }
+}
+
 console.log("Static build check passed.");
