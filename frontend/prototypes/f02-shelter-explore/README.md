@@ -66,3 +66,12 @@ node --check app.js
 ```
 
 結果、ブラウザ検証条件、未実施項目は `TEST_REPORT.md` を参照。
+
+## 2026-11-11 HTTPブラウザ回帰（受領後の追加検証）
+
+F02の独立試作は`tests/f02-http-browser.test.cjs`から、Chrome/Chromiumを実際に起動し、Node標準`http`で配信した**独立HTML/CSS/JSファイルをHTTP経由で読み込む**E2Eテストを追加した。従来の`page.set_content`のモック検証とは異なる。
+
+- GitHub Actions のrequired `test`にある`B Frontend tests`（`frontend/npm test`）で自動実行。実ブラウザが見つからないCIやURL遷移が遮断されたCIは**失敗扱い**とする。
+- 単体で実行する場合：`node --test tests/f02-http-browser.test.cjs`。Chromeのパスを明示するには`F02_BROWSER_BIN`を設定する。Chrome未導入の開発端末では当該テストのみSKIPとする（CIでのSKIPは認めない）。
+- チェック対象：HTML/CSS/JS5ファイルのHTTP読込・安全注意、合成施設の一覧・詳細とUNKNOWN、選択ボタンへのフォーカス復元、検索、記録0件・検索0件・模擬取得エラー、320/390/1440pxでの横はみ出し、JS例外・外部API呼出の禁止。
+- 自動Chrome確認は物理タッチ、Safari/Android端末、スクリーンリーダー、実在データの根拠承認ではない。ここで完成UIとみなさない。
