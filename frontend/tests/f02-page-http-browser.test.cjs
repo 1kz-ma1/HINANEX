@@ -1,0 +1,227 @@
+"use strict";
+// F02 RegionExport consumer: actual HTTP HTML/CSS/ESM/JSON in headless Chrome.
+// All payloads are synthetic; no official facility, suitability or position approval.
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const http = require("node:http");
+const { spawn, spawnSync } = require("node:child_process");
+const root = path.resolve(__dirname, "../..");
+const assets = new Set([
+  "/frontend/f02.html",
+  "/frontend/f02.css",
+  "/frontend/src/f02-page.js",
+  "/frontend/src/f02-shelter-reference.js",
+  "/frontend/src/region-export-loader.js",
+  "/frontend/src/region-export-source.js",
+]);
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+function browserBinary() {
+  for (const name of [process.env.F02_BROWSER_BIN, process.env.CHROME_BIN,
+    "/usr/bin/google-chrome", "/usr/bin/chromium", "google-chrome", "chromium"].filter(Boolean)) {
+    if (name.includes("/") && fs.existsSync(name)) return name;
+    if (!name.includes("/") && spawnSync("which", [name]).status === 0) return name;
+  }
+  return null;
+}
+function syntheticRegionExport() {
+  return {
+    meta: { schema_version: "0.9" },
+    region: { code: "13123", name: "東京都 江戸川区（合成fixture）" },
+    datasets: [{
+      region_code: "13123", region_name: "東京都 江戸川区（合成fixture）",
+      requirement_code: "shelter_location",
+      records: [
+        { id: "synthetic-1", name: "架空スズラン会館", address: null,
+          facility_type: null, supported_disasters: null, latitude: null, longitude: null },
+        { id: "synthetic-2", name: "架空青空学園 <script>alert(1)</script>",
+          address: "架空町 1-1", facility_type: "Dの元資料値",
+          supported_disasters: ["○", "－"], latitude: 35, longitude: 139 },
+      ],
+      evidence: [{
+        source_name: "合成資料", publisher: null, published_at: null,
+        fetched_at: "2026-01-01T00:00:00Z",
+        source_url: "https://example.invalid/synthetic-f02"
+      }]
+    }]
+  };
+}
+function fixtureFor(name) {
+  const body = syntheticRegionExport();
+  if (name === "empty") body.datasets[0].records = [];
+  if (name === "missing") body.datasets = [];
+  if (name === "bad-region") body.region.code = "15100";
+  if (name === "bad-contract") body.datasets[0].records[0].latitude = 35;
+  return body;
+}
+async function serve() {
+  const requests = [];
+  let scenario = "normal";
+  const server = http.createServer((req, res) => {
+    const url = new URL(req.url, "http://localhost");
+    const name = url.pathname;
+    requests.push(name);
+    if (req.method !== "GET") { res.writeHead(405); res.end(); return; }
+    if (name === "/frontend/f02.html") scenario = url.searchParams.get("scenario") || "normal";
+    if (name === "/pipeline/data/output/edogawa.json") {
+      if (scenario === "http-error") { res.writeHead(503); res.end("not available"); return; }
+      res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+      res.end(JSON.stringify(fixtureFor(scenario)));
+      return;
+    }
+    if (!assets.has(name)) { res.writeHead(404); res.end(); return; }
+    const file = path.join(root, name.slice(1));
+    const mime = name.endsWith(".css") ? "text/css" : name.endsWith(".js") ? "text/javascript" : "text/html";
+    res.writeHead(200, { "Content-Type": mime + "; charset=utf-8", "Cache-Control": "no-store" });
+    fs.createReadStream(file).pipe(res);
+  });
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  return { server, requests, base: "http://127.0.0.1:" + server.address().port };
+}
+async function launchChrome(bin) {
+  const profile = fs.mkdtempSync(path.join(os.tmpdir(), "f02-consumer-chrome-"));
+  const child = spawn(bin, ["--headless=new", "--no-sandbox", "--disable-dev-shm-usage",
+    "--disable-background-networking", "--no-first-run", "--remote-debugging-port=0",
+    "--user-data-dir=" + profile, "about:blank"], { stdio: ["ignore", "ignore", "pipe"] });
+  let diagnostics = "";
+  child.stderr.on("data", x => { diagnostics = (diagnostics + x.toString()).slice(-1000); });
+  try {
+    let port = 0;
+    for (let i = 0; i < 300; i++) {
+      const active = path.join(profile, "DevToolsActivePort");
+      if (fs.existsSync(active)) {
+        port = Number(fs.readFileSync(active, "utf8").split("\n")[0]);
+        break;
+      }
+      if (child.exitCode !== null) throw Error("Chrome exited: " + diagnostics);
+      await wait(100);
+    }
+    if (!port) throw Error("Chrome CDP startup timed out: " + diagnostics);
+    const targets = await (await fetch("http://127.0.0.1:" + port + "/json/list")).json();
+    const page = targets.find(x => x.type === "page" && x.webSocketDebuggerUrl);
+    if (!page) throw Error("Chrome CDP page unavailable");
+    const ws = new WebSocket(page.webSocketDebuggerUrl);
+    await new Promise((resolve, reject) => {
+      ws.addEventListener("open", resolve, { once: true });
+      ws.addEventListener("error", reject, { once: true });
+    });
+    let nextId = 0;
+    const pending = new Map();
+    const exceptions = [];
+    const outbound = [];
+    ws.addEventListener("message", event => {
+      const message = JSON.parse(event.data);
+      if (message.method === "Runtime.exceptionThrown") {
+        exceptions.push(message.params.exceptionDetails.exception?.description ||
+          message.params.exceptionDetails.text);
+      }
+      if (message.method === "Network.requestWillBeSent") outbound.push(message.params.request.url);
+      if (!pending.has(message.id)) return;
+      const task = pending.get(message.id);
+      pending.delete(message.id);
+      message.error ? task.reject(Error(message.error.message)) : task.resolve(message.result);
+    });
+    const command = (method, params = {}) => new Promise((resolve, reject) => {
+      const id = ++nextId;
+      pending.set(id, { resolve, reject });
+      ws.send(JSON.stringify({ id, method, params }));
+    });
+    const evaluate = async expression => {
+      const result = await command("Runtime.evaluate",
+        { expression, returnByValue: true, awaitPromise: true });
+      if (result.exceptionDetails) {
+        throw Error("Browser JavaScript: " +
+          (result.exceptionDetails.exception?.description || result.exceptionDetails.text));
+      }
+      return result.result.value;
+    };
+    return { profile, child, ws, command, evaluate, exceptions, outbound };
+  } catch (error) {
+    child.kill("SIGKILL");
+    fs.rmSync(profile, { recursive: true, force: true });
+    throw error;
+  }
+}
+async function waitUntil(evaluate, expression, description) {
+  for (let i = 0; i < 100; i++) {
+    try { if (await evaluate(expression)) return; } catch { /* navigating */ }
+    await wait(100);
+  }
+  throw Error("Timed out waiting for " + description);
+}
+test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic data",
+  { timeout: 120000 }, async t => {
+    const bin = browserBinary();
+    if (!bin) {
+      if (process.env.CI) throw Error("Actual Chrome required in CI; fixture DOM mocks are insufficient");
+      t.skip("Chrome not installed locally");
+      return;
+    }
+    const { server, requests, base } = await serve();
+    let browser;
+    try {
+      browser = await launchChrome(bin);
+      const { command, evaluate } = browser;
+      await command("Page.enable");
+      await command("Runtime.enable");
+      await command("Network.enable");
+      async function navigate(scenario, condition) {
+        const result = await command("Page.navigate", {
+          url: base + "/frontend/f02.html?scenario=" + encodeURIComponent(scenario)
+        });
+        assert.ok(!result.errorText, "HTTP document navigation failure: " + result.errorText);
+        await waitUntil(evaluate, condition, "F02 " + scenario);
+      }
+
+      await navigate("normal", "document.readyState==='complete' && !document.querySelector('#search').disabled && document.querySelector('#record-count').textContent.includes('D記録 2件')");
+      for (const asset of assets) assert.ok(requests.includes(asset), "Browser did not fetch asset: " + asset);
+      assert.ok(requests.includes("/pipeline/data/output/edogawa.json"));
+      assert.ok(await evaluate("document.body.innerText.includes('安全性・災害適合性・開設・経路')"));
+      assert.equal(await evaluate("document.querySelectorAll('#results .record').length"), 2);
+      assert.equal(await evaluate("document.querySelector('#sources a')?.href"),
+        "https://example.invalid/synthetic-f02");
+      assert.equal(await evaluate("document.querySelectorAll('#results script').length"), 0);
+      assert.ok(await evaluate("document.querySelector('#record-count').textContent.includes('座標なし 1件')"));
+      console.log("F02_CONSUMER_HTTP: real HTTP HTML/CSS/ESM/JSON, safety, evidence and escaping PASS");
+
+      assert.equal(await evaluate("(()=>{const q=document.querySelector('#search');q.value='ｽｽﾞﾗﾝ';q.dispatchEvent(new Event('input',{bubbles:true}));return document.querySelectorAll('#results .record').length})()"), 1);
+      assert.ok(await evaluate("(()=>{document.querySelector('#results .record').click();return document.activeElement?.id==='detail-title' && document.querySelector('#detail').innerText.includes('座標なし・位置未確認') && document.querySelector('#detail').innerText.includes('未確認')})()"));
+      assert.ok(await evaluate("(()=>{const q=document.querySelector('#search');q.value='該当なし';q.dispatchEvent(new Event('input',{bubbles:true}));return document.querySelector('#load-state').innerText.includes('検索に一致する記録はありません') && document.querySelectorAll('#results .record').length===0})()"));
+      assert.ok(await evaluate("(()=>{const q=document.querySelector('#search');q.value='';q.dispatchEvent(new Event('input',{bubbles:true}));document.querySelectorAll('#results .record')[1].click();return document.querySelector('#detail').innerText.includes('○ / －') && document.querySelector('#detail').innerText.includes('敷地・入口・指定範囲は未承認')})()"));
+      console.log("F02_CONSUMER_HTTP: NFKC search, focus, raw symbols, unknown fields, no-results PASS");
+
+      for (const size of [[320, 700], [390, 844], [1440, 900]]) {
+        await command("Emulation.setDeviceMetricsOverride",
+          { width: size[0], height: size[1], deviceScaleFactor: 1, mobile: false });
+        const metric = await evaluate("({width:innerWidth,overflow:document.documentElement.scrollWidth-innerWidth})");
+        assert.equal(metric.width, size[0]);
+        assert.ok(metric.overflow <= 2, "Horizontal overflow at " + size[0] + "px: " + metric.overflow);
+      }
+      await command("Emulation.clearDeviceMetricsOverride");
+      await navigate("empty", "document.querySelector('#load-state')?.innerText.includes('記録は0件です')");
+      assert.equal(await evaluate("document.querySelectorAll('#results .record').length"), 0);
+      await navigate("missing", "document.querySelector('#load-state')?.innerText.includes('Datasetが収録されていません')");
+      assert.equal(await evaluate("document.querySelector('#search').disabled"), true);
+      await navigate("bad-region", "document.querySelector('#load-state')?.innerText.includes('RegionExportを表示できません')");
+      await navigate("bad-contract", "document.querySelector('#load-state')?.innerText.includes('coordinates')");
+      await navigate("http-error", "document.querySelector('#load-state')?.innerText.includes('HTTP 503')");
+      assert.ok(browser.exceptions.length === 0,
+        "Browser errors: " + browser.exceptions.join(" | "));
+      assert.ok(browser.outbound.every(url => url.startsWith(base) ||
+        url === "about:blank" || url.startsWith("data:")),
+        "Unexpected network request: " + browser.outbound.join("; "));
+      console.log("F02_CONSUMER_HTTP: empty/missing/invalid/HTTP-error states, responsive widths and no external requests PASS");
+    } finally {
+      if (browser) {
+        browser.ws.close();
+        browser.child.kill("SIGKILL");
+        fs.rmSync(browser.profile, { recursive: true, force: true });
+      }
+      await new Promise(resolve => server.close(resolve));
+    }
+  });
