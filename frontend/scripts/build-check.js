@@ -6,6 +6,7 @@ const requiredFiles = [
   "f02.css",
   "src/f02-page.js",
   "src/f02-shelter-reference.js",
+  "scripts/check-f02-real-export.js",
   "historical-evidence-demo.html",
   "decision-lab.html",
   "decision-lab.css",
