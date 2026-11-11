@@ -273,8 +273,15 @@ test('F03 Issue #356 genuine HTTP Chrome persistence, integrity, consent and pri
     console.log(`F03_REAL_HTTP SUMMARY ${12 - failures.length} PASS / ${failures.length} FAIL / 0 NOT_RUN (actual Chrome; http://127.0.0.1)`);
     assert.deepEqual(failures, [], failures.join('\n'));
   } finally {
-    if (chrome) { chrome.cdp.close(); chrome.child.kill('SIGTERM'); }
+    if (chrome) {
+      chrome.cdp.close();
+      if (chrome.child.exitCode === null && chrome.child.signalCode === null) {
+        const stopped = new Promise(resolve => chrome.child.once('exit', resolve));
+        chrome.child.kill('SIGTERM');
+        await stopped;
+      }
+    }
     if (server) await new Promise(resolve => server.close(resolve));
-    if (profile) await rm(profile, { recursive: true, force: true });
+    if (profile) await rm(profile, { recursive: true, force: true, maxRetries: 8, retryDelay: 350 });
   }
 });
