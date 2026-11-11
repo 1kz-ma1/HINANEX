@@ -1,0 +1,82 @@
+{
+  "schema_id": "hinanex.team-review.v1",
+  "dataset": {
+    "id": "SYNTHETIC-EXAMPLE-ONLY",
+    "region": "架空のテスト地域（実在施設ではありません）",
+    "source_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "safety": {
+    "approved_for_map": false,
+    "data_promotion_authorized": false,
+    "official_facility_positions_accepted": 0
+  },
+  "records": [
+    {
+      "id": "synthetic-1",
+      "name": "架空テスト施設1",
+      "address": "架空町1丁目（合成データ）",
+      "priority": "P0",
+      "issues": [
+        "source_renovation_notice"
+      ],
+      "sources": [],
+      "review": {
+        "status": "not_reviewed",
+        "checks": {
+          "official_source": false,
+          "identity": false,
+          "address": false,
+          "position_evidence": false
+        },
+        "reviewer": "",
+        "notes": "",
+        "evidence_url": "",
+        "reviewed_at": null
+      }
+    },
+    {
+      "id": "synthetic-2",
+      "name": "架空テスト施設2",
+      "address": "架空町2丁目（合成データ）",
+      "priority": "P1",
+      "issues": [
+        "abr_gsi_reference_distance_at_least_100m"
+      ],
+      "sources": [],
+      "review": {
+        "status": "not_reviewed",
+        "checks": {
+          "official_source": false,
+          "identity": false,
+          "address": false,
+          "position_evidence": false
+        },
+        "reviewer": "",
+        "notes": "",
+        "evidence_url": "",
+        "reviewed_at": null
+      }
+    },
+    {
+      "id": "synthetic-3",
+      "name": "架空テスト施設3",
+      "address": "架空町3丁目（合成データ）",
+      "priority": "P2",
+      "issues": [],
+      "sources": [],
+      "review": {
+        "status": "not_reviewed",
+        "checks": {
+          "official_source": false,
+          "identity": false,
+          "address": false,
+          "position_evidence": false
+        },
+        "reviewer": "",
+        "notes": "",
+        "evidence_url": "",
+        "reviewed_at": null
+      }
+    }
+  ]
+}
