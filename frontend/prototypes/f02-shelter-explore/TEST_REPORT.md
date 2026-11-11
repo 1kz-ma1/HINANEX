@@ -71,3 +71,11 @@ Node.js 22.16.0: `node --test tests/*.test.cjs` -> **10 / 10 PASS**
 - 正常/欠損/異常の3系統: モックケースで確認済み
 - README/TEST_REPORT/スクリーンショット: 同梱
 - オーナーの受入と実機検証: **未了**（Integration ready / Merge ready ではない）
+
+## 2026-11-11 オーナー側・実HTTP Chrome回帰（別テスト）
+
+- **新規**：`tests/f02-http-browser.test.cjs` をGitHubの`B Frontend tests`から自動実行（Node22 + headless Chrome、CDP、標準HTTPサーバー）。前掲の提出者によるin-memoryのB01〜B12と区別する。
+- **GitHub CIでPASS（初回追加HEAD）**：PR #351 のHEAD `b36b2ea6bf45d43c3f8b12ecc4508a151d2fb05b`、[required test run #42935557252](https://github.com/1kz-ma1/HINANEX/actions/runs/42935557252)。ログに `F02_REAL_HTTP` 3系統が出力され、HTML/CSS/JSの実HTTP読込、合成データ安全注意、詳細選択とフォーカス復元、検索/0件/模擬エラー、320/390/1440px横はみ出し・JS例外なしを確認。これは**実HTTP URLのChromium E2E**で、以前の`page.set_content`とは異なる。
+- **最新main同期**：main `ee9116519300780a1712c3b062e0fca6ac7e33cd`（#353統合後）をF02ブランチへ非破壊Mergeし、F02フォルダだけの17ファイル変更を維持。同期後HEAD `0aee4535dd436ca8691aa342553b1a70812bc4ab`。この記録の追記コミットを含む**最新HEADのCIが必要**。過去SHAのPASSをそのまま新HEADへ流用しない。
+- **NOT_RUN／対象外**：Safari/Android物理端末、Windows Chrome/Edge、VoiceOver/NVDA、実施設ソース・座標・災害条件の公式承認、RegionExport接続、GIS/F05への統合、Renderの人間確認。
+- **状態**：`INDEPENDENT_PROTOTYPE_VERIFIED_IN_CHROME_HTTP`（独立合成試作の自動検証）。**本番施設表示・避難安全性や主UIへの採用は未承認**、Draft PRとIssue #348は継続する。
