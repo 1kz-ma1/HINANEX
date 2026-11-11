@@ -58,6 +58,8 @@ function renderSources() {
     const box = create("div", undefined, "source");
     box.append(create("h3", src.name));
     paragraph(box, "発行元: " + valueOrUnknown(src.publisher));
+    paragraph(box, "利用ライセンス（D記録）: " + valueOrUnknown(src.licenseRaw));
+    paragraph(box, "本画面はDの記録から施設属性を抽出し、HINANEXが表示用に再構成しています。");
     paragraph(box, "資料公開日時: " + valueOrUnknown(src.publishedAt));
     paragraph(box, "Dの資料取得日時: " + valueOrUnknown(src.fetchedAt));
     if (src.url) {
