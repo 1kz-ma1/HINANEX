@@ -83,5 +83,13 @@ Remove-Item Env:F02_REAL_EXPORT_PATH
 - **Verification commands:** `node frontend/scripts/check-f02-real-export.js` と、frontend directoryで `F02_REAL_EXPORT_PATH=../pipeline/data/output/edogawa.json node --test tests/f02-page-http-browser.test.cjs`（詳細は前節）。CLI成功はB構造互換のみ・位置/指定/開設/災害適合の承認ではない。
 - **Integration state:** **Draft / merge: blocked**。実データ受入手順は実装済み。行単位の独立C検証、実ファイルでの動作確認、公開審査、Merge Captainレビュー前にmainへ統合しない。
 
+## Mac実行による実データ受入結果（2026-11-11・利用者提出ログ）
+- 対象: ローカル `pipeline/data/output/edogawa.json`。生成日時 `2026-11-11T02:54:52.688619Z` はD生成時刻であり、自治体の公式データの公開日・更新日ではない。
+- **Passed（利用者報告）:** `F02_REAL_EXPORT_HTTP: ... structural display PASS`、実Chrome HTTPでローカルD JSONを読み込んで画面表示し、Node試験1/1・失敗0。
+- **Passed（利用者報告）:** `node frontend/scripts/check-f02-real-export.js` → `CONSUMER_COMPATIBLE`。RegionExport schema 0.9、江戸川区レコード152件、座標欠損0件、Dataset evidence1件、HTTPS出典URL1件、D記録license `CC BY 2.1 JP` を確認。152件は現在のD Dataset掲載数であり地域の全避難施設数ではない。
+- **Evidence limitation:** 結果は利用者のMac標準出力をチャットで受領したもの。原JSON・公式CSV・実行環境のログを独立取得・照合していない。報告中の `input_provenance=NOT_INDEPENDENTLY_VERIFIED`、`official_row_review=NOT_RUN`、`publication_approval=NOT_GRANTED` を維持。
+- **Not run / missing evidence:** `python verify_d_mvp.py` / `python verify_a_handoff_integration.py` の成功ログ未提出、正式Cによる原CSV行/施設ID/位置や指定の独立検証・最新性確認、個別再配信/公開審査、実端末のアクセシビリティ。
+- **Decision:** Bの「実ファイル構造互換＋Chrome表示」ゲートは**PASS（利用者提出ログ）**。ただしD/C・一次資料・公開ゲートが未充足のためPR #357はDraft / `merge: blocked`継続。
+
 ## Next decision
 このPRでは安全なB読み取り専用ページが成立するかを検証する。次のF05でのF01地域文脈引継ぎ、F07の終点承認、地図/GISへの統合を含めない。仕様の拡張は本IssueとDraft PRで人間のレビューを受ける。
