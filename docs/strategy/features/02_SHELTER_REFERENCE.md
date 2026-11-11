@@ -1,6 +1,6 @@
 # F02 避難施設の探索・詳細（単独で使える機能）
 
-- 状態: **PROPOSED UX SPEC**。既存GISの検索/比較/本人選択はCURRENTだが、**完成時のUIは未確定**。
+- 状態: **PARTIALLY_MERGED（独立の合成試作のみ）/ 残りはPROPOSED UX SPEC**。既存GISの検索/比較/本人選択はCURRENTだが、新たな完成UI・実RegionExport連携・人間C承認は未確定。
 - 目標: 災害シミュレーションを動かさなくても、利用者が地域の**公的に掲載された避難施設情報**を調べ、何が未確認か把握できる。
 - 既存資産: D `RegionExport` の `shelter_location` と `scenarios[]`、E `facility_list.js` / `facility_explore.js` / `facility_explore_ui.js`、江戸川の比較UX。既存機能の保守と、新しい完成UIの採用判断を混同しない。
 
@@ -45,3 +45,11 @@ F01が渡した地域・ハザード文脈を将来F05で受け取っても、F0
 - **初回実HTTP E2E PASS**: PR HEAD `b36b2ea6bf45d43c3f8b12ecc4508a151d2fb05b`、[GitHub Actions #42935557252](https://github.com/1kz-ma1/HINANEX/actions/runs/42935557252)のB Frontend testsに`F02_REAL_HTTP`ログあり。これは実URL読込成功であって、提出者のin-memory Chromium試験ではない。
 - PRは2026-11-11に**最新mainへ同期（behind=0）**、テスト報告を追補した。最終HEADのCI結果とMerge Captainレビューは継続。**未統合Draft**で、本番での公開・実施設データ接続を認めるものではない。
 - **NOT_RUN**: iOS/Android物理端末、Safari、音声読み上げ、実在公的出典の独立照合、位置承認、実データ/RegionExport契約へのマッピング・GIS/F05統合。以上は別ゲート。
+
+## 2026-11-11 F02独立合成Prototype main統合の確定記録
+
+- オーナーの指示により [PR #351](https://github.com/1kz-ma1/HINANEX/pull/351) をSquashでmainへ統合。**main SHA `e0d6f7a01644948acc8be787b727b22c926b2442`**。17ファイルは `frontend/prototypes/f02-shelter-explore/**` だけ。既存GIS・B本体・D RegionExport、共有Schema/Contract、災害データには変更なし。
+- **PR最新HEAD `1dfe92cdc526666deb49eaefd9d7c2530d2dda44` の required `test` とChromeでの実HTTP E2E SUCCESS** ([#42936157773](https://github.com/1kz-ma1/HINANEX/actions/runs/42936157773))。main統合後もrequired `test` SUCCESS ([#42937034740](https://github.com/1kz-ma1/HINANEX/actions/runs/42937034740))。
+- **DONE_IN_SCOPE**: すべて合成fixtureの施設一覧・詳細、位置未確認/資料未取得/UNKNOWN/0件/模擬読込失敗の表示と実Chrome HTTP検証、原本・テスト報告・提出画面の保管。
+- **NOT DONE**: 公的に掲載された実施設の本体Consumer、F01・F05・GISへの接続、既存D Contractからの安全なマッピング、出典/適用条件のC受入、Safari/Android実機・読み上げ、人間による本番画面受入。**mainへの合成Prototype保管は本番の避難先案内の提供開始ではない**。
+- 次のオーナーP0候補：B単独の**read-only RegionExport Consumer対応**を新PRで設計。既存 `frontend/src/region-export-loader.js` と `region-export-source.js` を再利用し、正式な属性が存在するものだけを表示。実在データの新しい「安全」「開設中」「指定災害」評価を作らない。C/GIS公開ゲートとは別に扱う。
