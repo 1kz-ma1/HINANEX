@@ -34,7 +34,7 @@
           typeof data.selected_region !== 'string' ||
           !Object.hasOwn(REGIONS, data.selected_region)) {
         state.region = null;
-        state.mode = 'none';
+        state.mode = 'unconfirmed';
         state.loadIssue = '以前の保存内容を読み込めませんでした。地域を選び直してください。';
       } else {
         state.region = data.selected_region;
@@ -45,7 +45,7 @@
     } catch (err) {
       // Storage denial and invalid data are different cases.
       state.region = null;
-      state.mode = 'none';
+      state.mode = 'unconfirmed';
       if (err instanceof SyntaxError) {
         state.loadIssue = '保存データの形式を読み込めませんでした。地域を選び直してください。';
       } else {
@@ -69,7 +69,7 @@
     const draft = selectedDraft();
     $('save-btn').disabled = draft === null;
     $('save-btn-label').textContent = state.region && state.region !== draft ? '選んだ地域に更新' : 'この地域を保存';
-    $('clear-btn').disabled = state.region === null;
+    $('clear-btn').disabled = state.region === null && state.mode !== 'unconfirmed';
   }
 
   function setFeedback(message, type = '') {
@@ -87,6 +87,11 @@
       $('save-state-display').textContent = '✓ このブラウザに保存済み';
       $('saved-detail').textContent = '同じ端末・ブラウザで再訪問した場合は「保存済み設定を確認」を押すと読めます。';
       $('emergency-region-detail').textContent = '端末に保存された地域です。リンク先で地域を選び、発表情報を確認してください。';
+    } else if (state.mode === 'unconfirmed') {
+      $('side-hint').textContent = '端末の保存状況を確認できません';
+      $('save-state-display').textContent = '！保存状況は未確認です';
+      $('saved-detail').textContent = '表示中の地域と端末の保存内容が異なる可能性があります。「保存済み設定を確認」で再確認するか、「保存を削除」を押してください。削除できない場合はブラウザのサイトデータ設定を確認してください。';
+      $('emergency-region-detail').textContent = '端末の保存状況は未確認です。表示中の地域が保存されているとは限りません。';
     } else if (state.mode === 'temporary') {
       $('side-hint').textContent = '一時選択中・再読み込みで消えます';
       $('save-state-display').textContent = '！一時選択（保存できていません）';
@@ -110,9 +115,11 @@
     // Commit the displayed region only after the browser accepts the write.
     // A failed update must never replace an older, still-persisted choice in UI.
     const previousSavedRegion = state.mode === 'saved' ? state.region : null;
+    let writeAccepted = false;
     try {
       const payload = JSON.stringify({ selected_region: draft, schema_version: SCHEMA_VERSION });
       window.localStorage.setItem(STORAGE_KEY, payload);
+      writeAccepted = true;
       // No "saved" success unless a read-back confirms persistence.
       if (window.localStorage.getItem(STORAGE_KEY) !== payload) throw new Error('write unconfirmed');
       state.region = draft;
@@ -121,7 +128,13 @@
       setFeedback(`${REGIONS[draft]}をこのブラウザに保存しました。`, 'success');
     } catch (err) {
       state.canStore = false;
-      if (previousSavedRegion) {
+      if (writeAccepted) {
+        // A write can succeed before verification fails. Neither the old nor new
+        // value is confirmed: never keep a stale "saved" badge or auto-rollback.
+        state.region = previousSavedRegion ?? draft;
+        state.mode = 'unconfirmed';
+        setFeedback('更新に失敗しました。端末の保存状況を確認できません。表示中の地域と保存内容が異なる場合があります。保存済み設定を再確認するか、保存を削除してください。', 'warning');
+      } else if (previousSavedRegion) {
         // Keep the committed region; the draft radio selection remains available to retry.
         state.region = previousSavedRegion;
         state.mode = 'saved';
@@ -136,20 +149,13 @@
   }
 
   function clearRegion() {
-    if (state.region === null) return;
-    if (state.mode === 'temporary') {
-      // A temporary, non-persisted choice can always be cleared in memory.
-      state.region = null;
-      state.mode = 'none';
-      regionInputs.forEach(input => { input.checked = false; });
-      setFeedback('一時選択を解除しました。ブラウザに過去の保存データが残っている可能性があります。サイトデータの削除を確認してください。', 'warning');
-      updateSavedUI();
-      return;
-    }
+    if (state.region === null && state.mode !== 'unconfirmed') return;
     try {
       window.localStorage.removeItem(STORAGE_KEY);
       if (window.localStorage.getItem(STORAGE_KEY) !== null) {
-        setFeedback('削除を確認できませんでした。保存済みの地域はそのまま表示しています。サイトデータの設定を確認してください。', 'warning');
+        state.mode = 'unconfirmed';
+        setFeedback('削除を確認できませんでした。保存データが残っている可能性があります。サイトデータの設定を確認してください。', 'warning');
+        updateSavedUI();
         return;
       }
       state.region = null;
@@ -159,7 +165,9 @@
     } catch (err) {
       // If storage deletion failed, we must not claim it was deleted persistently.
       state.canStore = false;
-      setFeedback('端末の保存データを削除できませんでした。ブラウザのサイトデータ設定を確認してください。', 'warning');
+      state.mode = 'unconfirmed';
+      setFeedback('端末の保存データの削除を確認できませんでした。ブラウザのサイトデータ設定を確認してください。', 'warning');
+      updateSavedUI();
       return;
     }
     updateSavedUI();

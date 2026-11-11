@@ -12,9 +12,9 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, dirname, extname, basename } from 'node:path';
+import { join, dirname, extname, basename, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 
@@ -57,6 +57,7 @@ class CDP {
   }
   async send(method, params = {}, sessionId = undefined) {
     await this.ready;
+    if (this.closed) throw new Error('CDP websocket closed');
     const id = ++this.seq;
     const promise = new Promise((resolve, reject) => this.pending.set(id, { resolve, reject }));
     this.ws.send(JSON.stringify({ id, method, params, ...(sessionId ? { sessionId } : {}) }));
@@ -67,7 +68,7 @@ class CDP {
 
 async function chromiumPath() {
   for (const name of [process.env.F03_CHROME_BIN, 'google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser'].filter(Boolean)) {
-    if (name.startsWith('/') || name.startsWith('.')) return name;
+    if (isAbsolute(name) || name.startsWith('.')) return name;
     const found = spawnSync('which', [name], { encoding: 'utf8' });
     if (found.status === 0) return found.stdout.trim();
   }
@@ -75,6 +76,8 @@ async function chromiumPath() {
 }
 async function launchChrome(dir) {
   const bin = await chromiumPath();
+  // Never connect to the previous browser's endpoint during profile reuse.
+  await rm(join(dir, 'DevToolsActivePort'), { force: true, maxRetries: 8, retryDelay: 100 });
   const child = spawn(bin, [
     '--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu',
     '--no-first-run', '--no-default-browser-check', '--disable-extensions',
@@ -95,6 +98,18 @@ async function launchChrome(dir) {
   }
   child.kill('SIGTERM');
   throw new Error('Chrome startup timeout: ' + stderr.slice(-1500));
+}
+async function stopChrome(chrome) {
+  if (chrome.child.exitCode !== null || chrome.child.signalCode !== null) {
+    chrome.cdp.close();
+    return;
+  }
+  const stopped = new Promise(resolve => chrome.child.once('exit', resolve));
+  // Graceful shutdown flushes real localStorage and releases the profile on Windows.
+  try { await chrome.cdp.send('Browser.close'); } catch { /* browser closed the socket */ }
+  const exited = await Promise.race([stopped.then(() => true), delay(5000).then(() => false)]);
+  if (!exited) { chrome.child.kill('SIGTERM'); await stopped; }
+  chrome.cdp.close();
 }
 async function openTab(cdp, url) {
   const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' });
@@ -257,8 +272,7 @@ test('F03 Issue #356 genuine HTTP Chrome persistence, integrity, consent and pri
     });
     await runCase('C11', 'restart browser with same profile restores only after explicit read', async () => {
       await tab.eval(`localStorage.setItem(${JSON.stringify(KEY)}, JSON.stringify({schema_version:1,selected_region:'15100'}))`);
-      chrome.cdp.close(); chrome.child.kill('SIGTERM');
-      await new Promise(resolve => chrome.child.once('exit', resolve));
+      await stopChrome(chrome);
       chrome = await launchChrome(profile);
       tab = await openTab(chrome.cdp, url);
       assert.match(await tab.text('#saved-region-display'), /未設定/);
@@ -291,6 +305,17 @@ test('F03 Issue #356 genuine HTTP Chrome persistence, integrity, consent and pri
           assert(b.width >= 200 && b.height >= 44 && b.scroll <= b.client + 1, JSON.stringify({ width, b }));
         }
         console.log(`F03_REAL_HTTP MOBILE ${width}px ${JSON.stringify(sizes.buttons)}`);
+        if (process.env.F03_EVIDENCE_DIR) {
+          await mkdir(process.env.F03_EVIDENCE_DIR, { recursive: true });
+          const { cssContentSize } = await chrome.cdp.send('Page.getLayoutMetrics', {}, tab.sessionId);
+          const { data } = await chrome.cdp.send('Page.captureScreenshot', {
+            format: 'png', captureBeyondViewport: true,
+            clip: { x: 0, y: 0, width, height: Math.ceil(cssContentSize.height), scale: 1 },
+          }, tab.sessionId);
+          const bytes = Buffer.from(data, 'base64');
+          await writeFile(join(process.env.F03_EVIDENCE_DIR, `real-http-chrome-${width}.png`), bytes);
+          console.log(`F03_REAL_HTTP_SCREENSHOT_${width}_PNG_SHA256 ${createHash('sha256').update(bytes).digest('hex')}`);
+        }
         if (width === 390) {
           const { data } = await chrome.cdp.send('Page.captureScreenshot', {
             format: 'jpeg', quality: 25, fromSurface: true,
@@ -303,16 +328,41 @@ test('F03 Issue #356 genuine HTTP Chrome persistence, integrity, consent and pri
       }
       await chrome.cdp.send('Emulation.clearDeviceMetricsOverride', {}, tab.sessionId);
     });
-    console.log(`F03_REAL_HTTP SUMMARY ${13 - failures.length} PASS / ${failures.length} FAIL / 0 NOT_RUN (actual Chrome; http://127.0.0.1)`);
+    await runCase('C14', 'write accepted but read-back denied must not retain a confirmed saved badge', async () => {
+      await tab.select('23100');
+      await tab.eval(`window.__f03SavedGet=Storage.prototype.getItem;Storage.prototype.getItem=function(){throw new DOMException('denied','SecurityError')}`);
+      try {
+        await tab.click('#save-btn');
+        assert.doesNotMatch(await tab.text('#save-state-display'), /✓|保存済み/);
+        assert.match(await tab.text('#save-feedback'), /確認できません/);
+      } finally { await tab.eval('Storage.prototype.getItem=window.__f03SavedGet'); }
+      assert.equal(JSON.parse(await tab.eval(`localStorage.getItem(${JSON.stringify(KEY)})`)).selected_region, '23100');
+    });
+    await runCase('C15', 'delete accepted but read-back denied must not claim old data remains saved', async () => {
+      await tab.click('#load-btn');
+      await tab.eval(`window.__f03SavedGet=Storage.prototype.getItem;Storage.prototype.getItem=function(){throw new DOMException('denied','SecurityError')}`);
+      try {
+        await tab.click('#clear-btn');
+        assert.doesNotMatch(await tab.text('#save-state-display'), /✓|保存済み/);
+        assert.doesNotMatch(await tab.text('#save-feedback'), /削除しました/);
+      } finally { await tab.eval('Storage.prototype.getItem=window.__f03SavedGet'); }
+      assert.equal(await tab.eval(`localStorage.getItem(${JSON.stringify(KEY)})`), null);
+    });
+    await runCase('C16', 'invalid saved data can be explicitly deleted without selecting or saving a region', async () => {
+      for (const raw of ['{bad', JSON.stringify({ schema_version: 999, selected_region: '13123' })]) {
+        await tab.eval(`localStorage.setItem(${JSON.stringify(KEY)},${JSON.stringify(raw)})`);
+        await tab.navigate(); await tab.click('#load-btn');
+        assert.equal(await tab.eval(`document.querySelector('#clear-btn').disabled`), false);
+        await tab.click('#clear-btn');
+        assert.equal(await tab.eval(`localStorage.getItem(${JSON.stringify(KEY)})`), null);
+        assert.match(await tab.text('#save-feedback'), /削除しました/);
+      }
+    });
+    console.log(`F03_REAL_HTTP SUMMARY ${16 - failures.length} PASS / ${failures.length} FAIL / 0 NOT_RUN (actual Chrome; http://127.0.0.1)`);
     assert.deepEqual(failures, [], failures.join('\n'));
   } finally {
     if (chrome) {
-      chrome.cdp.close();
-      if (chrome.child.exitCode === null && chrome.child.signalCode === null) {
-        const stopped = new Promise(resolve => chrome.child.once('exit', resolve));
-        chrome.child.kill('SIGTERM');
-        await stopped;
-      }
+      await stopChrome(chrome);
     }
     if (server) await new Promise(resolve => server.close(resolve));
     if (profile) await rm(profile, { recursive: true, force: true, maxRetries: 8, retryDelay: 350 });
