@@ -1,6 +1,7 @@
 "use strict";
 // F02 RegionExport consumer: actual HTTP HTML/CSS/ESM/JSON in headless Chrome.
-// All payloads are synthetic; no official facility, suitability or position approval.
+// CI uses synthetic fixtures. Optional F02_REAL_EXPORT_PATH serves a local generated D JSON.
+// Neither mode approves official row identity, shelter suitability, or publication.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -56,7 +57,7 @@ function fixtureFor(name) {
   if (name === "bad-contract") body.datasets[0].records[0].latitude = 35;
   return body;
 }
-async function serve() {
+async function serve(realOutput = null) {
   const requests = [];
   let scenario = "normal";
   const server = http.createServer((req, res) => {
@@ -68,7 +69,7 @@ async function serve() {
     if (name === "/pipeline/data/output/edogawa.json") {
       if (scenario === "http-error") { res.writeHead(503); res.end("not available"); return; }
       res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
-      res.end(JSON.stringify(fixtureFor(scenario)));
+      res.end(scenario === "real-data" && realOutput !== null ? realOutput : JSON.stringify(fixtureFor(scenario)));
       return;
     }
     if (!assets.has(name)) { res.writeHead(404); res.end(); return; }
@@ -162,7 +163,11 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       t.skip("Chrome not installed locally");
       return;
     }
-    const { server, requests, base } = await serve();
+    const realOutput = process.env.F02_REAL_EXPORT_PATH ?
+      fs.readFileSync(path.resolve(process.env.F02_REAL_EXPORT_PATH), "utf8") : null;
+    const expectedRealRecords = realOutput === null ? null :
+      JSON.parse(realOutput).datasets.find(item => item?.requirement_code === "shelter_location")?.records.length;
+    const { server, requests, base } = await serve(realOutput);
     let browser;
     try {
       browser = await launchChrome(bin);
@@ -210,6 +215,16 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       await navigate("bad-region", "document.querySelector('#load-state')?.innerText.includes('RegionExportを表示できません')");
       await navigate("bad-contract", "document.querySelector('#load-state')?.innerText.includes('coordinates')");
       await navigate("http-error", "document.querySelector('#load-state')?.innerText.includes('HTTP 503')");
+      if (realOutput !== null) {
+        assert.ok(Number.isInteger(expectedRealRecords) && expectedRealRecords > 0,
+          "Real D export must contain at least one shelter_location record");
+        await navigate("real-data",
+          "document.querySelector(\'#record-count\')?.textContent.includes(\'D記録 " + expectedRealRecords + "件\')");
+        assert.equal(await evaluate("document.querySelectorAll(\'#results .record\').length"),
+          Math.min(expectedRealRecords, 50));
+        assert.ok(await evaluate("document.body.innerText.includes(\'施設単位の\')"));
+        console.log("F02_REAL_EXPORT_HTTP: locally supplied D JSON rendered by real HTTP Chrome, structural display PASS; independent C/publication NOT APPROVED");
+      }
       assert.ok(browser.exceptions.length === 0,
         "Browser errors: " + browser.exceptions.join(" | "));
       assert.ok(browser.outbound.every(url => url.startsWith(base) ||
