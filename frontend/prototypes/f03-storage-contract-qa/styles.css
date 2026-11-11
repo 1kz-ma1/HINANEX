@@ -35,3 +35,5 @@ main{width:100%;max-width:1470px;margin:0 auto;flex:1;padding:40px clamp(22px,4.
 
 /* F03 privacy review: visible to all users, including shared-device use. */
 .privacy-note{margin:12px 0 0;color:var(--muted);font-size:12px;line-height:1.7}
+/* F03/P-02: three explicit storage actions must remain readable and tappable on narrow screens. */
+@media(max-width:560px){.action-area{flex-direction:column;align-items:stretch;gap:8px}.action-area .btn{width:100%;min-width:0;min-height:44px;white-space:normal}.action-area .btn-primary{flex:none}}
