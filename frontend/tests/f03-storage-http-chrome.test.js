@@ -10,6 +10,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
+import { createHash } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -270,7 +271,39 @@ test('F03 Issue #356 genuine HTTP Chrome persistence, integrity, consent and pri
       assert.match(p, /バックアップ/); assert.match(p, /自動期限/);
       assert.deepEqual(tab.jsErrors, []);
     });
-    console.log(`F03_REAL_HTTP SUMMARY ${12 - failures.length} PASS / ${failures.length} FAIL / 0 NOT_RUN (actual Chrome; http://127.0.0.1)`);
+    await runCase('C13', 'real Chrome 320/375/390/430px mobile action hit targets and overflow', async () => {
+      for (const width of [320, 375, 390, 430]) {
+        await chrome.cdp.send('Emulation.setDeviceMetricsOverride', {
+          width, height: 844, deviceScaleFactor: 1, mobile: true,
+        }, tab.sessionId);
+        await delay(80);
+        const sizes = await tab.eval(`(() => ({
+          viewport: document.documentElement.clientWidth,
+          scrollWidth: document.documentElement.scrollWidth,
+          buttons: [...document.querySelectorAll('.action-area button')].map(b => {
+            const r = b.getBoundingClientRect();
+            return { id:b.id, width:r.width, height:r.height, scroll:b.scrollWidth, client:b.clientWidth };
+          })
+        }))()`);
+        assert.equal(sizes.viewport, width, JSON.stringify(sizes));
+        assert(sizes.scrollWidth <= sizes.viewport, JSON.stringify(sizes));
+        for (const b of sizes.buttons) {
+          assert(b.width >= 200 && b.height >= 44 && b.scroll <= b.client + 1, JSON.stringify({ width, b }));
+        }
+        console.log(`F03_REAL_HTTP MOBILE ${width}px ${JSON.stringify(sizes.buttons)}`);
+        if (width === 390) {
+          const { data } = await chrome.cdp.send('Page.captureScreenshot', {
+            format: 'jpeg', quality: 25, fromSurface: true,
+          }, tab.sessionId);
+          const hash = createHash('sha256').update(Buffer.from(data, 'base64')).digest('hex');
+          console.log(`F03_REAL_HTTP_SCREENSHOT_390_SHA256 ${hash}`);
+          // Small real HTTP Chrome screenshot for review, kept in CI logs as a base64 JPEG.
+          console.log(`F03_REAL_HTTP_SCREENSHOT_390_B64 ${data}`);
+        }
+      }
+      await chrome.cdp.send('Emulation.clearDeviceMetricsOverride', {}, tab.sessionId);
+    });
+    console.log(`F03_REAL_HTTP SUMMARY ${13 - failures.length} PASS / ${failures.length} FAIL / 0 NOT_RUN (actual Chrome; http://127.0.0.1)`);
     assert.deepEqual(failures, [], failures.join('\n'));
   } finally {
     if (chrome) {
