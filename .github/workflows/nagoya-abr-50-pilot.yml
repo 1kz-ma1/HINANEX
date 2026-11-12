@@ -1,0 +1,154 @@
+name: Nagoya ABR 50-site real-data pilot (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Acknowledge: official source download, temporary ABR import, no approved GIS points"
+        type: choice
+        required: true
+        default: DO_NOT_RUN
+        options:
+          - DO_NOT_RUN
+          - RUN_NAGOYA_50
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nagoya-abr-official-data-pilot
+  cancel-in-progress: false
+
+jobs:
+  nagoya-50:
+    name: Opt-in Nagoya 50 site ABR trial (not approved map data)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - name: Confirm expensive, non-production real-source test
+        env:
+          RUN_CONFIRM: ${{ inputs.confirm }}
+        shell: bash
+        run: |
+          if [ "$RUN_CONFIRM" != "RUN_NAGOYA_50" ]; then
+            echo "::error::Select RUN_NAGOYA_50 to opt in to the real-data trial."
+            exit 1
+          fi
+
+      - name: Checkout HINANEX
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install HINANEX dependencies
+        run: python -m pip install -r pipeline/requirements.txt
+
+      - name: Checkout a fixed upstream ABR Geocoder version
+        uses: actions/checkout@v4
+        with:
+          repository: digital-go-jp/abr-geocoder
+          ref: 8215e09e805713f97f65604a8acd9e6dbf5d0bf5
+          path: _trial_abr_upstream
+          persist-credentials: false
+
+      - name: Prepare ephemeral local-only ABR Docker services
+        shell: bash
+        working-directory: _trial_abr_upstream
+        run: |
+          set -euo pipefail
+          DB_SECRET="$(openssl rand -hex 24)"
+          cat > .env <<EOF
+          DB_HOST=postgres
+          DB_PORT=127.0.0.1:5432
+          DB_USER=postgres
+          DB_PASSWORD=$DB_SECRET
+          DB_NAME=abrdb
+          DB_SSLMODE=disable
+          ABRDB_PREF=23
+          ABRDB_CATEGORY=all
+          ABRDB_POS=true
+          PORT=127.0.0.1:3000
+          ABRG_CORS_ALLOW_ORIGIN=
+          LOG_LEVEL=WARN
+          EOF
+          python - <<'PY'
+          import json, subprocess
+          cfg = json.loads(subprocess.check_output(["docker", "compose", "config", "--format", "json"]))
+          for service in ("postgres", "abrg_app"):
+              ports = cfg["services"][service].get("ports", [])
+              if not ports or any(p.get("host_ip") != "127.0.0.1" for p in ports):
+                  raise SystemExit("Refusing non-loopback Docker port binding: " + service)
+          print("ABR and PostgreSQL ports restricted to loopback")
+          PY
+          docker compose up -d postgres
+          docker compose run --rm abrdb_app init --pref 23 --category all --pos
+          docker compose run --rm abrdb_app import
+          docker compose run --rm abrg_app cache build
+          docker compose up -d abrg_app
+          curl --fail --silent --show-error --retry 12 --retry-delay 3 http://127.0.0.1:3000/health
+
+      - name: Fetch and normalize current 16-ward Nagoya official indoor Excel
+        working-directory: pipeline
+        run: |
+          set -euo pipefail
+          python run_nagoya_workflow.py
+          test -s data/raw/nagoya/nagoya_indoor_shelters_bundle.zip
+          test -s data/normalized/nagoya_shelters.json
+
+      - name: Resolve 50 addresses into unapproved candidate points
+        working-directory: pipeline
+        shell: bash
+        run: |
+          set -euo pipefail
+          python geocode_nagoya_pilot.py prepare --dataset data/normalized/nagoya_shelters.json --out data/geocoding_pilot/nagoya50
+          python geocode_nagoya_pilot.py resolve --dataset data/normalized/nagoya_shelters.json --out data/geocoding_pilot/nagoya50 --local-abr-url http://127.0.0.1:3000
+          python report_nagoya_geocoding_pilot.py --pilot-dir data/geocoding_pilot/nagoya50
+
+      - name: Produce sanitized evidence only (no facility addresses or points)
+        working-directory: pipeline
+        env:
+          SANITIZED_OUTPUT: ${{ runner.temp }}/nagoya-pilot-summary.json
+        run: |
+          python - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+          import json, os
+          root = Path("data/geocoding_pilot/nagoya50")
+          s = json.loads((root / "summary.json").read_text(encoding="utf-8"))
+          allow = ("report_kind", "source_dataset_sha256", "provider",
+                   "provider_version", "provider_db_version", "sample_total",
+                   "unverified_candidate_count", "unverified_candidate_rate_percent",
+                   "requires_review_count", "unresolved_count", "provider_error_count",
+                   "statuses", "reasons", "coordinate_levels", "ward_sample_counts",
+                   "official_site_coordinates_accepted", "site_accuracy_independently_verified",
+                   "approved_for_map", "data_promotion_authorized", "route_or_disaster_safety_verified")
+          sanitized = {k: s[k] for k in allow if k in s}
+          assert sanitized["approved_for_map"] is False
+          assert sanitized["data_promotion_authorized"] is False
+          raw = Path("data/raw/nagoya/nagoya_indoor_shelters_bundle.zip").read_bytes()
+          sanitized["nagoya_official_raw_bundle_sha256"] = sha256(raw).hexdigest()
+          sanitized["nagoya_official_source_page"] = "https://www.city.nagoya.jp/bousaiportal/hinan/1013390/1013492.html"
+          sanitized["hinanex_revision"] = os.environ["GITHUB_SHA"]
+          output = Path(os.environ["SANITIZED_OUTPUT"])
+          output.write_text(json.dumps(sanitized, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print(json.dumps(sanitized, ensure_ascii=False, sort_keys=True))
+          PY
+
+      - name: Upload only non-identifying summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: nagoya-abr-pilot-sanitized-summary
+          path: ${{ runner.temp }}/nagoya-pilot-summary.json
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Shut down ephemeral ABR
+        if: always()
+        shell: bash
+        working-directory: _trial_abr_upstream
+        run: docker compose down || true
