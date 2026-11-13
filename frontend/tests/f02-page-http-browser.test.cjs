@@ -19,11 +19,36 @@ const assets = new Set([
   "/frontend/src/region-export-source.js",
 ]);
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+function waitForProcessExit(child, timeoutMs) {
+  return new Promise(resolve => {
+    if (child.exitCode !== null || child.signalCode !== null) { resolve(true); return; }
+    let timer;
+    const onExit = () => { clearTimeout(timer); resolve(true); };
+    timer = setTimeout(() => { child.off("exit", onExit); resolve(false); }, timeoutMs);
+    child.once("exit", onExit);
+  });
+}
+async function stopChrome(child, profile, ws = null) {
+  if (ws) ws.close();
+  if (child.exitCode === null && child.signalCode === null) {
+    child.kill("SIGTERM");
+    if (!await waitForProcessExit(child, 4000)) {
+      child.kill("SIGKILL");
+      if (!await waitForProcessExit(child, 4000)) {
+        throw new Error("Chrome did not exit; refusing to remove an active browser profile");
+      }
+    }
+  }
+  // Windows can hold Chrome's profile files briefly after the process exits.
+  fs.rmSync(profile, { recursive: true, force: true, maxRetries: 8, retryDelay: 350 });
+}
 function browserBinary() {
   for (const name of [process.env.F02_BROWSER_BIN, process.env.CHROME_BIN,
     "/usr/bin/google-chrome", "/usr/bin/chromium", "google-chrome", "chromium"].filter(Boolean)) {
-    if (name.includes("/") && fs.existsSync(name)) return name;
-    if (!name.includes("/") && spawnSync("which", [name]).status === 0) return name;
+    // Absolute Windows paths use backslashes; a Unix-only slash/which test misses Chrome.
+    const filePath = path.isAbsolute(name) || name.includes("/") || name.includes("\\");
+    if (filePath && fs.existsSync(name)) return name;
+    if (!filePath && spawnSync(process.platform === "win32" ? "where" : "which", [name]).status === 0) return name;
   }
   return null;
 }
@@ -148,8 +173,7 @@ async function launchChrome(bin) {
     };
     return { profile, child, ws, command, evaluate, exceptions, outbound };
   } catch (error) {
-    child.kill("SIGKILL");
-    fs.rmSync(profile, { recursive: true, force: true });
+    await stopChrome(child, profile);
     throw error;
   }
 }
@@ -297,9 +321,7 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       console.log("F02_CONSUMER_HTTP: empty/missing/invalid/HTTP-error states, responsive widths and no external requests PASS");
     } finally {
       if (browser) {
-        browser.ws.close();
-        browser.child.kill("SIGKILL");
-        fs.rmSync(browser.profile, { recursive: true, force: true });
+        await stopChrome(browser.child, browser.profile, browser.ws);
       }
       await new Promise(resolve => server.close(resolve));
     }

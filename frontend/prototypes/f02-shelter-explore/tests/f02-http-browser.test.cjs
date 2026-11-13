@@ -9,11 +9,36 @@ const {spawn,spawnSync}=require("node:child_process");
 const dir=path.resolve(__dirname,"..");
 const files=["index.html","styles.css","fixtures.js","model.js","app.js"];
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
+function waitForProcessExit(child,timeoutMs){
+  return new Promise(resolve=>{
+    if(child.exitCode!==null||child.signalCode!==null){resolve(true);return;}
+    let timer;
+    const onExit=()=>{clearTimeout(timer);resolve(true);};
+    timer=setTimeout(()=>{child.off("exit",onExit);resolve(false);},timeoutMs);
+    child.once("exit",onExit);
+  });
+}
+async function stopChrome(child,profile,ws=null){
+  if(ws)ws.close();
+  if(child.exitCode===null&&child.signalCode===null){
+    child.kill("SIGTERM");
+    if(!await waitForProcessExit(child,4000)){
+      child.kill("SIGKILL");
+      if(!await waitForProcessExit(child,4000)){
+        throw Error("Chrome did not exit; refusing to remove an active browser profile");
+      }
+    }
+  }
+  fs.rmSync(profile,{recursive:true,force:true,maxRetries:8,retryDelay:350});
+}
+
 function chromeBinary(){
   for(const candidate of [process.env.F02_BROWSER_BIN,process.env.CHROME_BIN,
     "/usr/bin/google-chrome","/usr/bin/chromium","google-chrome","chromium"].filter(Boolean)){
-    if(candidate.includes("/")&&fs.existsSync(candidate))return candidate;
-    if(!candidate.includes("/")&&spawnSync("which",[candidate]).status===0)return candidate;
+    const filePath=path.isAbsolute(candidate)||candidate.includes("/")||candidate.includes("\\");
+    if(filePath&&fs.existsSync(candidate))return candidate;
+    if(!filePath&&spawnSync(process.platform==="win32"?"where":"which",[candidate]).status===0)return candidate;
   }
   return null;
 }
@@ -69,7 +94,7 @@ async function launch(bin){
       return result.result.value;
     };
     return {profile,child,ws,command,evalJs,exceptions,requests};
-  }catch(e){child.kill("SIGKILL");fs.rmSync(profile,{recursive:true,force:true});throw e;}
+  }catch(e){await stopChrome(child,profile);throw e;}
 }
 test("F02 HTTP-served Chrome functional and error-state acceptance",{timeout:90000},async t=>{
   const bin=chromeBinary();
@@ -117,7 +142,7 @@ test("F02 HTTP-served Chrome functional and error-state acceptance",{timeout:900
       "Unexpected external request: "+browser.requests.join("; "));
     console.log("F02_REAL_HTTP: 320/390/1440 responsive, no JS errors or outbound HTTP PASS");
   }finally{
-    if(browser){browser.ws.close();browser.child.kill("SIGKILL");fs.rmSync(browser.profile,{recursive:true,force:true});}
+    if(browser){await stopChrome(browser.child,browser.profile,browser.ws);}
     await new Promise(resolve=>server.close(resolve));
   }
 });
