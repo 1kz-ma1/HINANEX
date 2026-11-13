@@ -17,7 +17,7 @@
 - `input`: `mode`, `hazard`, `region`, `session_token`, `fixture_id`, `observed_at`, `evaluated_at`, `facts`。
 - `output`: 上記に対応する`mode/hazard/region/session_token/fixture_id/observed_at`、`generated_at`, `valid_until`, `is_drill`, `facts`, `claims`。
 - 時刻は明示的なタイムゾーン付きISO-8601。実行時のシステム時計は使用しない。`valid_until == evaluated_at`は有効、超過は期限切れ。
-- `claims`は`facility_safety`, `facility_open`, `route_passability`の3キー。合成データで許される値は `null`, `UNKNOWN`, `UNVERIFIED` のみ。真偽値・`CONFIRMED`・`CLOSED`を含む判断を**受け入れない**。安全な施設・開設中・通行可能といった意味は推論しない。
+- `claims`は`facility_safety`, `facility_open`, `route_passability`の3キー。余分なclaimキーがあれば`BLOCKED`。合成データで許される値は `null`, `UNKNOWN`, `UNVERIFIED` のみ。真偽値・`CONFIRMED`・`CLOSED`を含む判断を**受け入れない**。安全な施設・開設中・通行可能といった意味は推論しない。
 - `facts`は未変換のサンプルフィールド。`null`と`UNKNOWN`は出力でも同じ形で保持する。元入力にない確定値、元入力からの値変更を拒否する。これはサンプルの同値性確認であり、Dの正規化規則を定義しない。
 
 ## 検証順序と受入テスト

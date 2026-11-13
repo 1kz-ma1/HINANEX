@@ -56,6 +56,8 @@ def evaluate(input_snapshot: object, output_snapshot: object) -> dict[str, str]:
         return outcome("BLOCKED", "INVALID_FACTS")
     if not isinstance(output_snapshot["claims"], dict) or any(key not in output_snapshot["claims"] for key in CLAIMS):
         return outcome("BLOCKED", "MISSING_CLAIM")
+    if set(output_snapshot["claims"]) != set(CLAIMS):
+        return outcome("BLOCKED", "UNRECOGNIZED_CLAIM_FIELD")
     try:
         observed = timestamp(input_snapshot["observed_at"])
         evaluated = timestamp(input_snapshot["evaluated_at"])

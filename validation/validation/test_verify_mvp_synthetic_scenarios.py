@@ -40,6 +40,13 @@ class SyntheticMvpConsistencyTests(unittest.TestCase):
         output["claims"].pop("facility_open")
         self.assertEqual(audit.evaluate(base["input"], output)["code"], "MISSING_CLAIM")
 
+    def test_unrecognized_claim_field_blocks_validation(self):
+        base = self.manifest["template"]
+        output = copy.deepcopy(base["output"])
+        output["claims"]["route_safe"] = True
+        self.assertEqual(audit.evaluate(base["input"], output),
+                         {"status": "BLOCKED", "code": "UNRECOGNIZED_CLAIM_FIELD"})
+
     def test_no_unknown_null_or_missing_fact_can_be_inferred(self):
         base = self.manifest["template"]
         for name, new_value in (("capacity", 0), ("opening_state", "OPEN")):
