@@ -74,3 +74,39 @@ python -m src.hinanex.gsi_hazard_preflight \
 4. **D/E integration decision**: GSI原本と既存自治体 `shelter_location` を自動名称/座標joinしない。Cの受入と共有契約設計を共同確認後、Eに「出典付き参考地点」だけの別レイヤーを検討。開設・安全・ルート・最適化は常に別ゲート。
 
 **Gate判定：H0合成・構造検査の実装は進めるが、`skhb02`地域対応・実データ承認・一般公開はすべてHOLD。**
+
+## 6. 2026-11-13 公式HTTPS実取得トライと安全なローカル取得ツール
+
+**2026-11-13の実行環境からの直接取得はDNS障害で失敗**した。`https://cyberjapandata.gsi.go.jp/xyz/skhb02/10/909/403.geojson` への `curl` は `Could not resolve host: cyberjapandata.gsi.go.jp` （exit code 6 / `HTTP=000`）を返した。**HTTP 404ではなく、Raw 0件や自治体の未掲載とも異なる**。この実行環境では HTTP応答、取得原本bytes、SHA256、現行のfeature数を証明できていない。
+
+同じ範囲の取得を任意のMac等で再現するため、`pipeline/src/hinanex/gsi_hazard_acquisition.py` を追加。**明示実行時のみ**指定公式HTTPS URLへ1回GETし、公式URLとハザードの対応、リダイレクト拒否、上限20MiB、HTTP 200/最終URL一致、GeoJSON原文の全Feature構造検査を行う。検査を通った原本はリポジトリ**外**へ排他的に保存し、同じ場所に `.receipt.json` を作成する。既存証拠は上書きしない。出典のHTTPヘッダーは原文のまま保持し、掲載/更新/指定日へ変換しない。
+
+### Macでの公式原本取得手順（任意の明示実行）
+
+F02やF05の作業ブランチは触らず、既存cloneから独立worktreeを作成する例：
+
+```bash
+git -C "$HOME/HINANEX-f02" fetch origin feature/d-h0-gsi-dual-hazard-preflight-20261113
+git -C "$HOME/HINANEX-f02" worktree add --detach "$HOME/HINANEX-h0-worktree" FETCH_HEAD
+mkdir -p "$HOME/HINANEX-h0-evidence"
+cd "$HOME/HINANEX-h0-worktree/pipeline"
+python -m src.hinanex.gsi_hazard_acquisition \
+  --hazard landslide \
+  --source-url "https://cyberjapandata.gsi.go.jp/xyz/skhb02/10/909/403.geojson" \
+  --raw-out "$HOME/HINANEX-h0-evidence/skhb02-10-909-403.geojson"
+```
+
+- 成功： `H0_LOCAL_STRUCTURE_ONLY`（または`H0_EMPTY_ARCHIVE_NOT_COVERAGE_PROOF`）＋`LOCAL_ARCHIVE_RECEIVED`、`http_status=200`、最終URL、Raw SHA256、UTC取得時刻、全Feature件数の**ローカル検査ログ**。ファイル `skhb02-10-909-403.geojson` と `skhb02-10-909-403.receipt.json` はGit外に保存する。
+- DNS障害： `{"status":"H0_ACQUISITION_HOLD","reason":"DNS_FAILURE","http_status":null,"archive_created":false,...}`。HTTP 404や0施設を意味しない。
+- HTTP404：`H0_ACQUISITION_HOLD`, `reason=HTTP_ERROR`, `http_status=404`。タイル応答が404でも自治体の0施設や全国的非公開とは判定しない。
+- 別hazardのURL・別ドメイン・HTTPスキーム・リダイレクト・破損/改変/上限超過・非整数markerは拒否し、生rawは保存しない。
+- 通信にHTTPプロキシを暗黙に使わない。会社/学校の明示プロキシ環境で接続できない場合は無理に回避せずネットワーク・許可条件を確認する。
+- ツールはダウンロードを**定期実行しない**。GitHub Actionsは合成mockテストのみで外部公式原本を取得しない。
+
+**証拠提出:** Issue #378または次のC専用Issueには、`.receipt.json` のステータス／原本SHA／HTTP／URL／UTC／件数を必要な範囲だけ転記する。Raw自体はGit・PRコメントへアップロードしない。受領者は利用者PCの取得ログとして扱い、独立Cの別HTTPS byte replay（URL/時刻/原本バイト/版/災害属性・feature index）と混同しない。人間による災害別指定・個別場所同一性、著作権・再配信条件、現在開設/安全/地図表示は未承認。
+
+### H0追加の合成CIテスト
+
+`pipeline/tests/test_gsi_hazard_acquisition.py`：ネットワークmockのみ。非公開専用ファイルへの保存、権限、出典HTTP/UTC/SHA、既存証拠上書き防止、Git内への保存拒否、URL/ハザード取り違え拒否、HTTP404・DNS分類、異常JSON/過大body、時刻無効、リダイレクト先不一致、空Feature≠自治体ゼロ件を検証。CLIがHTTP外部アクセスできることの証明ではない。
+
+**次のゲート:** 実取得成功時はraw/source receiptをC独立検証担当に渡して別スコープで照合。C承認と公式Sourceの最新性・ライセンス判断が揃うまでD/RegionExportやE/GIS/Renderへ採用しない。
