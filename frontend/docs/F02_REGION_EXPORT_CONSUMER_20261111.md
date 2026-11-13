@@ -104,3 +104,12 @@ Remove-Item Env:F02_REAL_EXPORT_PATH
 
 ## Next decision
 このPRでは安全なB読み取り専用ページが成立するかを検証する。次のF05でのF01地域文脈引継ぎ、F07の終点承認、地図/GISへの統合を含めない。仕様の拡張は本IssueとDraft PRで人間のレビューを受ける。
+
+## 2026-11-13 公開範囲の予備審査とクレジット修正（C一次資料レビュー連携）
+- 正本: C `validation/docs/F02_EDOGAWA_PUBLICATION_GATE_20261113.md`（Draft PR #365）。対象は江戸川区の1地域 read-only B Consumerのみ。
+- 江戸川区の公式オープンデータトップ（`https://www.city.edogawa.tokyo.jp/e004/kuseijoho/opendata/index.html`）は**個別の例外を除き**CC BY 2.1 JPを採用。公式地図データページ（`https://www.city.edogawa.tokyo.jp/e004/kuseijoho/opendata/map_data.html`）には「避難所・避難所補完施設」CSV・表更新日2025-12-11・CC-BY表示を確認。
+- 区の利用規約PDF（`https://www.city.edogawa.tokyo.jp/documents/10685/20150914_kiyaku.pdf`）では商用利用可・出典/URL・**編集加工の明示**・区が作成したと装うことの禁止・第三者権利・免責が示される。現在のBのDatasetクレジットだけを持ってライセンス承認や本番公開判断とはしない。
+- Bの出典欄を小規模修正: 出典Dataset名・発行元とHINANEXの加工を明記、非公式の表示である旨を明記、**Dの`license`値が正確に `CC BY 2.1 JP` の場合のみ**条項へのHTTPSリンク `https://creativecommons.org/licenses/by/2.1/jp/`を表示。欠損・別値の場合は`ライセンスURL: 未確認`を保持。未知の文字列からライセンスURLや利用許可を生成しない。
+- 新Chrome E2Eで合成のCC BY表示／欠損・別ライセンス／出典・加工表示／rel noopenerを確認。CI [Actions #43346598946](https://github.com/1kz-ma1/HINANEX/actions/runs/43346598946) at code HEAD `8edd7000a79798c8618b328fde1f385a0b77e7c2`: required `test` SUCCESS、B `94/94` PASS、Node関連 `24/24` PASS。
+- **C Source→Export全行の技術整合は利用者Mac報告でPASS**: 江戸川区CSVのSHA256 `64b1c02377ac6caa2cf58faaf45e34ed76d01b7230c9c4d4590432864700d7ea`、152レコード/不一致0（C PR #365 / Issue #364）。施設の公式指定や実敷地位置・入口/災害適合/安全・開設の承認ではない。
+- **判定:** 内部の読み取り専用参考表示を維持。一般ナビ・GIS・避難先推薦・外部公開への自動移行はなし。個別権利・ライセンス条件の正式レビュー、施設意味の個別根拠、公開範囲・運用・アクセシビリティの人間判断はHOLD。B PR #357はDraft / merge: blockedを維持。
