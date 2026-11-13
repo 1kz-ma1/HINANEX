@@ -113,3 +113,36 @@ Remove-Item Env:F02_REAL_EXPORT_PATH
 - 新Chrome E2Eで合成のCC BY表示／欠損・別ライセンス／出典・加工表示／rel noopenerを確認。CI [Actions #43346598946](https://github.com/1kz-ma1/HINANEX/actions/runs/43346598946) at code HEAD `8edd7000a79798c8618b328fde1f385a0b77e7c2`: required `test` SUCCESS、B `94/94` PASS、Node関連 `24/24` PASS。
 - **C Source→Export全行の技術整合は利用者Mac報告でPASS**: 江戸川区CSVのSHA256 `64b1c02377ac6caa2cf58faaf45e34ed76d01b7230c9c4d4590432864700d7ea`、152レコード/不一致0（C PR #365 / Issue #364）。施設の公式指定や実敷地位置・入口/災害適合/安全・開設の承認ではない。
 - **判定:** 内部の読み取り専用参考表示を維持。一般ナビ・GIS・避難先推薦・外部公開への自動移行はなし。個別権利・ライセンス条件の正式レビュー、施設意味の個別根拠、公開範囲・運用・アクセシビリティの人間判断はHOLD。B PR #357はDraft / merge: blockedを維持。
+
+## 2026-11-13 アクセシビリティ・誤誘導防止（開発環境スコープ）
+
+- **追加のB変更:** `frontend/f02.html` の検索欄に `aria-controls=results`・`aria-describedby=record-count`、一覧に `role=group` とアクセス可能な一覧名を付与。静的CSVでは分からない現在の開設・混雑情報について、[江戸川区の公式防災アプリ・ポータル案内](https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/oshirase/bousaiapuri.html) への**ユーザーが選択する場合のみ開く**リンクを表示。表示時に外部へ自動通信しない。
+- **施設詳細:** Dの `facility_type` は名称「（補完施設）」に基づく内部分類であり、公式の法的指定ではないと明示。元CSVから正規化/ExportへのC行変換の整合性が確認されても、個別の敷地・入口・法的指定・災害適合/開設承認ではないことを明示。RegionExportの属性は補完・変更しない。
+- **追加E2E（合成データ）:** headless実HTTP Chromeで検索欄/一覧/公式リンクのアクセシビリティツリー上の名前、検索欄からTabで最初の施設へ移動、Enterで詳細選択し見出しへフォーカス移動、誤誘導防止文言、リンクのrel属性を検証。テストは公式の施設安全性を評価しない。
+- **現物Mac実機（人間の手動確認・未実施）:** SafariとVoiceOverで①ページ先頭の「検証中・参考情報」が読める、②検索欄のラベルと件数が分かる、③Tab→Enterで施設を選択できる、④詳細の見出し/未確認文言/名称由来の施設分類に到達する、⑤外部の公式案内リンクが区の公式情報へ遷移する、⑥320 CSS px相当/表示文字拡大でも主要操作を失わない、を記録する。iPhone VoiceOver・Android TalkBackは別の実機/担当レビューが必要。
+- **公開/安全境界:** 静的CSVに現在の開設状態を混ぜず、HINANEXは避難先推薦・ルート案内を行わない。A正式出典利用条件は [Issue #366](https://github.com/1kz-ma1/HINANEX/issues/366) / A Draft PR #367（AI一次資料予備レビュー）で**人間判断を未承認**。一般ナビ/外部公開、GIS接続はNO-GO。
+
+## Mac Safari/VoiceOver向けローカル限定プレビュー（非公開、2026-11-13）
+
+`frontend/scripts/serve-f02-preview.cjs` は、実D `edogawa.json` にBの `CONSUMER_COMPATIBLE` 構造検査を実施した後、**127.0.0.1:自動割当ポート**にだけサーバーを起動する。次の7パス以外は応答させない: `/frontend/f02.html`, `/frontend/f02.css`, F02/region-export-loader/sourceのJS（4ファイル）、`/pipeline/data/output/edogawa.json`。リポジトリの原CSV、正規化JSON、`.git`、一般 `index.html`、他地域JSON、任意のURLパスは404。Host検査でDNSリバインディングを制限。no-store・no-referrer・nosniff・CSPで外部自動接続を抑制し、Gitデータ全体を配信しない。
+
+**Macコマンド（現在のcloneを更新可能な場合）**
+
+```bash
+cd "$HOME/HINANEX-f02"
+git status --short
+git pull --ff-only origin feature/b-f02-region-export-consumer-20261111
+cd frontend
+npm run preview:f02
+```
+
+初期ゲート失敗時は `F02_PREVIEW_BLOCKED` を出してサーバーを起動しない。成功すると `F02_PREVIEW_LOCAL_ONLY: http://127.0.0.1:<port>/frontend/f02.html` と出力する。表示されたURLを**MacのSafariで開く**。テスト完了時はサーバーを実行中のターミナルでCtrl+C。
+
+**手動確認を依頼する対象（AIがPASSを代行記録しない）**
+1. Safari で読み込み、ページ先頭の「F02 検証中・参考情報」と公式開設情報へのリンクの区別を視認。
+2. キーボードTab/Enterで検索欄→施設一覧ボタン→詳細見出しへ移動。選択した後の施設ID、D名称由来分類、未確認の説明を確認。
+3. Command+F5でVoiceOverを有効化し、検索欄の名前「施設名で検索」、一覧の名前「施設記録一覧」、状態、件数と施設選択/詳細が読めることを確認。設定によりFnキーが必要な場合あり。操作後Command+F5でOFF。
+4. Safariの表示を200%程度に拡大し、狭い幅でも検索・出典リンク・詳細表示が水平スクロールなしで理解・操作できるかを確認。
+5. 通信失敗/契約不一致・実データ元資料の新しさや現在の開設状況を保証できないことを明示。現況情報は江戸川区の公式防災アプリ・ポータル案内を利用する。
+
+**テスト可能な証拠:** Node合成HTTP回帰ではallowlisted配信、raw/.git非公開、Host制限、CSP、B元HTML/JSON配信を検証する。Chrome CDPでARIA/Tab/Enterを検証する。**これらはSafari/VoiceOver実機テストの代替にならない**。また、Macのlocalhostは配信/公開承認を意味しない。一般公開・main統合・GIS避難先誘導は引き続きHOLD。

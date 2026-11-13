@@ -7,6 +7,7 @@ const requiredFiles = [
   "src/f02-page.js",
   "src/f02-shelter-reference.js",
   "scripts/check-f02-real-export.js",
+  "scripts/serve-f02-preview.cjs",
   "historical-evidence-demo.html",
   "decision-lab.html",
   "decision-lab.css",

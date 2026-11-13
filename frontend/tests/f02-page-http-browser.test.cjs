@@ -19,7 +19,6 @@ const assets = new Set([
   "/frontend/src/region-export-source.js",
 ]);
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-
 function waitForProcessExit(child, timeoutMs) {
   return new Promise(resolve => {
     if (child.exitCode !== null || child.signalCode !== null) { resolve(true); return; }
@@ -43,7 +42,6 @@ async function stopChrome(child, profile, ws = null) {
   // Windows can hold Chrome's profile files briefly after the process exits.
   fs.rmSync(profile, { recursive: true, force: true, maxRetries: 8, retryDelay: 350 });
 }
-
 function browserBinary() {
   for (const name of [process.env.F02_BROWSER_BIN, process.env.CHROME_BIN,
     "/usr/bin/google-chrome", "/usr/bin/chromium", "google-chrome", "chromium"].filter(Boolean)) {
@@ -228,6 +226,49 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       assert.ok(await evaluate("document.querySelector('#sources').innerText.includes('出典：「合成資料」')"));
       assert.ok(await evaluate("document.querySelector('#sources').innerText.includes('江戸川区がこの画面を作成・承認したものではありません')"));
       assert.ok(await evaluate("document.querySelector('#record-count').textContent.includes('座標なし 1件')"));
+      assert.equal(await evaluate("document.querySelector('#search').getAttribute('aria-controls')"), "results");
+      assert.equal(await evaluate("document.querySelector('#search').getAttribute('aria-describedby')"), "record-count");
+      assert.equal(await evaluate("document.querySelector('#results').getAttribute('role')"), "group");
+      assert.ok(await evaluate("document.querySelector('#load-state').getAttribute('aria-live') === 'polite'"));
+      assert.equal(await evaluate("document.querySelector('.official-guidance a').href"),
+        "https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/oshirase/bousaiapuri.html");
+      assert.ok(await evaluate("document.querySelector('.official-guidance a').rel.includes('noopener')"));
+      assert.ok(await evaluate("document.querySelector('.official-guidance').innerText.includes('最新の開設・混雑状況')"));
+      await command("Accessibility.enable");
+      const axNodes = (await command("Accessibility.getFullAXTree")).nodes.filter(node => !node.ignored);
+      assert.ok(axNodes.some(node => node.role?.value === "searchbox" &&
+        node.name?.value === "施設名で検索"), "Search field missing accessible name");
+      assert.ok(axNodes.some(node => node.role?.value === "group" &&
+        node.name?.value === "施設記録一覧"), "Result group missing accessible name");
+      assert.ok(axNodes.some(node => node.role?.value === "link" &&
+        node.name?.value?.includes("江戸川区の公式防災アプリ・ポータル案内")),
+        "Official live-status link missing accessible name");
+      await evaluate("document.querySelector('#search').focus()");
+      await command("Input.dispatchKeyEvent", {
+        type: "keyDown", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9
+      });
+      await command("Input.dispatchKeyEvent", {
+        type: "keyUp", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9
+      });
+      assert.equal(await evaluate("document.activeElement?.matches('#results .record')"), true,
+        "Tab did not move from search to first facility");
+      await command("Input.dispatchKeyEvent", {
+        type: "rawKeyDown", key: "Enter", code: "Enter",
+        windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13
+      });
+      await command("Input.dispatchKeyEvent", {
+        type: "char", text: "\r", unmodifiedText: "\r",
+        windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13
+      });
+      await command("Input.dispatchKeyEvent", {
+        type: "keyUp", key: "Enter", code: "Enter",
+        windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13
+      });
+      await waitUntil(evaluate,
+        "document.activeElement?.id==='detail-title' && document.querySelector('#detail').innerText.includes('名称ベース分類')",
+        "F02 keyboard facility selection");
+      assert.ok(await evaluate("document.querySelector('#detail').innerText.includes('正式指定未確認')"));
+      console.log("F02_A11Y_HTTP: named search/group, live status, Tab/Enter, detail focus, and official live-status separation PASS");
       console.log("F02_CONSUMER_HTTP: real HTTP HTML/CSS/ESM/JSON, safety, evidence and escaping PASS");
 
       assert.equal(await evaluate("(()=>{const q=document.querySelector('#search');q.value='ｽｽﾞﾗﾝ';q.dispatchEvent(new Event('input',{bubbles:true}));return document.querySelectorAll('#results .record').length})()"), 1);
