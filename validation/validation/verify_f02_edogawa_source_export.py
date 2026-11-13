@@ -26,7 +26,6 @@ SCHEMA = "0.9"
 REQUIRED_COLUMNS = ("名称", "URL", "災害種別記号", "コメント", "緯度", "経度")
 OPTIONAL_COLUMNS = {"住所", "所在地"}
 SOURCE_PAGE = "https://www.city.edogawa.tokyo.jp/e004/kuseijoho/opendata/map_data.html"
-REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class SourceExportAuditFailure(ValueError):
@@ -218,7 +217,13 @@ def main() -> int:
         paths = [args.official_csv, args.d_raw_csv, args.normalized, args.region_export]
         if args.report is not None:
             report_file = args.report.resolve()
-            ensure(not report_file.is_relative_to(REPO_ROOT),
+            export_path = args.region_export.resolve()
+            ensure(export_path.parent.name == "output" and
+                   export_path.parent.parent.name == "data" and
+                   export_path.parent.parent.parent.name == "pipeline",
+                   "RegionExport must be in pipeline/data/output/")
+            repo_root = export_path.parents[3]
+            ensure(not report_file.is_relative_to(repo_root),
                    "Report destination must be outside the Git checkout")
             ensure(not report_file.exists(), "Refusing to overwrite existing C report")
         for p in paths:
