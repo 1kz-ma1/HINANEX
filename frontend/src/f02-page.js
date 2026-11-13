@@ -114,13 +114,20 @@ function renderList() {
     const button = create("button", undefined, "record");
     button.type = "button";
     button.setAttribute("aria-pressed", String(item.id === selectedId));
+    button.dataset.recordId = item.id;
     button.append(create("strong", item.name));
     button.append(create("small", item.hasCoordinates ? "座標値あり（指定範囲は未確認）" : "座標なし・位置未確認"));
     button.addEventListener("click", () => {
       selectedId = item.id;
-      renderList();
+      // Avoid replacing the selected button: it destroys keyboard focus and
+      // can trigger scroll anchoring or a page jump in Safari.
+      for (const recordButton of results.querySelectorAll(".record")) {
+        recordButton.setAttribute("aria-pressed",
+          String(recordButton.dataset.recordId === selectedId));
+      }
       renderDetail(item);
-      detailTitle.focus();
+      // Keep the accessible destination without scrolling the user's list.
+      detailTitle.focus({ preventScroll: true });
     });
     results.append(button);
   });
