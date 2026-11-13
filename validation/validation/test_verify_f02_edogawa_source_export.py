@@ -45,14 +45,15 @@ def fixture(address=False):
     }
     dataset = {
         "region_code": "13123",
+        "region_name": "東京都江戸川区",
         "requirement_code": "shelter_location",
         "records": [record],
         "evidence": [{"source_url": SOURCE_PAGE, "published_at": None}],
     }
     normalized = copy.deepcopy(dataset)
     exported = {
-        "region": {"code": "13123"},
-        "meta": {"schema_version": "0.9", "dataset_count": 1},
+        "region": {"code": "13123", "name": "東京都江戸川区"},
+        "meta": {"schema_version": "0.9", "dataset_count": 1, "evidence_count": 1},
         "datasets": [copy.deepcopy(dataset)],
         "assessments": [{"region_code": "13123", "requirement_code": "shelter_location", "record_count": 1}],
     }
