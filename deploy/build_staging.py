@@ -91,8 +91,24 @@ UNPUBLISHED_F03_PREVIEW_PATHS = frozenset({
 })
 
 
+UNPUBLISHED_F02_PREVIEW_PATHS = frozenset({
+    "f02.html",
+    "f02.css",
+    "src/f02-page.js",
+    "src/f02-shelter-reference.js",
+    "scripts/check-f02-real-export.js",
+    "scripts/serve-f02-preview.cjs",
+    "docs/F02_REGION_EXPORT_CONSUMER_20261111.md",
+    "tests/f02-page-http-browser.test.cjs",
+    "tests/f02-preview-http.test.cjs",
+    "tests/f02-real-export-check.test.js",
+    "tests/f02-shelter-reference.test.js",
+})
+UNPUBLISHED_PREVIEW_PATHS = UNPUBLISHED_F03_PREVIEW_PATHS | UNPUBLISHED_F02_PREVIEW_PATHS
+
+
 def _copy_public_frontend(source: Path, destination: Path) -> None:
-    """Copy Frontend without exposing unpublished F03 QA UI, tests, or evidence."""
+    """Copy Frontend without exposing unapproved F02/F03 preview assets."""
     if not source.is_dir():
         raise StagingBuildError(f"Required static directory is missing: {source}")
 
@@ -100,14 +116,14 @@ def _copy_public_frontend(source: Path, destination: Path) -> None:
         relative = Path(directory).relative_to(source)
         return {
             name for name in names
-            if (relative / name).as_posix() in UNPUBLISHED_F03_PREVIEW_PATHS
+            if (relative / name).as_posix() in UNPUBLISHED_PREVIEW_PATHS
         }
 
     shutil.copytree(source, destination, ignore=unpublished_preview_only)
     # Fail closed if a future copy implementation accidentally leaks QA assets.
-    for relative in UNPUBLISHED_F03_PREVIEW_PATHS:
+    for relative in UNPUBLISHED_PREVIEW_PATHS:
         if (destination / relative).exists():
-            raise StagingBuildError(f"Unpublished F03 preview in staging bundle: {relative}")
+            raise StagingBuildError(f"Unpublished F02/F03 preview in staging bundle: {relative}")
 
 
 def build_bundle(

@@ -59,6 +59,26 @@ class ActualStagingBundleSmokeTests(unittest.TestCase):
                 fixture = root / "frontend" / relative
                 fixture.parent.mkdir(parents=True, exist_ok=True)
                 fixture.write_text(content, encoding="utf-8")
+            # Simulate next F02 read-only consumer PR before it enters main.
+            # This test proves no F02 UI, JS, local-only server, CLI, QA evidence
+            # or tests are published by Render's whole-frontend copy.
+            unpublished_f02_fixture = {
+                "f02.html": "F02 private preview fixture",
+                "f02.css": "F02 private preview fixture",
+                "src/f02-page.js": "F02 private preview fixture",
+                "src/f02-shelter-reference.js": "F02 private preview fixture",
+                "scripts/check-f02-real-export.js": "F02 private preview fixture",
+                "scripts/serve-f02-preview.cjs": "F02 private preview fixture",
+                "docs/F02_REGION_EXPORT_CONSUMER_20261111.md": "F02 private preview fixture",
+                "tests/f02-page-http-browser.test.cjs": "F02 private preview fixture",
+                "tests/f02-preview-http.test.cjs": "F02 private preview fixture",
+                "tests/f02-real-export-check.test.js": "F02 private preview fixture",
+                "tests/f02-shelter-reference.test.js": "F02 private preview fixture",
+            }
+            for relative, content in unpublished_f02_fixture.items():
+                fixture = root / "frontend" / relative
+                fixture.parent.mkdir(parents=True, exist_ok=True)
+                fixture.write_text(content, encoding="utf-8")
             evidence_file = root / "validation" / "demo" / "2019_edogawa_evidence_cases.json"
             evidence_file.parent.mkdir(parents=True)
             shutil.copyfile(
@@ -89,6 +109,12 @@ class ActualStagingBundleSmokeTests(unittest.TestCase):
                 self.assertFalse(
                     (bundle / "frontend" / private_path).exists(),
                     f"Unpublished F03 QA asset leaked to staging: {private_path}",
+                )
+            for private_path in unpublished_f02_fixture:
+                self.assertTrue((root / "frontend" / private_path).is_file())
+                self.assertFalse(
+                    (bundle / "frontend" / private_path).exists(),
+                    f"Unapproved F02 facility preview leaked: {private_path}",
                 )
             for page in ("index.html", "frontend/index.html", "gis/gis/index.html"):
                 html_path = bundle / page
