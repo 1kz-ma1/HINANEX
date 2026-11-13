@@ -126,6 +126,7 @@ def check_record(record: dict, row: dict, line: int, label: str) -> str:
 def check_dataset(dataset: dict, rows: list[dict], label: str) -> list[dict]:
     ensure(isinstance(dataset, dict) and
            dataset.get("region_code") == REGION_CODE and
+           dataset.get("region_name") == "東京都江戸川区" and
            dataset.get("requirement_code") == REQUIREMENT,
            f"{label}: unexpected region/requirement")
     records = dataset.get("records")
@@ -147,7 +148,8 @@ def audit(source_raw: bytes, d_raw: bytes, normalized: dict, exported: dict,
     rows = source_rows(source_raw)
     norm_records = check_dataset(normalized, rows, "NormalizedDataset")
 
-    ensure(exported.get("region", {}).get("code") == REGION_CODE,
+    ensure(exported.get("region", {}).get("code") == REGION_CODE and
+           exported.get("region", {}).get("name") == "東京都江戸川区",
            "RegionExport region mismatch")
     ensure(exported.get("meta", {}).get("schema_version") == SCHEMA,
            "RegionExport schema mismatch")
@@ -178,10 +180,11 @@ def audit(source_raw: bytes, d_raw: bytes, normalized: dict, exported: dict,
     ensure(all(e.get("published_at") is None
                for e in evidence if isinstance(e, dict)),
            "Source update date must not be silently treated as initial published_at")
-    ensure(len(evidence) == sum(len(d.get("evidence", []))
-                               for d in datasets if isinstance(d, dict))
-           if exported.get("meta", {}).get("dataset_count") == 1 else True,
-           "Unexpected evidence count for single-dataset export")
+    ensure(exported["meta"].get("dataset_count") == len(datasets),
+           "RegionExport meta dataset_count mismatch")
+    ensure(exported["meta"].get("evidence_count") ==
+           sum(len(d.get("evidence", [])) for d in datasets if isinstance(d, dict)),
+           "RegionExport meta evidence_count mismatch")
     return {
         "status": "C_SOURCE_TO_EXPORT_CONSISTENT",
         "region_code": REGION_CODE,
