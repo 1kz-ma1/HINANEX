@@ -82,6 +82,11 @@ function fixtureFor(name) {
   if (name === "missing") body.datasets = [];
   if (name === "bad-region") body.region.code = "15100";
   if (name === "bad-contract") body.datasets[0].records[0].latitude = 35;
+  if (name === "licensed") {
+    body.datasets[0].evidence[0].publisher = "東京都江戸川区（合成検証値）";
+    body.datasets[0].evidence[0].license = "CC BY 2.1 JP";
+  }
+  if (name === "custom-license") body.datasets[0].evidence[0].license = "other";
   return body;
 }
 async function serve(realOutput = null) {
@@ -219,6 +224,9 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       assert.equal(await evaluate("document.querySelectorAll('#results script').length"), 0);
       assert.ok(await evaluate("document.querySelector('#sources').innerText.includes('利用ライセンス（D記録）: 未確認')"));
       assert.ok(await evaluate("document.querySelector('#sources').innerText.includes('HINANEXが表示用に再構成')"));
+      assert.equal(await evaluate("document.querySelector('#sources a.license-link')"), null);
+      assert.ok(await evaluate("document.querySelector('#sources').innerText.includes('出典：「合成資料」')"));
+      assert.ok(await evaluate("document.querySelector('#sources').innerText.includes('江戸川区がこの画面を作成・承認したものではありません')"));
       assert.ok(await evaluate("document.querySelector('#record-count').textContent.includes('座標なし 1件')"));
       console.log("F02_CONSUMER_HTTP: real HTTP HTML/CSS/ESM/JSON, safety, evidence and escaping PASS");
 
@@ -227,6 +235,17 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       assert.ok(await evaluate("(()=>{const q=document.querySelector('#search');q.value='該当なし';q.dispatchEvent(new Event('input',{bubbles:true}));return document.querySelector('#load-state').innerText.includes('検索に一致する記録はありません') && document.querySelectorAll('#results .record').length===0})()"));
       assert.ok(await evaluate("(()=>{const q=document.querySelector('#search');q.value='';q.dispatchEvent(new Event('input',{bubbles:true}));document.querySelectorAll('#results .record')[1].click();return document.querySelector('#detail').innerText.includes('○ / －') && document.querySelector('#detail').innerText.includes('敷地・入口・指定範囲は未承認')})()"));
       console.log("F02_CONSUMER_HTTP: NFKC search, focus, raw symbols, unknown fields, no-results PASS");
+
+      await navigate("licensed", "document.querySelector('#sources a.license-link') !== null");
+      assert.equal(await evaluate("document.querySelector('#sources a.license-link').href"),
+        "https://creativecommons.org/licenses/by/2.1/jp/");
+      assert.ok(await evaluate("document.querySelector('#sources a.license-link').rel.includes('noopener')"));
+      assert.ok(await evaluate("document.querySelector('#sources').innerText.includes('HINANEXが加工して作成')"));
+      assert.ok(await evaluate("document.querySelector('#sources').innerText.includes('利用ライセンス（D記録）: CC BY 2.1 JP')"));
+      await navigate("custom-license", "document.querySelector('#sources').innerText.includes('利用ライセンス（D記録）: other')");
+      assert.equal(await evaluate("document.querySelector('#sources a.license-link')"), null);
+      assert.ok(await evaluate("document.querySelector('#sources').innerText.includes('ライセンスURL: 未確認')"));
+      console.log("F02_CREDIT_HTTP: explicit source, adaptation and conditional CC BY 2.1 JP link PASS");
 
       for (const size of [[320, 700], [390, 844], [1440, 900]]) {
         await command("Emulation.setDeviceMetricsOverride",

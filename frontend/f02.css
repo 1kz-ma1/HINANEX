@@ -5,7 +5,7 @@
 .safety strong{color:#f9d48d}.header{background:white;padding:19px max(5vw,18px);display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #dce8e8}
 .brand{text-decoration:none;font-weight:800;letter-spacing:.02em;color:#205f66}.brand small{font-size:.7rem;color:#657b80;display:block;font-weight:500;letter-spacing:0}
 .flag{font-size:.7rem;color:#607b82;letter-spacing:.04em}.main{max-width:1200px;margin:auto;padding:44px 20px 65px}
-.intro{max-width:780px;margin-bottom:28px}.eyebrow{font-size:.75rem;font-weight:800;letter-spacing:.16em;color:#237b7d}
+.intro{max-width:780px;margin-bottom:28px}.intro .official-guidance{border-left:4px solid #006c70;padding:8px 12px;background:#e9f3f2;color:#203b46}.eyebrow{font-size:.75rem;font-weight:800;letter-spacing:.16em;color:#237b7d}
 h1{font-size:clamp(2rem,5vw,3.2rem);line-height:1.35;letter-spacing:-.05em;margin:4px 0 14px}.intro>p:last-child{color:#516c74;max-width:660px}
 .columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:16px;align-items:start}.panel{background:white;border:1px solid #dce7e7;border-radius:18px;padding:24px;box-shadow:0 8px 28px rgba(23,62,67,.04);min-width:0}
 .panel-head{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:20px}h2{font-size:1.12rem;margin:0}.region{font-size:.72rem;background:#e5f3f2;color:#246d71;border-radius:100px;padding:4px 10px}
