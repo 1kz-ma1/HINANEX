@@ -28,20 +28,52 @@ function waitForProcessExit(child, timeoutMs) {
     child.once("exit", onExit);
   });
 }
-async function stopChrome(child, profile, ws = null) {
-  if (ws) ws.close();
-  if (child.exitCode === null && child.signalCode === null) {
-    child.kill("SIGTERM");
-    if (!await waitForProcessExit(child, 4000)) {
-      child.kill("SIGKILL");
-      if (!await waitForProcessExit(child, 4000)) {
-        throw new Error("Chrome did not exit; refusing to remove an active browser profile");
+function signalChromeTree(child,signal){
+  // Chrome's Linux helper processes must be stopped with their isolated group.
+  // Windows retains the normal process termination path.
+  if(process.platform!=="win32"&&Number.isInteger(child.pid)){
+    try{process.kill(-child.pid,signal);return;}
+    catch(error){if(error.code!=="ESRCH")throw error;}
+  }
+  if(child.exitCode===null&&child.signalCode===null)child.kill(signal);
+}
+async function removeProfileAfterChromeExit(profile){
+  // Chrome's helper processes can still flush files after the launcher exits.
+  // A failed removal is a test failure, never a reason to claim browser PASS.
+  const transient=new Set(["ENOTEMPTY","EBUSY","EPERM","EACCES"]);
+  for(let attempt=0;attempt<15;attempt++){
+    try{
+      await fs.promises.rm(profile,{recursive:true,force:true,maxRetries:3,retryDelay:200});
+      if(!fs.existsSync(profile))return;
+    }catch(error){
+      if(!transient.has(error.code)||attempt===14)throw error;
+    }
+    await wait(300);
+  }
+  throw Error("Chrome profile remains after bounded cleanup retries: "+profile);
+}
+async function stopChrome(child,profile,ws=null){
+  if(ws){try{ws.close();}catch{/* Chrome may already be terminating. */}}
+  if(child.exitCode===null&&child.signalCode===null){
+    signalChromeTree(child,"SIGTERM");
+    if(!await waitForProcessExit(child,4000)){
+      signalChromeTree(child,"SIGKILL");
+      if(!await waitForProcessExit(child,4000)){
+        throw Error("Chrome did not exit; refusing to remove an active browser profile");
       }
     }
   }
-  // Windows can hold Chrome's profile files briefly after the process exits.
-  fs.rmSync(profile, { recursive: true, force: true, maxRetries: 8, retryDelay: 350 });
+  // The launcher can exit while Chrome helpers still hold the profile/pipe.
+  if(process.platform!=="win32")signalChromeTree(child,"SIGTERM");
+  if(ws&&ws.readyState!==WebSocket.CLOSED){
+    await Promise.race([
+      new Promise(resolve=>ws.addEventListener("close",resolve,{once:true})),
+      wait(1500),
+    ]);
+  }
+  await removeProfileAfterChromeExit(profile);
 }
+
 function browserBinary() {
   for (const name of [process.env.F02_BROWSER_BIN, process.env.CHROME_BIN,
     "/usr/bin/google-chrome", "/usr/bin/chromium", "google-chrome", "chromium"].filter(Boolean)) {
@@ -125,9 +157,10 @@ async function launchChrome(bin) {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), "f02-consumer-chrome-"));
   const child = spawn(bin, ["--headless=new", "--no-sandbox", "--disable-dev-shm-usage",
     "--disable-background-networking", "--no-first-run", "--remote-debugging-port=0",
-    "--user-data-dir=" + profile, "about:blank"], { stdio: ["ignore", "ignore", "pipe"] });
+    "--user-data-dir=" + profile, "about:blank"], { stdio: ["ignore", "ignore", "pipe"], detached: process.platform !== "win32" });
   let diagnostics = "";
   child.stderr.on("data", x => { diagnostics = (diagnostics + x.toString()).slice(-1000); });
+  let ws = null;
   try {
     let port = 0;
     for (let i = 0; i < 300; i++) {
@@ -140,13 +173,14 @@ async function launchChrome(bin) {
       await wait(100);
     }
     if (!port) throw Error("Chrome CDP startup timed out: " + diagnostics);
-    const targets = await (await fetch("http://127.0.0.1:" + port + "/json/list")).json();
+    const targets = await (await fetch("http://127.0.0.1:" + port + "/json/list", { signal: AbortSignal.timeout(10000) })).json();
     const page = targets.find(x => x.type === "page" && x.webSocketDebuggerUrl);
     if (!page) throw Error("Chrome CDP page unavailable");
-    const ws = new WebSocket(page.webSocketDebuggerUrl);
+    ws = new WebSocket(page.webSocketDebuggerUrl);
     await new Promise((resolve, reject) => {
-      ws.addEventListener("open", resolve, { once: true });
-      ws.addEventListener("error", reject, { once: true });
+      const timer = setTimeout(() => reject(Error("CDP WebSocket open timed out")), 12000);
+      ws.addEventListener("open", () => { clearTimeout(timer); resolve(); }, { once: true });
+      ws.addEventListener("error", () => { clearTimeout(timer); reject(Error("CDP WebSocket failed")); }, { once: true });
     });
     let nextId = 0;
     const pending = new Map();
@@ -164,10 +198,22 @@ async function launchChrome(bin) {
       pending.delete(message.id);
       message.error ? task.reject(Error(message.error.message)) : task.resolve(message.result);
     });
+    ws.addEventListener("close", () => {
+      for (const task of pending.values()) task.reject(Error("CDP WebSocket closed"));
+      pending.clear();
+    });
     const command = (method, params = {}) => new Promise((resolve, reject) => {
       const id = ++nextId;
-      pending.set(id, { resolve, reject });
-      ws.send(JSON.stringify({ id, method, params }));
+      const timer = setTimeout(() => {
+        pending.delete(id);
+        reject(Error("CDP command timed out: " + method));
+      }, 15000);
+      pending.set(id, {
+        resolve: value => { clearTimeout(timer); resolve(value); },
+        reject: error => { clearTimeout(timer); reject(error); },
+      });
+      try { ws.send(JSON.stringify({ id, method, params })); }
+      catch (error) { pending.delete(id); clearTimeout(timer); reject(error); }
     });
     const evaluate = async expression => {
       const result = await command("Runtime.evaluate",
@@ -180,7 +226,7 @@ async function launchChrome(bin) {
     };
     return { profile, child, ws, command, evaluate, exceptions, outbound };
   } catch (error) {
-    await stopChrome(child, profile);
+    await stopChrome(child, profile, ws);
     throw error;
   }
 }
@@ -350,9 +396,13 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
         "Unexpected network request: " + browser.outbound.join("; "));
       console.log("F02_CONSUMER_HTTP: empty/missing/invalid/HTTP-error states, responsive widths and no external requests PASS");
     } finally {
-      if (browser) {
-        await stopChrome(browser.child, browser.profile, browser.ws);
+      try {
+        if (browser) await stopChrome(browser.child, browser.profile, browser.ws);
+      } finally {
+        await new Promise((resolve, reject) => {
+          server.close(error => error ? reject(error) : resolve());
+          server.closeAllConnections();
+        });
       }
-      await new Promise(resolve => server.close(resolve));
     }
   });
