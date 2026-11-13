@@ -79,6 +79,37 @@ def _copy_tree(source: Path, destination: Path) -> None:
     shutil.copytree(source, destination)
 
 
+# Paths present in repository QA branches but not approved for public staging.
+# Match exact relative paths (or directory roots), not broad substrings: other
+# supported Frontend pages and existing synthetic prototypes remain unchanged.
+UNPUBLISHED_F03_PREVIEW_PATHS = frozenset({
+    "prototypes/f03-storage-contract-qa",
+    "docs/F03_P02_STORAGE_CONTRACT_QA_20261111.md",
+    "docs/evidence/f03-p02-20261111",
+    "tests/f03-storage-contract.test.js",
+    "tests/f03-storage-http-chrome.test.js",
+})
+
+
+def _copy_public_frontend(source: Path, destination: Path) -> None:
+    """Copy Frontend without exposing unpublished F03 QA UI, tests, or evidence."""
+    if not source.is_dir():
+        raise StagingBuildError(f"Required static directory is missing: {source}")
+
+    def unpublished_preview_only(directory: str, names: list[str]) -> set[str]:
+        relative = Path(directory).relative_to(source)
+        return {
+            name for name in names
+            if (relative / name).as_posix() in UNPUBLISHED_F03_PREVIEW_PATHS
+        }
+
+    shutil.copytree(source, destination, ignore=unpublished_preview_only)
+    # Fail closed if a future copy implementation accidentally leaks QA assets.
+    for relative in UNPUBLISHED_F03_PREVIEW_PATHS:
+        if (destination / relative).exists():
+            raise StagingBuildError(f"Unpublished F03 preview in staging bundle: {relative}")
+
+
 def build_bundle(
     root: Path,
     output_dir: Path,
@@ -119,7 +150,7 @@ def build_bundle(
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True)
 
-    _copy_tree(root / "frontend", output_dir / "frontend")
+    _copy_public_frontend(root / "frontend", output_dir / "frontend")
     _copy_tree(root / "gis" / "gis", output_dir / "gis" / "gis")
 
     published_output = output_dir / "pipeline" / "data" / "output"
