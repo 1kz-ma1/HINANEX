@@ -624,3 +624,12 @@ footer{display:none}
   .official-alerts-panel{left:8px;right:8px;bottom:70px;width:calc(100% - 16px);
     max-height:min(69%,510px)}
 }
+
+/* Issue #299: Leaflet defaults to 30px; phone zoom controls need 44px hit boxes.
+   Presentation-only. Does not affect zoom levels, map tiles or hazard colors. */
+@media(max-width:680px){
+  .map-wrap .leaflet-control-zoom a{
+    box-sizing:border-box;
+    width:44px;height:44px;line-height:44px;
+  }
+}
