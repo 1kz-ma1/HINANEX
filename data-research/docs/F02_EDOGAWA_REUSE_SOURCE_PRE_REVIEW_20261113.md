@@ -168,3 +168,18 @@ python audit_edogawa_csv_rights.py "20251211_hinanhokan.csv" --expected-sha256 6
 このスクリプトは**この会話のダウンロード用ZIPに同梱**されており、GitHubリポジトリへ原本や解析JSONを無断commitしていない。スクリプトと出力JSONにはCSVが掲載する施設名・コメントの一部が含まれる可能性があるため、公開する前に確認する。出力の`same_bytes_as_expected`がtrueの場合のみ「過去のMac確認CSVと同じバイト」と記録する。 false、取得失敗、またはNULLの場合は、承認とデータ同一性を保留する。
 
 **追記時点の判定: `A-L01=WAITING_FOR_ACTUAL_CSV_AND_HUMAN_SIGNOFF`。** 個別例外の未検出は引き続き別チャットの**提出報告**であり独立検証ではない。公式一般条件の適用見通しは維持するが、具体的CSV固有の権利や正式公開範囲をAIだけで承認しない。PR #367 Draft/blocked維持。
+
+---
+
+## 最新検証：アップロードされた実CSVの独立監査（2026-11-13）
+
+**直前の「CSV入手不能・NOT RUN」は過去の実行状況。後続会話で実CSVが添付され、実物検証が完了した。**
+
+結果全文：[`F02_EDOGAWA_CSV_RIGHTS_ACTUAL_SCAN_20261113.md`](F02_EDOGAWA_CSV_RIGHTS_ACTUAL_SCAN_20261113.md)。
+
+- **PASS（実CSV）：** CP932、24,777 bytes、6列、152施設、Malformed 0、コメント1行、URL146件（HTTP92/HTTPS54）、アイコンURLの `fire.png` が151行。権利制限キーワードは全セルで0件。
+- **PASS（過去Mac照合）：** 添付CSVのSHA-256 `64b1c02377ac6caa2cf58faaf45e34ed76d01b7230c9c4d4590432864700d7ea` が既報の公式CSV/D raw一致値と**完全一致**。元ファイルのバイト同一性を確認したが、この実行で自治体の公式サーバーから再取得したわけではない。
+- **詳細の補正：** 旧下小岩小学校（体育館のみ使用）は見出しを含めCSV行115。前の別AI報告の116行目とは1行差。`fire.png` は単一行ではなく151施設の欄に繰り返し存在する。
+- **PASS（合成テスト）：** 配布済みのPython検査器の正常系/権利語検出/不正列拒否 3/3。実CSVを使ったSHA・全行スキャンもPASS。
+- **権利の限定：** 明示的な個別CSV例外が検出されず一般CC BY 2.1 JPで再利用する合理的根拠が強まった。ただし第三者権利の不存在証明、外部写真/ロゴ/アイコンの転載許諾、施設安全性・開設・公開承認ではない。
+- **ゲート更新：** `A-L01_CSV_TECHNICAL_SCAN=PASS`、`A-L01_HUMAN_SCOPE_SIGNOFF=PENDING`、`A-L02/A-L03/B-U01/Owner-R01=PENDING`、公開・避難誘導 `NO GO`。Issue #366はOpen、PR #367はDraft/blockedを維持。実CSV原本と出力JSONはGitHubへ追加していない。
