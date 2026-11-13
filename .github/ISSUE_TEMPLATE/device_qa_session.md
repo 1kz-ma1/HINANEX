@@ -6,7 +6,7 @@ labels: "area: shared"
 assignees: ""
 ---
 
-> 共通バックログ: [#372](https://github.com/1kz-ma1/HINANEX/issues/372) | 運用仕様: [Implementation-first Device QA](../../docs/strategy/HINANEX_IMPLEMENTATION_FIRST_DEVICE_QA_20261113.md) | 最優先: [AGENTS.md](../../AGENTS.md)
+> 共通バックログ: [#372](https://github.com/1kz-ma1/HINANEX/issues/372) | 運用仕様: [Implementation-first Device QA](https://github.com/1kz-ma1/HINANEX/blob/main/docs/strategy/HINANEX_IMPLEMENTATION_FIRST_DEVICE_QA_20261113.md) | 最優先: [AGENTS.md](https://github.com/1kz-ma1/HINANEX/blob/main/AGENTS.md)
 >
 > 本Issueは**人間の物理端末検証**だけを記録する。Chrome CI / Simulatorを実機PASS扱いにしない。未承認災害データ・経路・施設位置/開設/安全性を勝手に承認しない。
 
