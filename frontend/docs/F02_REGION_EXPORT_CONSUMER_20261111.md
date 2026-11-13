@@ -113,3 +113,11 @@ Remove-Item Env:F02_REAL_EXPORT_PATH
 - 新Chrome E2Eで合成のCC BY表示／欠損・別ライセンス／出典・加工表示／rel noopenerを確認。CI [Actions #43346598946](https://github.com/1kz-ma1/HINANEX/actions/runs/43346598946) at code HEAD `8edd7000a79798c8618b328fde1f385a0b77e7c2`: required `test` SUCCESS、B `94/94` PASS、Node関連 `24/24` PASS。
 - **C Source→Export全行の技術整合は利用者Mac報告でPASS**: 江戸川区CSVのSHA256 `64b1c02377ac6caa2cf58faaf45e34ed76d01b7230c9c4d4590432864700d7ea`、152レコード/不一致0（C PR #365 / Issue #364）。施設の公式指定や実敷地位置・入口/災害適合/安全・開設の承認ではない。
 - **判定:** 内部の読み取り専用参考表示を維持。一般ナビ・GIS・避難先推薦・外部公開への自動移行はなし。個別権利・ライセンス条件の正式レビュー、施設意味の個別根拠、公開範囲・運用・アクセシビリティの人間判断はHOLD。B PR #357はDraft / merge: blockedを維持。
+
+## 2026-11-13 アクセシビリティ・誤誘導防止（開発環境スコープ）
+
+- **追加のB変更:** `frontend/f02.html` の検索欄に `aria-controls=results`・`aria-describedby=record-count`、一覧に `role=group` とアクセス可能な一覧名を付与。静的CSVでは分からない現在の開設・混雑情報について、[江戸川区の公式防災アプリ・ポータル案内](https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/oshirase/bousaiapuri.html) への**ユーザーが選択する場合のみ開く**リンクを表示。表示時に外部へ自動通信しない。
+- **施設詳細:** Dの `facility_type` は名称「（補完施設）」に基づく内部分類であり、公式の法的指定ではないと明示。元CSVから正規化/ExportへのC行変換の整合性が確認されても、個別の敷地・入口・法的指定・災害適合/開設承認ではないことを明示。RegionExportの属性は補完・変更しない。
+- **追加E2E（合成データ）:** headless実HTTP Chromeで検索欄/一覧/公式リンクのアクセシビリティツリー上の名前、検索欄からTabで最初の施設へ移動、Enterで詳細選択し見出しへフォーカス移動、誤誘導防止文言、リンクのrel属性を検証。テストは公式の施設安全性を評価しない。
+- **現物Mac実機（人間の手動確認・未実施）:** SafariとVoiceOverで①ページ先頭の「検証中・参考情報」が読める、②検索欄のラベルと件数が分かる、③Tab→Enterで施設を選択できる、④詳細の見出し/未確認文言/名称由来の施設分類に到達する、⑤外部の公式案内リンクが区の公式情報へ遷移する、⑥320 CSS px相当/表示文字拡大でも主要操作を失わない、を記録する。iPhone VoiceOver・Android TalkBackは別の実機/担当レビューが必要。
+- **公開/安全境界:** 静的CSVに現在の開設状態を混ぜず、HINANEXは避難先推薦・ルート案内を行わない。A正式出典利用条件は [Issue #366](https://github.com/1kz-ma1/HINANEX/issues/366) / A Draft PR #367（AI一次資料予備レビュー）で**人間判断を未承認**。一般ナビ/外部公開、GIS接続はNO-GO。
