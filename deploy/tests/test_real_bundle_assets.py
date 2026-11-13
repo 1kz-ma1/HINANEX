@@ -79,6 +79,22 @@ class ActualStagingBundleSmokeTests(unittest.TestCase):
                 fixture = root / "frontend" / relative
                 fixture.parent.mkdir(parents=True, exist_ok=True)
                 fixture.write_text(content, encoding="utf-8")
+            # F05 local-only journey #371 exists on a separate Draft branch.
+            # Seed its known paths and future nested assets to prove all remain
+            # private even after source-only integration into main.
+            unpublished_f05_fixture = {
+                "prototypes/f05-flood-journey/index.html": "<title>F05 private</title>",
+                "prototypes/f05-flood-journey/README.md": "F05 local-only guide",
+                "prototypes/f05-flood-journey/assets/future.css": "body {}",
+                "prototypes/f05-flood-journey/assets/deep/future.js": "const unpublished = true;",
+                "src/f05-journey-model.js": "export const privateF05 = true;",
+                "tests/f05-journey.test.js": "F05 private tests",
+                "docs/F05_MINIMAL_JOURNEY_20261113.md": "F05 private QA",
+            }
+            for relative, content in unpublished_f05_fixture.items():
+                fixture = root / "frontend" / relative
+                fixture.parent.mkdir(parents=True, exist_ok=True)
+                fixture.write_text(content, encoding="utf-8")
             evidence_file = root / "validation" / "demo" / "2019_edogawa_evidence_cases.json"
             evidence_file.parent.mkdir(parents=True)
             shutil.copyfile(
@@ -116,6 +132,20 @@ class ActualStagingBundleSmokeTests(unittest.TestCase):
                     (bundle / "frontend" / private_path).exists(),
                     f"Unapproved F02 facility preview leaked: {private_path}",
                 )
+            for private_path in unpublished_f05_fixture:
+                self.assertTrue((root / "frontend" / private_path).is_file())
+                self.assertFalse(
+                    (bundle / "frontend" / private_path).exists(),
+                    f"Unapproved F05 local prototype leaked: {private_path}",
+                )
+            self.assertFalse(
+                (bundle / "frontend" / "prototypes" / "f05-flood-journey").exists(),
+                "F05 prototype directory must never appear in the public bundle",
+            )
+            self.assertTrue(
+                (bundle / "frontend" / "prototypes" / "f02-shelter-explore" / "index.html").is_file(),
+                "Approved synthetic F02 prototype must remain public",
+            )
             for page in ("index.html", "frontend/index.html", "gis/gis/index.html"):
                 html_path = bundle / page
                 self.assertTrue(html_path.is_file(), page)
