@@ -32,6 +32,18 @@ deploy/dist/
 
 FrontendとGISは同じD RegionExportを参照します。runtime artifactはGitへcommitしません。
 
+## F03/P-02独立QAの非公開境界（2026-11-13）
+
+F03端末保存の独立試作（[PR #359](https://github.com/1kz-ma1/HINANEX/pull/359)）は、**ソース/テスト証跡としてリポジトリへ取り込めても、本番相当のRender Stagingには配信しない**。ビルド時に次を明示的に除外する。
+
+- `frontend/prototypes/f03-storage-contract-qa/**`（ページ・JS・CSS・説明）
+- `frontend/docs/F03_P02_STORAGE_CONTRACT_QA_20261111.md` と `frontend/docs/evidence/f03-p02-20261111/**`
+- `frontend/tests/f03-storage-contract.test.js` と `frontend/tests/f03-storage-http-chrome.test.js`
+
+対象は`deploy/build_staging.py`の公開Front-endコピーのみ。**Git上のテスト・証跡・ソースは保持**し、CIのF03回帰は従来どおり実行する。既存のB分析ページ、他の試作、GIS、RegionExport/Schemaは変更しない。テストでは配布物の中にQA用ファイルがないことに加え、他の公開資産が残ることを確認する。
+
+これは **F03の正式保存仕様/同意/保存期間・権限の承認ではない**。新規F03ファイルが増えた際には配布ホワイトリストの再審査が必要。将来の一般公開は独立Issue/PRとオーナー受入を必須とする。
+
 ## Render設定
 
 - Repository: `https://github.com/1kz-ma1/HINANEX`
