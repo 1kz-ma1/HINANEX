@@ -155,3 +155,17 @@ npm run preview:f02
 - **回帰テスト:** 合成50件の長い一覧でスクロール後の施設選択を2回実施し、`scrollY`が変化せず、ボタンDOM、ARIAの選択状態、見出しフォーカス、右詳細表示が保たれることをChrome HTTP E2Eで確認する。通常の検索・キーボードEnter操作の既存テストも維持。
 - **実機再確認待ち:** Mac Safariでページ中ほどの施設を連続クリックし、スクロール位置が維持されるか。狭い画面でも勝手に最上部へ戻らないか。VoiceOverの読み上げやフォーカス順序は別途人間の評価が必要で、自動Chrome成功を実機PASSへ代用しない。
 - **公開/統合判定:** 非公開read-only・Draft / `merge: blocked`は維持。施設開設/指定/安全/経路/許諾判断を変更しない。
+
+## 2026-11-13 Mac Safari/VoiceOver実機受入結果（ユーザー報告）
+
+- **実施環境:** Mac Safari / VoiceOver。利用者がF02ローカルプレビューで操作・読み上げを確認し、本チャットで各項目の結果を提出。実施日: 2026-11-13（JST）。
+- **PASS 5/5（利用者による実機検証報告）**:
+  1. 検索欄のラベル読み上げ・検索操作：PASS。
+  2. 施設一覧の読み上げ・施設選択：PASS。
+  3. 施設詳細と「未確認」等の案内：PASS。
+  4. 施設選択時のスクロール・フォーカスの操作安定性：PASS。
+  5. Datasetの出典・注意事項の理解：PASS。
+- **前提の不具合確認:** 同日、利用者から「施設を選択するたびに画面最上部に引き戻される」不具合報告があり、選択時のDOM全再生成廃止と `focus({preventScroll:true})` の修正後に「修正出来てる」と実機報告を受領。
+- **証拠の範囲:** 上記のPASSは利用者の自己報告であり、AI側がMacの画面/音声/操作ログを独立記録したものではない。5項目以外（200%ズームの可用性、320 CSS px実機、iOS VoiceOver、Android TalkBack、他ブラウザ）はPASSと記載しない。Chrome E2E/CIは別の検証。
+- **UI受入判定:** **Mac Safari/VoiceOverの指定5項目はPASS（利用者受入）**。F02画面のread-only UI操作の受入対象として扱う。
+- **変わらない公開境界:** `physical_site_identity=NOT_APPROVED`, `flood_suitability=NOT_EVALUATED`, `publication_approval=NOT_GRANTED`。A Issue #366 の当該CSV利用条件/第三者権利、個別施設の正式指定・入口・開設・災害適合、公開運用は引き続き別の未承認ゲート。PR #357 はDraft / `merge: blocked`、本番公開・避難先推薦・GIS接続はNO-GO。
