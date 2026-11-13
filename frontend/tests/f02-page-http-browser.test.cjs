@@ -80,6 +80,13 @@ function fixtureFor(name) {
   if (name === "missing") body.datasets = [];
   if (name === "bad-region") body.region.code = "15100";
   if (name === "bad-contract") body.datasets[0].records[0].latitude = 35;
+  if (name === "long-list") {
+    body.datasets[0].records = Array.from({length: 50}, (_, i) => ({
+      id: "synthetic-scroll-" + i, name: "架空の検証施設" + i,
+      address: null, facility_type: null, supported_disasters: null,
+      latitude: null, longitude: null
+    }));
+  }
   if (name === "licensed") {
     body.datasets[0].evidence[0].publisher = "東京都江戸川区（合成検証値）";
     body.datasets[0].evidence[0].license = "CC BY 2.1 JP";
@@ -296,6 +303,29 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
         assert.ok(metric.overflow <= 2, "Horizontal overflow at " + size[0] + "px: " + metric.overflow);
       }
       await command("Emulation.clearDeviceMetricsOverride");
+      await command("Emulation.setDeviceMetricsOverride",
+        { width: 1440, height: 700, deviceScaleFactor: 1, mobile: false });
+      await navigate("long-list", "document.querySelectorAll('#results .record').length===50");
+      assert.equal(await evaluate("getComputedStyle(document.querySelector('.columns>.panel:nth-child(2)')).position"),
+        "sticky", "Details should remain visible beside a long desktop list");
+      const initialScroll = await evaluate("(()=>{const b=document.querySelectorAll('#results .record')[39];b.scrollIntoView({block:'center'});window.__f02ScrollButton=b;return scrollY})()");
+      assert.ok(initialScroll > 200, "Long list must actually scroll before testing selection");
+      const selected = await evaluate("(()=>{const b=window.__f02ScrollButton;b.click();return {position:scrollY,sameNode:document.querySelectorAll('#results .record')[39]===b,active:document.activeElement?.id,pressed:b.getAttribute('aria-pressed'),detail:document.querySelector('#detail h3')?.innerText}})()");
+      assert.ok(Math.abs(selected.position - initialScroll) < 3,
+        "Selecting the facility unexpectedly scrolled from " + initialScroll + " to " + selected.position);
+      assert.equal(selected.sameNode, true, "Do not replace list buttons when selecting a facility");
+      assert.equal(selected.active, "detail-title", "Preserve accessible detail focus without scrolling");
+      assert.equal(selected.pressed, "true");
+      assert.equal(selected.detail, "架空の検証施設39");
+      const nextSelected = await evaluate("(()=>{const b=document.querySelectorAll('#results .record')[40];b.click();return {position:scrollY,pressed:b.getAttribute('aria-pressed'),previous:document.querySelectorAll('#results .record')[39].getAttribute('aria-pressed'),detail:document.querySelector('#detail h3')?.innerText}})()");
+      assert.ok(Math.abs(nextSelected.position - initialScroll) < 3,
+        "Repeated facility selection unexpectedly scrolled");
+      assert.equal(nextSelected.pressed, "true");
+      assert.equal(nextSelected.previous, "false");
+      assert.equal(nextSelected.detail, "架空の検証施設40");
+      await command("Emulation.clearDeviceMetricsOverride");
+      console.log("F02_SCROLL_HTTP: repeated selection preserves viewport, existing list DOM, detail focus and sticky desktop panel PASS");
+
       await navigate("empty", "document.querySelector('#load-state')?.innerText.includes('記録は0件です')");
       assert.equal(await evaluate("document.querySelectorAll('#results .record').length"), 0);
       await navigate("missing", "document.querySelector('#load-state')?.innerText.includes('Datasetが収録されていません')");
