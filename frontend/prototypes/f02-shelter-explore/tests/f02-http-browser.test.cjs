@@ -19,8 +19,23 @@ function waitForProcessExit(child,timeoutMs){
     child.once("exit",onExit);
   });
 }
+async function removeProfileAfterChromeExit(profile){
+  // Chrome's helper processes can still flush files after the launcher exits.
+  // A failed removal is a test failure, never a reason to claim browser PASS.
+  const transient=new Set(["ENOTEMPTY","EBUSY","EPERM","EACCES"]);
+  for(let attempt=0;attempt<15;attempt++){
+    try{
+      await fs.promises.rm(profile,{recursive:true,force:true,maxRetries:3,retryDelay:200});
+      if(!fs.existsSync(profile))return;
+    }catch(error){
+      if(!transient.has(error.code)||attempt===14)throw error;
+    }
+    await wait(300);
+  }
+  throw Error("Chrome profile remains after bounded cleanup retries: "+profile);
+}
 async function stopChrome(child,profile,ws=null){
-  if(ws)ws.close();
+  if(ws){try{ws.close();}catch{/* Chrome may already be terminating. */}}
   if(child.exitCode===null&&child.signalCode===null){
     child.kill("SIGTERM");
     if(!await waitForProcessExit(child,4000)){
@@ -30,7 +45,13 @@ async function stopChrome(child,profile,ws=null){
       }
     }
   }
-  fs.rmSync(profile,{recursive:true,force:true,maxRetries:8,retryDelay:350});
+  if(ws&&ws.readyState!==WebSocket.CLOSED){
+    await Promise.race([
+      new Promise(resolve=>ws.addEventListener("close",resolve,{once:true})),
+      wait(1500),
+    ]);
+  }
+  await removeProfileAfterChromeExit(profile);
 }
 
 function chromeBinary(){
@@ -63,7 +84,7 @@ async function launch(bin){
   let stderr="";child.stderr.on("data",x=>{stderr=(stderr+x.toString()).slice(-1500);});
   try{
     let port=0;
-    for(let i=0;i<150;i++){
+    for(let i=0;i<300;i++){
       const active=path.join(profile,"DevToolsActivePort");
       if(fs.existsSync(active)){port=Number(fs.readFileSync(active,"utf8").split("\n")[0]);break;}
       if(child.exitCode!==null)throw Error("Browser exited: "+stderr);
@@ -142,7 +163,14 @@ test("F02 HTTP-served Chrome functional and error-state acceptance",{timeout:900
       "Unexpected external request: "+browser.requests.join("; "));
     console.log("F02_REAL_HTTP: 320/390/1440 responsive, no JS errors or outbound HTTP PASS");
   }finally{
-    if(browser){await stopChrome(browser.child,browser.profile,browser.ws);}
-    await new Promise(resolve=>server.close(resolve));
+    try{
+      if(browser){await stopChrome(browser.child,browser.profile,browser.ws);}
+    }finally{
+      // Always release HTTP sockets, including when Chrome profile cleanup fails.
+      await new Promise((resolve,reject)=>{
+        server.close(error=>error?reject(error):resolve());
+        server.closeAllConnections();
+      });
+    }
   }
 });
