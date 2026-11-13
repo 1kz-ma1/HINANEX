@@ -104,11 +104,23 @@ UNPUBLISHED_F02_PREVIEW_PATHS = frozenset({
     "tests/f02-real-export-check.test.js",
     "tests/f02-shelter-reference.test.js",
 })
-UNPUBLISHED_PREVIEW_PATHS = UNPUBLISHED_F03_PREVIEW_PATHS | UNPUBLISHED_F02_PREVIEW_PATHS
+UNPUBLISHED_F05_PREVIEW_PATHS = frozenset({
+    # Issue #373: never ship the local-only F05 journey from PR #371.
+    # A directory root covers all future assets nested under the prototype.
+    "prototypes/f05-flood-journey",
+    "src/f05-journey-model.js",
+    "tests/f05-journey.test.js",
+    "docs/F05_MINIMAL_JOURNEY_20261113.md",
+})
+UNPUBLISHED_PREVIEW_PATHS = (
+    UNPUBLISHED_F03_PREVIEW_PATHS
+    | UNPUBLISHED_F02_PREVIEW_PATHS
+    | UNPUBLISHED_F05_PREVIEW_PATHS
+)
 
 
 def _copy_public_frontend(source: Path, destination: Path) -> None:
-    """Copy Frontend without exposing unapproved F02/F03 preview assets."""
+    """Copy Frontend without exposing unapproved F02/F03/F05 preview assets."""
     if not source.is_dir():
         raise StagingBuildError(f"Required static directory is missing: {source}")
 
@@ -123,7 +135,7 @@ def _copy_public_frontend(source: Path, destination: Path) -> None:
     # Fail closed if a future copy implementation accidentally leaks QA assets.
     for relative in UNPUBLISHED_PREVIEW_PATHS:
         if (destination / relative).exists():
-            raise StagingBuildError(f"Unpublished F02/F03 preview in staging bundle: {relative}")
+            raise StagingBuildError(f"Unpublished preview in staging bundle: {relative}")
 
 
 def build_bundle(
