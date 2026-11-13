@@ -23,20 +23,23 @@ Claude Code、GitHub Copilot、Gemini、Cursor、ChatGPT、その他の AI ツ�
 
 ---
 
-## 2. Repository Ownership
+## 2. Architecture Boundaries and Feature Ownership
 
-HINANEX は担当ごとの責務を分離します。
+HINANEX は **実現する利用者価値・3軸の成長・依存関係** を基準に実装を計画します。A〜E は過去の担当区分であり、現在は人・AI・チャットの作業権限や着手順序を固定するものではありません。単一の開発者が複数領域を一貫して扱って構いません。
 
-| Area | Directory | Responsibility |
+| Legacy area | Directory | Technical responsibility |
 |---|---|---|
 | A | `data-research/` | 公開データ調査、Evidence、出典・更新日・形式・ライセンスの記録 |
 | B | `frontend/` | UI、Dashboard、分析結果の表示 |
-| C | `validation/` | Source → Output の検証、テスト、発表用の検証根拠 |
+| C | `validation/` | Source → Output の独立検証、テスト、検証根拠 |
 | D | `pipeline/` | 取得、Adapter、共通Schema、評価、Capability、Gap、Recommendation、Export |
 | E | `gis/` | GIS、地図、GeoJSON、空間可視化 |
 
-AI は依頼された担当領域以外を「ついでに改善」してはいけません。
-他担当の変更が必要になった場合は、共有契約または明示的な依存 PR として切り分けてください。
+ディレクトリと契約の境界は **技術的な責務と検証の独立性** を示すもので、担当者の境界ではありません。
+
+- ひとつの目的に必要な複数ディレクトリの変更は、影響範囲・Contract・必要なテスト・並行作業との競合を明記したうえで、機能単位のPRとして進めてよい。
+- 無関係な「ついで修正」は混ぜない。共有Schemaの破壊的変更、安全性判断、検証を自己承認する変更は、別PRまたは明示的な検証ゲートで扱う。
+- 実装と独立検証は同じ人が実行してもよいが、別経路の原本照合・明示的な人間判断を省略したり、架空の別レビュアー承認を記録したりしてはいけない。
 
 ---
 
@@ -54,32 +57,13 @@ AI は依頼された担当領域以外を「ついでに改善」してはい�
 Approve と Merge は別物です。
 レビュー済みでも、依存関係・最新 main・CI・契約互換性を確認するまでは merge してはいけません。
 
-### 3.2 Role branches
+### 3.2 Feature-first branches
 
-通常開発では、担当ごとの統合ブランチを使用できます。
+新規作業は原則 **機能・改善課題ごとの短命ブランチ**（例: `feature/flood-comparison-flow`, `fix/source-version-gate`, `docs/three-axis-plan`）で進めます。必要な複数領域を横断できますが、PRには変更理由・影響ディレクトリ・Contractへの影響・検証範囲を記載します。
 
-- `role/a-data`
-- `role/b-frontend`
-- `role/c-validation`
-- `role/d-pipeline`
-- `role/e-gis`
+既存の `role/a-data` / `role/b-frontend` / `role/c-validation` / `role/d-pipeline` / `role/e-gis` と `feature/a-*` 等は、未完了作業を安全に継続するため **互換として維持** します。新規作業に利用を強制しません。role-scoped branchのScope Guardは従来どおり有効です。
 
-担当内で複数変更を並行する場合は、role branch から短命 feature branch を切り、role branch へ統合します。
-
-例:
-
-```text
-main
- ├─ role/d-pipeline
- │   ├─ feature/d-add-hazard-requirement
- │   └─ fix/d-nagoya-parser
- │
- └─ role/b-frontend
-     └─ feature/b-hazard-card
-```
-
-担当内の作業を進めるために、毎回 main へ merge する必要はありません。
-**統合したいタイミングで手を止め、main へ入れて安全かを確認してから順番に merge します。**
+前提PRがある場合は依存ブランチを用い、競合を避けて並行開発します。**統合したいタイミングで手を止め、mainへ入れて安全かを確認してから順番にmergeします。**
 
 ### 3.3 Dependent / stacked PRs
 
@@ -87,7 +71,7 @@ main
 
 その場合は:
 
-- 後続ブランチを前提ブランチから切る、または適切な role branch を base にする。
+- 後続ブランチを前提ブランチから切る、または依存関係に合うfeature/既存role branchをbaseにする。
 - PR 本文に `Depends on: #<PR番号>` を明記する。
 - 前提が未解決の PR は原則 Draft または blocked 扱いにする。
 - 前提 PR が main に入った後、後続 PR を最新 main に追従させて再テストする。
@@ -115,7 +99,7 @@ main へ merge する直前に必ず:
 2. conflict を解消する。
 3. CI / tests を再実行する。
 4. Contract 互換性を確認する。
-5. 他担当領域への意図しない変更がないことを確認する。
+5. 依頼範囲外の意図しない変更がないことと、変更した全領域のテストを確認する。
 6. Merge Captain が merge 順を確定する。
 
 AI は古い base のまま「以前テストが通った」という理由で merge を勧めてはいけません。
@@ -176,7 +160,7 @@ PR 作成前に最低限、以下を確認します。
 
 #### Base freshness
 
-role branch は常に main と同一である必要はありません。
+作業ブランチ（既存role branchを含む）は常に main と同一である必要はありません。
 ただし、main 側の変更が今回の検証・契約・統合に影響する場合は、古い base のまま統合候補にしてはいけません。
 
 特に main 側で次が変更されている場合は影響を確認してください。
@@ -236,9 +220,11 @@ role-scoped branch では、担当外ファイルの変更を CI で拒否しま
 
 例えば B の PR で `.github/workflows/**` や `pipeline/**` を変更すると Scope Guard は失敗します。
 
-CI や Shared Contract を変更する必要が本当にある場合は、担当 feature PR に混ぜず、`area: shared` の別 PR として切り分けてください。
+旧role-scopedブランチの制約は維持します。一方、**新しい機能単位の通常ブランチ**では、設計上必要な複数ディレクトリを同じPRに含められます。関係する全領域のテストを実施し、機能境界・独立検証・レビュー可能性を維持してください。
 
-Scope Guard を green にする目的で branch 名を偽装したり、guard 自体を role PR 内で変更したりしてはいけません。
+共有Contractの破壊的変更やCI/Infrastructureなど独立したリスクがある変更は、別PRと段階的移行を原則とします。必要なら `area: shared` を使用します。
+
+Scope Guard を green にする目的で既存roleブランチの名前を偽装したり、guard自体を変更したりしてはいけません。
 
 ---
 
@@ -334,7 +320,7 @@ Criticality は DataRequirement のグローバル属性ではありません。
 
 ## 6. Contract and Schema Compatibility
 
-B/C/E 等が利用する共有 Contract は API と同等に扱います。
+複数コンポーネントが利用する共有 Contract は API と同等に扱います。
 
 AI は以下を勝手に変更してはいけません。
 
@@ -391,7 +377,7 @@ AI は依頼されていない大規模リファクタリングをしないで�
 - Framework の置換
 - 既存 API の全面再設計
 - 「より綺麗だから」という理由だけの大量変更
-- 他担当ディレクトリのついで修正
+- 依頼に無関係なディレクトリのついで修正
 
 必要な変更が大きくなる場合、実装前に理由・影響範囲・代替案を示してください。
 
@@ -454,7 +440,7 @@ AI は明示的な人間の承認なしに次を行ってはいけません。
 - Contract を破壊する可能性がある。
 - schema version の扱いが不明。
 - 既存テストと仕様書が矛盾する。
-- 複数担当の責務境界を跨ぐ設計判断が必要。
+- 複数コンポーネントにまたがる共有Contract・防災上の意味解釈・独立検証の扱いについて必要な判断が未承認。
 - main への merge 順序が複数 PR の依存関係により不明。
 - データ欠損を「欠陥」と判定してよい根拠がない。
 
@@ -466,7 +452,7 @@ AI が変更を実装した PR では最低限、以下を記載してくださ�
 
 - Summary: 何を変更したか
 - Why: なぜ必要か
-- Scope: 変更した担当領域
+- Scope: 変更機能と影響ディレクトリ
 - Depends on: 前提 PR（存在する場合）
 - Contract impact: none / additive / breaking
 - Tests: 実行したコマンドと結果
@@ -484,7 +470,7 @@ HINANEX では AI の開発速度よりも、
 - 事実性
 - 追跡可能性
 - Contract の安定性
-- 担当間の独立性
+- 原本と評価結果の独立検証
 - main の再現可能性
 
 を優先します。
