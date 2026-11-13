@@ -59,7 +59,20 @@ function renderSources() {
     box.append(create("h3", src.name));
     paragraph(box, "発行元: " + valueOrUnknown(src.publisher));
     paragraph(box, "利用ライセンス（D記録）: " + valueOrUnknown(src.licenseRaw));
+    if (src.licenseRaw === "CC BY 2.1 JP") {
+      const license = create("a", "CC BY 2.1 JPの利用条件");
+      license.className = "license-link";
+      license.href = "https://creativecommons.org/licenses/by/2.1/jp/";
+      license.target = "_blank";
+      license.rel = "noopener noreferrer";
+      box.append(license);
+    } else {
+      paragraph(box, "ライセンスURL: 未確認（一般公開前に個別確認が必要）");
+    }
+    paragraph(box, "出典：「" + src.name + "」（" + valueOrUnknown(src.publisher) +
+      "）をもとにHINANEXが加工して作成しました。");
     paragraph(box, "本画面はDの記録から施設属性を抽出し、HINANEXが表示用に再構成しています。");
+    paragraph(box, "江戸川区がこの画面を作成・承認したものではありません。");
     paragraph(box, "資料公開日時: " + valueOrUnknown(src.publishedAt));
     paragraph(box, "Dの資料取得日時: " + valueOrUnknown(src.fetchedAt));
     if (src.url) {
