@@ -43,6 +43,22 @@ class ActualStagingBundleSmokeTests(unittest.TestCase):
                 (REPOSITORY_ROOT / "gis" / "gis", root / "gis" / "gis"),
             ]:
                 shutil.copytree(source, destination, ignore=shutil.ignore_patterns("__pycache__", "node_modules"))
+            # Simulate the F03/P-02 branch before it is merged into main. These
+            # synthetic QA filenames must never leak into Render's publish tree.
+            # Never read or modify user-owned original F03 ZIP / runtime JSON.
+            private_preview_fixture = {
+                "prototypes/f03-storage-contract-qa/index.html": "<title>QA only</title>",
+                "prototypes/f03-storage-contract-qa/app.js": "const qaOnly = true;",
+                "prototypes/f03-storage-contract-qa/styles.css": "body {}",
+                "docs/F03_P02_STORAGE_CONTRACT_QA_20261111.md": "QA report",
+                "docs/evidence/f03-p02-20261111/real-http-chrome-390.png": "QA evidence",
+                "tests/f03-storage-contract.test.js": "QA storage test",
+                "tests/f03-storage-http-chrome.test.js": "QA Chrome test",
+            }
+            for relative, content in private_preview_fixture.items():
+                fixture = root / "frontend" / relative
+                fixture.parent.mkdir(parents=True, exist_ok=True)
+                fixture.write_text(content, encoding="utf-8")
             evidence_file = root / "validation" / "demo" / "2019_edogawa_evidence_cases.json"
             evidence_file.parent.mkdir(parents=True)
             shutil.copyfile(
@@ -68,6 +84,12 @@ class ActualStagingBundleSmokeTests(unittest.TestCase):
                 (output / filename).write_text(json.dumps(payload), encoding="utf-8")
 
             bundle = build_bundle(root, root / "deploy" / "dist", run_pipeline=False)
+            for private_path in private_preview_fixture:
+                self.assertTrue((root / "frontend" / private_path).is_file())
+                self.assertFalse(
+                    (bundle / "frontend" / private_path).exists(),
+                    f"Unpublished F03 QA asset leaked to staging: {private_path}",
+                )
             for page in ("index.html", "frontend/index.html", "gis/gis/index.html"):
                 html_path = bundle / page
                 self.assertTrue(html_path.is_file(), page)
