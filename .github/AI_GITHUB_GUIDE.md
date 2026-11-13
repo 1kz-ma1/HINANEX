@@ -238,6 +238,18 @@ PR 本文には最低限:
 
 AI が作成・実装に関与した場合は `ai-authored` を推奨します。
 
+## 7.5 実装先行・実機QAを定期的にまとめる（2026-11-13採用）
+
+**PRごとに実機操作を待つ必要は原則ありません。** 最新main・必要なCI・Contract・データ安全・公開範囲の審査に通った非公開の実装はMerge Captainの判断で統合し、スマホ固有の検証は別管理します。
+
+- 正式な運用仕様: [実装先行・定期実機QA](../docs/strategy/HINANEX_IMPLEMENTATION_FIRST_DEVICE_QA_20261113.md)
+- QA共通受付・次回日程: [Issue #372](https://github.com/1kz-ma1/HINANEX/issues/372)
+- 毎回の実機実施: GitHub **New issue → Device QA session** テンプレート
+- PR本文の **Device QA disposition** を1件選ぶ：`NOT_REQUIRED` / `DEFERRED` / `DONE` / `BLOCKING`。延期の場合は必ず#372へ対象SHA・確認手順・端末・実施予定を登録する
+- CI失敗・安全性不明・利用条件未承認・未承認実施設の公開は実機延期で突破しない。現行`AGENTS.md`のガードが優先
+
+班員がAIへ伝える例：「このPRは実機が必要か分類して。DEFERREDなら#372に確認項目を登録し、CI・安全ゲートを通したうえでMerge Captainに渡して。」
+
 ## 8. 困ったとき
 
 メンバーは GitHub の操作を覚えていなくても構いません。
