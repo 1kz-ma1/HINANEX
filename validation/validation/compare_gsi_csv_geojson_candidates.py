@@ -5,7 +5,7 @@ common-ID binding, prove an entrance or authorize emergency navigation.
 """
 import argparse
 import csv
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from hashlib import sha256
 import io
 import json
@@ -131,10 +131,17 @@ def compare_gsi_origins(gsi_raw,csv_raw,*,expected_gsi_sha256,expected_csv_sha25
             decision="NAME_AGREES_ADDRESS_DIFFERS"
         elif cand[0]["longitude"] is None:
             decision="CSV_COORDINATES_UNKNOWN"
-        elif cand[0]["longitude"]!=lon or cand[0]["latitude"]!=lat:
-            decision="NAME_ADDRESS_AGREE_COORDINATES_DIFFER"
-        else:
+        elif cand[0]["longitude"]==lon and cand[0]["latitude"]==lat:
             decision="TEXT_AND_COORDINATES_AGREE_UNAPPROVED"
+        elif (lon.as_tuple().exponent >= -6 and lat.as_tuple().exponent >= -6
+              and cand[0]["longitude"].quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)==lon
+              and cand[0]["latitude"].quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)==lat):
+            # GSI skhb02 Point uses at most 6 fractional places here.
+            # This is a precision-aware *candidate* comparison, never
+            # independent proof that the two original datasets share identity.
+            decision="TEXT_AND_COORDINATES_AGREE_AT_GSI_6DP_UNAPPROVED"
+        else:
+            decision="NAME_ADDRESS_AGREE_COORDINATES_DIFFER"
         counts[decision]=counts.get(decision,0)+1
         rows.append({
             "gsi_feature_index":idx,"gsi_name_raw":name,

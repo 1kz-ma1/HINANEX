@@ -46,6 +46,33 @@ class CSVGeoJSONTests(unittest.TestCase):
             with self.subTest(opts=opts):
                 g,c=fixture(**opts)
                 self.assertEqual(check(g,c)["classifications"],{decision:1})
+    def test_source_coordinate_precision_rounding_is_distinguished(self):
+        # GeoJSON [139.9, 35.7] holds <=6 decimal places. CSV may carry
+        # additional source precision. Both raw values remain unaltered.
+        g,c=fixture(latitude="35.70000049")
+        out=check(g,c)
+        self.assertEqual(out["classifications"],
+                         {"TEXT_AND_COORDINATES_AGREE_AT_GSI_6DP_UNAPPROVED":1})
+        self.assertFalse(out["rows"][0]["common_id_bound_to_gsi_geojson"])
+        self.assertFalse(out["human_c_approved"])
+        self.assertEqual(out["navigation_allowed_count"],0)
+        self.assertIsNone(out["rows"][0]["navigation_endpoint"])
+
+    def test_rounding_threshold_is_not_a_distance_based_auto_match(self):
+        g,c=fixture(latitude="35.70000051")
+        out=check(g,c)
+        self.assertEqual(out["classifications"],
+                         {"NAME_ADDRESS_AGREE_COORDINATES_DIFFER":1})
+        self.assertFalse(out["common_id_to_geojson_verified"])
+
+    def test_no_rounding_upgrade_for_geojson_more_precise_than_six_places(self):
+        g,c=fixture(latitude="35.70000049")
+        data=json.loads(g)
+        data["features"][0]["geometry"]["coordinates"]=[139.9,35.7000001]
+        precise=json.dumps(data,ensure_ascii=False).encode()
+        self.assertEqual(check(precise,c)["classifications"],
+                         {"NAME_ADDRESS_AGREE_COORDINATES_DIFFER":1})
+
     def test_duplicate_names_are_ambiguous(self):
         g,c=fixture()
         c=c+c.replace(b"1,0000123",b"2,0000123")
