@@ -20,15 +20,16 @@
       <p class="eyebrow">F02 / FACILITY REFERENCE</p>
       <h1>施設の記録を、<br>ひとつずつ確かめる。</h1>
       <p>まず江戸川区のD RegionExportに掲載された施設記録を確認します。公式資料の掲載記録と、災害時に利用できるかどうかは別の情報です。</p>
+      <p class="official-guidance">避難所の最新の開設・混雑状況は、この一覧では判定できません。災害時は<a href="https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/oshirase/bousaiapuri.html" target="_blank" rel="noopener noreferrer">江戸川区の公式防災アプリ・ポータル案内</a>をご確認ください。このリンク先も個々の施設の利用可否をHINANEXが承認するものではありません。</p>
     </div>
     <div class="columns">
       <section class="panel" aria-labelledby="results-title">
         <div class="panel-head"><h2 id="results-title">施設一覧</h2><span class="region">対象：東京都 江戸川区のみ</span></div>
         <label for="search">施設名で検索</label>
-        <input type="search" id="search" placeholder="施設名を入力" autocomplete="off" disabled>
+        <input type="search" id="search" placeholder="施設名を入力" autocomplete="off" aria-controls="results" aria-describedby="record-count" disabled>
         <p id="load-state" role="status" aria-live="polite">RegionExportを読み込み中です。</p>
         <p id="record-count" class="count"></p>
-        <div id="results" class="results" aria-label="施設記録一覧"></div>
+        <div id="results" class="results" role="group" aria-label="施設記録一覧"></div>
       </section>
       <section class="panel" aria-labelledby="detail-title">
         <div class="panel-head"><h2 id="detail-title" tabindex="-1">掲載記録と未確認事項</h2></div>
