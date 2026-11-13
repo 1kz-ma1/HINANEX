@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "name": "hinanex-f02-issue348-prototype",
+  "version": "0.1.0",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "lint": "node --check app.js && node --check model.js && node --check fixtures.js"
+  }
+}

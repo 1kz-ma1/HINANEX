@@ -104,3 +104,6 @@ assert.equal(e.officialAlertsPanel.hidden,true);
 assert.equal(e.officialAlertsOpen.attributes["aria-expanded"],"false");
 assert.equal(e.mapToolHazardsSummary.focused,true);
 console.log("F06 official link directory: 3 regions, unknown state, focus, isolation OK");
+
+// Extended offline failure/boundary regressions, included in required 'test' CI.
+require("./f01_f06_edge_cases.test.js");
