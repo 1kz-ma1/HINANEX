@@ -91,5 +91,16 @@ Remove-Item Env:F02_REAL_EXPORT_PATH
 - **Not run / missing evidence:** `python verify_d_mvp.py` / `python verify_a_handoff_integration.py` の成功ログ未提出、正式Cによる原CSV行/施設ID/位置や指定の独立検証・最新性確認、個別再配信/公開審査、実端末のアクセシビリティ。
 - **Decision:** Bの「実ファイル構造互換＋Chrome表示」ゲートは**PASS（利用者提出ログ）**。ただしD/C・一次資料・公開ゲートが未充足のためPR #357はDraft / `merge: blocked`継続。
 
+## Mac検証追補（2026-11-13・利用者提出ログ）
+- **Passed（利用者報告）:** `cd pipeline && python verify_d_mvp.py` → `HINANEX v1.0-D-MVP: READY`、RegionExport contract schema `0.9`、edogawa/niigata/nagoya 3地域のB/C contracts、manifest、JSON Schema が存在し整合。
+- **Passed（利用者報告）:** `python verify_a_handoff_integration.py` → `A-D Integration: READY`、Formal requirement `shelter_location`。
+- **D検証出力:** 江戸川区 152 records / D evidence 1 / Shelter Discovery `FULL` / gaps 0 / recommendations 0、新潟市 566 / 1 / `FULL` / 0 / 0、名古屋市 1602 / 16 / `BLOCKED` / 1 / 1。
+- **Meaning boundary:** Capability `FULL` は位置ベースのShelter Discovery条件であり、災害適合、施設の安全性、開設、避難誘導の承認ではない。名古屋市の `BLOCKED` も自治体の避難所不存在を意味しない。
+- **Still not formalized in D:** `shelter_disaster_compatibility`、`shelter_accessibility`、`shelter_capacity`、flood hazard/inundation depth。
+- **B受入との結合判定:** 2026-11-11のユーザー提出 `CONSUMER_COMPATIBLE` / `F02_REAL_EXPORT_HTTP ... PASS` に加え、D-MVP/A-D検証成功ログが得られたため、**D契約生成/連携とF02読取・表示の技術ゲートは利用者提出ログ上PASS**。
+- **Remaining gates:** 公式CSVの実バイトと normalized 152行の独立C突合、Source/ライセンス条件・更新日の最終確認、行単位の位置/指定/入口/災害適合/開設の承認、一般公開範囲の最終審査、Safari/Android/読み上げ等の追加検証。出典・座標・施設記録を安全判断に転用しない。
+- **Evidence provenance:** 上記はユーザーがMacの標準出力として提出したログ。モデルはその実行環境/Rawファイルを直接取得していない。従来の `official_row_review=NOT_RUN`、`publication_approval=NOT_GRANTED`、`input_provenance=NOT_INDEPENDENTLY_VERIFIED` は変更しない。
+- **Merge decision:** PR #357 はF02 read-only consumerの実装・D/B技術ゲート検証済み。ただし災害データの独立証拠・公開の承認が未解決のため **Draft / `merge: blocked`** を維持し、mainには統合しない。
+
 ## Next decision
 このPRでは安全なB読み取り専用ページが成立するかを検証する。次のF05でのF01地域文脈引継ぎ、F07の終点承認、地図/GISへの統合を含めない。仕様の拡張は本IssueとDraft PRで人間のレビューを受ける。
