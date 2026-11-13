@@ -39,3 +39,14 @@ python "$HOME/HINANEX-f02-c-evidence/verify_f02_edogawa_source_export.py" \
 - Cの技術判定が通っても、A/Cによる公式原本・施設単位の意味の承認と公開ゲートはHOLD。Draft PR #357はmainへ自動統合しない。
 
 関連: validation/docs/EDOGAWA_REAL_C_COMPARATOR_HANDOFF_20261019.md、validation/AGENTS.md。
+
+## 2026-11-13 実CSV→D出力の全行検証（利用者Mac実行ログ）
+
+- **Technical status:** `C_SOURCE_TO_EXPORT_CONSISTENT` — ローカルで独立取得した江戸川区公式CSV、D raw、D normalized、RegionExport v0.9の一致をC CLIが報告。
+- **CSV SHA-256（独立取得Source/D保存rawで一致）:** `64b1c02377ac6caa2cf58faaf45e34ed76d01b7230c9c4d4590432864700d7ea`。
+- **件数:** `source_rows=152`、`normalized_rows_checked=152`、`export_rows_checked=152`、`row_mismatches=0`。
+- **検証時刻（実行ログのUTC）:** `2026-11-13T01:06:06.835512+00:00`。
+- **CI独立検証:** [GitHub Actions #43341665253](https://github.com/1kz-ma1/HINANEX/actions/runs/43341665253) にてC合成・回帰テスト（全236件、今回追加12件を含む）PASS。**CIの合成検証とMac現物検証は別々の証拠**。
+- **Provenance:** `source_origin=LOCAL_INPUT_NOT_CRYPTOGRAPHICALLY_ATTESTED`。上記は利用者がチャットに提出した実行ログであり、GitHub上には原CSVや生成JSONを保存しておらず、本記録の執筆側は原バイトを独立取得していない。
+- **Meaning gate:** `physical_site_identity=NOT_APPROVED`、`flood_suitability=NOT_EVALUATED`、`publication_approval=NOT_GRANTED`。152件の数値上の照合は施設の敷地・入口の正式位置、災害適合、現在の開設、安全、再配信許諾、原本の真正性・有効時点の人間承認ではない。
+- **判定:** Cの「公式CSVとD出力の技術的な行変換の整合性」は**利用者提出のMac検証ログに基づきPASS**。C PR #365・B PR #357はDraft / merge: blockedのまま、残る出典・意味解釈・公開判断を別ゲートで扱う。
