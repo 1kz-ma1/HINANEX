@@ -229,10 +229,16 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       assert.equal(await evaluate("document.activeElement?.matches('#results .record')"), true,
         "Tab did not move from search to first facility");
       await command("Input.dispatchKeyEvent", {
-        type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13
+        type: "rawKeyDown", key: "Enter", code: "Enter",
+        windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13
       });
       await command("Input.dispatchKeyEvent", {
-        type: "keyUp", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13
+        type: "char", text: "\r", unmodifiedText: "\r",
+        windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13
+      });
+      await command("Input.dispatchKeyEvent", {
+        type: "keyUp", key: "Enter", code: "Enter",
+        windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13
       });
       await waitUntil(evaluate,
         "document.activeElement?.id==='detail-title' && document.querySelector('#detail').innerText.includes('名称ベース分類')",
