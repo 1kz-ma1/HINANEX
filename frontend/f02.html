@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>施設記録を調べる | HINANEX F02</title>
+  <link rel="stylesheet" href="./f02.css">
+  <script type="module" src="./src/f02-page.js"></script>
+</head>
+<body>
+  <a href="#main" class="skip-link">本文へスキップ</a>
+  <div class="safety" role="note"><strong>F02 検証中・参考情報</strong><span>避難先の安全性・災害適合性・開設・経路・施設位置の承認を保証しません。</span></div>
+  <header class="header">
+    <a class="brand" href="./">HINANEX <small>地域防災情報</small></a>
+    <span class="flag">READ-ONLY / D RegionExport v0.9</span>
+  </header>
+  <main id="main" class="main">
+    <div class="intro">
+      <p class="eyebrow">F02 / FACILITY REFERENCE</p>
+      <h1>施設の記録を、<br>ひとつずつ確かめる。</h1>
+      <p>まず江戸川区のD RegionExportに掲載された施設記録を確認します。公式資料の掲載記録と、災害時に利用できるかどうかは別の情報です。</p>
+      <p class="official-guidance">避難所の最新の開設・混雑状況は、この一覧では判定できません。災害時は<a href="https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/oshirase/bousaiapuri.html" target="_blank" rel="noopener noreferrer">江戸川区の公式防災アプリ・ポータル案内</a>をご確認ください。このリンク先も個々の施設の利用可否をHINANEXが承認するものではありません。</p>
+    </div>
+    <div class="columns">
+      <section class="panel" aria-labelledby="results-title">
+        <div class="panel-head"><h2 id="results-title">施設一覧</h2><span class="region">対象：東京都 江戸川区のみ</span></div>
+        <label for="search">施設名で検索</label>
+        <input type="search" id="search" placeholder="施設名を入力" autocomplete="off" aria-controls="results" aria-describedby="record-count" disabled>
+        <p id="load-state" role="status" aria-live="polite">RegionExportを読み込み中です。</p>
+        <p id="record-count" class="count"></p>
+        <div id="results" class="results" role="group" aria-label="施設記録一覧"></div>
+      </section>
+      <section class="panel" aria-labelledby="detail-title">
+        <div class="panel-head"><h2 id="detail-title" tabindex="-1">掲載記録と未確認事項</h2></div>
+        <div id="detail" class="detail"><p>一覧から施設を選ぶと、Dが記録した元属性を確認できます。</p></div>
+      </section>
+    </div>
+    <section class="panel source-panel" aria-labelledby="source-title">
+      <h2 id="source-title">データセット全体の出典</h2>
+      <p>この出典はDataset単位の情報です。個々の施設の指定・参照地点・敷地・入口・現在の開設状況の承認を証明しません。取得日時を公式の公開日や最新性の保証と読み替えないでください。</p>
+      <div id="sources"><p>データ読込後に表示します。</p></div>
+    </section>
+    <p class="footnote">地図へのピン表示、施設の自動推薦、洪水評価や参考経路への連携は行いません。実在施設情報の再配信・公開受入は別の審査対象です。</p>
+  </main>
+</body>
+</html>

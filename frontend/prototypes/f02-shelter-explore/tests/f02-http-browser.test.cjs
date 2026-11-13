@@ -9,11 +9,68 @@ const {spawn,spawnSync}=require("node:child_process");
 const dir=path.resolve(__dirname,"..");
 const files=["index.html","styles.css","fixtures.js","model.js","app.js"];
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
+function waitForProcessExit(child,timeoutMs){
+  return new Promise(resolve=>{
+    if(child.exitCode!==null||child.signalCode!==null){resolve(true);return;}
+    let timer;
+    const onExit=()=>{clearTimeout(timer);resolve(true);};
+    timer=setTimeout(()=>{child.off("exit",onExit);resolve(false);},timeoutMs);
+    child.once("exit",onExit);
+  });
+}
+function signalChromeTree(child,signal){
+  // Chrome's Linux helper processes must be stopped with their isolated group.
+  // Windows retains the normal process termination path.
+  if(process.platform!=="win32"&&Number.isInteger(child.pid)){
+    try{process.kill(-child.pid,signal);return;}
+    catch(error){if(error.code!=="ESRCH")throw error;}
+  }
+  if(child.exitCode===null&&child.signalCode===null)child.kill(signal);
+}
+async function removeProfileAfterChromeExit(profile){
+  // Chrome's helper processes can still flush files after the launcher exits.
+  // A failed removal is a test failure, never a reason to claim browser PASS.
+  const transient=new Set(["ENOTEMPTY","EBUSY","EPERM","EACCES"]);
+  for(let attempt=0;attempt<15;attempt++){
+    try{
+      await fs.promises.rm(profile,{recursive:true,force:true,maxRetries:3,retryDelay:200});
+      if(!fs.existsSync(profile))return;
+    }catch(error){
+      if(!transient.has(error.code)||attempt===14)throw error;
+    }
+    await wait(300);
+  }
+  throw Error("Chrome profile remains after bounded cleanup retries: "+profile);
+}
+async function stopChrome(child,profile,ws=null){
+  if(ws){try{ws.close();}catch{/* Chrome may already be terminating. */}}
+  if(child.exitCode===null&&child.signalCode===null){
+    signalChromeTree(child,"SIGTERM");
+    if(!await waitForProcessExit(child,4000)){
+      signalChromeTree(child,"SIGKILL");
+      if(!await waitForProcessExit(child,4000)){
+        throw Error("Chrome did not exit; refusing to remove an active browser profile");
+      }
+    }
+  }
+  // The launcher can exit while Chrome helpers still hold the profile/pipe.
+  if(process.platform!=="win32")signalChromeTree(child,"SIGTERM");
+  if(ws&&ws.readyState!==WebSocket.CLOSED){
+    await Promise.race([
+      new Promise(resolve=>ws.addEventListener("close",resolve,{once:true})),
+      wait(1500),
+    ]);
+  }
+  await removeProfileAfterChromeExit(profile);
+}
+
 function chromeBinary(){
   for(const candidate of [process.env.F02_BROWSER_BIN,process.env.CHROME_BIN,
     "/usr/bin/google-chrome","/usr/bin/chromium","google-chrome","chromium"].filter(Boolean)){
-    if(candidate.includes("/")&&fs.existsSync(candidate))return candidate;
-    if(!candidate.includes("/")&&spawnSync("which",[candidate]).status===0)return candidate;
+    const filePath=path.isAbsolute(candidate)||candidate.includes("/")||candidate.includes("\\");
+    if(filePath&&fs.existsSync(candidate))return candidate;
+    if(!filePath&&spawnSync(process.platform==="win32"?"where":"which",[candidate]).status===0)return candidate;
   }
   return null;
 }
@@ -34,22 +91,27 @@ async function launch(bin){
   const profile=fs.mkdtempSync(path.join(os.tmpdir(),"f02-chrome-"));
   const child=spawn(bin,["--headless=new","--no-sandbox","--disable-dev-shm-usage",
     "--disable-background-networking","--no-first-run","--remote-debugging-port=0",
-    "--user-data-dir="+profile,"about:blank"],{stdio:["ignore","ignore","pipe"]});
+    "--user-data-dir="+profile,"about:blank"],{stdio:["ignore","ignore","pipe"],detached:process.platform!=="win32"});
   let stderr="";child.stderr.on("data",x=>{stderr=(stderr+x.toString()).slice(-1500);});
+  let ws=null;
   try{
     let port=0;
-    for(let i=0;i<150;i++){
+    for(let i=0;i<300;i++){
       const active=path.join(profile,"DevToolsActivePort");
       if(fs.existsSync(active)){port=Number(fs.readFileSync(active,"utf8").split("\n")[0]);break;}
       if(child.exitCode!==null)throw Error("Browser exited: "+stderr);
       await wait(100);
     }
     if(!port)throw Error("Browser CDP startup timed out: "+stderr);
-    const targets=await(await fetch("http://127.0.0.1:"+port+"/json/list")).json();
+    const targets=await(await fetch("http://127.0.0.1:"+port+"/json/list",{signal:AbortSignal.timeout(10000)})).json();
     const page=targets.find(x=>x.type==="page"&&x.webSocketDebuggerUrl);
     if(!page)throw Error("CDP page target missing");
-    const ws=new WebSocket(page.webSocketDebuggerUrl);
-    await new Promise((ok,fail)=>{ws.addEventListener("open",ok,{once:true});ws.addEventListener("error",fail,{once:true});});
+    ws=new WebSocket(page.webSocketDebuggerUrl);
+    await new Promise((ok,fail)=>{
+      const timer=setTimeout(()=>fail(Error("CDP WebSocket open timed out")),12000);
+      ws.addEventListener("open",()=>{clearTimeout(timer);ok();},{once:true});
+      ws.addEventListener("error",()=>{clearTimeout(timer);fail(Error("CDP WebSocket failed"));},{once:true});
+    });
     let nextId=0;const pending=new Map(),exceptions=[],requests=[];
     ws.addEventListener("message",event=>{
       const data=JSON.parse(event.data);
@@ -59,9 +121,22 @@ async function launch(bin){
       const p=pending.get(data.id);pending.delete(data.id);
       data.error?p.reject(Error(data.error.message)):p.resolve(data.result);
     });
+    ws.addEventListener("close",()=>{
+      for(const task of pending.values())task.reject(Error("CDP WebSocket closed"));
+      pending.clear();
+    });
     const command=(method,params={})=>new Promise((resolve,reject)=>{
-      const id=++nextId;pending.set(id,{resolve,reject});
-      ws.send(JSON.stringify({id,method,params}));
+      const id=++nextId;
+      const timer=setTimeout(()=>{
+        pending.delete(id);
+        reject(Error("CDP command timed out: "+method));
+      },15000);
+      pending.set(id,{
+        resolve:value=>{clearTimeout(timer);resolve(value);},
+        reject:error=>{clearTimeout(timer);reject(error);},
+      });
+      try{ws.send(JSON.stringify({id,method,params}));}
+      catch(error){pending.delete(id);clearTimeout(timer);reject(error);}
     });
     const evalJs=async expression=>{
       const result=await command("Runtime.evaluate",{expression,returnByValue:true,awaitPromise:true});
@@ -69,7 +144,7 @@ async function launch(bin){
       return result.result.value;
     };
     return {profile,child,ws,command,evalJs,exceptions,requests};
-  }catch(e){child.kill("SIGKILL");fs.rmSync(profile,{recursive:true,force:true});throw e;}
+  }catch(e){await stopChrome(child,profile,ws);throw e;}
 }
 test("F02 HTTP-served Chrome functional and error-state acceptance",{timeout:90000},async t=>{
   const bin=chromeBinary();
@@ -117,7 +192,14 @@ test("F02 HTTP-served Chrome functional and error-state acceptance",{timeout:900
       "Unexpected external request: "+browser.requests.join("; "));
     console.log("F02_REAL_HTTP: 320/390/1440 responsive, no JS errors or outbound HTTP PASS");
   }finally{
-    if(browser){browser.ws.close();browser.child.kill("SIGKILL");fs.rmSync(browser.profile,{recursive:true,force:true});}
-    await new Promise(resolve=>server.close(resolve));
+    try{
+      if(browser){await stopChrome(browser.child,browser.profile,browser.ws);}
+    }finally{
+      // Always release HTTP sockets, including when Chrome profile cleanup fails.
+      await new Promise((resolve,reject)=>{
+        server.close(error=>error?reject(error):resolve());
+        server.closeAllConnections();
+      });
+    }
   }
 });
