@@ -33,19 +33,19 @@ function addDetailField(table, label, value) {
 function renderDetail(record) {
   detail.replaceChildren();
   detail.append(create("h3", record.name));
-  paragraph(detail, "Dの正規化記録に含まれる元属性です。正式な指定、対象災害への適合、安全性や現在の開設は、この画面では判断しません。", "notice");
+  paragraph(detail, "Dの正規化記録を表示しています。施設区分は名称から作成したD内部の分類で、正式な指定ではありません。対象災害への適合、安全性や現在の開設は、この画面では判断しません。", "notice");
   const fields = create("dl");
   addDetailField(fields, "施設ID", record.id);
   addDetailField(fields, "施設名称", record.name);
   addDetailField(fields, "住所（D記録）", valueOrUnknown(record.addressRaw));
-  addDetailField(fields, "施設種別（D記録）", valueOrUnknown(record.facilityTypeRaw));
+  addDetailField(fields, "施設区分（D内部の名称ベース分類・正式指定未確認）", valueOrUnknown(record.facilityTypeRaw));
   addDetailField(fields, "災害区分（D記録値・未解釈）",
     record.disasterValues === null ? "未確認" :
     record.disasterValues.length ? record.disasterValues.join(" / ") : "値の記録なし");
   addDetailField(fields, "位置データ", record.hasCoordinates ?
     "座標値あり（公式の敷地・入口・指定範囲は未承認）" : "座標なし・位置未確認");
   addDetailField(fields, "施設単位の確認", "正式指定・開設状況・入口・災害適合・安全性は未確認");
-  addDetailField(fields, "施設単位の出典対応", "この画面はDataset単位の出典のみ表示。行単位の独立照合は未承認");
+  addDetailField(fields, "施設単位の出典対応", "Dataset単位の出典のみを表示します。CSVとDの変換整合性確認は、施設の正式指定・位置・運用状況の承認ではありません");
   detail.append(fields);
 }
 function renderSources() {
