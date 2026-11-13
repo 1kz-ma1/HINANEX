@@ -46,6 +46,25 @@
 
 <!-- base更新が必要なら merge: needs-update。依存/未解決があれば merge: blocked -->
 
+## Device QA disposition（実機QA分類を1つ選択）
+
+<!-- 運用仕様: docs/strategy/HINANEX_IMPLEMENTATION_FIRST_DEVICE_QA_20261113.md
+     実機QA共通Issue: https://github.com/1kz-ma1/HINANEX/issues/372
+     原則: required CIを先に通す。実機QA未実施とデータ/公開未承認は別の状態。 -->
+- [ ] `NOT_REQUIRED` — 実機固有の変更なし（理由と代替テストを記載）
+- [ ] `DEFERRED` — 決めた実機QA回へ繰越（#372のDQA-IDまたはコメントURL必須）
+- [ ] `DONE` — 人間の実機結果記録済み（対象SHA/端末/OS/ブラウザ/実行者・証跡）
+- [ ] `BLOCKING` — 安全/端末特有の重大依存等により統合前の確認が必要（Issueと理由）
+
+- 選択理由:
+- DQA-ID/管理Issue: <!-- DEFERRED時必須 -->
+- 予定実機QA回（暫定可）:
+- 人間による実機実行者・端末・OS/ブラウザ・対象ビルドSHA（DONE時）:
+- 実機テストのPassed / Failed / Not run:
+- 一般公開・実データ・施設/経路の安全ゲート（main統合とは別）:
+
+**注意:** `DEFERRED` はrequired `test`の省略、事故リスクの放置、未承認データのRender公開を許可しない。未確認の実機結果をPASSとしない。
+
 ## Tests
 
 ### Passed
