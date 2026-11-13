@@ -1,0 +1,267 @@
+{
+  "schema_id": "hinanex.c.mvp_synthetic_consistency.v0.1",
+  "synthetic_only": true,
+  "template": {
+    "input": {
+      "mode": "DRILL",
+      "hazard": "FLOOD",
+      "region": "SYNTH_REGION_A",
+      "session_token": "SYNTH_SESSION_01",
+      "fixture_id": "SYNTH_FIXTURE_01",
+      "observed_at": "2026-11-13T12:00:00Z",
+      "evaluated_at": "2026-11-13T12:01:00Z",
+      "facts": {
+        "capacity": null,
+        "opening_state": "UNKNOWN",
+        "accessibility": null
+      }
+    },
+    "output": {
+      "mode": "DRILL",
+      "hazard": "FLOOD",
+      "region": "SYNTH_REGION_A",
+      "session_token": "SYNTH_SESSION_01",
+      "fixture_id": "SYNTH_FIXTURE_01",
+      "observed_at": "2026-11-13T12:00:00Z",
+      "generated_at": "2026-11-13T12:00:10Z",
+      "valid_until": "2026-11-13T12:05:00Z",
+      "is_drill": true,
+      "facts": {
+        "capacity": null,
+        "opening_state": "UNKNOWN",
+        "accessibility": null
+      },
+      "claims": {
+        "facility_safety": "UNKNOWN",
+        "facility_open": "UNKNOWN",
+        "route_passability": "UNKNOWN"
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "drill_unknown_preserved",
+      "expected": {
+        "status": "PASS",
+        "code": "CONSISTENT_SYNTHETIC"
+      }
+    },
+    {
+      "id": "normal_without_drill_mark",
+      "expected": {
+        "status": "PASS",
+        "code": "CONSISTENT_SYNTHETIC"
+      },
+      "input_delta": {
+        "mode": "NORMAL"
+      },
+      "output_delta": {
+        "mode": "NORMAL",
+        "is_drill": false
+      }
+    },
+    {
+      "id": "normal_labeled_drill",
+      "expected": {
+        "status": "FAIL",
+        "code": "MODE_TAG_MISMATCH"
+      },
+      "input_delta": {
+        "mode": "NORMAL"
+      },
+      "output_delta": {
+        "mode": "NORMAL"
+      }
+    },
+    {
+      "id": "drill_output_switched_normal",
+      "expected": {
+        "status": "FAIL",
+        "code": "MODE_MISMATCH"
+      },
+      "output_delta": {
+        "mode": "NORMAL"
+      }
+    },
+    {
+      "id": "unsupported_mode",
+      "expected": {
+        "status": "FAIL",
+        "code": "INVALID_MODE"
+      },
+      "input_delta": {
+        "mode": "LIVE"
+      }
+    },
+    {
+      "id": "hazard_crossed",
+      "expected": {
+        "status": "FAIL",
+        "code": "HAZARD_MISMATCH"
+      },
+      "output_delta": {
+        "hazard": "LANDSLIDE"
+      }
+    },
+    {
+      "id": "region_crossed",
+      "expected": {
+        "status": "FAIL",
+        "code": "REGION_MISMATCH"
+      },
+      "output_delta": {
+        "region": "SYNTH_REGION_B"
+      }
+    },
+    {
+      "id": "session_changed_result_reused",
+      "expected": {
+        "status": "FAIL",
+        "code": "STALE_CONTEXT"
+      },
+      "input_delta": {
+        "session_token": "SYNTH_SESSION_02"
+      }
+    },
+    {
+      "id": "fixture_changed_result_reused",
+      "expected": {
+        "status": "FAIL",
+        "code": "STALE_CONTEXT"
+      },
+      "input_delta": {
+        "fixture_id": "SYNTH_FIXTURE_02"
+      }
+    },
+    {
+      "id": "observed_at_changed_result_reused",
+      "expected": {
+        "status": "FAIL",
+        "code": "STALE_CONTEXT"
+      },
+      "input_delta": {
+        "observed_at": "2026-11-13T12:00:01Z"
+      }
+    },
+    {
+      "id": "expired_result",
+      "expected": {
+        "status": "FAIL",
+        "code": "EXPIRED_RESULT"
+      },
+      "input_delta": {
+        "evaluated_at": "2026-11-13T12:06:00Z"
+      }
+    },
+    {
+      "id": "future_result",
+      "expected": {
+        "status": "FAIL",
+        "code": "FUTURE_GENERATED_RESULT"
+      },
+      "input_delta": {
+        "evaluated_at": "2026-11-13T11:59:00Z"
+      }
+    },
+    {
+      "id": "null_inferred_as_zero",
+      "expected": {
+        "status": "FAIL",
+        "code": "UNKNOWN_PROMOTED"
+      },
+      "output_delta": {
+        "facts": {
+          "capacity": 0
+        }
+      }
+    },
+    {
+      "id": "unknown_inferred_as_open",
+      "expected": {
+        "status": "FAIL",
+        "code": "UNKNOWN_PROMOTED"
+      },
+      "output_delta": {
+        "facts": {
+          "opening_state": "OPEN"
+        }
+      }
+    },
+    {
+      "id": "untraced_new_fact",
+      "expected": {
+        "status": "FAIL",
+        "code": "UNTRACEABLE_FACT"
+      },
+      "output_delta": {
+        "facts": {
+          "pet_allowed": true
+        }
+      }
+    },
+    {
+      "id": "facility_safety_asserted",
+      "expected": {
+        "status": "FAIL",
+        "code": "UNAPPROVED_CLAIM"
+      },
+      "output_delta": {
+        "claims": {
+          "facility_safety": "CONFIRMED"
+        }
+      }
+    },
+    {
+      "id": "facility_open_asserted",
+      "expected": {
+        "status": "FAIL",
+        "code": "UNAPPROVED_CLAIM"
+      },
+      "output_delta": {
+        "claims": {
+          "facility_open": true
+        }
+      }
+    },
+    {
+      "id": "route_passable_asserted",
+      "expected": {
+        "status": "FAIL",
+        "code": "UNAPPROVED_CLAIM"
+      },
+      "output_delta": {
+        "claims": {
+          "route_passability": "CONFIRMED"
+        }
+      }
+    },
+    {
+      "id": "missing_expiry_blocks_review",
+      "expected": {
+        "status": "BLOCKED",
+        "code": "MISSING_REQUIRED_FIELD"
+      },
+      "output_delta": {
+        "valid_until": null
+      }
+    },
+    {
+      "id": "missing_claims_block_review",
+      "expected": {
+        "status": "BLOCKED",
+        "code": "MISSING_REQUIRED_FIELD"
+      },
+      "output_delta": {
+        "claims": null
+      }
+    },
+    {
+      "id": "mobile_device_rehearsal_placeholder",
+      "expected": {
+        "status": "NOT_RUN",
+        "code": "EXPLICITLY_DISABLED"
+      },
+      "run": false
+    }
+  ]
+}
