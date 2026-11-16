@@ -25,7 +25,46 @@
 - 取得の現在一致時`C_A_FLOOD_CURRENT_BYTE_MATCH_UNAPPROVED`、不一致時`C_A_FLOOD_CURRENT_BYTE_MISMATCH_HOLD`。これは**過去のHOLDを取り消さず**、現在の追加観測を記録する。ネットワーク・入力・検証失敗は`C_A_FLOOD_DIAGNOSTIC_HOLD`。
 - `c_independent_approved=false`、`facility_identity_approved=false`、`publication_approved=false`。一連のbyte比較は公式データの署名・自治体全域・指定の現在有効性・施設安全の承認ではない。
 
-## 3. 利用者Macでの再現手順（C実行はこの時点ではNOT_RUN）
+
+## 2-A. 2026-11-16追加実データ証拠：同じ件数だが原文Featureに差
+
+利用者Macの新しいA洪水単一タイル診断（`2026-11-16T05:28:22+00:00`）は `C_A_FLOOD_CURRENT_BYTE_MISMATCH_HOLD`。D/Cとも **349472 bytes、1195 tile-wide features**、C新GET SHA `1a18246c95386b24bada1a063b1cf8e51f8f1fe7b7f546de6032adc3e589cc35` は直前のC再取得SHAと一致。元のD SHA `3d88eab61dea466e3647beb08a47e312cf9853de48d6936323e5023d0c27881c` とは不一致。typed JSONは異なり、非Feature rootには差がなく、**同一配列indexの10箇所で差**（最初のindex 633）。これらは施設同一性を示さない。
+
+正本：[Issue #401 実データ診断](https://github.com/1kz-ma1/HINANEX/issues/401#issuecomment-6908226851)。原本改版・配信差・変更理由は **UNDETERMINED**。今回の追加ソフトウェア更新による**属性カテゴリ別の実データ診断は、まだNOT_RUN**。
+
+## 2-B. 今回の追加実装：匿名化された属性カテゴリの変化
+
+同一indexにあるD/CのFeatureについて、異なる原文フィールドの**固定カテゴリ名とそのindex出現数だけ**を返す（例：`changed_attribute_category_counts: {"properties.name": 3, "properties.address": 2}` は**合成例**）。本フィールドは過去のD/C実取得から計算されていない。
+
+- 返してよい`properties.*`カテゴリは **`name` / `address` / `remarks` / `disaster1` / `disaster2`** だけ。値・施設名・住所・改訂された災害値そのものは表示しない。
+- GeoJSONの`geometry.type` / `geometry.coordinates`は**カテゴリ名としてのみ**表示。緯度経度の数値は出力しない。
+- 動的な未知キーは、ソースキー自身に私的な情報が含まれ得るため、`properties.other` / `geometry.other` / `feature.other`に**強制集約**し、**原文の未知キー名も出力しない**。
+- 同じ配列indexで複数のカテゴリが変われば、各カテゴリに1回加算する。このためカテゴリごとのカウント合計が`feature_indices_differing_count`を超えても矛盾ではない。
+- 出現数は**Feature配列index単位の構文上の相違**であり、異なる**施設数**、施設の採用状況・指定変更の件数ではない。配列の入れ替わりでも多数のindex差が生じる。
+- レコード追加/欠落時は`feature.added_or_removed`を返すが、必ずしも指定施設の新設/廃止を意味しない。型付きJSONの相違やraw byte不一致の意味も変更しない。
+- 結果は従来の`C_A_FLOOD_CURRENT_BYTE_MISMATCH_HOLD` / `UNDETERMINED`、C正式承認false、公開falseを**維持**。新たなC GETがたまたまDと一致しても過去HOLDの歴史的事実は消さない。
+
+### 今回のコード変更の実行方法
+
+前節の例にある`--report-out`は既存の`r0-a-flood-diagnostic-20261116-01.json`を上書きできない。**別の新しいファイル名**を使用する。
+
+```bash
+git -C "$HOME/HINANEX-r0-c-worktree" fetch origin feature/c-r0-four-cell-https-replay-20261116
+git -C "$HOME/HINANEX-r0-c-worktree" switch --detach FETCH_HEAD
+
+cd "$HOME/HINANEX-r0-c-worktree"
+
+python3.12 validation/validation/diagnose_gsi_r0_a_flood_delta.py \
+  --d-report "$HOME/HINANEX-r0-evidence/r0-capture-001.json" \
+  --evidence-dir "$HOME/HINANEX-r0-evidence/capture-001" \
+  --prior-c-sha256 "1a18246c95386b24bada1a063b1cf8e51f8f1fe7b7f546de6032adc3e589cc35" \
+  --report-out "$HOME/HINANEX-r0-evidence/r0-a-flood-attributes-20261116-02.json"
+```
+
+先に`git status --short`でMac worktreeに未コミットの変更がないことを確認する。`__pycache__`などの未追跡ファイルだけが存在する場合、Pythonキャッシュは**Gitに追加しない**。削除やresetを強制せず、`git switch --detach`が拒否した場合は止める。
+
+
+## 3. 利用者Macでの初回再現手順（2026-11-16実行済み・記録用）
 
 既存 `HINANEX-r0-c-worktree` はPR #393の先行コードをすでに含みます。PR #393内へ診断を追加したHEADに更新する際、worktreeに未コミットの変更がないことを先に確認してください。
 
