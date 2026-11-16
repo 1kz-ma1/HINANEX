@@ -20,16 +20,24 @@
 - Implementation: Draft試作、main未統合
 - Test Passed: 新HEADのCI結果を記載してから判定
 - Independent Data Review: C全行照合は別（元CSV再配信や施設安全の証明ではない）
-- Published: **NO**。F05のRender配信除外は別Deploy PRが必要（Issue #362の決定事項）
+- Published: **NO**。独立Deployガード [PR #377](https://github.com/1kz-ma1/HINANEX/pull/377) は2026-11-16にmain統合済み。ただしRender実環境での直接GETによる非配信受入は [Issue #373](https://github.com/1kz-ma1/HINANEX/issues/373) で **NOT_VERIFIED**
 - Owner approval: WIP順序/実装採用/公開範囲は未決定。#360の現行規則を維持
 
 ## 次に必要なゲート
 
 - [ ] オーナー：#362 Bの初期スライスとして採用する判断
 - [ ] exact HEAD required test SUCCESS
-- [ ] F05独立試作に対するDeploy除外ガードがmain先行統合
+- [x] F05独立試作に対するDeploy除外ガードがmain先行統合（PR #377）
+- [ ] Renderの実配信コミット照合とF05試作・モデルJSの直接GETが404/非配信であることを記録（Issue #373）
 - [ ] 実HTTP Chromeの320/390/1440幅・キーボード・外部自動通信ゼロの受入
 - [ ] 必要ならE側F01入口変更を別Issue/PRで採用
 - [ ] #366原CSV再配信/第三者権利など、公開ゲートを別承認
 
 **この文書・PRは公式の避難先を認定せず、一般公開の同意でもない。**
+
+## 2026-11-16 main追従・レビュー追補
+
+- B Draft PR #371はmain `c65fe1d4f19db2ddd907df8d8556bdedcd2a40d7` （Deploy #377まで含む）をブランチへ取り込み、F05の実装差分は引き続きB `frontend/**` 内の5ファイルのみ。
+- 実装の静的検査：本人選択した江戸川区13123 + HTTP loopback以外ではF02 hrefが生成されず、公式洪水データ・施設ID・位置・安全・開設・経路を推測しない。
+- **追加受入が必要：** F05試作そのものの実HTTP Chrome（320/390/1440px）/キーボード操作/遷移/外部通信のテスト。既存F02/F03 Chrome成功は代替にならない。F05テストはNodeモデル・HTML静的検証のみ。
+- 最新mainでの必須CIの実行結果は、この追補とは独立にPR #371の本文へ記録。Render本番相当HTTPは依然NOT_VERIFIED。
