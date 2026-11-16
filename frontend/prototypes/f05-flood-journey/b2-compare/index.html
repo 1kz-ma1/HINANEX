@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HINANEX F05/B2｜合成施設の根拠付き比較</title>
+<style>
+:root{color-scheme:dark;--bg:#071722;--panel:#102735;--line:#305266;--ink:#edf7fc;--muted:#bbd0dc;--cyan:#68dfed;--focus:#ffe08b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,"Noto Sans JP",sans-serif;font-size:16px;line-height:1.65}
+main{max-width:1120px;margin:0 auto;padding:24px 16px 72px}
+h1{font-size:clamp(1.35rem,3vw,2rem);line-height:1.35;margin:0 0 10px}
+h2{font-size:1.15rem;margin:0 0 12px}
+h3{font-size:1.03rem;margin:0 0 8px}
+p{margin:8px 0 12px}
+small,.muted{color:var(--muted)}
+.kicker{font-weight:700;color:var(--cyan);letter-spacing:.06em;font-size:.82rem}
+.notice{border:2px solid #d5a35e;background:#42301c;color:#fff2d5;padding:12px 14px;border-radius:10px;margin:16px 0;font-weight:650}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:18px}
+.controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+label{display:block;font-weight:700;margin-bottom:4px}
+select,input,button{font:inherit;color:inherit;min-height:44px;border-radius:8px}
+select,input{background:#0c1e2a;border:1px solid #7daabf;width:100%;padding:8px 10px}
+button{background:#174251;border:1px solid #6dbfca;padding:9px 13px;cursor:pointer;text-align:center}
+button:hover:not(:disabled){background:#245c6b}
+button:disabled{opacity:.53;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+.stats{padding:10px 12px;margin:12px 0;background:#142d3d;border-radius:8px}
+.grid,.columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.facility{border:1px solid var(--line);border-radius:10px;background:#0b202d;padding:16px;min-width:0}
+.facility dl{display:grid;grid-template-columns:minmax(90px,1fr) 2fr;gap:5px 8px;margin:8px 0}
+.facility dt{color:var(--muted)}
+.facility dd{margin:0;overflow-wrap:anywhere}
+.facility button{width:100%}
+.tag{display:inline-block;background:#1b4553;border:1px solid #457888;border-radius:8px;padding:2px 9px;font-size:.9rem}
+#recordList:empty,#compareArea:empty,#choiceArea:empty{display:none}
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+.actions button{flex:1 1 190px}
+[hidden]{display:none!important}
+#onlyLocal{padding:24px;margin:18px auto;max-width:800px}
+@media(max-width:700px){.controls,.grid,.columns{grid-template-columns:1fr}main{padding:14px 10px 46px}.panel{padding:13px}.facility{padding:12px}}
+@media(max-width:340px){.facility dl{grid-template-columns:1fr}.facility dt{font-size:.88rem}.facility dd{margin-bottom:6px}}
+</style>
+</head>
+<body>
+<div id="onlyLocal" class="notice" role="status">F05/B2はローカルHTTP限定の試作です。127.0.0.1またはlocalhostで開いてください。JavaScriptが必要です。</div>
+<main id="prototype" hidden>
+  <p class="kicker">HINANEX / F05 / B2 — LOCAL QA ONLY</p>
+  <h1>合成施設の根拠付き比較・本人選択</h1>
+  <p class="notice" id="safetyNotice">訓練用の完全な合成データです。実施設・現在の災害・開設状況・安全な避難先を示しません。表示した分類は避難適合性の認定ではありません。</p>
+  <section class="panel" aria-labelledby="inputTitle">
+    <h2 id="inputTitle">合成シナリオと表示条件</h2>
+    <div class="controls">
+      <div><label for="fixture">検証する状態</label>
+        <select id="fixture">
+          <option value="ready">合成3件（比較可能）</option>
+          <option value="empty">データ0件</option>
+          <option value="none">シナリオ未取得</option>
+          <option value="load-error">模擬取得失敗</option>
+          <option value="invalid">出典不一致（拒否）</option>
+        </select></div>
+      <div><label for="filter">D区分（合成・原値）</label>
+        <select id="filter"><option value="ALL">すべて</option><option value="CANDIDATE">CANDIDATE</option><option value="EXCLUDED">EXCLUDED</option><option value="UNKNOWN">UNKNOWN</option></select></div>
+      <div><label for="query">施設名で絞り込む</label><input id="query" autocomplete="off" placeholder="例：架空施設A"></div>
+    </div>
+    <p id="state" role="status" aria-live="polite"></p>
+    <div id="stats" class="stats" aria-live="polite"></div>
+    <p class="muted">UNKNOWNは危険・安全のどちらの意味でもありません。EXCLUDEDも危険認定ではありません。比較は最大2件で、選択はこのページ内だけに保持されます。</p>
+  </section>
+  <section class="panel" aria-labelledby="listTitle">
+    <h2 id="listTitle">掲載記録（合成のみ）</h2>
+    <div id="recordList" class="grid"></div>
+    <p id="emptyMessage" role="status"></p>
+  </section>
+  <section class="panel" aria-labelledby="compareTitle">
+    <h2 id="compareTitle">2件の根拠を並べて確認</h2>
+    <div id="compareArea" class="columns"></div>
+    <p id="compareMessage" role="status"></p>
+  </section>
+  <section class="panel" aria-labelledby="choiceTitle">
+    <h2 id="choiceTitle">本人が確認対象を選ぶ</h2>
+    <div id="choiceArea" class="actions"></div>
+    <p id="choiceMessage" role="status" aria-live="polite"></p>
+    <p class="muted">ここでの選択は安全な避難先の推薦・決定・開設確認ではありません。GPS・経路・外部通信・端末保存は利用しません。</p>
+  </section>
+</main>
+<script type="module">
+import {createB2Session,isB2Loopback} from "./model.js";
+import {getB2Fixture} from "./fixtures.js";
+const el=id=>document.getElementById(id);
+const root=el("prototype"), onlyLocal=el("onlyLocal");
+if (isB2Loopback(window.location.origin)) {
+  onlyLocal.hidden=true;root.hidden=false;
+  const fixture=el("fixture"),filter=el("filter"),query=el("query");
+  const list=el("recordList"),compare=el("compareArea"),choice=el("choiceArea");
+  let session=null;
+  const node=(tag,value,cls)=>{
+    const e=document.createElement(tag);
+    if(value!==undefined && value!==null)e.textContent=String(value);
+    if(cls)e.className=cls;
+    return e;
+  };
+  function detail(box,name,value){
+    box.append(node("dt",name),node("dd",value===null||value===""?"未確認":value));
+  }
+  function card(row,letter){
+    const article=node("article",null,"facility");
+    article.append(node("h3",letter+"："+row.name));
+    article.append(node("span","合成区分："+row.status,"tag"));
+    const dl=node("dl");
+    detail(dl,"住所",row.address);
+    detail(dl,"記録上の理由",row.reason);
+    detail(dl,"出典ID（合成）",row.sourceId);
+    detail(dl,"原文トレース（合成）",row.sourceTrace);
+    detail(dl,"元値（合成）",row.rawValue);
+    detail(dl,"未確認事項",row.unknowns.join("／"));
+    detail(dl,"現在の開設",row.openStatus);
+    detail(dl,"安全性","未認定");
+    article.append(dl);
+    return article;
+  }
+  function render(){
+    list.replaceChildren();compare.replaceChildren();choice.replaceChildren();
+    const usable=session.state==="READY";
+    filter.disabled=!usable;query.disabled=!usable;
+    el("state").textContent=session.message;
+    el("stats").textContent=usable||session.state==="EMPTY_DATASET"?
+      "合成総数 "+session.total+"件｜CANDIDATE "+session.counts.CANDIDATE+
+      "件｜EXCLUDED "+session.counts.EXCLUDED+"件｜UNKNOWN "+session.counts.UNKNOWN+"件":
+      "比較不可：出典・範囲の整合を優先して停止";
+    if(!usable){
+      el("emptyMessage").textContent=session.message;
+      el("compareMessage").textContent="比較対象なし。前の選択結果は利用しません。";
+      el("choiceMessage").textContent="本人の確認対象：なし";
+      return;
+    }
+    const rows=session.rows(), chosen=new Set(session.selected().map(x=>x.id));
+    el("emptyMessage").textContent=rows.length?"": "検索一致0件。元のデータ件数0とは違います。";
+    for(const row of rows){
+      const item=node("article",null,"facility");
+      item.append(node("h3",row.name),node("p","D区分（合成）："+row.status),
+        node("p",row.reason));
+      const btn=node("button",chosen.has(row.id)?"比較から外す":"比較に追加");
+      btn.type="button";btn.disabled=chosen.size===2&&!chosen.has(row.id);
+      btn.setAttribute("aria-pressed",String(chosen.has(row.id)));
+      btn.addEventListener("click",()=>{if(session.toggle(row.id).ok)render();});
+      item.append(btn);list.append(item);
+    }
+    const selected=session.selected();
+    if(selected.length!==2){
+      el("compareMessage").textContent="異なる2件を選ぶと、出典・理由・未確認事項を比較できます。";
+      el("choiceMessage").textContent="本人の確認対象：なし";
+      return;
+    }
+    el("compareMessage").textContent="2件を比較中。順位付け・安全性の判定はしません。";
+    selected.forEach((r,i)=>compare.append(card(r,i?"B":"A")));
+    const chosenRow=session.choice();
+    for(const row of selected){
+      const btn=node("button",row.name+"を確認対象にする");
+      btn.type="button";
+      btn.setAttribute("aria-pressed",String(chosenRow?.id===row.id));
+      btn.addEventListener("click",()=>{if(session.choose(row.id).ok)render();});
+      choice.append(btn);
+    }
+    el("choiceMessage").textContent=chosenRow?
+      "本人の一時的な確認対象："+chosenRow.name+"（避難推奨ではありません）":
+      "本人の確認対象：まだ選択していません。";
+  }
+  function load(){
+    session=createB2Session(getB2Fixture(fixture.value));
+    filter.value="ALL";query.value="";render();
+  }
+  fixture.addEventListener("change",load);
+  filter.addEventListener("change",()=>{
+    if(session.setCriteria(query.value,filter.value).ok)render();
+  });
+  query.addEventListener("input",()=>{
+    if(session.setCriteria(query.value,filter.value).ok)render();
+  });
+  load();
+}
+</script>
+</body>
+</html>
