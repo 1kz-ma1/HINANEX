@@ -170,6 +170,20 @@ class FacilityEvidencePacketPreflightTests(unittest.TestCase):
         with self.assertRaisesRegex(c.PacketInputError, "disposition"):
             c.preflight(p)
 
+    def test_null_review_disposition_is_unresolved_not_a_schema_failure(self):
+        p = self.single()
+        p["records"][0]["identity"]["disposition"] = None
+        p["records"][0]["hazard_meaning"]["disposition"] = None
+        p["records"][0]["reuse"]["disposition"] = None
+        row = c.preflight(p)["rows"][0]
+        self.assertEqual(row["status"], "HOLD_MISSING_CONFLICTING_OR_UNREVIEWED")
+        for code in (
+            "IDENTITY_INDEPENDENT_REVIEW_UNRESOLVED",
+            "HAZARD_MEANING_INDEPENDENT_REVIEW_UNRESOLVED",
+            "REUSE_INDEPENDENT_REVIEW_UNRESOLVED",
+        ):
+            self.assertIn(code, row["reason_codes"])
+
     def test_duplicate_case_ids_and_empty_collection_are_rejected(self):
         p = self.single()
         p["records"].append(copy.deepcopy(p["records"][0]))

@@ -143,7 +143,7 @@ def _validate_shape(packet: object) -> list[dict]:
                 if value is not None and not isinstance(value, str):
                     raise PacketInputError(f"invalid {group}.{key} type")
             disposition = item.get("disposition")
-            if "disposition" in keys and disposition not in DISPOSITIONS:
+            if "disposition" in keys and disposition is not None and disposition not in DISPOSITIONS:
                 raise PacketInputError(f"unsupported {group} disposition")
     return records
 
@@ -203,7 +203,7 @@ def _detect(record: dict) -> dict[str, list[str]]:
     for group in ("identity", "hazard_meaning", "reuse"):
         if record[group]["disposition"] == "CONFLICTING":
             issues[group].append(f"{group.upper()}_EVIDENCE_CONFLICT")
-        elif record[group]["disposition"] == "UNREVIEWED":
+        elif record[group]["disposition"] in (None, "UNREVIEWED"):
             issues[group].append(f"{group.upper()}_INDEPENDENT_REVIEW_UNRESOLVED")
     return {group: sorted(set(codes)) for group, codes in issues.items()}
 
