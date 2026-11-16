@@ -29,7 +29,7 @@ class AnchorPlanInvalid(ValueError):
 
 def dms_degrees(dms: str, *, longitude: bool) -> float:
     """Parse explicit positive east-longitude / north-latitude D:M:S."""
-    if not isinstance(dms, str) or (match := _D.fullmatch(dms)) is None:
+    if not isinstance(dms, str) or (match := _DMS.fullmatch(dms)) is None:
         raise AnchorPlanInvalid("EXPLICIT_DMS_DEGREES_MINUTES_SECONDS_REQUIRED")
     degrees, minutes, seconds = map(int, match.groups())
     limit = 180 if longitude else 90
