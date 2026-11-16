@@ -68,8 +68,10 @@ def _evidence_dir(directory: Path | None) -> Path:
     if (directory is None or not isinstance(directory, Path)
             or not directory.is_absolute()):
         raise ValueError("R0_ABSOLUTE_EVIDENCE_DIRECTORY_REQUIRED")
+    if not directory.is_dir():
+        raise ValueError("R0_EVIDENCE_MUST_BE_EXISTING_DIRECTORY_OUTSIDE_REPO")
     result = directory.resolve(strict=True)
-    if _inside_repo(result) or not result.is_dir():
+    if _inside_repo(result):
         raise ValueError("R0_EVIDENCE_MUST_BE_EXISTING_DIRECTORY_OUTSIDE_REPO")
     return result
 
@@ -91,8 +93,14 @@ def _verify_capture_result(
     attribute: str, dataset: str, tile: dict,
 ) -> dict:
     """Verify the actual local archive, never trust a receipt or a count alone."""
-    if not isinstance(receipt, dict) or not raw_out.is_file():
+    receipt_path = raw_out.with_suffix(".receipt.json")
+    if (not isinstance(receipt, dict) or not raw_out.is_file()
+            or not receipt_path.is_file()):
         raise ValueError("R0_CAPTURE_MISSING_RAW_OR_RECEIPT")
+    if receipt_path.stat().st_size > 100_000:
+        raise ValueError("R0_CAPTURE_RECEIPT_OVERSIZED")
+    if json.loads(receipt_path.read_text(encoding="utf-8")) != receipt:
+        raise ValueError("R0_CAPTURE_SAVED_RECEIPT_MISMATCH")
     if not (0 < raw_out.stat().st_size <= _MAX_BYTES):
         raise ValueError("R0_CAPTURE_RAW_SIZE_INVALID")
     raw = raw_out.read_bytes()
