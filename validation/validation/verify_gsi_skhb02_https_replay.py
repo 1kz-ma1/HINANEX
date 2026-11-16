@@ -93,10 +93,11 @@ def inspect_raw(raw: bytes) -> tuple[str, int]:
                 or not isfinite(lon) or not isfinite(lat)):
             raise ReplayBlocked(f"INVALID_POINT:{i}")
         try:
-            if point_tile(lon, lat) != (909, 403):
-                raise ReplayBlocked(f"FEATURE_OUTSIDE_TILE:{i}")
+            computed_tile = point_tile(lon, lat)
         except (OverflowError, ValueError, TypeError) as exc:
             raise ReplayBlocked(f"INVALID_POINT:{i}") from exc
+        if computed_tile != (909, 403):
+            raise ReplayBlocked(f"FEATURE_OUTSIDE_TILE:{i}")
         if len(coords) == 3 and (
             type(coords[2]) not in (int, float) or not isfinite(coords[2])
         ):
