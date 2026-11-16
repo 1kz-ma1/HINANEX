@@ -98,6 +98,19 @@
 - Change metadata:
 - Merge state:
 
+## Merge Captain final decision（マージ時に実際のCaptainが記録）
+
+<!-- 正式Captain: @1kz-ma1 / @kouta1029。詳細: .github/MERGE_CAPTAINS.md
+この欄またはPRコメントに決裁者・確定HEAD・check・残る安全/公開ゲート・理由を記録。
+AIのレビュー下書き・PR作成者の自己申告を人間の最終決裁と混同しない。 -->
+- Merge Captain（人間のGitHub account）:
+- Decision: NOT_REVIEWED / MERGE / HOLD
+- Verified PR HEAD / latest main / required `test` run:
+- Dependencies / Contract / scope:
+- Public deployment & disaster-data approval gates:
+- Device QA disposition / DQA-ID:
+- Rationale / Not run / Outstanding risks:
+
 ## Checklist
 
 - [ ] `git status` と現在branchを確認した
