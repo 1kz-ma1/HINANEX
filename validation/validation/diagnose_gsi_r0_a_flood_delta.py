@@ -39,15 +39,60 @@ def _typed_equal(a, b):
     return a == b
 
 
+# Fixed, publicly known schema labels only. Never reveal unknown source keys:
+# a source property name could itself include a private value.
+_SAFE_PROPERTIES = frozenset(("name", "address", "remarks", "disaster1", "disaster2"))
+_SAFE_GEOMETRY = frozenset(("type", "coordinates"))
+_MISSING = object()
+
+
+def _changed_attribute_categories(old_feature: object, new_feature: object) -> set[str]:
+    """List only allowlisted field *categories*, never keys from source data."""
+    if not isinstance(old_feature, dict) or not isinstance(new_feature, dict):
+        return {"feature.structure"}
+    categories = set()
+    for key in old_feature.keys() | new_feature.keys():
+        previous = old_feature.get(key, _MISSING)
+        current = new_feature.get(key, _MISSING)
+        if _typed_equal(previous, current):
+            continue
+        if key in ("properties", "geometry"):
+            if not isinstance(previous, dict) or not isinstance(current, dict):
+                categories.add(f"{key}.structure")
+                continue
+            allowed = _SAFE_PROPERTIES if key == "properties" else _SAFE_GEOMETRY
+            for subkey in previous.keys() | current.keys():
+                if not _typed_equal(
+                    previous.get(subkey, _MISSING), current.get(subkey, _MISSING)
+                ):
+                    safe_key = subkey if subkey in allowed else "other"
+                    categories.add(f"{key}.{safe_key}")
+        elif key == "type":
+            categories.add("feature.type")
+        elif key == "id":
+            categories.add("feature.id")
+        else:
+            categories.add("feature.other")
+    return categories
+
+
 def _diff_summary(old_bytes: bytes, new_bytes: bytes) -> dict:
-    """No feature values or identities leave this function."""
+    """Aggregate per-index field categories; no source field values leave here."""
     old = _load_json(old_bytes)
     new = _load_json(new_bytes)
     a, b = old["features"], new["features"]
-    differing = [i for i in range(min(len(a), len(b)))
-                 if not _typed_equal(a[i], b[i])]
-    if len(a) != len(b):
-        differing.append(min(len(a), len(b)))
+    differing = []
+    categories: dict[str, int] = {}
+    for index in range(max(len(a), len(b))):
+        if index >= min(len(a), len(b)):
+            labels = {"feature.added_or_removed"}
+        elif _typed_equal(a[index], b[index]):
+            continue
+        else:
+            labels = _changed_attribute_categories(a[index], b[index])
+        differing.append(index)
+        for label in labels:
+            categories[label] = categories.get(label, 0) + 1
     no_features_old = dict(old, features=None)
     no_features_new = dict(new, features=None)
     return {
@@ -56,6 +101,10 @@ def _diff_summary(old_bytes: bytes, new_bytes: bytes) -> dict:
         "feature_count_delta_c_minus_d": len(b) - len(a),
         "feature_indices_differing_count": len(differing),
         "first_differing_feature_index": differing[0] if differing else None,
+        "changed_attribute_category_counts": dict(sorted(categories.items())),
+        "changed_attribute_category_scope": (
+            "FIXED_ALLOWLIST_PER_ARRAY_INDEX_UNKNOWN_KEYS_REDACTED"
+        ),
         "comparison_scope": "SAME_FEATURE_ARRAY_INDEX_NO_IDENTITY_JOIN",
     }
 
