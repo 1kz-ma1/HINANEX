@@ -170,7 +170,11 @@ AI は自分の判断だけで `merge: ready` にしません。
 
 role branch に作業がまとまったら、main への PR を作成できます。
 
-ただし main への merge は Merge Captain が判断します。
+ただし main への merge は **同格の2名の人間Merge Captain（[`@1kz-ma1`](https://github.com/1kz-ma1) または [`@kouta1029`](https://github.com/kouta1029)）** が判断します。どちらも通常PRを独立に最終判断でき、他方への事前承認依頼は原則不要です。必要なCI・Contract・安全性・デプロイ範囲・実機QAの記録は省略できません。
+
+- [共同Merge Captain権限・監査ログ](MERGE_CAPTAINS.md)
+- 統合を決めるCaptainはPRに`Merge Captain: @...`と確定HEAD/必須CI/公開ゲート/判断理由を残す
+- Captain自身が作成したPRも現行保護を満たす範囲でマージ可能。マージ実行権限が見えない場合は[#382](https://github.com/1kz-ma1/HINANEX/issues/382)のGitHub権限点検を参照
 
 AI は PR 作成時に以下を整理してください。
 
@@ -237,6 +241,18 @@ PR 本文には最低限:
 を記載します。
 
 AI が作成・実装に関与した場合は `ai-authored` を推奨します。
+
+## 7.5 実装先行・実機QAを定期的にまとめる（2026-11-13採用）
+
+**PRごとに実機操作を待つ必要は原則ありません。** 最新main・必要なCI・Contract・データ安全・公開範囲の審査に通った非公開の実装はMerge Captainの判断で統合し、スマホ固有の検証は別管理します。
+
+- 正式な運用仕様: [実装先行・定期実機QA](../docs/strategy/HINANEX_IMPLEMENTATION_FIRST_DEVICE_QA_20261113.md)
+- QA共通受付・次回日程: [Issue #372](https://github.com/1kz-ma1/HINANEX/issues/372)
+- 毎回の実機実施: GitHub **New issue → Device QA session** テンプレート
+- PR本文の **Device QA disposition** を1件選ぶ：`NOT_REQUIRED` / `DEFERRED` / `DONE` / `BLOCKING`。延期の場合は必ず#372へ対象SHA・確認手順・端末・実施予定を登録する
+- CI失敗・安全性不明・利用条件未承認・未承認実施設の公開は実機延期で突破しない。現行`AGENTS.md`のガードが優先
+
+班員がAIへ伝える例：「このPRは実機が必要か分類して。DEFERREDなら#372に確認項目を登録し、CI・安全ゲートを通したうえでMerge Captainに渡して。」
 
 ## 8. 困ったとき
 
