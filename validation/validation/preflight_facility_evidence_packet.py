@@ -13,6 +13,9 @@ from pathlib import Path
 import re
 from urllib.parse import urlsplit
 
+ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_MANIFEST = ROOT / "validation" / "fixtures" / "facility_evidence_packet_synthetic_v01.json"
+
 SCHEMA = "hinanex.c.facility_evidence_packet_preflight.v0.1"
 REPORT_SCHEMA = "hinanex.c.facility_evidence_gaps.v0.1"
 DIGEST = re.compile(r"[0-9a-f]{64}\Z")
