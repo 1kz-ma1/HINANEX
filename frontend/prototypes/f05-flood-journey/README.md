@@ -16,7 +16,7 @@
 
 ## 公開・統合ゲート（重要）
 
-**Deploy非配信ガードPR #377は2026-11-16にmainへ統合済み**。現在のビルダーは `frontend/prototypes/f05-flood-journey/**`、`frontend/src/f05-journey-model.js`、対応するBテスト・文書を静的公開バンドルから除外する。既存F02/F03非公開ガードも維持する。**ただし、Render実デプロイの対象コミットとF05直接URLの404/非配信は未確認**（[Issue #373](https://github.com/1kz-ma1/HINANEX/issues/373)）。#371のmain統合判断は、実Renderの非公開証跡・この試作自身の実HTTP Chrome操作受入・現在のCIを確認してから行う。B featureで`deploy/**`を変更せず、JSのローカル制限だけを配信除外の根拠としない。
+**Deploy非配信ガードPR #377は2026-11-16にmainへ統合済み**。現在のビルダーは `frontend/prototypes/f05-flood-journey/**`、`frontend/src/f05-journey-model.js`、対応するBテスト・文書を静的公開バンドルから除外する。既存F02/F03非公開ガードも維持する。**2026-11-16追補：** Render実ログでmain `d461f5912216b54d3f30a2833eb12c08860b4e74` のLiveを確認。デプロイ後のChrome NetworkでF05 `index.html` とF02 `f02.html` がともに404であることを確認済み（[Issue #373](https://github.com/1kz-ma1/HINANEX/issues/373#issuecomment-6905481203)）。**ただし#371のF05ソースはまだmain未統合のため、ソース実在時のRender除外最終確認ではない。** また、ローカルChrome基本操作 F05-01〜14 は[本人報告でPASS](https://github.com/1kz-ma1/HINANEX/issues/372#issuecomment-6906107953)（新しいNetwork HARやSafari/Android物理端末の独立証拠なし）。#371のmain統合判断では、出典/非公開ガード、最新CI、Issue #362のスライス採用判断を別途確認する。B featureで`deploy/**`を変更せず、JSのローカル制限だけを配信除外の根拠としない。
 
 正式利用条件や施設意味はIssue #366、オーナーの#362優先順位/実装承認が別途必要。公開GOではない。
 
