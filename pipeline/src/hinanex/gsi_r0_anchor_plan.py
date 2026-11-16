@@ -99,7 +99,7 @@ def build_candidate(
     # cannot contain invented administrative fields under its strict schema.
     evidence = {
         "status": "R0_CANDIDATE_TILE_ONLY_SOURCES_NOT_ACQUIRED",
-        "reference_class": "CITED_NON_SHELTER_GEOGRAPHIC_ANCHOR",
+        "reference_class": "MANUAL_GEOGRAPHIC_REFERENCE_NOT_SITE_EVIDENCE",
         "reference_url_claimed": b_reference_url,
         "reference_url_content_verified_by_tool": False,
         "reference_coordinates": {
@@ -113,7 +113,7 @@ def build_candidate(
         "gsi_skhb02_source_available": "NOT_TESTED",
         "official_municipal_boundary_verified": False,
         "geographic_distance_verified": False,
-        "reference_is_emergency_shelter": False,
+        "reference_is_emergency_shelter": "NOT_EVALUATED",
         "c_independent_acceptance": "NOT_GRANTED",
         "human_review": "DEFERRED_TO_HUMAN_BATCH_REVIEW",
         "publication_approval": "NOT_GRANTED",
