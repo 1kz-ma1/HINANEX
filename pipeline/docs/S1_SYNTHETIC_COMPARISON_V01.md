@@ -35,8 +35,8 @@ CLIは固定の日時・架空IDのみを使用する。`pet_support` と `step_
 **QA区分:** `NOT_REQUIRED`（純粋Python・合成CLI）。公式Rawの再取得、実地調査、実ブラウザや端末での表示、安全性・開設/位置/経路・一般配信はすべてNOT_RUN/NO-GOで、独立した承認を必要とする。
 
 ## PR分離・依存
-- P0 PR #391がmain未統合の場合は、**P1をP0ブランチをbaseとしたDraft PR**で提出する。
-- P0がmainに入ったらP1を最新mainに追従させ、required `test` とD/C/B/E/Deploy scopeの全検証を実行する。mainの直接push/自動mergeは禁止。
+- P0 PR #391は2026-11-16にmainへSquash Merge済み（`ffe74bf3d1d0a5c819a6c8e3b058e9f680b7a061`）。P1は元の依存ブランチから最新mainへ追従し、PR baseをmainへ変更した。
+- P1は最新mainベースのrequired `test` とD/C/B/E/Deploy Scope Guardの再実行、およびMerge Captainの個別統合審査を必要とする。mainの直接pushと未承認の公開は禁止。
 - **正式な比較対象としての実施設採用**にはA原本・C施設単位追跡・Dの災害適合/同一性/時点・公式資料利用条件、人間承認が別途必要。F05画面実装とS0→UI Transport/Contractの採否は後回しのまま維持する。
 
 本スライスのPASSは、合成レコードの評価理由が追跡可能な形になったことだけを示す。避難先の候補推薦、実災害利用や公開の安全性は証明しない。
