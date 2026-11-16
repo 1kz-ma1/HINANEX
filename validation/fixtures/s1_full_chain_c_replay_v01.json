@@ -1,0 +1,790 @@
+{
+  "schema_id": "hinanex.c.s1_full_chain_real_output_replay.v0.1",
+  "synthetic_only": true,
+  "fixture": {
+    "fixture_id": "synthetic:c-chain-drill-001",
+    "region_code": "13123",
+    "hazard": "flood",
+    "observed_at": "2026-11-13T00:00:00Z",
+    "expires_at": "2026-11-13T00:30:00Z",
+    "source_authorization": "SYNTHETIC_TEST_ONLY"
+  },
+  "records": [
+    {
+      "record_id": "synthetic:chain-a",
+      "fixture_id": "synthetic:c-chain-drill-001",
+      "region_code": "13123",
+      "hazard": "flood",
+      "observed_at": "2026-11-13T00:00:00Z",
+      "expires_at": "2026-11-13T00:30:00Z",
+      "conditions": {
+        "pet_support": true,
+        "step_free": true
+      }
+    },
+    {
+      "record_id": "synthetic:chain-b",
+      "fixture_id": "synthetic:c-chain-drill-001",
+      "region_code": "13123",
+      "hazard": "flood",
+      "observed_at": "2026-11-13T00:00:00Z",
+      "expires_at": "2026-11-13T00:30:00Z",
+      "conditions": {
+        "pet_support": false,
+        "step_free": true
+      }
+    },
+    {
+      "record_id": "synthetic:chain-c",
+      "fixture_id": "synthetic:c-chain-drill-001",
+      "region_code": "13123",
+      "hazard": "flood",
+      "observed_at": "2026-11-13T00:00:00Z",
+      "expires_at": "2026-11-13T00:30:00Z",
+      "conditions": {
+        "pet_support": null,
+        "step_free": true
+      }
+    },
+    {
+      "record_id": "synthetic:chain-d",
+      "fixture_id": "synthetic:c-chain-drill-001",
+      "region_code": "13123",
+      "hazard": "flood",
+      "observed_at": "2026-11-13T00:00:00Z",
+      "expires_at": "2026-11-13T00:30:00Z",
+      "conditions": {
+        "pet_support": false,
+        "step_free": null
+      }
+    },
+    {
+      "record_id": "synthetic:chain-other-region",
+      "fixture_id": "synthetic:c-chain-drill-001",
+      "region_code": "15100",
+      "hazard": "flood",
+      "observed_at": "2026-11-13T00:00:00Z",
+      "expires_at": "2026-11-13T00:30:00Z",
+      "conditions": {
+        "pet_support": true,
+        "step_free": true
+      }
+    },
+    {
+      "record_id": "synthetic:chain-expired",
+      "fixture_id": "synthetic:c-chain-drill-001",
+      "region_code": "13123",
+      "hazard": "flood",
+      "observed_at": "2026-11-13T00:00:00Z",
+      "expires_at": "2026-11-13T00:05:00Z",
+      "conditions": {
+        "pet_support": true,
+        "step_free": true
+      }
+    }
+  ],
+  "steps": [
+    {
+      "kind": "EVENT",
+      "action": "START_DRILL",
+      "expected_generation": 0,
+      "at": "2026-11-13T00:00:00Z",
+      "region_code": "13123",
+      "fixture": "primary",
+      "expect": {
+        "mode": "DRILL",
+        "generation": 1,
+        "selected_region": "13123",
+        "fixture_id": "synthetic:c-chain-drill-001",
+        "notice_kind": "DRILL",
+        "live_data_verified": false,
+        "transition": "APPLIED"
+      }
+    },
+    {
+      "kind": "CHECK",
+      "at": "2026-11-13T00:05:00Z",
+      "request_generation": 1,
+      "request_region": "13123",
+      "request_hazard": "flood",
+      "required_conditions": [
+        "pet_support",
+        "step_free"
+      ],
+      "select_id": "synthetic:chain-c",
+      "choice_generation": 1,
+      "explicit_user_action": true,
+      "expect": {
+        "mode": "DRILL",
+        "generation": 1,
+        "selected_region": "13123",
+        "fixture_id": "synthetic:c-chain-drill-001",
+        "notice_kind": "DRILL",
+        "live_data_verified": false,
+        "narrow_status": "EVALUATED_SYNTHETIC_ONLY",
+        "narrow_reason": "NOT_REAL_WORLD_ELIGIBILITY",
+        "matched_ids": [
+          "synthetic:chain-a"
+        ],
+        "row_statuses": [
+          "MATCHED_SYNTHETIC",
+          "NOT_MATCHED_SYNTHETIC",
+          "UNKNOWN",
+          "UNKNOWN",
+          "UNKNOWN",
+          "UNKNOWN"
+        ],
+        "comparison_status": "EVALUATED_SYNTHETIC_ONLY",
+        "comparison_reason": "NOT_REAL_WORLD_ELIGIBILITY",
+        "totals": {
+          "matched_synthetic": 1,
+          "not_matched_synthetic": 1,
+          "unknown": 4
+        },
+        "choice_status": "REVIEW_SELECTED_SYNTHETIC_ONLY",
+        "choice_reason": "EXPLICIT_FICTIONAL_REVIEW_SELECTION",
+        "chosen_id": "synthetic:chain-c",
+        "choice_classification": "UNKNOWN",
+        "choice_missing": [
+          "pet_support"
+        ],
+        "choice_failed": [],
+        "choice_checks": [
+          {
+            "condition": "pet_support",
+            "assessment": "UNVERIFIED"
+          },
+          {
+            "condition": "step_free",
+            "assessment": "EXPLICIT_SYNTHETIC_TRUE"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "CHECK",
+      "at": "2026-11-13T00:05:00Z",
+      "request_generation": 1,
+      "request_region": "13123",
+      "request_hazard": "flood",
+      "required_conditions": [
+        "pet_support",
+        "step_free"
+      ],
+      "select_id": "synthetic:chain-a",
+      "choice_generation": 1,
+      "explicit_user_action": false,
+      "expect": {
+        "mode": "DRILL",
+        "generation": 1,
+        "selected_region": "13123",
+        "fixture_id": "synthetic:c-chain-drill-001",
+        "notice_kind": "DRILL",
+        "live_data_verified": false,
+        "narrow_status": "EVALUATED_SYNTHETIC_ONLY",
+        "narrow_reason": "NOT_REAL_WORLD_ELIGIBILITY",
+        "matched_ids": [
+          "synthetic:chain-a"
+        ],
+        "row_statuses": [
+          "MATCHED_SYNTHETIC",
+          "NOT_MATCHED_SYNTHETIC",
+          "UNKNOWN",
+          "UNKNOWN",
+          "UNKNOWN",
+          "UNKNOWN"
+        ],
+        "comparison_status": "EVALUATED_SYNTHETIC_ONLY",
+        "comparison_reason": "NOT_REAL_WORLD_ELIGIBILITY",
+        "totals": {
+          "matched_synthetic": 1,
+          "not_matched_synthetic": 1,
+          "unknown": 4
+        },
+        "choice_status": "BLOCKED",
+        "choice_reason": "EXPLICIT_USER_SELECTION_REQUIRED",
+        "chosen_id": null,
+        "choice_classification": null,
+        "choice_missing": [],
+        "choice_failed": [],
+        "choice_checks": []
+      }
+    },
+    {
+      "kind": "CHECK",
+      "at": "2026-11-13T00:05:00Z",
+      "request_generation": 1,
+      "request_region": "13123",
+      "request_hazard": "flood",
+      "required_conditions": [
+        "pet_support",
+        "step_free"
+      ],
+      "select_id": "synthetic:chain-b",
+      "choice_generation": 1,
+      "explicit_user_action": true,
+      "expect": {
+        "mode": "DRILL",
+        "generation": 1,
+        "selected_region": "13123",
+        "fixture_id": "synthetic:c-chain-drill-001",
+        "notice_kind": "DRILL",
+        "live_data_verified": false,
+        "narrow_status": "EVALUATED_SYNTHETIC_ONLY",
+        "narrow_reason": "NOT_REAL_WORLD_ELIGIBILITY",
+        "matched_ids": [
+          "synthetic:chain-a"
+        ],
+        "row_statuses": [
+          "MATCHED_SYNTHETIC",
+          "NOT_MATCHED_SYNTHETIC",
+          "UNKNOWN",
+          "UNKNOWN",
+          "UNKNOWN",
+          "UNKNOWN"
+        ],
+        "comparison_status": "EVALUATED_SYNTHETIC_ONLY",
+        "comparison_reason": "NOT_REAL_WORLD_ELIGIBILITY",
+        "totals": {
+          "matched_synthetic": 1,
+          "not_matched_synthetic": 1,
+          "unknown": 4
+        },
+        "choice_status": "REVIEW_SELECTED_SYNTHETIC_ONLY",
+        "choice_reason": "EXPLICIT_FICTIONAL_REVIEW_SELECTION",
+        "chosen_id": "synthetic:chain-b",
+        "choice_classification": "NOT_MATCHED_SYNTHETIC",
+        "choice_missing": [],
+        "choice_failed": [
+          "pet_support"
+        ],
+        "choice_checks": [
+          {
+            "condition": "pet_support",
+            "assessment": "EXPLICIT_SYNTHETIC_FALSE"
+          },
+          {
+            "condition": "step_free",
+            "assessment": "EXPLICIT_SYNTHETIC_TRUE"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "EVENT",
+      "action": "STOP_DRILL",
+      "expected_generation": 1,
+      "at": "2026-11-13T00:06:00Z",
+      "expect": {
+        "mode": "NORMAL",
+        "generation": 2,
+        "selected_region": "13123",
+        "fixture_id": null,
+        "notice_kind": "NORMAL",
+        "live_data_verified": false,
+        "transition": "APPLIED"
+      }
+    },
+    {
+      "kind": "CHECK",
+      "at": "2026-11-13T00:06:00Z",
+      "request_generation": 1,
+      "request_region": "13123",
+      "request_hazard": "flood",
+      "required_conditions": [
+        "pet_support",
+        "step_free"
+      ],
+      "select_id": "synthetic:chain-c",
+      "choice_generation": 1,
+      "explicit_user_action": true,
+      "expect": {
+        "mode": "NORMAL",
+        "generation": 2,
+        "selected_region": "13123",
+        "fixture_id": null,
+        "notice_kind": "NORMAL",
+        "live_data_verified": false,
+        "narrow_status": "BLOCKED",
+        "narrow_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "matched_ids": [],
+        "row_statuses": [],
+        "comparison_status": "BLOCKED",
+        "comparison_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "totals": {
+          "matched_synthetic": 0,
+          "not_matched_synthetic": 0,
+          "unknown": 0
+        },
+        "choice_status": "BLOCKED",
+        "choice_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "chosen_id": null,
+        "choice_classification": null,
+        "choice_missing": [],
+        "choice_failed": [],
+        "choice_checks": []
+      }
+    },
+    {
+      "kind": "EVENT",
+      "action": "START_DRILL",
+      "expected_generation": 2,
+      "at": "2026-11-13T00:07:00Z",
+      "region_code": "13123",
+      "fixture": "primary",
+      "expect": {
+        "mode": "DRILL",
+        "generation": 3,
+        "selected_region": "13123",
+        "fixture_id": "synthetic:c-chain-drill-001",
+        "notice_kind": "DRILL",
+        "live_data_verified": false,
+        "transition": "APPLIED"
+      }
+    },
+    {
+      "kind": "CHECK",
+      "at": "2026-11-13T00:07:00Z",
+      "request_generation": 3,
+      "request_region": "13123",
+      "request_hazard": "flood",
+      "required_conditions": [
+        "pet_support",
+        "step_free"
+      ],
+      "select_id": "synthetic:chain-a",
+      "choice_generation": 1,
+      "explicit_user_action": true,
+      "expect": {
+        "mode": "DRILL",
+        "generation": 3,
+        "selected_region": "13123",
+        "fixture_id": "synthetic:c-chain-drill-001",
+        "notice_kind": "DRILL",
+        "live_data_verified": false,
+        "narrow_status": "EVALUATED_SYNTHETIC_ONLY",
+        "narrow_reason": "NOT_REAL_WORLD_ELIGIBILITY",
+        "matched_ids": [
+          "synthetic:chain-a"
+        ],
+        "row_statuses": [
+          "MATCHED_SYNTHETIC",
+          "NOT_MATCHED_SYNTHETIC",
+          "UNKNOWN",
+          "UNKNOWN",
+          "UNKNOWN",
+          "UNKNOWN"
+        ],
+        "comparison_status": "EVALUATED_SYNTHETIC_ONLY",
+        "comparison_reason": "NOT_REAL_WORLD_ELIGIBILITY",
+        "totals": {
+          "matched_synthetic": 1,
+          "not_matched_synthetic": 1,
+          "unknown": 4
+        },
+        "choice_status": "BLOCKED",
+        "choice_reason": "STALE_REVIEW_CHOICE",
+        "chosen_id": null,
+        "choice_classification": null,
+        "choice_missing": [],
+        "choice_failed": [],
+        "choice_checks": []
+      }
+    },
+    {
+      "kind": "CHECK",
+      "at": "2026-11-13T00:07:00Z",
+      "request_generation": 3,
+      "request_region": "13123",
+      "request_hazard": "flood",
+      "required_conditions": [
+        "pet_support",
+        "step_free"
+      ],
+      "select_id": "synthetic:chain-a",
+      "choice_generation": 3,
+      "explicit_user_action": true,
+      "expect": {
+        "mode": "DRILL",
+        "generation": 3,
+        "selected_region": "13123",
+        "fixture_id": "synthetic:c-chain-drill-001",
+        "notice_kind": "DRILL",
+        "live_data_verified": false,
+        "narrow_status": "EVALUATED_SYNTHETIC_ONLY",
+        "narrow_reason": "NOT_REAL_WORLD_ELIGIBILITY",
+        "matched_ids": [
+          "synthetic:chain-a"
+        ],
+        "row_statuses": [
+          "MATCHED_SYNTHETIC",
+          "NOT_MATCHED_SYNTHETIC",
+          "UNKNOWN",
+          "UNKNOWN",
+          "UNKNOWN",
+          "UNKNOWN"
+        ],
+        "comparison_status": "EVALUATED_SYNTHETIC_ONLY",
+        "comparison_reason": "NOT_REAL_WORLD_ELIGIBILITY",
+        "totals": {
+          "matched_synthetic": 1,
+          "not_matched_synthetic": 1,
+          "unknown": 4
+        },
+        "choice_status": "REVIEW_SELECTED_SYNTHETIC_ONLY",
+        "choice_reason": "EXPLICIT_FICTIONAL_REVIEW_SELECTION",
+        "chosen_id": "synthetic:chain-a",
+        "choice_classification": "MATCHED_SYNTHETIC",
+        "choice_missing": [],
+        "choice_failed": [],
+        "choice_checks": [
+          {
+            "condition": "pet_support",
+            "assessment": "EXPLICIT_SYNTHETIC_TRUE"
+          },
+          {
+            "condition": "step_free",
+            "assessment": "EXPLICIT_SYNTHETIC_TRUE"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "EVENT",
+      "action": "SELECT_REGION",
+      "expected_generation": 3,
+      "at": "2026-11-13T00:08:00Z",
+      "region_code": "15100",
+      "expect": {
+        "mode": "NORMAL",
+        "generation": 4,
+        "selected_region": "15100",
+        "fixture_id": null,
+        "notice_kind": "NORMAL",
+        "live_data_verified": false,
+        "transition": "APPLIED"
+      }
+    },
+    {
+      "kind": "CHECK",
+      "at": "2026-11-13T00:08:00Z",
+      "request_generation": 3,
+      "request_region": "13123",
+      "request_hazard": "flood",
+      "required_conditions": [
+        "pet_support",
+        "step_free"
+      ],
+      "select_id": "synthetic:chain-c",
+      "choice_generation": 3,
+      "explicit_user_action": true,
+      "expect": {
+        "mode": "NORMAL",
+        "generation": 4,
+        "selected_region": "15100",
+        "fixture_id": null,
+        "notice_kind": "NORMAL",
+        "live_data_verified": false,
+        "narrow_status": "BLOCKED",
+        "narrow_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "matched_ids": [],
+        "row_statuses": [],
+        "comparison_status": "BLOCKED",
+        "comparison_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "totals": {
+          "matched_synthetic": 0,
+          "not_matched_synthetic": 0,
+          "unknown": 0
+        },
+        "choice_status": "BLOCKED",
+        "choice_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "chosen_id": null,
+        "choice_classification": null,
+        "choice_missing": [],
+        "choice_failed": [],
+        "choice_checks": []
+      }
+    },
+    {
+      "kind": "EVENT",
+      "action": "START_DRILL",
+      "expected_generation": 1,
+      "at": "2026-11-13T00:09:00Z",
+      "region_code": "13123",
+      "fixture": "primary",
+      "expect": {
+        "mode": "NORMAL",
+        "generation": 4,
+        "selected_region": "15100",
+        "fixture_id": null,
+        "notice_kind": "NORMAL",
+        "live_data_verified": false,
+        "transition": "STALE_REJECTED"
+      }
+    },
+    {
+      "kind": "CHECK",
+      "at": "2026-11-13T00:09:00Z",
+      "request_generation": 3,
+      "request_region": "13123",
+      "request_hazard": "flood",
+      "required_conditions": [
+        "pet_support",
+        "step_free"
+      ],
+      "select_id": "synthetic:chain-c",
+      "choice_generation": 3,
+      "explicit_user_action": true,
+      "expect": {
+        "mode": "NORMAL",
+        "generation": 4,
+        "selected_region": "15100",
+        "fixture_id": null,
+        "notice_kind": "NORMAL",
+        "live_data_verified": false,
+        "narrow_status": "BLOCKED",
+        "narrow_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "matched_ids": [],
+        "row_statuses": [],
+        "comparison_status": "BLOCKED",
+        "comparison_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "totals": {
+          "matched_synthetic": 0,
+          "not_matched_synthetic": 0,
+          "unknown": 0
+        },
+        "choice_status": "BLOCKED",
+        "choice_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "chosen_id": null,
+        "choice_classification": null,
+        "choice_missing": [],
+        "choice_failed": [],
+        "choice_checks": []
+      }
+    },
+    {
+      "kind": "EVENT",
+      "action": "START_DRILL",
+      "expected_generation": 4,
+      "at": "2026-11-13T00:10:00Z",
+      "region_code": "13123",
+      "fixture": "primary",
+      "expect": {
+        "mode": "DRILL",
+        "generation": 5,
+        "selected_region": "13123",
+        "fixture_id": "synthetic:c-chain-drill-001",
+        "notice_kind": "DRILL",
+        "live_data_verified": false,
+        "transition": "APPLIED"
+      }
+    },
+    {
+      "kind": "CHECK",
+      "at": "2026-11-13T00:30:00Z",
+      "request_generation": 5,
+      "request_region": "13123",
+      "request_hazard": "flood",
+      "required_conditions": [
+        "pet_support",
+        "step_free"
+      ],
+      "select_id": "synthetic:chain-a",
+      "choice_generation": 5,
+      "explicit_user_action": true,
+      "expect": {
+        "mode": "NORMAL",
+        "generation": 5,
+        "selected_region": "13123",
+        "fixture_id": null,
+        "notice_kind": "NORMAL",
+        "live_data_verified": false,
+        "narrow_status": "BLOCKED",
+        "narrow_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "matched_ids": [],
+        "row_statuses": [],
+        "comparison_status": "BLOCKED",
+        "comparison_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "totals": {
+          "matched_synthetic": 0,
+          "not_matched_synthetic": 0,
+          "unknown": 0
+        },
+        "choice_status": "BLOCKED",
+        "choice_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "chosen_id": null,
+        "choice_classification": null,
+        "choice_missing": [],
+        "choice_failed": [],
+        "choice_checks": []
+      }
+    },
+    {
+      "kind": "EVENT",
+      "action": "SOURCE_FAILED",
+      "expected_generation": 5,
+      "at": "2026-11-13T00:30:00Z",
+      "expect": {
+        "mode": "NORMAL",
+        "generation": 6,
+        "selected_region": "13123",
+        "fixture_id": null,
+        "notice_kind": "NORMAL",
+        "live_data_verified": false,
+        "transition": "APPLIED"
+      }
+    },
+    {
+      "kind": "CHECK",
+      "at": "2026-11-13T00:31:00Z",
+      "request_generation": 5,
+      "request_region": "13123",
+      "request_hazard": "flood",
+      "required_conditions": [
+        "pet_support",
+        "step_free"
+      ],
+      "select_id": "synthetic:chain-a",
+      "choice_generation": 5,
+      "explicit_user_action": true,
+      "expect": {
+        "mode": "NORMAL",
+        "generation": 6,
+        "selected_region": "13123",
+        "fixture_id": null,
+        "notice_kind": "NORMAL",
+        "live_data_verified": false,
+        "narrow_status": "BLOCKED",
+        "narrow_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "matched_ids": [],
+        "row_statuses": [],
+        "comparison_status": "BLOCKED",
+        "comparison_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "totals": {
+          "matched_synthetic": 0,
+          "not_matched_synthetic": 0,
+          "unknown": 0
+        },
+        "choice_status": "BLOCKED",
+        "choice_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "chosen_id": null,
+        "choice_classification": null,
+        "choice_missing": [],
+        "choice_failed": [],
+        "choice_checks": []
+      }
+    },
+    {
+      "kind": "EVENT",
+      "action": "START_DRILL",
+      "expected_generation": 6,
+      "at": "2026-11-13T00:32:00Z",
+      "region_code": "13123",
+      "fixture": "primary",
+      "expect": {
+        "mode": "NORMAL",
+        "generation": 7,
+        "selected_region": "13123",
+        "fixture_id": null,
+        "notice_kind": "NORMAL",
+        "live_data_verified": false,
+        "transition": "APPLIED"
+      }
+    },
+    {
+      "kind": "CHECK",
+      "at": "2026-11-13T00:32:00Z",
+      "request_generation": 7,
+      "request_region": "13123",
+      "request_hazard": "flood",
+      "required_conditions": [
+        "pet_support",
+        "step_free"
+      ],
+      "select_id": "synthetic:chain-a",
+      "choice_generation": 7,
+      "explicit_user_action": true,
+      "expect": {
+        "mode": "NORMAL",
+        "generation": 7,
+        "selected_region": "13123",
+        "fixture_id": null,
+        "notice_kind": "NORMAL",
+        "live_data_verified": false,
+        "narrow_status": "BLOCKED",
+        "narrow_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "matched_ids": [],
+        "row_statuses": [],
+        "comparison_status": "BLOCKED",
+        "comparison_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "totals": {
+          "matched_synthetic": 0,
+          "not_matched_synthetic": 0,
+          "unknown": 0
+        },
+        "choice_status": "BLOCKED",
+        "choice_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "chosen_id": null,
+        "choice_classification": null,
+        "choice_missing": [],
+        "choice_failed": [],
+        "choice_checks": []
+      }
+    },
+    {
+      "kind": "EVENT",
+      "action": "RESET",
+      "expected_generation": 7,
+      "at": "2026-11-13T00:33:00Z",
+      "expect": {
+        "mode": "NORMAL",
+        "generation": 8,
+        "selected_region": null,
+        "fixture_id": null,
+        "notice_kind": "NORMAL",
+        "live_data_verified": false,
+        "transition": "APPLIED"
+      }
+    },
+    {
+      "kind": "CHECK",
+      "at": "2026-11-13T00:33:00Z",
+      "request_generation": 8,
+      "request_region": "13123",
+      "request_hazard": "flood",
+      "required_conditions": [
+        "pet_support",
+        "step_free"
+      ],
+      "select_id": "synthetic:chain-a",
+      "choice_generation": 8,
+      "explicit_user_action": true,
+      "expect": {
+        "mode": "NORMAL",
+        "generation": 8,
+        "selected_region": null,
+        "fixture_id": null,
+        "notice_kind": "NORMAL",
+        "live_data_verified": false,
+        "narrow_status": "BLOCKED",
+        "narrow_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "matched_ids": [],
+        "row_statuses": [],
+        "comparison_status": "BLOCKED",
+        "comparison_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "totals": {
+          "matched_synthetic": 0,
+          "not_matched_synthetic": 0,
+          "unknown": 0
+        },
+        "choice_status": "BLOCKED",
+        "choice_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+        "chosen_id": null,
+        "choice_classification": null,
+        "choice_missing": [],
+        "choice_failed": [],
+        "choice_checks": []
+      }
+    }
+  ]
+}
