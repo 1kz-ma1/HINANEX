@@ -170,7 +170,11 @@ AI は自分の判断だけで `merge: ready` にしません。
 
 role branch に作業がまとまったら、main への PR を作成できます。
 
-ただし main への merge は Merge Captain が判断します。
+ただし main への merge は **同格の2名の人間Merge Captain（[`@1kz-ma1`](https://github.com/1kz-ma1) または [`@kouta1029`](https://github.com/kouta1029)）** が判断します。どちらも通常PRを独立に最終判断でき、他方への事前承認依頼は原則不要です。必要なCI・Contract・安全性・デプロイ範囲・実機QAの記録は省略できません。
+
+- [共同Merge Captain権限・監査ログ](MERGE_CAPTAINS.md)
+- 統合を決めるCaptainはPRに`Merge Captain: @...`と確定HEAD/必須CI/公開ゲート/判断理由を残す
+- Captain自身が作成したPRも現行保護を満たす範囲でマージ可能。マージ実行権限が見えない場合は[#382](https://github.com/1kz-ma1/HINANEX/issues/382)のGitHub権限点検を参照
 
 AI は PR 作成時に以下を整理してください。
 
