@@ -37,7 +37,7 @@ GitHub Actionsの `test` はmainへの統合可否判断の必須ゲート。た
 
 ## 配信・権利の安全境界
 
-- mainの `deploy/build_staging.py` は `frontend/prototypes/f05-flood-journey` **ディレクトリ全体を配布から除外**する（PR #377）。B2の4ファイルは**すべてその配下**。B2用コードを別の公開ディレクトリに置かない。
+- mainの `deploy/build_staging.py` は `frontend/prototypes/f05-flood-journey` **ディレクトリ全体を配布から除外**する（PR #377）。B2の5ファイルは**すべてその配下**。B2用コードを別の公開ディレクトリに置かない。
 - **PR #371の新しいF05/B1ページは含めない**。ブランチは最新mainから独立し、F01/F02/E/D/Schema/Deployを編集しない。
 - 画面自体の「localhost以外でブロック」は二次防御であり、**配布除外の代わりではない**。
 - 原本CSV/GSI/実施設属性・座標・開設/経路の公式承認は [Issue #366](https://github.com/1kz-ma1/HINANEX/issues/366) など別ゲート。F07 [#358](https://github.com/1kz-ma1/HINANEX/issues/358) はHOLD。
@@ -45,7 +45,7 @@ GitHub Actionsの `test` はmainへの統合可否判断の必須ゲート。た
 
 ## 受入記録
 
-- `Implementation`: 4ファイル、`frontend/prototypes/f05-flood-journey/b2-compare/**` のみ。
+- `Implementation`: 5ファイル、`frontend/prototypes/f05-flood-journey/b2-compare/**` のみ。
 - `Passed`: Node単体テストおよびrequired CIはそれぞれ実行結果をPRに記録する。
 - `Not run`: 実ChromeでのB2操作・画面幅320/390/1440px・Android/iOS/Safari・独立Network HAR。物理端末は [Device QA #372](https://github.com/1kz-ma1/HINANEX/issues/372) に登録する。
 - `Published`: NO、`main merged`: NO、`Decision`: Draft/blocked、`Safety`: NO-GO。
