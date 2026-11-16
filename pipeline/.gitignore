@@ -27,6 +27,9 @@ data/normalized/*.json
 data/output/*.json
 !data/output/.gitkeep
 
+# Explicit opt-in ABR geocoding pilot outputs must not enter Git
+data/geocoding_pilot/**
+
 # Temporary source files / exports
 *.tmp
 *.log
