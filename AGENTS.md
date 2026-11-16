@@ -49,7 +49,16 @@ AI は依頼された担当領域以外を「ついでに改善」してはい�
 - AI は `main` に直接 push しない。
 - AI は `main` を直接変更しない。
 - AI は `main` の PR を勝手に merge しない。
-- `main` への最終 merge は **Merge Captain（統合担当者）** が行う。
+- `main` への最終 merge は **人間のMerge Captain（統合担当者）** が行う。
+
+#### 正式な共同Merge Captain（2026-11-16）
+
+- [`@1kz-ma1`](https://github.com/1kz-ma1)
+- [`@kouta1029`](https://github.com/kouta1029)
+
+**両者はmainへのPR統合判断について同格**です。いずれも他方の都度承認なしで通常PRをレビュー・保留・mainにマージできます（自身が実装したPRを含む）。ただし、GitHub保護・最新main・必須`test`・契約/安全性・非公開の条件を満たさないPRはマージできません。AIがマージを代行する場合も、上記人間の明示的な依頼を必要とします。
+
+名簿・監査ログ・GitHub権限との違い・未承認公開ゲートは[`.github/MERGE_CAPTAINS.md`](.github/MERGE_CAPTAINS.md)を参照。**マージ判断の分権は、原本の人間承認や一般公開権限の代行ではありません。**
 
 Approve と Merge は別物です。
 レビュー済みでも、依存関係・最新 main・CI・契約互換性を確認するまでは merge してはいけません。

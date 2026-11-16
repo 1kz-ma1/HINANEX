@@ -60,6 +60,23 @@ F03端末保存の独立試作（[PR #359](https://github.com/1kz-ma1/HINANEX/pu
 
 F02の実JSON検証を行う際は、Git内のローカル専用 `npm run preview:f02` を用いる。Loopback以外への公開/新たなナビ接続は禁止。F02の正式公開は、#366の人間による具体的利用条件審査、施設属性・安全性の非保証表示、アクセシビリティ、オーナーの公開判断を満たした別PRで行う。本ガードは**列挙した既知ファイルにだけ適用**されるため、新たなF02ファイルを追加するときは再度配布境界を確認する。
 
+## F05/P0ローカル導線試作の非公開境界（Issue #373 / 2026-11-13）
+
+[Draft PR #371](https://github.com/1kz-ma1/HINANEX/pull/371) のF05画面は、F01洪水情報とF02施設記録を本人操作で別々に確かめるための **ローカル限定の試作**。公式CSVの再配信・避難先の安全性・現在開設状況・経路の公開承認は受けていない。**Gitのソース保全とRenderの外部配信は分ける。**
+
+Render配布物の `frontend/**` コピーから次を明示的に除外する（`deploy/build_staging.py`）：
+
+- `frontend/prototypes/f05-flood-journey/**` — ディレクトリ全体。後で追加されるネストした試作JS/CSS/文書も非配信。
+- `frontend/src/f05-journey-model.js` — F05のローカル遷移ガード。
+- `frontend/tests/f05-journey.test.js` — GitHub上のテストは保持し、Render配布物からのみ除外。
+- `frontend/docs/F05_MINIMAL_JOURNEY_20261113.md` — 未公開のレビュー文書。
+
+**F02 #370・F03 #368の除外は維持する。** 既存の公開B地域分析・合成F02試作、GIS、RegionExport配信には影響を与えない。RegionExportの実施設記録JSONは現行配信対象であり、今回のF05配信除外は**データ自体を非公開化することでも、公式原本の利用許諾を承認することでもない**。公式CSV利用条件と第三者権利の別ゲートは [#366](https://github.com/1kz-ma1/HINANEX/issues/366)。
+
+`deploy/tests/test_real_bundle_assets.py` はF05の既知4種の非公開資材に加え、将来のネストしたF05試作アセットを**一時checkoutに合成配置**し、ソースには存在しても配布物に存在しないことを全件確認する。F02/F03の既存除外・合成F02プロトタイプ・Frontend/GIS/RegionExportの維持を同時に回帰する。
+
+**統合順序**：本Deploy共有PR（required `test` PASS / human Merge Captain確認）→main先行マージ→Render上のF05直URL非配信確認→#371の最新mainへの追従とCI/Owner判断。#371の現行F05モデルによるloopbackリンク抑止は**外部からHTMLが配布されないという保証ではない**。正式F05公開は、別Issue/PRで必要な人間の範囲承認後のみ実施する。
+
 ## Render設定
 
 - Repository: `https://github.com/1kz-ma1/HINANEX`
