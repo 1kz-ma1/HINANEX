@@ -72,7 +72,7 @@ def project_for_review(state: Session, issued_at: datetime) -> dict:
 
 
 def inspect(snapshot: object, state: Session, *, render_at: datetime,
-            active_generation: int) -> dict[str, str]:
+            active_generation: int, trusted_issued_at: datetime) -> dict[str, str]:
     """Independently inspect one proposed snapshot against the *actual* S0 state."""
     if not isinstance(snapshot, dict):
         return decision("BLOCKED", "MISSING_SNAPSHOT")
@@ -126,6 +126,8 @@ def inspect(snapshot: object, state: Session, *, render_at: datetime,
         return decision("BLOCKED", "INVALID_TIMESTAMP")
     if issued > rendered:
         return decision("FAIL", "FUTURE_ISSUE")
+    if issued != moment(trusted_issued_at):
+        return decision("FAIL", "ISSUED_AT_MISMATCH")
     if mode == "DRILL":
         if not observed <= issued < expires:
             return decision("FAIL", "INVALID_DRILL_WINDOW")
@@ -134,7 +136,7 @@ def inspect(snapshot: object, state: Session, *, render_at: datetime,
 
     # Unlike UI-only schema validation, this C reference has the original D
     # state. It can reject a plausible forged envelope with wrong provenance.
-    expected = project_for_review(state, issued)
+    expected = project_for_review(state, moment(trusted_issued_at))
     if snapshot != expected:
         return decision("FAIL", "S0_VIEW_PROVENANCE_MISMATCH")
     if mode == "DRILL" and safe_view(state, rendered).mode != Mode.DRILL:
@@ -185,7 +187,8 @@ def run_case(case: dict, fixtures: dict) -> dict:
         for name in case.get("remove", []):
             snapshot.pop(name, None)
         return inspect(snapshot, state, render_at=moment(case["render_at"]),
-                       active_generation=case["active_generation"])
+                       active_generation=case["active_generation"],
+                       trusted_issued_at=emitted_at)
     except (KeyError, TypeError, ValueError, OverflowError, StaleSessionError):
         return decision("BLOCKED", "INVALID_CASE_INPUT")
 

@@ -47,7 +47,7 @@ class S0UiDraftPreflightTests(unittest.TestCase):
 
     def test_all_24_synthetic_cases_match_expected(self):
         rows = c.check_manifest(self.manifest)
-        self.assertEqual(len(rows), 24)
+        self.assertEqual(len(rows), 25)
         self.assertTrue(all(r["matches_expected"] for r in rows))
         self.assertEqual({r["actual"]["status"] for r in rows}, set(c.STATES))
         self.assertEqual(len(rows), len({r["id"] for r in rows}))
@@ -61,13 +61,13 @@ class S0UiDraftPreflightTests(unittest.TestCase):
         self.assertFalse(p["live_data_verified"])
         self.assertEqual(p["observed_at"], T0.isoformat())
         self.assertEqual(p["expires_at"], (T0+timedelta(minutes=30)).isoformat())
-        self.assertEqual(c.inspect(p, state, render_at=T0, active_generation=1)["status"], "PASS")
+        self.assertEqual(c.inspect(p, state, render_at=T0, active_generation=1, trusted_issued_at=T0)["status"], "PASS")
 
     def test_expiration_at_exact_boundary_fails_without_an_s0_tick(self):
         state = active()
         p = c.project_for_review(state, T0)
         self.assertEqual(c.inspect(p, state, render_at=T0+timedelta(minutes=30),
-                                   active_generation=1),
+                                   active_generation=1, trusted_issued_at=T0),
                          c.decision("FAIL", "EXPIRED_DRILL"))
         self.assertEqual(c.project_for_review(state, T0+timedelta(minutes=30))["mode"], "NORMAL")
         self.assertIsNone(c.project_for_review(state, T0+timedelta(minutes=30))["fixture_id"])
@@ -82,13 +82,13 @@ class S0UiDraftPreflightTests(unittest.TestCase):
         self.assertIsNone(p["observed_at"])
         self.assertNotIn("preferred_region", p)
         self.assertFalse({"facility_open", "facility_safety", "route_passability", "latitude", "longitude"} & set(p))
-        self.assertEqual(c.inspect(p,state,render_at=T0,active_generation=1)["status"], "PASS")
+        self.assertEqual(c.inspect(p,state,render_at=T0,active_generation=1, trusted_issued_at=T0)["status"], "PASS")
 
     def test_live_forgery_fails_closed(self):
         state=active()
         p=c.project_for_review(state,T0)
         p["live_data_verified"]=True
-        self.assertEqual(c.inspect(p,state,render_at=T0,active_generation=1),
+        self.assertEqual(c.inspect(p,state,render_at=T0,active_generation=1, trusted_issued_at=T0),
                          c.decision("FAIL","FALSE_LIVE_ASSERTION"))
 
     def test_notice_source_and_hazard_tampering_fail(self):
@@ -101,26 +101,26 @@ class S0UiDraftPreflightTests(unittest.TestCase):
             with self.subTest(key=key):
                 p=c.project_for_review(state,T0)
                 p[key]=value
-                self.assertEqual(c.inspect(p,state,render_at=T0,active_generation=1)["code"],code)
+                self.assertEqual(c.inspect(p,state,render_at=T0,active_generation=1, trusted_issued_at=T0)["code"],code)
 
     def test_unknown_claim_and_missing_field_are_distinct(self):
         state=active()
         extra=c.project_for_review(state,T0)
         extra["facility_open"]=True
-        self.assertEqual(c.inspect(extra,state,render_at=T0,active_generation=1),
+        self.assertEqual(c.inspect(extra,state,render_at=T0,active_generation=1, trusted_issued_at=T0),
                          c.decision("FAIL","UNREVIEWED_DISPLAY_FIELD"))
         missing=c.project_for_review(state,T0)
         missing.pop("notice")
-        self.assertEqual(c.inspect(missing,state,render_at=T0,active_generation=1),
+        self.assertEqual(c.inspect(missing,state,render_at=T0,active_generation=1, trusted_issued_at=T0),
                          c.decision("BLOCKED","MISSING_DISPLAY_FIELD"))
 
     def test_generation_mismatch_fails_even_with_matching_fixture(self):
         state=active()
         p=c.project_for_review(state,T0)
-        self.assertEqual(c.inspect(p,state,render_at=T0,active_generation=0),
+        self.assertEqual(c.inspect(p,state,render_at=T0,active_generation=0, trusted_issued_at=T0),
                          c.decision("FAIL","STALE_CONTEXT_GENERATION"))
         p["generation"]=0
-        self.assertEqual(c.inspect(p,state,render_at=T0,active_generation=0),
+        self.assertEqual(c.inspect(p,state,render_at=T0,active_generation=0, trusted_issued_at=T0),
                          c.decision("FAIL","STALE_CONTEXT_GENERATION"))
 
     def test_full_replay_uses_real_s0_for_region_changes_and_errors(self):
@@ -135,10 +135,19 @@ class S0UiDraftPreflightTests(unittest.TestCase):
         state=active()
         p=c.project_for_review(state,T0)
         p["expires_at"]="2026-11-13T00:30:00"
-        self.assertEqual(c.inspect(p,state,render_at=T0,active_generation=1)["code"],"INVALID_TIMESTAMP")
+        self.assertEqual(c.inspect(p,state,render_at=T0,active_generation=1, trusted_issued_at=T0)["code"],"INVALID_TIMESTAMP")
         p=c.project_for_review(state,T0)
         self.assertEqual(c.inspect(p,state,render_at=T0-timedelta(seconds=1),
-                                   active_generation=1)["code"],"FUTURE_ISSUE")
+                                   active_generation=1, trusted_issued_at=T0)["code"],"FUTURE_ISSUE")
+
+    def test_rewritten_issued_at_cannot_pass_within_same_active_window(self):
+        state = active()
+        p = c.project_for_review(state, T0)
+        p["issued_at"] = (T0 + timedelta(minutes=5)).isoformat()
+        self.assertEqual(c.inspect(
+            p, state, render_at=T0+timedelta(minutes=5), active_generation=1,
+            trusted_issued_at=T0,
+        ), c.decision("FAIL", "ISSUED_AT_MISMATCH"))
 
     def test_wrong_expectation_must_fail_cli_regression(self):
         bad=copy.deepcopy(self.manifest)

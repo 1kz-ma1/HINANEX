@@ -507,6 +507,28 @@
       }
     },
     {
+      "id": "issued_at_rewritten_within_valid_window",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "fixture": "flood"
+        }
+      ],
+      "issued_at": "2026-11-13T00:00:00Z",
+      "render_at": "2026-11-13T00:05:00Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "FAIL",
+        "code": "ISSUED_AT_MISMATCH"
+      },
+      "patch": {
+        "issued_at": "2026-11-13T00:05:00Z"
+      }
+    },
+    {
       "id": "device_ui_not_executed",
       "events": [],
       "issued_at": "2026-11-13T00:00:00Z",
