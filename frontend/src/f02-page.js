@@ -101,6 +101,7 @@ function renderList() {
     return;
   }
   if (!matches.length) {
+    selectedId = null;
     status.textContent = "検索に一致する記録はありません。Datasetの未収録や通信障害とは異なります。";
     clearDetail();
     return;
