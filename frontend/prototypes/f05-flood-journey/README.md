@@ -16,7 +16,7 @@
 
 ## 公開・統合ゲート（重要）
 
-現行のdeployビルダーは frontend/** を自動で配信する。既存#370はF02/F03専用11/7パスだけ除外しており、**新F05試作ページはこのDraftブランチをmainへマージすると直接公開され得る**。従って、Deploy担当の**F05独立試作配信除外PRを先にmainへ統合**してからでなければ、本PRをmainへ入れないこと。B featureでdeploy/**を変更しない。JSのローカル制限は配信除外の代わりにならない。
+**Deploy非配信ガードPR #377は2026-11-16にmainへ統合済み**。現在のビルダーは `frontend/prototypes/f05-flood-journey/**`、`frontend/src/f05-journey-model.js`、対応するBテスト・文書を静的公開バンドルから除外する。既存F02/F03非公開ガードも維持する。**ただし、Render実デプロイの対象コミットとF05直接URLの404/非配信は未確認**（[Issue #373](https://github.com/1kz-ma1/HINANEX/issues/373)）。#371のmain統合判断は、実Renderの非公開証跡・この試作自身の実HTTP Chrome操作受入・現在のCIを確認してから行う。B featureで`deploy/**`を変更せず、JSのローカル制限だけを配信除外の根拠としない。
 
 正式利用条件や施設意味はIssue #366、オーナーの#362優先順位/実装承認が別途必要。公開GOではない。
 
