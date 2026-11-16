@@ -10,6 +10,7 @@ from src.hinanex.drill_session import (
 from src.hinanex.s1_synthetic_narrowing import (
     NarrowRequest, SyntheticReference, DECISION_MATCH, DECISION_UNKNOWN,
 )
+from preview_s1_synthetic_comparison import synthetic_preview
 from src.hinanex.s1_synthetic_comparison import (
     ComparisonTotals, CONDITION_TRUE, CONDITION_FALSE, CONDITION_UNKNOWN,
     CONDITION_NOT_EVALUATED, compare_synthetic_conditions,
@@ -234,6 +235,22 @@ class S1SyntheticComparisonTests(unittest.TestCase):
             item(source_authorization="OFFICIAL")
         with self.assertRaises(ValueError):
             item(key="real:facility")
+
+    def test_offline_preview_renders_actual_fixed_comparison(self):
+        first = synthetic_preview()
+        second = synthetic_preview()
+        self.assertEqual(first, second)
+        result = json.loads(first)
+        self.assertEqual(result["totals"], {
+            "matched_synthetic": 1, "not_matched_synthetic": 1, "unknown": 2,
+        })
+        self.assertEqual(
+            [row["record_id"] for row in result["rows"]],
+            ["synthetic:example-a", "synthetic:example-b",
+             "synthetic:example-c", "synthetic:example-d"],
+        )
+        self.assertFalse(result["official_acceptance"])
+        self.assertFalse(result["release_approved"])
 
     def test_local_comparison_is_not_cross_page_cache(self):
         state = start()
