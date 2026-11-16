@@ -21,7 +21,7 @@ class S0RealReducerReplayTests(unittest.TestCase):
         rows = c.check_manifest(self.manifest)
         self.assertEqual(len(rows), 14)
         self.assertTrue(all(row["matches_expected"] for row in rows))
-        self.assertEqual({row["actual"]["status"] for row in rows}, set(c.STATUSES))
+        self.assertEqual({row["actual"]["status"] for row in rows}, {"PASS", "BLOCKED", "NOT_RUN"})
 
     def test_replays_real_s0_generated_outputs_not_only_fixture_expectations(self):
         case = next(x for x in self.manifest["cases"] if x["id"] == "start_and_stop")
