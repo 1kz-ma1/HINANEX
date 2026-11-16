@@ -227,5 +227,141 @@ class TestAFloodMismatchDiagnostic(unittest.TestCase):
         self.assertEqual(out["human_review"],"DEFERRED_TO_HUMAN_BATCH_REVIEW")
 
 
+    def test_changed_name_category_only_never_returns_name_value(self):
+        raw = raw_for("flood", TILES["A"], label="PRIVATE_NAME_EXAMPLE_9832")
+        result = self.check(transport=lambda url: (raw, 200, url))
+        self.assertEqual(result["changed_attribute_category_counts"],
+                         {"properties.name": 1})
+        self.assertEqual(result["feature_indices_differing_count"], 1)
+        self.assertNotIn("PRIVATE_NAME_EXAMPLE_9832", json.dumps(result))
+        self.assertEqual(result["changed_attribute_category_scope"],
+                         "FIXED_ALLOWLIST_PER_ARRAY_INDEX_UNKNOWN_KEYS_REDACTED")
+
+    def test_multiple_allowlisted_properties_report_once_each_per_index(self):
+        source = json.loads(self.raws[A_FLOOD_SOURCE])
+        props = source["features"][0]["properties"]
+        props["name"] = "PRIVATE_TEST_NAME_111"
+        props["address"] = "PRIVATE_ADDRESS_EXAMPLE_333"
+        props["remarks"] = "PRIVATE_REMARKS_EXAMPLE_777"
+        new_raw = json.dumps(source).encode()
+        result = self.check(transport=lambda url: (new_raw, 200, url))
+        self.assertEqual(result["changed_attribute_category_counts"], {
+            "properties.address": 1,
+            "properties.name": 1,
+            "properties.remarks": 1,
+        })
+        self.assertEqual(result["feature_indices_differing_count"], 1)
+        self.assertNotIn("PRIVATE_ADDRESS_EXAMPLE_333", json.dumps(result))
+        self.assertNotIn("PRIVATE_REMARKS_EXAMPLE_777", json.dumps(result))
+
+    def test_geometry_coordinate_change_reports_category_not_coordinates(self):
+        source = json.loads(self.raws[A_FLOOD_SOURCE])
+        coords = source["features"][0]["geometry"]["coordinates"]
+        coords[0] += 0.0001
+        result = self.check(transport=lambda url: (
+            json.dumps(source).encode(), 200, url
+        ))
+        self.assertEqual(result["changed_attribute_category_counts"],
+                         {"geometry.coordinates": 1})
+        self.assertNotIn("geometry", result)
+        self.assertFalse(result["facility_identity_approved"])
+
+    def test_unknown_source_property_key_is_redacted_even_if_secret_named(self):
+        source = json.loads(self.raws[A_FLOOD_SOURCE])
+        source["features"][0]["properties"]["SECRET_PERSON_12999_PHONE"] = "VALUE_PRIVATE"
+        result = self.check(transport=lambda url: (
+            json.dumps(source).encode(), 200, url
+        ))
+        self.assertEqual(result["changed_attribute_category_counts"],
+                         {"properties.other": 1})
+        report = json.dumps(result)
+        self.assertNotIn("SECRET_PERSON_12999_PHONE", report)
+        self.assertNotIn("VALUE_PRIVATE", report)
+
+    def test_unknown_geometry_and_feature_keys_collapse_to_other(self):
+        source = json.loads(self.raws[A_FLOOD_SOURCE])
+        feat = source["features"][0]
+        feat["PRIVATE_FEATURE_METADATA_123"] = "SECRET"
+        feat["geometry"]["HIDDEN_FIELD_456"] = "SECRET"
+        result = self.check(transport=lambda url: (
+            json.dumps(source).encode(), 200, url
+        ))
+        self.assertEqual(result["changed_attribute_category_counts"],
+                         {"feature.other": 1, "geometry.other": 1})
+        self.assertNotIn("PRIVATE_FEATURE_METADATA_123", json.dumps(result))
+        self.assertNotIn("HIDDEN_FIELD_456", json.dumps(result))
+
+    def test_key_absence_is_a_field_difference_even_when_value_is_null(self):
+        source = json.loads(self.raws[A_FLOOD_SOURCE])
+        del source["features"][0]["properties"]["address"]
+        result = self.check(transport=lambda url: (
+            json.dumps(source).encode(), 200, url
+        ))
+        self.assertEqual(result["changed_attribute_category_counts"],
+                         {"properties.address": 1})
+        self.assertFalse(result["parsed_json_typed_equal"])
+
+    def test_same_allowlisted_category_changed_at_two_indices_counts_two(self):
+        source = json.loads(self.raws[A_FLOOD_SOURCE])
+        source["features"].append(json.loads(json.dumps(source["features"][0])))
+        archived = self.raws[A_FLOOD_SOURCE]
+        original = json.loads(archived)
+        original["features"].append(json.loads(json.dumps(original["features"][0])))
+        old_bytes = json.dumps(original).encode()
+        new_features = source["features"]
+        new_features[0]["properties"]["name"] = "PRIVATE_ALPHA"
+        new_features[1]["properties"]["name"] = "PRIVATE_BETA"
+        new_bytes = json.dumps(source).encode()
+        diff = _diff_summary(old_bytes, new_bytes)
+        self.assertEqual(diff["feature_indices_differing_count"], 2)
+        self.assertEqual(diff["changed_attribute_category_counts"],
+                         {"properties.name": 2})
+        self.assertNotIn("PRIVATE_ALPHA", json.dumps(diff))
+
+    def test_feature_append_reports_added_or_removed_not_a_new_facility(self):
+        source = json.loads(self.raws[A_FLOOD_SOURCE])
+        source["features"].append(source["features"][0])
+        result = self.check(transport=lambda url: (
+            json.dumps(source).encode(), 200, url
+        ))
+        self.assertEqual(result["changed_attribute_category_counts"],
+                         {"feature.added_or_removed": 1})
+        self.assertEqual(result["feature_count_delta_c_minus_d"], 1)
+        self.assertEqual(result["feature_indices_differing_count"], 1)
+        self.assertEqual(result["comparison_scope"],
+                         "SAME_FEATURE_ARRAY_INDEX_NO_IDENTITY_JOIN")
+
+    def test_root_only_change_does_not_appear_as_changed_feature_field(self):
+        source = json.loads(self.raws[A_FLOOD_SOURCE])
+        source["secret_root_field_543"] = "PRIVATE_ROOT_VALUE"
+        result = self.check(transport=lambda url: (
+            json.dumps(source).encode(), 200, url
+        ))
+        self.assertTrue(result["non_feature_root_changed"])
+        self.assertEqual(result["changed_attribute_category_counts"], {})
+        self.assertEqual(result["feature_indices_differing_count"], 0)
+        self.assertNotIn("PRIVATE_ROOT_VALUE", json.dumps(result))
+
+    def test_reformatting_only_has_no_attribute_changes(self):
+        source = json.loads(self.raws[A_FLOOD_SOURCE])
+        reformatted = json.dumps(source, indent=4).encode()
+        result = self.check(transport=lambda url: (reformatted, 200, url))
+        self.assertFalse(result["same_bytes"])
+        self.assertTrue(result["parsed_json_typed_equal"])
+        self.assertEqual(result["changed_attribute_category_counts"], {})
+        self.assertEqual(result["feature_indices_differing_count"], 0)
+
+    def test_existing_mismatch_semantics_are_not_weakened_by_category_summary(self):
+        source = json.loads(self.raws[A_FLOOD_SOURCE])
+        source["features"][0]["properties"]["name"] = "SYNTHETIC_CHANGE"
+        result = self.check(transport=lambda url: (
+            json.dumps(source).encode(), 200, url
+        ))
+        self.assertEqual(result["status"], "C_A_FLOOD_CURRENT_BYTE_MISMATCH_HOLD")
+        self.assertEqual(result["cause_of_prior_mismatch"], "UNDETERMINED")
+        self.assertFalse(result["c_independent_approved"])
+        self.assertFalse(result["publication_approved"])
+
+
 if __name__ == "__main__":
     unittest.main()
