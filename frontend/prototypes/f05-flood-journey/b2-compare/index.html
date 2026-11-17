@@ -76,6 +76,8 @@ button:disabled{opacity:.53;cursor:not-allowed}
     <h2 id="compareTitle">2件の根拠を並べて確認</h2>
     <div id="compareArea" class="columns"></div>
     <p id="compareMessage" role="status"></p>
+    <button id="clearSelection" type="button">比較と本人選択をすべて解除</button>
+    <p id="clearMessage" role="status" aria-live="polite"></p>
   </section>
   <section class="panel" aria-labelledby="choiceTitle">
     <h2 id="choiceTitle">本人が確認対象を選ぶ</h2>
@@ -93,6 +95,7 @@ if (isB2Loopback(window.location.origin)) {
   onlyLocal.hidden=true;root.hidden=false;
   const fixture=el("fixture"),filter=el("filter"),query=el("query");
   const list=el("recordList"),compare=el("compareArea"),choice=el("choiceArea");
+  const clearSelection=el("clearSelection"),clearMessage=el("clearMessage");
   let session=null;
   const focusRow=(container,id)=>{
     // render() recreates buttons: restore focus to the matching new control.
@@ -129,6 +132,7 @@ if (isB2Loopback(window.location.origin)) {
     list.replaceChildren();compare.replaceChildren();choice.replaceChildren();
     const usable=session.state==="READY";
     filter.disabled=!usable;query.disabled=!usable;
+    clearSelection.disabled=!usable;
     el("state").textContent=session.message;
     el("stats").textContent=usable||session.state==="EMPTY_DATASET"?
       "合成総数 "+session.total+"件｜CANDIDATE "+session.counts.CANDIDATE+
@@ -153,7 +157,7 @@ if (isB2Loopback(window.location.origin)) {
       btn.setAttribute("aria-label",row.name+"を"+action);
       btn.setAttribute("aria-pressed",String(chosen.has(row.id)));
       btn.addEventListener("click",()=>{
-        if(session.toggle(row.id).ok){render();focusRow(list,row.id);}
+        if(session.toggle(row.id).ok){clearMessage.textContent="";render();focusRow(list,row.id);}
       });
       item.append(btn);list.append(item);
     }
@@ -172,7 +176,7 @@ if (isB2Loopback(window.location.origin)) {
       btn.dataset.recordId=row.id;
       btn.setAttribute("aria-pressed",String(chosenRow?.id===row.id));
       btn.addEventListener("click",()=>{
-        if(session.choose(row.id).ok){render();focusRow(choice,row.id);}
+        if(session.choose(row.id).ok){clearMessage.textContent="";render();focusRow(choice,row.id);}
       });
       choice.append(btn);
     }
@@ -182,14 +186,24 @@ if (isB2Loopback(window.location.origin)) {
   }
   function load(){
     session=createB2Session(getB2Fixture(fixture.value));
+    clearMessage.textContent="";
     filter.value="ALL";query.value="";render();
   }
+  clearSelection.addEventListener("click",()=>{
+    const hadSelection=session.selected().length>0 || !!session.choice();
+    if(session.clear().ok){
+      render();
+      clearMessage.textContent=hadSelection?
+        "比較と本人選択をすべて解除しました。":
+        "解除する比較・選択はありません。";
+    }
+  });
   fixture.addEventListener("change",load);
   filter.addEventListener("change",()=>{
-    if(session.setCriteria(query.value,filter.value).ok)render();
+    if(session.setCriteria(query.value,filter.value).ok){clearMessage.textContent="";render();}
   });
   query.addEventListener("input",()=>{
-    if(session.setCriteria(query.value,filter.value).ok)render();
+    if(session.setCriteria(query.value,filter.value).ok){clearMessage.textContent="";render();}
   });
   load();
 }
