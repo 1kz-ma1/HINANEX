@@ -342,7 +342,7 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
         "Tab from the detail heading must reach the explicit return action");
       const returnTree = (await command("Accessibility.getFullAXTree")).nodes.filter(node => !node.ignored);
       assert.ok(returnTree.some(node => node.role?.value === "button" &&
-        node.name?.value === "選択した施設「架空スズラン会館」の一覧項目へ戻る"));
+        node.name?.value === "選択した施設へ戻る（架空スズラン会館）"));
       await pressKey("Enter");
       assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,pressed:document.activeElement?.getAttribute('aria-pressed'),query:document.querySelector('#search').value})"),
         {id:"synthetic-1", pressed:"true", query:""}, "Return must preserve selection and search");

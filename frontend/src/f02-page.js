@@ -35,7 +35,7 @@ function addDetailField(table, label, value) {
 }
 function renderDetail(record) {
   returnToRecord.hidden = false;
-  returnToRecord.setAttribute("aria-label", "選択した施設「" + record.name + "」の一覧項目へ戻る");
+  returnToRecord.setAttribute("aria-label", "選択した施設へ戻る（" + record.name + "）");
   detail.replaceChildren();
   detail.append(create("h3", record.name));
   paragraph(detail, "Dの正規化記録を表示しています。施設区分は名称から作成したD内部の分類で、正式な指定ではありません。対象災害への適合、安全性や現在の開設は、この画面では判断しません。", "notice");
