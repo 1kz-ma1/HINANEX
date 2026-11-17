@@ -363,5 +363,90 @@ class TestAFloodMismatchDiagnostic(unittest.TestCase):
         self.assertFalse(result["publication_approved"])
 
 
+    def test_feature_order_swap_is_not_mistaken_for_changed_raw_membership(self):
+        original = json.loads(self.raws[A_FLOOD_SOURCE])
+        feat2 = json.loads(json.dumps(original["features"][0]))
+        feat2["properties"]["name"] = "HIDDEN_SYNTHETIC_B"
+        feat2["geometry"]["coordinates"][0] += 0.0002
+        original["features"].append(feat2)
+        old = json.dumps(original).encode()
+        original["features"].reverse()
+        newer = json.dumps(original).encode()
+        summary = _diff_summary(old, newer)
+        self.assertFalse(summary["parsed_json_typed_equal"])
+        self.assertEqual(summary["feature_indices_differing_count"], 2)
+        self.assertTrue(summary["feature_multiset_canonical_json_equal"])
+        self.assertEqual(summary["feature_multiset_d_only_occurrences"], 0)
+        self.assertEqual(summary["feature_multiset_c_only_occurrences"], 0)
+        self.assertTrue(summary["same_features_in_different_array_order"])
+        self.assertNotIn("HIDDEN_SYNTHETIC_B", json.dumps(summary))
+
+    def test_same_count_but_changed_feature_content_has_multiset_difference(self):
+        original = json.loads(self.raws[A_FLOOD_SOURCE])
+        changed = json.loads(self.raws[A_FLOOD_SOURCE])
+        changed["features"][0]["properties"]["remarks"] = "PRIVATE_SYNTHETIC_DIFF"
+        summary = _diff_summary(json.dumps(original).encode(), json.dumps(changed).encode())
+        self.assertFalse(summary["feature_multiset_canonical_json_equal"])
+        self.assertEqual(summary["feature_multiset_d_only_occurrences"], 1)
+        self.assertEqual(summary["feature_multiset_c_only_occurrences"], 1)
+        self.assertFalse(summary["same_features_in_different_array_order"])
+        self.assertNotIn("PRIVATE_SYNTHETIC_DIFF", json.dumps(summary))
+
+    def test_duplicate_feature_multiplicity_must_not_be_dropped(self):
+        original = json.loads(self.raws[A_FLOOD_SOURCE])
+        old = json.loads(json.dumps(original))
+        old["features"].append(old["features"][0])
+        new = json.loads(json.dumps(original))
+        new["features"][0]["properties"]["name"] = "PRIVATE_REPLACEMENT"
+        new["features"].append(original["features"][0])
+        s = _diff_summary(json.dumps(old).encode(), json.dumps(new).encode())
+        self.assertFalse(s["feature_multiset_canonical_json_equal"])
+        self.assertEqual(s["feature_multiset_d_only_occurrences"], 1)
+        self.assertEqual(s["feature_multiset_c_only_occurrences"], 1)
+
+    def test_serialization_only_changes_preserve_feature_multiset(self):
+        original = self.raws[A_FLOOD_SOURCE]
+        pretty = json.dumps(json.loads(original), indent=4, sort_keys=True).encode()
+        s = _diff_summary(original, pretty)
+        self.assertTrue(s["parsed_json_typed_equal"])
+        self.assertTrue(s["feature_multiset_canonical_json_equal"])
+        self.assertFalse(s["same_features_in_different_array_order"])
+        self.assertEqual(s["feature_multiset_d_only_occurrences"], 0)
+        self.assertEqual(s["feature_multiset_c_only_occurrences"], 0)
+
+    def test_feature_added_or_removed_preserves_unmatched_counts(self):
+        original = json.loads(self.raws[A_FLOOD_SOURCE])
+        extra = json.loads(json.dumps(original))
+        extra["features"].append(extra["features"][0])
+        s = _diff_summary(json.dumps(original).encode(), json.dumps(extra).encode())
+        self.assertFalse(s["feature_multiset_canonical_json_equal"])
+        self.assertEqual(s["feature_multiset_d_only_occurrences"], 0)
+        self.assertEqual(s["feature_multiset_c_only_occurrences"], 1)
+        self.assertFalse(s["same_features_in_different_array_order"])
+
+    def test_unrecognized_dynamic_source_keys_not_emitted_even_with_multiset(self):
+        original = json.loads(self.raws[A_FLOOD_SOURCE])
+        changed = json.loads(json.dumps(original))
+        changed["features"][0]["properties"]["PRIVATE_UNRECOGNIZED_KEY_812"] = "PRIVATE_VALUE_812"
+        s = _diff_summary(json.dumps(original).encode(), json.dumps(changed).encode())
+        out = json.dumps(s)
+        self.assertEqual(s["changed_attribute_category_counts"], {"properties.other": 1})
+        self.assertNotIn("PRIVATE_UNRECOGNIZED_KEY_812", out)
+        self.assertNotIn("PRIVATE_VALUE_812", out)
+        self.assertNotIn("sha256", out)
+        self.assertFalse(s["feature_multiset_canonical_json_equal"])
+
+    def test_current_mismatch_still_holds_with_feature_multiset_diagnostic(self):
+        original = json.loads(self.raws[A_FLOOD_SOURCE])
+        original["features"][0]["properties"]["remarks"] = "PRIVATE_DIAGNOSTIC_ONLY"
+        raw = json.dumps(original).encode()
+        result = self.check(transport=lambda url: (raw, 200, url))
+        self.assertEqual(result["status"], "C_A_FLOOD_CURRENT_BYTE_MISMATCH_HOLD")
+        self.assertFalse(result["feature_multiset_canonical_json_equal"])
+        self.assertFalse(result["c_independent_approved"])
+        self.assertFalse(result["publication_approved"])
+        self.assertEqual(result["cause_of_prior_mismatch"], "UNDETERMINED")
+
+
 if __name__ == "__main__":
     unittest.main()
