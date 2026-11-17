@@ -1802,6 +1802,8 @@ body {
 .scenario-trace summary:focus-visible { outline: 2px solid var(--cyan); outline-offset: 4px; }
 .scenario-trace a { overflow-wrap: anywhere; }
 .scenario-pagination > span { overflow-wrap: anywhere; }
+.scenario-pagination .source-button:focus-visible,
+.scenario-pagination > span:focus { outline: 3px solid var(--cyan); outline-offset: 4px; }
 @media (max-width: 620px) {
   .scenario-feedback, .scenario-facility, .scenario-alert { padding: 16px; }
   .scenario-pagination { justify-content: center; }
