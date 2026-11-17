@@ -111,6 +111,66 @@ test('repeated selection and condition edits never resurrect stale route geometr
   }
 });
 
+test('reason codes provide actionable guidance without claiming real-route safety', () => {
+  const s = createSession();
+  assert.equal(s.getState().reasonCode, 'POINTS_REQUIRED');
+  assert.match(s.getState().nextAction, /架空の出発点/);
+  assert.equal(s.generate().reasonCode, 'POINTS_REQUIRED');
+  s.setStart('start-a');
+  assert.match(s.getState().nextAction, /架空の目的地/);
+  s.setDestination('goal-x');
+  assert.equal(s.getState().reasonCode, 'READY');
+  assert.match(s.getState().nextAction, /模式経路を表示/);
+  assert.equal(s.generate().reasonCode, 'SHOWN');
+  assert.match(s.getState().nextAction, /表示を解除/);
+  const denied = s.setCondition('unsupported-pattern');
+  assert.equal(denied.reasonCode, 'UNSUPPORTED_CONDITION');
+  assert.match(denied.nextAction, /選び直してください/);
+  assert.equal(denied.route, null);
+  const noGo = s.generate();
+  assert.equal(noGo.reasonCode, 'UNSUPPORTED_CONDITION');
+  assert.equal(noGo.route, null);
+  s.setCondition('pattern-2');
+  const failed = s.generate({fail: true});
+  assert.equal(failed.reasonCode, 'SYNTHETIC_FAILURE');
+  assert.match(failed.nextAction, /チェックを外して/);
+  assert.equal(failed.route, null);
+  assert.doesNotMatch(failed.nextAction, /(?:安全な避難先|通行可能です|実際の経路を案内)/);
+});
+
+test('reset clears selections, failure aftermath, and geometry with monotonic revision', () => {
+  const s = createSession();
+  s.setStart('start-b'); s.setDestination('goal-y'); s.setCondition('pattern-2');
+  const shown = s.generate();
+  const reset = s.reset();
+  assert.equal(reset.start, null);
+  assert.equal(reset.destination, null);
+  assert.equal(reset.condition, 'pattern-1');
+  assert.equal(reset.status, 'UNSELECTED');
+  assert.equal(reset.reasonCode, 'POINTS_REQUIRED');
+  assert.equal(reset.route, null);
+  assert.ok(reset.revision > shown.revision);
+  assert.equal(s.generate().status, 'NO_GO');
+  const afterNoGo = s.reset();
+  assert.equal(afterNoGo.status, 'UNSELECTED');
+  assert.equal(afterNoGo.route, null);
+  assert.equal(afterNoGo.condition, 'pattern-1');
+  assert.equal(s.reset().route, null);
+  s.setStart('start-a'); s.setDestination('goal-x');
+  assert.equal(s.generate().status, 'SHOWN');
+});
+
+test('one live status region announces error plus recovery; explicit reset is separate from line clear', () => {
+  const html = fs.readFileSync(path.join(here, 'index.html'), 'utf8');
+  const app = fs.readFileSync(path.join(here, 'app.js'), 'utf8');
+  assert.equal((html.match(/role="status"/g) || []).length, 1);
+  assert.match(html, /<div class="feedback" role="status" aria-live="polite" aria-atomic="true">/);
+  assert.match(html, /id="nextAction"/);
+  assert.match(html, /id="reset" type="button"/);
+  assert.match(app, /session\.reset\(\)/);
+  assert.match(app, /origin\.focus\(\)/);
+});
+
 test('model snapshots cannot mutate held geometry', () => {
   const s = createSession();
   s.setStart('start-a'); s.setDestination('goal-x');

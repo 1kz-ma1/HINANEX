@@ -17,6 +17,9 @@ app.addEventListener('load',()=>{try{
  const drawn=()=>visible() && !by('routeLine').hasAttribute('hidden') && d.defaultView.getComputedStyle(by('routeLine')).display!=='none';
  const result=()=>by('status').dataset.state;
  check(result()==='UNSELECTED','initial state');
+ check(d.querySelectorAll('[role="status"]').length===1,'single live region');
+ check(by('nextAction').textContent.includes('出発点'),'initial recovery guidance');
+ check(by('reset').tagName==='BUTTON','reset control');
  check(by('selectionSummary').textContent.includes('未選択'),'initial selection summary');
  check(!visible(),'initial geometry');
  check(by('generate').disabled,'initial disabled action');
@@ -30,15 +33,26 @@ app.addEventListener('load',()=>{try{
  fire(by('condition'),'pattern-2');check(!visible(),'condition invalidation');
  fire(by('condition'),'invalid-pattern');check(result()==='NO_GO'&&!visible(),'unsupported pattern is NO-GO');
  check(by('generate').disabled,'unsupported pattern blocks generate');
+ check(by('status').dataset.reasonCode==='UNSUPPORTED_CONDITION','reason code for unknown pattern');
+ check(by('nextAction').textContent.includes('選び直し'),'unknown pattern recovery guidance');
  fire(by('condition'),'pattern-2');check(result()==='READY','valid pattern recovery');
  by('generate').click();check(drawn(),'second pattern');
  check(by('selectionSummary').textContent.includes('模式線パターン 2'),'selection summary updated');
  by('simulateFailure').click();check(!visible(),'failure toggle invalidation');
  by('generate').click();check(result()==='NO_GO'&&!visible(),'failure NO-GO');
  check(by('status').textContent.includes('NO-GO'),'NO-GO copy');
+ check(by('status').dataset.reasonCode==='SYNTHETIC_FAILURE','synthetic failure reason code');
+ check(by('nextAction').textContent.includes('チェックを外して'),'synthetic failure recovery guidance');
  by('simulateFailure').click();by('generate').click();check(drawn(),'recovery');
  by('clear').click();check(!visible()&&result()==='READY','clear');
- fire(by('origin'),'');check(result()==='UNSELECTED'&&!visible(),'reset selection');
+ check(by('origin').value==='start-a'&&by('destination').value==='goal-y','clear preserves choices');
+ by('generate').click();check(drawn(),'regen before reset');
+ by('reset').click();
+ check(result()==='UNSELECTED'&&!visible(),'explicit reset clears route');
+ check(by('origin').value===''&&by('destination').value===''&&by('condition').value==='pattern-1','reset restores defaults');
+ check(!by('simulateFailure').checked,'reset clears failure simulation');
+ check(d.activeElement===by('origin'),'reset focuses origin for recovery');
+ check(by('generate').disabled,'reset blocks generation until selection');
  for(const w of [320,390,1440]){
    app.style.width=w+'px';
    check(d.documentElement.scrollWidth<=d.documentElement.clientWidth+1,'horizontal overflow '+w);

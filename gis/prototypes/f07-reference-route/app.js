@@ -13,6 +13,7 @@
   const status = $('status');
   const action = $('generate');
   const clear = $('clear');
+  const reset = $('reset');
 
   function fill(select, entries, emptyLabel) {
     if (emptyLabel) {
@@ -42,6 +43,10 @@
     $('selectionSummary').textContent = `選択：${startLabel} → ${destinationLabel} / ${conditionLabel}。${state.route ? '模式線を表示中' : '模式線は未表示'}。`;
     status.textContent = state.reason;
     status.dataset.state = state.status;
+    status.dataset.reasonCode = state.reasonCode;
+    $('nextAction').textContent = fail.checked && state.status === 'READY'
+      ? '合成失敗モードが有効です。「模式経路を表示」を選ぶとNO-GOを再現します。'
+      : state.nextAction;
     action.disabled = !(state.start && state.destination && state.condition);
     clear.disabled = state.status === 'UNSELECTED' || state.status === 'READY';
     for (const id of ['start-a', 'start-b', 'goal-x', 'goal-y']) {
@@ -55,5 +60,14 @@
   fail.addEventListener('change', () => { session.clear(); draw(); });
   action.addEventListener('click', () => { session.generate({ fail: fail.checked }); draw(); });
   clear.addEventListener('click', () => { session.clear(); draw(); });
+  reset.addEventListener('click', () => {
+    origin.value = '';
+    destination.value = '';
+    condition.value = model.CONDITIONS[0].id;
+    fail.checked = false;
+    session.reset();
+    draw();
+    origin.focus();
+  });
   draw();
 })();
