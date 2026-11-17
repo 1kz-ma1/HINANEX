@@ -248,7 +248,42 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
         assert.ok(metrics.overflow <= 2, "horizontal overflow at " + width + ": " + metrics.overflow);
         assert.ok(metrics.minTarget >= 44, "touch target below 44px at " + width);
       }
+      // Deliberately keep the operated button OFF SCREEN: if focusRow ever
+      // calls focus() without preventScroll, this will jump the viewport and
+      // fail.  A real nonzero scroll offset + short viewport avoids a vacuous
+      // scrollY===0 assertion on a page that cannot scroll.
+      await command("Emulation.setDeviceMetricsOverride",
+        {width:320,height:480,deviceScaleFactor:1,mobile:false});
+      const beforeListAction = await evaluate("(()=>{window.scrollTo(0,document.scrollingElement.scrollHeight);const b=document.querySelectorAll('#recordList button')[0].getBoundingClientRect();return {y:scrollY,max:document.scrollingElement.scrollHeight-innerHeight,buttonBottom:b.bottom}})()");
+      assert.ok(beforeListAction.max>300 && beforeListAction.y>300,
+        "Scroll regression fixture must have a genuinely scrollable page");
+      assert.ok(beforeListAction.buttonBottom<0,
+        "Compared list control must start above the viewport");
+      await evaluate("document.querySelectorAll('#recordList button')[0].click()");
+      assert.equal(await evaluate("scrollY"),beforeListAction.y,
+        "Restoring focus to offscreen list button A must not jump scrollY");
+      assert.equal(await evaluate("document.activeElement?.dataset.recordId"),"fake-a");
+      await evaluate("document.querySelectorAll('#recordList button')[1].click()");
+      assert.equal(await evaluate("scrollY"),beforeListAction.y,
+        "Restoring focus to list button B must not jump scrollY");
+      assert.equal(await evaluate("document.activeElement?.dataset.recordId"),"fake-b");
+
+      const beforeChoiceAction = await evaluate("(()=>{scrollTo(0,72);return {y:scrollY,buttonTop:document.querySelectorAll('#choiceArea button')[1].getBoundingClientRect().top}})()");
+      assert.ok(beforeChoiceAction.y>60,
+        "Choice scroll guard requires a nonzero baseline");
+      assert.ok(beforeChoiceAction.buttonTop>innerHeight,
+        "Choice control must start below the visible viewport");
+      await evaluate("document.querySelectorAll('#choiceArea button')[1].click()");
+      assert.equal(await evaluate("scrollY"),beforeChoiceAction.y,
+        "Restoring focus to offscreen choice button B must not jump scrollY");
+      assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,area:document.activeElement?.parentElement?.id})"),
+        {id:"fake-b",area:"choiceArea"}, "Focus is still restored to the correct choice");
+
+      // Reset controls for the existing real Tab/Enter regression, ensuring
+      // the new scroll assertions do not reuse earlier selection state.
+      await evaluate("(()=>{const x=document.querySelector('#fixture');x.value='ready';x.dispatchEvent(new Event('change',{bubbles:true}))})()");
       await command("Emulation.clearDeviceMetricsOverride");
+      console.log("F05_B2_FOCUS_SCROLL: offscreen list A/B and choice B keep nonzero scrollY while focus is restored PASS");
 
       // Native keyboard: Tab moves from the fixture select to filter;
       // Enter activates a focused record button (not only programmatic click).
