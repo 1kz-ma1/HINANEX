@@ -14,3 +14,37 @@ input[type=range]{width:100%;accent-color:#2359a6}output{display:block;font-weig
 .legend{font-size:.89rem}.swatch{display:inline-block;width:18px;height:14px;vertical-align:middle;background:#2a84c7;border-radius:2px}footer{margin-top:22px;padding:12px 0;font-size:.88rem;color:#3c5270;border-top:1px solid #ccd7e5}
 @media(max-width:760px){.layout{grid-template-columns:minmax(0,1fr)}.shell{padding:16px 12px 28px}.panel{padding:16px}.actions button{flex:1 1 42%}}
 @media(max-width:350px){.actions button{flex:1 1 100%}}
+
+/* S2 diagrams are abstract row/column cells, never a map or real-world area. */
+.comparison-panel{margin-top:18px}
+.comparison-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:12px 0 18px}
+.comparison-controls>div{min-width:0}
+.comparison-controls label{margin-top:6px}
+.comparison-feedback{background:#eef4fd;border-radius:10px;padding:8px 14px;margin:16px 0}
+.comparison-feedback p{margin:4px 0;font-weight:650}
+#compareStatus[data-state="NO_GO"]{color:#963b1f}
+.comparison-grids{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.comparison-card{min-width:0;border:1px solid #cdd8e7;border-radius:12px;padding:12px;background:#f9fbff}
+.comparison-card h3{font-size:.99rem;margin:0 0 10px}
+.comparison-frame{position:relative;border:2px solid #8294aa;padding:7px;border-radius:10px;background:#e4edf7}
+.comparison-grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(5,minmax(0,1fr));aspect-ratio:8/5;gap:2px}
+.compare-cell{min-width:0;min-height:0;background:white;border:1px solid #bac8d8;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:clamp(.55rem,1vw,.8rem);font-weight:900}
+.compare-filled{background:#2b7ab4;border-color:#1f5379}
+.compare-newly{background:#bdecc7;border:2px solid #216b3b;color:#134e2b}
+.compare-removed{background:repeating-linear-gradient(135deg,#fae4b0,#fae4b0 5px,#eecf8c 5px,#eecf8c 9px);border:2px dashed #89560c;color:#6b3906}
+.compare-continued{background:#bcd9f5;border:2px solid #26568f;color:#17406e}
+.compare-empty{background:#fff;border:1px solid #a8b6c6;color:#697b91}
+.compare-newly::after{content:"+"}.compare-removed::after{content:"−"}.compare-continued::after{content:"="}.compare-empty::after{content:"·"}
+.comparison-overlay{position:absolute;inset:7px;display:grid;place-items:center;text-align:center;background:#e4edf7f5;padding:8px;font-size:.88rem;font-weight:800}
+.comparison-overlay[hidden]{display:none}
+.comparison-summary{background:#eff7fc;padding:12px 14px;border-radius:9px;font-weight:650}
+.comparison-legend{list-style:none;display:flex;flex-wrap:wrap;gap:12px 18px;padding:0;margin:12px 0}
+.comparison-legend[hidden]{display:none}
+.comparison-legend li{display:flex;gap:6px;align-items:center;font-size:.93rem}
+.compare-key{display:inline-grid;place-items:center;width:27px;height:27px;border-radius:5px;font-weight:900}
+.compare-key.newly{background:#bdecc7;border:2px solid #216b3b;color:#134e2b}
+.compare-key.removed{background:#fae4b0;border:2px dashed #89560c;color:#6b3906}
+.compare-key.continued{background:#bcd9f5;border:2px solid #26568f;color:#17406e}
+.compare-key.empty{background:#fff;border:1px solid #a8b6c6;color:#697b91}
+@media(max-width:960px){.comparison-grids{grid-template-columns:1fr}.comparison-grid{max-width:540px;margin:auto}}
+@media(max-width:480px){.comparison-controls{grid-template-columns:1fr}.comparison-card{padding:9px}.compare-cell{font-size:.7rem}}

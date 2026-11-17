@@ -5,7 +5,8 @@ const http = require('node:http');
 const { spawn } = require('node:child_process');
 const path = require('node:path');
 const here = __dirname;
-const allowed = new Set(['/index.html','/style.css','/synthetic-data.js','/timeline-model.js','/app.js']);
+const allowed = new Set(['/index.html','/style.css','/synthetic-data.js','/timeline-model.js','/app.js',
+  '/comparison-model.js','/comparison-app.js']);
 const harness = `<!doctype html><html><meta charset="utf-8"><title>F04 real HTTP Chromium QA</title>
 <iframe id="app" src="/index.html" style="width:320px;height:850px;border:0"></iframe>
 <pre id="result">PENDING</pre><script>
