@@ -9,6 +9,8 @@
   <script defer src="./synthetic-data.js"></script>
   <script defer src="./timeline-model.js"></script>
   <script defer src="./app.js"></script>
+  <script defer src="./comparison-model.js"></script>
+  <script defer src="./comparison-app.js"></script>
 </head>
 <body>
   <main class="shell">
@@ -53,6 +55,63 @@
         <p class="hint">各ステップの増減は予測演算ではなく、事前に固定した合成図形の切り替えです。</p>
       </section>
     </div>
+
+    <section class="panel comparison-panel" aria-labelledby="comparison-heading">
+      <div class="diagram-head">
+        <h2 id="comparison-heading">S2｜模擬ステップの変化比較</h2>
+        <span class="chip">完全架空・訓練用</span>
+      </div>
+      <p class="warning"><strong>模式図の色の変化だけを比較します。</strong> 実際の浸水面積・浸水深・危険度・到達時間・安全性を推定しません。無着色は現実の安全を意味しません。</p>
+      <p>上の架空ケースを選び、同じケース内の2つの模擬ステップを選択してください。再生中のステップとは独立した比較です。</p>
+      <div class="comparison-controls">
+        <div>
+          <label for="compareBefore">比較元の模擬ステップ</label>
+          <select id="compareBefore" disabled><option value="">模擬ステップを選択</option></select>
+        </div>
+        <div>
+          <label for="compareAfter">比較先の模擬ステップ</label>
+          <select id="compareAfter" disabled><option value="">模擬ステップを選択</option></select>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="compareRun" type="button" disabled>2時点を比較</button>
+        <button id="compareClear" class="secondary" type="button" disabled>比較をやり直す</button>
+      </div>
+      <div class="comparison-feedback" aria-live="polite" aria-atomic="true">
+        <p id="compareStatus">架空ケースを選択してください。</p>
+      </div>
+      <div class="comparison-grids">
+        <section class="comparison-card" aria-labelledby="compare-before-heading">
+          <h3 id="compare-before-heading">比較元｜模式グリッド</h3>
+          <div class="comparison-frame">
+            <div id="compareGridBefore" class="comparison-grid" role="img" aria-label="完全架空の比較元グリッド。結果は未表示。"></div>
+            <p id="compareOverlayBefore" class="comparison-overlay">比較結果未表示｜NO-GO</p>
+          </div>
+        </section>
+        <section class="comparison-card" aria-labelledby="compare-after-heading">
+          <h3 id="compare-after-heading">比較先｜模式グリッド</h3>
+          <div class="comparison-frame">
+            <div id="compareGridAfter" class="comparison-grid" role="img" aria-label="完全架空の比較先グリッド。結果は未表示。"></div>
+            <p id="compareOverlayAfter" class="comparison-overlay">比較結果未表示｜NO-GO</p>
+          </div>
+        </section>
+        <section class="comparison-card" aria-labelledby="compare-delta-heading">
+          <h3 id="compare-delta-heading">変化｜模式グリッド</h3>
+          <div class="comparison-frame">
+            <div id="compareGridDelta" class="comparison-grid" role="img" aria-label="完全架空の差分グリッド。結果は未表示。"></div>
+            <p id="compareOverlayDelta" class="comparison-overlay">比較結果未表示｜NO-GO</p>
+          </div>
+        </section>
+      </div>
+      <p id="comparisonSummary" class="comparison-summary">NO-GO：比較結果は未表示です。</p>
+      <ul id="comparisonCounts" class="comparison-legend" hidden>
+        <li><span class="compare-key newly" aria-hidden="true">＋</span> 新規着色 <strong id="addedCount">—</strong>セル</li>
+        <li><span class="compare-key removed" aria-hidden="true">－</span> 着色解除 <strong id="removedCount">—</strong>セル</li>
+        <li><span class="compare-key continued" aria-hidden="true">＝</span> 着色継続 <strong id="continuedCount">—</strong>セル</li>
+        <li><span class="compare-key empty" aria-hidden="true">·</span> 無着色継続 <strong id="emptyCount">—</strong>セル</li>
+      </ul>
+      <p class="hint">＋／－／＝／· は色分けの説明用記号です。セル数は模式図内の件数であり、面積・実時間・水位・危険度への換算はできません。</p>
+    </section>
     <footer>NO-GO：本試作は実災害データ・GPS・外部API・避難施設データに接続しません。一般公開は未承認です。</footer>
   </main>
 </body>

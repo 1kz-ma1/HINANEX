@@ -3503,3 +3503,5 @@ require("../prototypes/f07-reference-route/test-node.cjs");
 
 // F04 is private and does not import into the public GIS UI.
 require("../prototypes/f04-synthetic-timeline/test-node.cjs");
+// F04 S2: pure synthetic comparison regression, required E GIS gate.
+require("../prototypes/f04-synthetic-timeline/test-comparison-node.cjs");
