@@ -14,6 +14,7 @@ app.addEventListener('load',()=>{try{
  const d=app.contentDocument; const by=id=>d.getElementById(id);
  const fire=(node,value)=>{node.value=value;node.dispatchEvent(new Event('change',{bubbles:true}))};
  const visible=()=>by('routeLine').getAttribute('points');
+ const drawn=()=>visible() && !by('routeLine').hasAttribute('hidden') && d.defaultView.getComputedStyle(by('routeLine')).display!=='none';
  const result=()=>by('status').dataset.state;
  check(result()==='UNSELECTED','initial state');
  check(!visible(),'initial geometry');
@@ -22,15 +23,15 @@ app.addEventListener('load',()=>{try{
  fire(by('origin'),'start-a');fire(by('destination'),'goal-x');
  check(result()==='READY','ready');
  by('generate').focus();check(d.activeElement===by('generate'),'keyboard focus');
- by('generate').click();check(result()==='SHOWN'&&visible(),'shown');
+ by('generate').click();check(result()==='SHOWN'&&drawn(),'shown');
  fire(by('destination'),'goal-y');check(result()==='READY'&&!visible(),'destination invalidation');
- by('generate').click();check(visible(),'route regenerate');
+ by('generate').click();check(drawn(),'route regenerate');
  fire(by('condition'),'pattern-2');check(!visible(),'condition invalidation');
- by('generate').click();check(visible(),'second pattern');
+ by('generate').click();check(drawn(),'second pattern');
  by('simulateFailure').click();check(!visible(),'failure toggle invalidation');
  by('generate').click();check(result()==='NO_GO'&&!visible(),'failure NO-GO');
  check(by('status').textContent.includes('NO-GO'),'NO-GO copy');
- by('simulateFailure').click();by('generate').click();check(visible(),'recovery');
+ by('simulateFailure').click();by('generate').click();check(drawn(),'recovery');
  by('clear').click();check(!visible()&&result()==='READY','clear');
  fire(by('origin'),'');check(result()==='UNSELECTED'&&!visible(),'reset selection');
  for(const w of [320,390,1440]){

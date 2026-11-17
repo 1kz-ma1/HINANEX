@@ -31,7 +31,8 @@
   function draw() {
     const state = session.getState();
     line.setAttribute('points', state.route ? state.route.points.map(p => p.join(',')).join(' ') : '');
-    line.hidden = !state.route;
+    if (state.route) line.removeAttribute('hidden');
+    else line.setAttribute('hidden', '');
     $('diagram').setAttribute('aria-label', state.route
       ? '架空地点の模式経路を表示中。地理的な位置や安全性を示さない図です。'
       : '架空の出発点と目的地を示す模式図。現在、経路は表示されていません。');
