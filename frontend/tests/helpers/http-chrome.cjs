@@ -157,4 +157,3 @@ async function waitUntil(evaluate, expression, description) {
   throw Error("Timed out waiting for " + description);
 }
 module.exports = {browserBinary, launchChrome, stopChrome, waitUntil};
-
