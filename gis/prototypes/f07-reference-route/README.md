@@ -50,3 +50,12 @@ GPS、住所取得、実座標、地域データ、実ルートAPI、第三者�
 - **必須CI**: `gis/tests/map_controller.test.js` 末尾で本ディレクトリの `test-node.cjs` を `require` し、既存E GIS Node回帰の実行経路へ組み込む。単独テストと共通の正本を使い、同内容のテストはコピーしない。Chromiumの実HTTP E2Eは引き続き個別QAであり、required CIがブラウザを起動したとは主張しない。
 - 新規Node回帰: 未対応条件時NO-GO/経路即破棄、明示的な条件復旧、32連続操作のrevision・線破棄。ブラウザ回帰: 未対応条件のNO-GOとテキスト要約。
 - **未実施/別ゲート**: Android/iOS実機と読み上げ、Render LIVE 404、公的施設/経路API・移動手段の審査。Issue #358はHOLD、Issue #372 DQA-006はDEFERRED。
+
+## F07 S3 — 失敗理由と復帰案内、初期化（2026-11-17）
+
+- **表示仕様**: 既存の状態 `UNSELECTED / READY / SHOWN / NO_GO` は変更しない。画面ではステータスと具体的な次の操作を**1つの `role=status aria-live=polite` 領域**で通知する。状態確認欄は引き続き実地点・安全判定を表さない。
+- **状態機械の内部追加**: `reasonCode` と `nextAction` を読み取り専用スナップショットに含める。理由コードは `POINTS_REQUIRED`（架空地点未選択）/ `READY` / `SHOWN` / `UNSUPPORTED_CONDITION`（未対応パターン）/ `SYNTHETIC_FAILURE`（合成失敗）に限定し、公的なCapability/Disaster statusと混同しない。NO-GOでは経路を先に消去し、推測による迂回・安全な移動経路の提案をしない。
+- **解除と初期化の違い**: `表示を解除` は模式線だけを破棄し架空選択を維持する。`選択からやり直す` は出発点/目的地/失敗チェックを消去し、条件をパターン1へ戻す。旧線を即時破棄し状態は `UNSELECTED`、revisionは単調増加、再生成ボタンは無効化する。UIは出発点セレクトにフォーカスを戻す。
+- **失敗モードの案内**: 合成失敗チェックがONで `READY` の場合は、次の生成がNO-GOになることを明記する。合成失敗後はチェック解除と再生成、未対応条件では有効パターンの選び直しを案内する。実施設への誘導はしない。
+- **回帰**: Nodeの理由・復帰文面、reset直後/NO-GO直後/再生成、single live regionを検証し、実HTTP Chromiumで320/390/1440px、旧線の非再表示、次の操作案内、reset後のフォーカス・入力値を確認する。
+- **境界**: 新しいAPI/位置情報/データ保存/実経路・距離/アプリ連携は無し。CSP・Render除外・Issue #358実経路HOLD・DQA-006実機QA繰越を維持する。

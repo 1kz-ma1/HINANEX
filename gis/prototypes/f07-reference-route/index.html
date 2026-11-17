@@ -30,9 +30,13 @@
         <div class="actions">
           <button id="generate" type="button">模式経路を表示</button>
           <button id="clear" type="button" class="secondary">表示を解除</button>
+          <button id="reset" type="button" class="secondary">選択からやり直す</button>
         </div>
         <p id="selectionSummary" class="selection-summary" aria-label="現在の架空選択内容"></p>
-        <p id="status" class="status" role="status" aria-live="polite" aria-atomic="true"></p>
+        <div class="feedback" role="status" aria-live="polite" aria-atomic="true">
+          <p id="status" class="status"></p>
+          <p id="nextAction" class="next-action"></p>
+        </div>
       </section>
       <section class="panel diagram-panel" aria-labelledby="diagram-title">
         <h2 id="diagram-title">経路の模式図</h2>

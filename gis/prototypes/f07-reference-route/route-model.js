@@ -27,10 +27,12 @@
     let route = null;
     let status = 'UNSELECTED';
     let reason = '出発点と目的地を明示的に選んでください。';
+    let reasonCode = 'POINTS_REQUIRED';
+    let nextAction = 'まず架空の出発点と目的地を選択してください。';
     let revision = 0;
     function snapshot() {
       return Object.freeze({ start: start && start.id, destination: destination && destination.id,
-        condition: condition && condition.id, status, reason, revision,
+        condition: condition && condition.id, status, reason, reasonCode, nextAction, revision,
         route: route && Object.freeze({
           points: Object.freeze(route.points.map(p => Object.freeze([...p]))),
           revision: route.revision
@@ -43,6 +45,13 @@
       reason = !condition ? 'NO-GO：未対応の表示条件です。模式線パターンを明示的に選び直してください。'
         : status === 'READY' ? '条件が変更されました。表示するには再生成してください。'
         : '出発点と目的地を明示的に選んでください。';
+      reasonCode = !condition ? 'UNSUPPORTED_CONDITION'
+        : status === 'READY' ? 'READY' : 'POINTS_REQUIRED';
+      nextAction = !condition ? '表示条件から模式線パターン1または2を明示的に選び直してください。'
+        : status === 'READY' ? '「模式経路を表示」を選ぶと、架空地点だけの模式線を生成します。'
+        : !start && !destination ? 'まず架空の出発点と目的地を選択してください。'
+        : !start ? '架空の出発点を選択してください。'
+        : '架空の目的地を選択してください。';
       return snapshot();
     }
     return Object.freeze({
@@ -51,16 +60,29 @@
       setDestination(id) { destination = choose(DESTINATIONS, id); return invalidate(); },
       setCondition(id) { condition = choose(CONDITIONS, id); return invalidate(); },
       clear() { return invalidate(); },
+      reset() {
+        start = null;
+        destination = null;
+        condition = CONDITIONS[0];
+        return invalidate();
+      },
       generate(options = {}) {
         // Delete the old geometry BEFORE validation or any possible failure.
         revision += 1;
         route = null;
         if (!condition) {
           status = 'NO_GO'; reason = 'NO-GO：未対応の表示条件です。模式線パターンを明示的に選び直してください。';
+          reasonCode = 'UNSUPPORTED_CONDITION';
+          nextAction = '表示条件から模式線パターン1または2を明示的に選び直してください。';
         } else if (!start || !destination) {
           status = 'NO_GO'; reason = 'NO-GO：出発点と目的地の明示選択が必要です。';
+          reasonCode = 'POINTS_REQUIRED';
+          nextAction = !start && !destination ? '架空の出発点と目的地を選択してください。'
+            : !start ? '架空の出発点を選択してください。' : '架空の目的地を選択してください。';
         } else if (options.fail === true) {
           status = 'NO_GO'; reason = 'NO-GO：合成経路を作成できませんでした。旧経路は破棄しました。';
+          reasonCode = 'SYNTHETIC_FAILURE';
+          nextAction = '「経路生成失敗を合成する」のチェックを外してから、もう一度「模式経路を表示」を選んでください。';
         } else {
           const via = condition.id === 'pattern-1'
             ? [[235, start.y], [400, destination.y]]
@@ -68,6 +90,8 @@
           route = { points: [[start.x, start.y], ...via, [destination.x, destination.y]], revision };
           status = 'SHOWN';
           reason = '合成模式線を表示しています。現実の経路・安全・通行可能性を示しません。';
+          reasonCode = 'SHOWN';
+          nextAction = '選択や条件を変更すると以前の模式線は消えます。「表示を解除」でも消去できます。';
         }
         return snapshot();
       }
