@@ -26,6 +26,19 @@
 - `c_independent_approved=false`、`facility_identity_approved=false`、`publication_approved=false`。一連のbyte比較は公式データの署名・自治体全域・指定の現在有効性・施設安全の承認ではない。
 
 
+## 2-00. 2026-11-17 09:43:59 JST 実原本・順序非依存判定の確定記録
+
+**ユーザーMac実行結果／C監査正本**：[Issue #401 実データ診断](https://github.com/1kz-ma1/HINANEX/issues/401#issuecomment-6934094855)。
+
+- 対象`skhb01/10/909/403`、`checked_at_utc=2026-11-17T00:43:59+00:00`、HTTP200・final URL一致。D保存・C新GETのサイズはともに**349472B**、Feature数はともに**1195**。
+- **raw byteは不一致**：D SHA256=`3d88eab61dea466e3647beb08a47e312cf9853de48d6936323e5023d0c27881c`、C SHA256=`1a18246c95386b24bada1a063b1cf8e51f8f1fe7b7f546de6032adc3e589cc35`。C SHAは前回のC GETと一致。
+- **順序非依存のFeature内容は完全一致**：`feature_multiset_canonical_json_equal=true`、`feature_multiset_d_only_occurrences=0`、`feature_multiset_c_only_occurrences=0`。キー順固定の正規JSON化と重複出現数を保持した多重集合で、1195件全体について比較した。
+- `same_features_in_different_array_order=true`、`feature_indices_differing_count=10`、最初のindex=633。同一配列indexの属性カテゴリ差（座標10/住所10/備考10/未知属性10/disaster2=6）は**異なるFeatureが異なるindexに現れたことによる見掛け上の差**で説明できる。施設自体の属性変更・指定変更・追加/廃止という解釈はしない。
+- **技術分類**：`FEATURE_MULTISET_EQUAL_WITH_ARRAY_REORDER`（文書上の判定ラベル。既存CのCLI enumには追加していない）。**元のCLI statusは`C_A_FLOOD_CURRENT_BYTE_MISMATCH_HOLD`を維持**。したがってR0 4セルのC raw byte一致は**3/4のみ**、C正式承認・人間レビュー・公開はいずれも0。
+- **未特定**：配列順以外のJSON直列化差の併存、配信の変更理由、公式改版、当時のHTTPヘッダー。今回のFeature多重集合完全一致からこれらを推定して確定しない。過去rawとC reportは改変/上書きしない。
+
+**今後の進め方**：順序差の技術的切り分けはこれで一段落。さらに何度も同じURLをGETすることを必須にせず、厳格byte一致と順序非依存の内容同値性を**別の証拠ゲート**として並存させる。Featureの順序差だけを理由に本番データの施設ID連携、経路推薦、公開を許可しない。人間レビューはIssue #388へ保留。
+
 ## 2-0. 2026-11-17 実データ観測・次の分岐
 
 利用者Macが2026-11-17T00:35:41+00:00に追加実行したA洪水の属性カテゴリ診断は、DとCがともに**349472 bytes、1195 features**、C最新SHAが前回C SHAと一致、typed JSON不一致・配列index10か所の差（最初633）を再確認した。カテゴリ差の内訳は `geometry.coordinates=10`、`properties.address=10`、`properties.remarks=10`、`properties.other=10`、`properties.disaster2=6`。未知キー名・値は表示されておらず、`disaster2`差から土砂の指定変更や安全性を推定しない。**10 index差≠10施設差**。
