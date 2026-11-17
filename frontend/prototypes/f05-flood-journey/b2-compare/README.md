@@ -28,12 +28,17 @@ Chromeで `http://127.0.0.1:8000/frontend/prototypes/f05-flood-journey/b2-compar
 ```powershell
 cd frontend
 node --test prototypes/f05-flood-journey/b2-compare/model.test.js
+node --test prototypes/f05-flood-journey/b2-compare/browser-http.test.cjs
 npm test
 npm run lint
 npm run build
 ```
 
-GitHub Actionsの `test` はmainへの統合可否判断の必須ゲート。ただしCI成功はローカル実Chrome/物理スマホの検証や人間の公式災害情報承認を意味しない。
+`browser-http.test.cjs` は 127.0.0.1 の一時HTTPサーバーから既存HTML/ESM/架空Fixtureを配信し、実headless Chrome（CDP）で比較・選択リセット・異常系・画面幅320/390/1440px・Tab/Enter・通信/保存の有無を検査します。Chromeは `B2_BROWSER_BIN` または `CHROME_BIN` で指定可能です。**CIでChromeがない場合はFAIL**、ローカル実行ではSKIPと明示します。新規NPM依存は不要です。
+
+GitHub Actionsの `test` はmain統合可否判断の必須ゲート。2026-11-17の [PR #405 initial HEAD `3526c9e` のrequired CI](https://github.com/1kz-ma1/HINANEX/actions/runs/43989795917) で、**Frontend Node 114/114 PASS、失敗0・skip0、B2 Chrome HTTPテストPASS**（GitHub Actionsのログで確認）。この記録は**初回HEADの証拠**で、README追記後のHEADのCIは別確認が必要です。
+
+headless Chromeの成功は物理スマートフォン、Safari/VoiceOver/TalkBack、Render配信と公式災害情報の人間承認の代替ではありません。
 
 ## 配信・権利の安全境界
 
@@ -47,5 +52,5 @@ GitHub Actionsの `test` はmainへの統合可否判断の必須ゲート。た
 
 - `Implementation`: 5ファイル、`frontend/prototypes/f05-flood-journey/b2-compare/**` のみ。
 - `Passed`: Node単体テストおよびrequired CIはそれぞれ実行結果をPRに記録する。
-- `Not run`: 実ChromeでのB2操作・画面幅320/390/1440px・Android/iOS/Safari・独立Network HAR。物理端末は [Device QA #372](https://github.com/1kz-ma1/HINANEX/issues/372) に登録する。
+- `Not run`: **この実行者自身の独立ローカル手動Chrome操作**、Android/iOS/Safariの物理端末・VoiceOver/TalkBack、独立HAR、実Renderの公開URL受入。CIのheadless Chrome E2Eは別途PASS済み（上記の実行HEADを参照）。物理端末は [Device QA #372](https://github.com/1kz-ma1/HINANEX/issues/372) に登録する。
 - `Published`: NO、`main merged`: NO、`Decision`: Draft/blocked、`Safety`: NO-GO。
