@@ -268,10 +268,10 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
         "Restoring focus to list button B must not jump scrollY");
       assert.equal(await evaluate("document.activeElement?.dataset.recordId"),"fake-b");
 
-      const beforeChoiceAction = await evaluate("(()=>{scrollTo(0,72);return {y:scrollY,buttonTop:document.querySelectorAll('#choiceArea button')[1].getBoundingClientRect().top}})()");
+      const beforeChoiceAction = await evaluate("(()=>{scrollTo(0,72);return {y:scrollY,buttonTop:document.querySelectorAll('#choiceArea button')[1].getBoundingClientRect().top,viewportHeight:innerHeight}})()");
       assert.ok(beforeChoiceAction.y>60,
         "Choice scroll guard requires a nonzero baseline");
-      assert.ok(beforeChoiceAction.buttonTop>innerHeight,
+      assert.ok(beforeChoiceAction.buttonTop>beforeChoiceAction.viewportHeight,
         "Choice control must start below the visible viewport");
       await evaluate("document.querySelectorAll('#choiceArea button')[1].click()");
       assert.equal(await evaluate("scrollY"),beforeChoiceAction.y,
