@@ -11,6 +11,7 @@ never grants source authorization, site identity, or publication approval.
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 from datetime import datetime, timezone
 from hashlib import sha256
 import json
@@ -93,6 +94,24 @@ def _diff_summary(old_bytes: bytes, new_bytes: bytes) -> dict:
         differing.append(index)
         for label in labels:
             categories[label] = categories.get(label, 0) + 1
+    # Order-independent, exact JSON-value multiset comparison. Canonicalized
+    # strings are retained only in local memory; never emit feature fingerprints.
+    # Duplicates must remain counted (a set would silently lose multiplicity).
+    def canonical_features(rows):
+        return Counter(
+            json.dumps(feature, sort_keys=True, ensure_ascii=False,
+                       separators=(",", ":"), allow_nan=False)
+            for feature in rows
+        )
+
+    old_multiset = canonical_features(a)
+    new_multiset = canonical_features(b)
+    equal_multiset = old_multiset == new_multiset
+    unmatched_d = sum((old_multiset - new_multiset).values())
+    unmatched_c = sum((new_multiset - old_multiset).values())
+    order_differs_with_same_content = (
+        equal_multiset and not _typed_equal(a, b)
+    )
     no_features_old = dict(old, features=None)
     no_features_new = dict(new, features=None)
     return {
@@ -101,6 +120,13 @@ def _diff_summary(old_bytes: bytes, new_bytes: bytes) -> dict:
         "feature_count_delta_c_minus_d": len(b) - len(a),
         "feature_indices_differing_count": len(differing),
         "first_differing_feature_index": differing[0] if differing else None,
+        "feature_multiset_canonical_json_equal": equal_multiset,
+        "feature_multiset_d_only_occurrences": unmatched_d,
+        "feature_multiset_c_only_occurrences": unmatched_c,
+        "same_features_in_different_array_order": order_differs_with_same_content,
+        "feature_multiset_comparison_scope": (
+            "ORDER_INDEPENDENT_FULL_FEATURE_JSON_MULTISET_NO_SITE_IDENTITY_JOIN"
+        ),
         "changed_attribute_category_counts": dict(sorted(categories.items())),
         "changed_attribute_category_scope": (
             "FIXED_ALLOWLIST_PER_ARRAY_INDEX_UNKNOWN_KEYS_REDACTED"
