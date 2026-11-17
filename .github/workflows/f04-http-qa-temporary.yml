@@ -1,0 +1,72 @@
+name: TEMP QA F04 synthetic HTTP Chrome (do not merge)
+"on":
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - ".github/workflows/f04-http-qa-temporary.yml"
+permissions:
+  contents: read
+jobs:
+  f04-real-http:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Offline Node regression and source checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          git status --short
+          for file in synthetic-data.js timeline-model.js app.js test-node.cjs test-browser.cjs; do
+            node --check "gis/prototypes/f04-synthetic-timeline/$file"
+          done
+          node gis/prototypes/f04-synthetic-timeline/test-node.cjs
+      - name: F04 actual HTTP Chrome smoke with original CSP
+        env:
+          NODE_OPTIONS: --unhandled-rejections=strict
+        shell: bash
+        run: |
+          set -euo pipefail
+          chrome="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$chrome"
+          "$chrome" --version
+          timeout 45s env CHROMIUM_BIN="$chrome" node gis/prototypes/f04-synthetic-timeline/test-browser.cjs
+      - name: Prove synthetic Render staging excludes private F04 directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import tempfile, shutil
+          from pathlib import Path
+          from deploy.build_staging import build_bundle
+          from deploy.tests.test_build_staging import StagingBuildTests
+          source=Path("gis/prototypes/f04-synthetic-timeline").resolve()
+          assert source.is_dir() and len(list(source.iterdir())) == 8
+          with tempfile.TemporaryDirectory() as tmp:
+              root=Path(tmp)
+              StagingBuildTests().make_repo(root)
+              copied=root/"gis/prototypes/f04-synthetic-timeline"
+              shutil.copytree(source,copied)
+              assert copied.exists()
+              output=build_bundle(root,root/"deploy/dist",run_pipeline=False,publish_official_gsi=False)
+              assert (output/"gis/gis/index.html").is_file()
+              assert not (output/"gis/prototypes").exists()
+              assert not any("f04-synthetic-timeline" in p.parts for p in output.rglob("*"))
+              print("F04_RENDER_EXCLUSION_PASS")
+          PY
+      - name: Record test evidence boundaries
+        if: ${{ always() }}
+        run: |
+          {
+            echo "### F04 temporary QA only: DO NOT MERGE"
+            echo "- Source: draft PR #430; localhost HTTP Chrome and original strict CSP."
+            echo "- Synthetic grid only, no geography, GPS, provider calls or real hazard inference."
+            echo "- A PASS is not mobile QA, real flood acceptance, or publication approval."
+            echo "- Main source PR #430 remains draft until all required gates and human Captain review."
+          } >> "$GITHUB_STEP_SUMMARY"
