@@ -72,6 +72,45 @@ test('simulated failure and invalid selections never retain a stale route', () =
   assert.equal(s.getState().start, null);
 });
 
+test('unsupported condition fails closed and cannot reuse stale schematic', () => {
+  const s = createSession();
+  s.setStart('start-a'); s.setDestination('goal-x');
+  const shown = s.generate();
+  assert.equal(shown.status, 'SHOWN');
+  const invalid = s.setCondition('walking-time-or-route-api');
+  assert.equal(invalid.condition, null);
+  assert.equal(invalid.status, 'NO_GO');
+  assert.match(invalid.reason, /NO-GO/);
+  assert.equal(invalid.route, null);
+  const stillInvalid = s.generate();
+  assert.equal(stillInvalid.status, 'NO_GO');
+  assert.equal(stillInvalid.route, null);
+  assert.ok(stillInvalid.revision > shown.revision);
+  assert.equal(s.setCondition('pattern-2').status, 'READY');
+  const recovered = s.generate();
+  assert.equal(recovered.status, 'SHOWN');
+  assert.deepEqual(recovered.route.points[1], [205, 190]);
+});
+
+test('repeated selection and condition edits never resurrect stale route geometry', () => {
+  const s = createSession();
+  s.setStart('start-a'); s.setDestination('goal-x');
+  let previous = s.generate().revision;
+  for (let i = 0; i < 32; i++) {
+    const mutation = i % 4 === 0 ? s.setDestination('goal-y')
+      : i % 4 === 1 ? s.setStart('start-b')
+      : i % 4 === 2 ? s.setCondition('pattern-2')
+      : s.setCondition('pattern-1');
+    assert.equal(mutation.route, null);
+    assert.equal(mutation.status, 'READY');
+    assert.ok(mutation.revision > previous);
+    const current = s.generate();
+    assert.equal(current.status, 'SHOWN');
+    assert.equal(current.route.revision, current.revision);
+    previous = current.revision;
+  }
+});
+
 test('model snapshots cannot mutate held geometry', () => {
   const s = createSession();
   s.setStart('start-a'); s.setDestination('goal-x');
