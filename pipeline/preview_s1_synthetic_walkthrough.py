@@ -17,8 +17,7 @@ def sample_walkthrough(scenario: str = "normal") -> dict:
     """Reproduce a multi-step sequence without any network, storage or live time."""
     if scenario not in ("normal", "stale", "expired", "stopped"):
         raise ValueError("only fixed fictional scenarios are accepted")
-    _, records = sample_state()
-    initial_state, _ = sample_state()
+    initial_state, records = sample_state()
     fixture = initial_state.fixture
     state = WalkthroughState()
     events = []
@@ -42,7 +41,8 @@ def sample_walkthrough(scenario: str = "normal") -> dict:
 
     def frame(at):
         p = project_walkthrough(state, records, at)
-        frames.append(asdict(p))
+        # Match the actual CLI JSON representation, not Python tuple internals.
+        frames.append(json.loads(json.dumps(asdict(p), ensure_ascii=False)))
 
     at = T0 + timedelta(minutes=5)
     apply(IntentKind.START, T0, explicit=True, conditions=("pet_support",),
