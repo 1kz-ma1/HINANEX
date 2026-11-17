@@ -266,7 +266,7 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
       // A second real Enter on the same focused button deselects rather than
       // losing keyboard focus to body or requiring a pointer click.
       await command("Input.dispatchKeyEvent", {type:"rawKeyDown",key:"Enter",code:"Enter",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
-      await command("Input.dispatchKeyEvent", {type:"char",text:"\\r",unmodifiedText:"\\r",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
+      await command("Input.dispatchKeyEvent", {type:"char",text:"\r",unmodifiedText:"\r",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
       await command("Input.dispatchKeyEvent", {type:"keyUp",key:"Enter",code:"Enter",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
       await until(evaluate, "document.querySelectorAll('#recordList button[aria-pressed=true]').length===0", "native Enter deselection");
       assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,pressed:document.activeElement?.getAttribute('aria-pressed'),name:document.activeElement?.getAttribute('aria-label')})"),
