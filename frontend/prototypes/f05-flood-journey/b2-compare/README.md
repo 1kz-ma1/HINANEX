@@ -27,7 +27,7 @@ Chromeで `http://127.0.0.1:8000/frontend/prototypes/f05-flood-journey/b2-compar
 
 比較に追加/解除、本人確認対象を選択した際は、画面の再描画後も**操作した架空施設の新しいボタンへフォーカスを復元**します（`focus({preventScroll:true})`）。連続してEnterで選択・解除でき、意図しない画面スクロールを避けます。繰返し現れる比較ボタンは、アクセシブル名称に**架空施設名と操作内容**を含めます。これは合成・非公開画面の操作性改善であり、実施設の選定・安全性判断・データ承認ではありません。
 
-`browser-http.test.cjs` で追加/解除・本人選択後の実Chromeフォーカス、`aria-pressed`とアクセシブル名称、繰返しEnterを回帰検証します。物理Android/iOS/Safari/VoiceOver/TalkBackは別途DQA-005で確認します。
+`browser-http.test.cjs` で追加/解除・本人選択後の実Chromeフォーカス、`aria-pressed`とアクセシブル名称、繰返しEnterを回帰検証します。さらに **320×480 CSS pxの実Chromeに非ゼロのスクロール位置を設定し、画面外の一覧A/Bと本人選択Bのボタン操作後も `scrollY` が変わらない**ことを検証します。実行前にページが実際にスクロール可能で、対象ボタンが画面外にあることをassertして、常に`scrollY=0`の無効な試験を防ぎます。物理Android/iOS/Safari/VoiceOver/TalkBackは別途DQA-005で確認します。
 
 ## テスト
 
