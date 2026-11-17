@@ -26,6 +26,35 @@
 - `c_independent_approved=false`、`facility_identity_approved=false`、`publication_approved=false`。一連のbyte比較は公式データの署名・自治体全域・指定の現在有効性・施設安全の承認ではない。
 
 
+## 2-0. 2026-11-17 実データ観測・次の分岐
+
+利用者Macが2026-11-17T00:35:41+00:00に追加実行したA洪水の属性カテゴリ診断は、DとCがともに**349472 bytes、1195 features**、C最新SHAが前回C SHAと一致、typed JSON不一致・配列index10か所の差（最初633）を再確認した。カテゴリ差の内訳は `geometry.coordinates=10`、`properties.address=10`、`properties.remarks=10`、`properties.other=10`、`properties.disaster2=6`。未知キー名・値は表示されておらず、`disaster2`差から土砂の指定変更や安全性を推定しない。**10 index差≠10施設差**。
+
+証拠：[Issue #401 2026-11-17提出ログ](https://github.com/1kz-ma1/HINANEX/issues/401#issuecomment-6933938592)。
+
+### 今回の追加仕様：順序非依存のFeature multiset照合
+
+- `feature_multiset_canonical_json_equal`：全Featureを固定規則で正規JSON化し、**個数を保持した多重集合**として比較。順番だけが変わったケースと、JSON内容の集合そのものが異なるケースを区別する。Python内だけで値を保持し、各FeatureのrawやSHA・個別keyは出力しない。
+- `feature_multiset_d_only_occurrences` / `feature_multiset_c_only_occurrences`：正規JSONを単位としたDのみ/Cのみの出現数。**実際の施設追加・廃止・安全判定の件数ではない**。
+- `same_features_in_different_array_order`：同一Feature多重集合かつFeature配列が元の順と異なる場合だけtrue。Feature内容が同じままで**配列順だけ変わった**という技術的説明が可能。ただし物理施設IDの同一性照合ではない。
+- `feature_multiset_comparison_scope=ORDER_INDEPENDENT_FULL_FEATURE_JSON_MULTISET_NO_SITE_IDENTITY_JOIN`固定。正規JSONは辞書キーの順を無視し、配列順やデータ型を保持する。未知のソース属性の解釈を追加しない。
+- この追加結果がtrueでも **A洪水の2026-11-16のbyte MISMATCH記録は消さない**。falseならレコード順序差だけでは説明できず、内容の差・追加/削除等の解釈は次の人間レビューおよび別の技術資料が必要。
+- 初期D保存raw、receipt、C過去レポートは**上書き不可**。新規C公式GETのみ、Git外の別JSONに保存。実データでのmultiset比較は本追加実装時点ではNOT_RUN。
+
+```bash
+git -C "$HOME/HINANEX-r0-c-worktree" status --short
+git -C "$HOME/HINANEX-r0-c-worktree" fetch origin feature/c-r0-four-cell-https-replay-20261116
+git -C "$HOME/HINANEX-r0-c-worktree" switch --detach FETCH_HEAD
+cd "$HOME/HINANEX-r0-c-worktree"
+python3.12 validation/validation/diagnose_gsi_r0_a_flood_delta.py \
+  --d-report "$HOME/HINANEX-r0-evidence/r0-capture-001.json" \
+  --evidence-dir "$HOME/HINANEX-r0-evidence/capture-001" \
+  --prior-c-sha256 "1a18246c95386b24bada1a063b1cf8e51f8f1fe7b7f546de6032adc3e589cc35" \
+  --report-out "$HOME/HINANEX-r0-evidence/r0-a-flood-multiset-20261117-01.json"
+```
+
+`__pycache__`などの未追跡ファイルは勝手にGit追加/削除しない。その他の未コミット修正があればswitchを中止。ファイルが存在すれば新しいファイル名に変更し、既存証拠を上書きしない。途中HOLDは安全側で停止。
+
 ## 2-A. 2026-11-16追加実データ証拠：同じ件数だが原文Featureに差
 
 利用者Macの新しいA洪水単一タイル診断（`2026-11-16T05:28:22+00:00`）は `C_A_FLOOD_CURRENT_BYTE_MISMATCH_HOLD`。D/Cとも **349472 bytes、1195 tile-wide features**、C新GET SHA `1a18246c95386b24bada1a063b1cf8e51f8f1fe7b7f546de6032adc3e589cc35` は直前のC再取得SHAと一致。元のD SHA `3d88eab61dea466e3647beb08a47e312cf9853de48d6936323e5023d0c27881c` とは不一致。typed JSONは異なり、非Feature rootには差がなく、**同一配列indexの10箇所で差**（最初のindex 633）。これらは施設同一性を示さない。
