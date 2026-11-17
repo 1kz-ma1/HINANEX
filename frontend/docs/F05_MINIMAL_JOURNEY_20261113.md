@@ -45,6 +45,14 @@
 ## 2026-11-16 F05最終コードレビューに向けた受入境界
 
 - **実装/安全範囲:** ローカルHTTPでのみ本人選択の江戸川区13123からF02への手動導線を表示する。F01は別入口のまま。施設安全・開設・災害適合・経路推測・F03保存・自動外部APIは実装しない。
-- **人間操作:** F05-01〜14はユーザーによるChrome手動テストのPASS報告。F02のJSON 404は当初観測されたが、後日のF05-14再テストPASS申告があり、**新しいNetwork上のJSON 200はこの時点で独立取得していない**。
+- **人間操作:** F05-01〜14はユーザーによるChrome手動テストのPASS報告。F02のJSON 404は当初観測されたが、後日のF05-14再テストPASS申告に加え、ユーザーが提示したChrome Network画面で `edogawa.json` の **HTTP 200（fetch、236 kB）を目視確認**した（[Issue #372追補](https://github.com/1kz-ma1/HINANEX/issues/372#issuecomment-6906212613)）。ただし原JSONの内容・Schema互換・Cによる原本/施設行の独立承認は、このNetwork画面のみでは証明されない。
 - **Render:** #377の静的非公開ガードはmain統合済みで、デプロイ後のF05 HTMLとF02 HTMLが404。しかし#371をmainに取り込んだ後に実F05資材が配信されないことは未確認であり、公開安全上は別途確認する。
 - **正式承認:** Issue #362でOwnerの初期Bスライス採用・WIP判断が明示されていない。共同Merge Captainの通常PR統合判断権限と、特定スライスの採用判断は区別する。**Draft/merge blocked、公式CSV権利・施設安全・一般公開NO-GO**を維持する。
+
+## 2026-11-17 受入履歴と統合範囲の整理（最新CIはPR本文で管理）
+
+- **B1の状態:** F05/B1 [PR #371](https://github.com/1kz-ma1/HINANEX/pull/371) は **Draft / merge: blocked / source NOT MERGED**。B担当から採用希望を表明済みだが、[Issue #362](https://github.com/1kz-ma1/HINANEX/issues/362#issuecomment-6933939711)のOwner本人による初期WIP・採用スライスの明示回答は未確認。共同Merge Captainの通常のPR統合権限は、この個別仕様承認を代行しない。
+- **関連B2:** 施設の合成2件比較・本人の一時選択 [PR #399](https://github.com/1kz-ma1/HINANEX/pull/399) は **mainにソースだけ統合済み**（commit `b7b7070e787d42c2e2eb4835d898a4ad71da31a7`）。このB2はF05/B1で実データと自動接続されず、F05/B1の導線にも組み込まれない。B2のChrome 22/22 PASSは別のユーザー報告であり、B1の14/14 PASSと混同しない。
+- **テスト履歴:** 旧HEAD `ab6c60b56ce689184442c2156320332f2627287f` では[required test #43812754659](https://github.com/1kz-ma1/HINANEX/actions/runs/43812754659) SUCCESS、Frontend 118/118、GIS 24/24、Scope Guard PASS。**本書類を更新した新HEADのrequired testは再実行して記録する**。以前の「追加受入が必要」という節は更新前の履歴であり、F05-01〜14のユーザー報告は[#372](https://github.com/1kz-ma1/HINANEX/issues/372#issuecomment-6906107953)に記録済み（独立HAR、最新checkout SHA照合、物理端末はNOT_RUN）。
+- **非公開:** [Deploy #377](https://github.com/1kz-ma1/HINANEX/pull/377)は `prototypes/f05-flood-journey/**` とB1モデル・テスト・本書類を公開バンドルから除外。実B1ソースのmain統合後Render HTTP 404は **NOT_VERIFIED**。B2ソース統合後のRender LIVE SHA＋対象5ファイルの404も[Issue #373](https://github.com/1kz-ma1/HINANEX/issues/373#issuecomment-6933981069)で未確認。
+- **最終判断:** 本文中の過去main・HEAD・検証予定は当時の履歴。最新の`main`追従・CI・GitHubレビューはPR #371の末尾とCI runに記録する。コードmain統合と実施設の公式安全認定・CSV利用許諾・一般公開を区別する。
