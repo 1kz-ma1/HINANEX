@@ -19,12 +19,19 @@
     Object.freeze({ id: 'pattern-2', label: '模式線パターン 2' })
   ]);
   const choose = (items, id) => items.find(item => item.id === id) || null;
+  function pointsFor(start, destination, patternId) {
+    const via = patternId === 'pattern-1'
+      ? [[235, start.y], [400, destination.y]]
+      : [[205, 190], [420, 190]];
+    return [[start.x, start.y], ...via, [destination.x, destination.y]];
+  }
 
   function createSession() {
     let start = null;
     let destination = null;
     let condition = CONDITIONS[0];
     let route = null;
+    let comparison = null;
     let status = 'UNSELECTED';
     let reason = '出発点と目的地を明示的に選んでください。';
     let reasonCode = 'POINTS_REQUIRED';
@@ -36,11 +43,17 @@
         route: route && Object.freeze({
           points: Object.freeze(route.points.map(p => Object.freeze([...p]))),
           revision: route.revision
+        }),
+        comparison: comparison && Object.freeze({
+          pattern: comparison.pattern,
+          points: Object.freeze(comparison.points.map(p => Object.freeze([...p]))),
+          revision: comparison.revision
         }) });
     }
     function invalidate() {
       revision += 1;
       route = null;
+      comparison = null;
       status = !condition ? 'NO_GO' : start && destination ? 'READY' : 'UNSELECTED';
       reason = !condition ? 'NO-GO：未対応の表示条件です。模式線パターンを明示的に選び直してください。'
         : status === 'READY' ? '条件が変更されました。表示するには再生成してください。'
@@ -60,6 +73,18 @@
       setDestination(id) { destination = choose(DESTINATIONS, id); return invalidate(); },
       setCondition(id) { condition = choose(CONDITIONS, id); return invalidate(); },
       clear() { return invalidate(); },
+      showComparison() {
+        // No auto-routing: only an explicit action after a successful synthetic draw.
+        if (status !== 'SHOWN' || !route || route.revision !== revision ||
+            !start || !destination || !condition) {
+          comparison = null;
+          return snapshot();
+        }
+        const other = condition.id === 'pattern-1' ? 'pattern-2' : 'pattern-1';
+        comparison = {pattern: other, points: pointsFor(start, destination, other), revision};
+        return snapshot();
+      },
+      hideComparison() { comparison = null; return snapshot(); },
       reset() {
         start = null;
         destination = null;
@@ -70,6 +95,7 @@
         // Delete the old geometry BEFORE validation or any possible failure.
         revision += 1;
         route = null;
+        comparison = null;
         if (!condition) {
           status = 'NO_GO'; reason = 'NO-GO：未対応の表示条件です。模式線パターンを明示的に選び直してください。';
           reasonCode = 'UNSUPPORTED_CONDITION';
@@ -84,10 +110,7 @@
           reasonCode = 'SYNTHETIC_FAILURE';
           nextAction = '「経路生成失敗を合成する」のチェックを外してから、もう一度「模式経路を表示」を選んでください。';
         } else {
-          const via = condition.id === 'pattern-1'
-            ? [[235, start.y], [400, destination.y]]
-            : [[205, 190], [420, 190]];
-          route = { points: [[start.x, start.y], ...via, [destination.x, destination.y]], revision };
+          route = { points: pointsFor(start, destination, condition.id), revision };
           status = 'SHOWN';
           reason = '合成模式線を表示しています。現実の経路・安全・通行可能性を示しません。';
           reasonCode = 'SHOWN';
