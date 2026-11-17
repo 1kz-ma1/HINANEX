@@ -1,0 +1,89 @@
+name: TEMP QA F04 S2 HTTP and native keyboard (DO NOT MERGE)
+"on":
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - ".github/workflows/f04-s2-http-qa-temporary.yml"
+permissions:
+  contents: read
+jobs:
+  f04-s2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify S1 and S2 Node and script syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          git status --short
+          for script in synthetic-data.js timeline-model.js app.js comparison-model.js comparison-app.js test-node.cjs test-browser.cjs test-comparison-node.cjs test-comparison-browser.cjs test-comparison-keyboard.cjs; do
+            node --check "gis/prototypes/f04-synthetic-timeline/$script"
+          done
+          node gis/prototypes/f04-synthetic-timeline/test-node.cjs
+          node gis/prototypes/f04-synthetic-timeline/test-comparison-node.cjs
+      - name: Real localhost Chrome original S1 and S2 UI regression
+        shell: bash
+        env:
+          NODE_OPTIONS: --unhandled-rejections=strict
+        run: |
+          set -euo pipefail
+          chrome="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$chrome"
+          "$chrome" --version
+          timeout 45s env CHROMIUM_BIN="$chrome" node gis/prototypes/f04-synthetic-timeline/test-browser.cjs
+          timeout 45s env CHROMIUM_BIN="$chrome" node gis/prototypes/f04-synthetic-timeline/test-comparison-browser.cjs
+      - name: Real native keyboard Chrome Tab Arrow Enter Space and layout
+        shell: bash
+        env:
+          NODE_OPTIONS: --unhandled-rejections=strict
+        run: |
+          set -euo pipefail
+          chrome="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$chrome"
+          mkdir -p "$RUNNER_TEMP/f04-s2-playwright"
+          npm install --prefix "$RUNNER_TEMP/f04-s2-playwright" --no-save --no-package-lock playwright@1.56.1
+          export NODE_PATH="$RUNNER_TEMP/f04-s2-playwright/node_modules"
+          timeout 100s env CHROMIUM_BIN="$chrome" node gis/prototypes/f04-synthetic-timeline/test-comparison-keyboard.cjs
+      - name: Build actual synthetic Render bundle and verify F04 S2 exclusion
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import shutil, tempfile
+          from pathlib import Path
+          from deploy.build_staging import build_bundle
+          from deploy.tests.test_build_staging import StagingBuildTests
+          source=Path("gis/prototypes/f04-synthetic-timeline").resolve()
+          assert source.is_dir()
+          assert (source/"comparison-model.js").is_file()
+          assert (source/"test-comparison-node.cjs").is_file()
+          with tempfile.TemporaryDirectory() as temp:
+              root=Path(temp)
+              StagingBuildTests().make_repo(root)
+              copied=root/"gis/prototypes/f04-synthetic-timeline"
+              shutil.copytree(source,copied)
+              assert copied.exists()
+              output=build_bundle(root,root/"deploy/dist",run_pipeline=False,publish_official_gsi=False)
+              assert (output/"gis/gis/index.html").is_file()
+              assert not (output/"gis/prototypes").exists()
+              assert not any("f04-synthetic-timeline" in p.parts for p in output.rglob("*"))
+              print("F04_S2_RENDER_EXCLUSION_PASS")
+          PY
+      - name: Report safe verification boundary
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          {
+            echo "### F04 S2 temporary QA — DO NOT MERGE"
+            echo "- Source PR #432 stacked on Draft F04 S1 #430."
+            echo "- Original CSP, actual loopback HTTP Chrome, native keyboard and synthetic Render exclusion."
+            echo "- No real locations, hazard risk, travel/arrival estimates, provider API, GPS or public deployment."
+            echo "- Physical device/accessibility QA and human Merge Captain/public-release decisions remain separate HOLD."
+          } >> "$GITHUB_STEP_SUMMARY"
