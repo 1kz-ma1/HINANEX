@@ -94,6 +94,12 @@ if (isB2Loopback(window.location.origin)) {
   const fixture=el("fixture"),filter=el("filter"),query=el("query");
   const list=el("recordList"),compare=el("compareArea"),choice=el("choiceArea");
   let session=null;
+  const focusRow=(container,id)=>{
+    // render() recreates buttons: restore focus to the matching new control.
+    // Never scroll the viewport just because the selection was re-rendered.
+    [...container.querySelectorAll("button")]
+      .find(button=>button.dataset.recordId===id)?.focus({preventScroll:true});
+  };
   const node=(tag,value,cls)=>{
     const e=document.createElement(tag);
     if(value!==undefined && value!==null)e.textContent=String(value);
@@ -140,10 +146,15 @@ if (isB2Loopback(window.location.origin)) {
       const item=node("article",null,"facility");
       item.append(node("h3",row.name),node("p","D区分（合成）："+row.status),
         node("p",row.reason));
-      const btn=node("button",chosen.has(row.id)?"比較から外す":"比較に追加");
+      const action=chosen.has(row.id)?"比較から外す":"比較に追加";
+      const btn=node("button",action);
       btn.type="button";btn.disabled=chosen.size===2&&!chosen.has(row.id);
+      btn.dataset.recordId=row.id;
+      btn.setAttribute("aria-label",row.name+"を"+action);
       btn.setAttribute("aria-pressed",String(chosen.has(row.id)));
-      btn.addEventListener("click",()=>{if(session.toggle(row.id).ok)render();});
+      btn.addEventListener("click",()=>{
+        if(session.toggle(row.id).ok){render();focusRow(list,row.id);}
+      });
       item.append(btn);list.append(item);
     }
     const selected=session.selected();
@@ -158,8 +169,11 @@ if (isB2Loopback(window.location.origin)) {
     for(const row of selected){
       const btn=node("button",row.name+"を確認対象にする");
       btn.type="button";
+      btn.dataset.recordId=row.id;
       btn.setAttribute("aria-pressed",String(chosenRow?.id===row.id));
-      btn.addEventListener("click",()=>{if(session.choose(row.id).ok)render();});
+      btn.addEventListener("click",()=>{
+        if(session.choose(row.id).ok){render();focusRow(choice,row.id);}
+      });
       choice.append(btn);
     }
     el("choiceMessage").textContent=chosenRow?

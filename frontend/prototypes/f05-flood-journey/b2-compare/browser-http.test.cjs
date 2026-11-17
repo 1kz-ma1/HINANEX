@@ -197,7 +197,11 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
 
       // Two distinct records, unpromoted UNKNOWN, evidence trace and explicit choice.
       await evaluate("document.querySelectorAll('#recordList button')[0].click()");
+      assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,pressed:document.activeElement?.getAttribute('aria-pressed'),name:document.activeElement?.getAttribute('aria-label')})"),
+        {id:"fake-a",pressed:"true",name:"架空施設Aを比較から外す"}, "Focus and accessible action name after adding A");
       await evaluate("document.querySelectorAll('#recordList button')[1].click()");
+      assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,pressed:document.activeElement?.getAttribute('aria-pressed'),name:document.activeElement?.getAttribute('aria-label')})"),
+        {id:"fake-b",pressed:"true",name:"架空施設Bを比較から外す"}, "Focus stays on B after adding second record");
       assert.equal(await evaluate("document.querySelectorAll('#recordList button[aria-pressed=true]').length"), 2);
       assert.equal(await evaluate("document.querySelectorAll('#recordList button')[2].disabled"), true);
       assert.equal(await evaluate("document.querySelectorAll('#compareArea article').length"), 2);
@@ -205,6 +209,8 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
       assert.ok(await evaluate("document.querySelector('#compareArea').textContent.includes('fixture_row=2')"));
       assert.ok(await evaluate("document.querySelector('#compareArea').textContent.includes('安全性') && document.querySelector('#compareArea').textContent.includes('未認定')"));
       await evaluate("document.querySelectorAll('#choiceArea button')[1].click()");
+      assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,area:document.activeElement?.parentElement?.id,pressed:document.activeElement?.getAttribute('aria-pressed')})"),
+        {id:"fake-b",area:"choiceArea",pressed:"true"}, "Focus stays on chosen facility action after rerender");
       assert.ok(await evaluate("document.querySelector('#choiceMessage').textContent.includes('架空施設B')"));
       assert.equal(await evaluate("document.querySelectorAll('#choiceArea button[aria-pressed=true]').length"), 1);
 
@@ -242,7 +248,42 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
         assert.ok(metrics.overflow <= 2, "horizontal overflow at " + width + ": " + metrics.overflow);
         assert.ok(metrics.minTarget >= 44, "touch target below 44px at " + width);
       }
+      // Deliberately keep the operated button OFF SCREEN: if focusRow ever
+      // calls focus() without preventScroll, this will jump the viewport and
+      // fail.  A real nonzero scroll offset + short viewport avoids a vacuous
+      // scrollY===0 assertion on a page that cannot scroll.
+      await command("Emulation.setDeviceMetricsOverride",
+        {width:320,height:480,deviceScaleFactor:1,mobile:false});
+      const beforeListAction = await evaluate("(()=>{window.scrollTo(0,document.scrollingElement.scrollHeight);const b=document.querySelectorAll('#recordList button')[0].getBoundingClientRect();return {y:scrollY,max:document.scrollingElement.scrollHeight-innerHeight,buttonBottom:b.bottom}})()");
+      assert.ok(beforeListAction.max>300 && beforeListAction.y>300,
+        "Scroll regression fixture must have a genuinely scrollable page");
+      assert.ok(beforeListAction.buttonBottom<0,
+        "Compared list control must start above the viewport");
+      await evaluate("document.querySelectorAll('#recordList button')[0].click()");
+      assert.equal(await evaluate("scrollY"),beforeListAction.y,
+        "Restoring focus to offscreen list button A must not jump scrollY");
+      assert.equal(await evaluate("document.activeElement?.dataset.recordId"),"fake-a");
+      await evaluate("document.querySelectorAll('#recordList button')[1].click()");
+      assert.equal(await evaluate("scrollY"),beforeListAction.y,
+        "Restoring focus to list button B must not jump scrollY");
+      assert.equal(await evaluate("document.activeElement?.dataset.recordId"),"fake-b");
+
+      const beforeChoiceAction = await evaluate("(()=>{scrollTo(0,72);return {y:scrollY,buttonTop:document.querySelectorAll('#choiceArea button')[1].getBoundingClientRect().top,viewportHeight:innerHeight}})()");
+      assert.ok(beforeChoiceAction.y>60,
+        "Choice scroll guard requires a nonzero baseline");
+      assert.ok(beforeChoiceAction.buttonTop>beforeChoiceAction.viewportHeight,
+        "Choice control must start below the visible viewport");
+      await evaluate("document.querySelectorAll('#choiceArea button')[1].click()");
+      assert.equal(await evaluate("scrollY"),beforeChoiceAction.y,
+        "Restoring focus to offscreen choice button B must not jump scrollY");
+      assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,area:document.activeElement?.parentElement?.id})"),
+        {id:"fake-b",area:"choiceArea"}, "Focus is still restored to the correct choice");
+
+      // Reset controls for the existing real Tab/Enter regression, ensuring
+      // the new scroll assertions do not reuse earlier selection state.
+      await evaluate("(()=>{const x=document.querySelector('#fixture');x.value='ready';x.dispatchEvent(new Event('change',{bubbles:true}))})()");
       await command("Emulation.clearDeviceMetricsOverride");
+      console.log("F05_B2_FOCUS_SCROLL: offscreen list A/B and choice B keep nonzero scrollY while focus is restored PASS");
 
       // Native keyboard: Tab moves from the fixture select to filter;
       // Enter activates a focused record button (not only programmatic click).
@@ -255,6 +296,16 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
       await command("Input.dispatchKeyEvent", {type:"char",text:"\r",unmodifiedText:"\r",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
       await command("Input.dispatchKeyEvent", {type:"keyUp",key:"Enter",code:"Enter",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
       await until(evaluate, "document.querySelectorAll('#recordList button[aria-pressed=true]').length===1", "native Enter selection");
+      assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,pressed:document.activeElement?.getAttribute('aria-pressed')})"),
+        {id:"fake-a",pressed:"true"}, "Real Enter must retain focus after list buttons are recreated");
+      // A second real Enter on the same focused button deselects rather than
+      // losing keyboard focus to body or requiring a pointer click.
+      await command("Input.dispatchKeyEvent", {type:"rawKeyDown",key:"Enter",code:"Enter",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
+      await command("Input.dispatchKeyEvent", {type:"char",text:"\r",unmodifiedText:"\r",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
+      await command("Input.dispatchKeyEvent", {type:"keyUp",key:"Enter",code:"Enter",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
+      await until(evaluate, "document.querySelectorAll('#recordList button[aria-pressed=true]').length===0", "native Enter deselection");
+      assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,pressed:document.activeElement?.getAttribute('aria-pressed'),name:document.activeElement?.getAttribute('aria-label')})"),
+        {id:"fake-a",pressed:"false",name:"架空施設Aを比較に追加"}, "Repeated real Enter must retain focus and update accessible label");
 
       // No outbound data, storage or runtime exceptions.
       assert.equal(await evaluate("localStorage.length+sessionStorage.length"), 0);
