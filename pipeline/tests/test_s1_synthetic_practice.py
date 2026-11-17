@@ -43,7 +43,7 @@ class S1SyntheticPracticeTests(unittest.TestCase):
         rows = projection(app).result.rows
         self.assertEqual(len(rows), 5)
         self.assertEqual(
-            [r.status for r in rows],
+            [r.after_status for r in rows],
             ["MATCHED_SYNTHETIC", "MATCHED_SYNTHETIC",
              "NOT_MATCHED_SYNTHETIC", "UNKNOWN",
              "NOT_MATCHED_SYNTHETIC"],
@@ -86,7 +86,7 @@ class S1SyntheticPracticeTests(unittest.TestCase):
         p = projection(app).result
         self.assertIsNone(p.review)
         self.assertEqual(p.after_conditions, ("pet_support", "step_free"))
-        self.assertEqual([r.status for r in p.rows], [
+        self.assertEqual([r.after_status for r in p.rows], [
             "MATCHED_SYNTHETIC", "NOT_MATCHED_SYNTHETIC",
             "NOT_MATCHED_SYNTHETIC", "UNKNOWN", "UNKNOWN",
         ])
