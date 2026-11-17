@@ -18,6 +18,7 @@ button { border: 0; border-radius: 8px; background: #185c86; color: #fff; font: 
 button.secondary { background: #e2eaf0; color: #16324b; }
 button:disabled { cursor: not-allowed; opacity: .52; }
 :focus-visible { outline: 3px solid #bd5d12; outline-offset: 3px; }
+.selection-summary { margin: 14px 0 8px; font-size: .9rem; color: #304963; overflow-wrap: anywhere; }
 .status { min-height: 55px; padding: 10px 12px; border-radius: 8px; background: #eaf1f7; font-weight: 600; overflow-wrap: anywhere; }
 .status[data-state="NO_GO"] { background: #fff1e9; color: #7b2f14; }
 .diagram-panel svg { display: block; width: 100%; height: auto; border-radius: 10px; }

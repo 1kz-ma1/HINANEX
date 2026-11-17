@@ -17,6 +17,7 @@ app.addEventListener('load',()=>{try{
  const drawn=()=>visible() && !by('routeLine').hasAttribute('hidden') && d.defaultView.getComputedStyle(by('routeLine')).display!=='none';
  const result=()=>by('status').dataset.state;
  check(result()==='UNSELECTED','initial state');
+ check(by('selectionSummary').textContent.includes('未選択'),'initial selection summary');
  check(!visible(),'initial geometry');
  check(by('generate').disabled,'initial disabled action');
  check(by('origin').getAttribute('id')==='origin'&&d.querySelector('label[for="origin"]'),'label');
@@ -27,7 +28,11 @@ app.addEventListener('load',()=>{try{
  fire(by('destination'),'goal-y');check(result()==='READY'&&!visible(),'destination invalidation');
  by('generate').click();check(drawn(),'route regenerate');
  fire(by('condition'),'pattern-2');check(!visible(),'condition invalidation');
+ fire(by('condition'),'invalid-pattern');check(result()==='NO_GO'&&!visible(),'unsupported pattern is NO-GO');
+ check(by('generate').disabled,'unsupported pattern blocks generate');
+ fire(by('condition'),'pattern-2');check(result()==='READY','valid pattern recovery');
  by('generate').click();check(drawn(),'second pattern');
+ check(by('selectionSummary').textContent.includes('模式線パターン 2'),'selection summary updated');
  by('simulateFailure').click();check(!visible(),'failure toggle invalidation');
  by('generate').click();check(result()==='NO_GO'&&!visible(),'failure NO-GO');
  check(by('status').textContent.includes('NO-GO'),'NO-GO copy');
