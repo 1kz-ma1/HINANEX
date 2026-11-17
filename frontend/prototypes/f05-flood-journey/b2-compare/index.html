@@ -34,6 +34,7 @@ button:disabled{opacity:.53;cursor:not-allowed}
 .facility button{width:100%}
 .tag{display:inline-block;background:#1b4553;border:1px solid #457888;border-radius:8px;padding:2px 9px;font-size:.9rem}
 #recordList:empty,#compareArea:empty,#choiceArea:empty{display:none}
+#clearMessage{min-height:1.65em}
 .actions{display:flex;flex-wrap:wrap;gap:10px}
 .actions button{flex:1 1 190px}
 [hidden]{display:none!important}
@@ -194,8 +195,8 @@ if (isB2Loopback(window.location.origin)) {
     if(session.clear().ok){
       render();
       clearMessage.textContent=hadSelection?
-        "比較と本人選択をすべて解除しました。":
-        "解除する比較・選択はありません。";
+        "比較と選択をすべて解除しました。":
+        "解除対象はありません。";
     }
   });
   fixture.addEventListener("change",load);
