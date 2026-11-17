@@ -32,6 +32,18 @@ jobs:
           test -n "$chrome"
           "$chrome" --version
           timeout 40s env CHROMIUM_BIN="$chrome" node gis/prototypes/f07-reference-route/test-browser.cjs
+      - name: Strict Playwright real HTTP, console and keyboard check
+        env:
+          NODE_OPTIONS: --unhandled-rejections=strict
+        shell: bash
+        run: |
+          set -euo pipefail
+          chrome="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$chrome"
+          mkdir -p "$RUNNER_TEMP/f07-browser-deps"
+          npm install --prefix "$RUNNER_TEMP/f07-browser-deps" --no-save --no-package-lock playwright@1.56.1
+          export NODE_PATH="$RUNNER_TEMP/f07-browser-deps/node_modules"
+          timeout 90s env CHROMIUM_BIN="$chrome" node qa/f07-real-http-strict.cjs
       - name: Print scope and publication safety constraints
         if: ${{ always() }}
         run: |
