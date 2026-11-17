@@ -1,0 +1,79 @@
+name: TEMP QA F07 real HTTP Chromium (do not merge)
+"on":
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - ".github/workflows/f07-http-qa-temporary.yml"
+permissions:
+  contents: read
+jobs:
+  f07-real-http:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify exact source and run Node offline tests
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          git status --short
+          node gis/prototypes/f07-reference-route/test-node.cjs
+      - name: Verify Chromium on actual localhost HTTP assets with untouched CSP
+        env:
+          NODE_OPTIONS: --unhandled-rejections=strict
+        run: |
+          set -euo pipefail
+          chrome="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$chrome"
+          "$chrome" --version
+          timeout 40s env CHROMIUM_BIN="$chrome" node gis/prototypes/f07-reference-route/test-browser.cjs
+      - name: Strict Playwright real HTTP, console and keyboard check
+        env:
+          NODE_OPTIONS: --unhandled-rejections=strict
+        shell: bash
+        run: |
+          set -euo pipefail
+          chrome="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$chrome"
+          mkdir -p "$RUNNER_TEMP/f07-browser-deps"
+          npm install --prefix "$RUNNER_TEMP/f07-browser-deps" --no-save --no-package-lock playwright@1.56.1
+          export NODE_PATH="$RUNNER_TEMP/f07-browser-deps/node_modules"
+          timeout 90s env CHROMIUM_BIN="$chrome" node qa/f07-real-http-strict.cjs
+      - name: Verify actual synthetic Render bundle excludes complete F07 prototype
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import tempfile, shutil
+          from pathlib import Path
+          from deploy.build_staging import build_bundle
+          from deploy.tests.test_build_staging import StagingBuildTests
+          source=Path("gis/prototypes/f07-reference-route").resolve()
+          assert source.is_dir() and len(list(source.iterdir()))==7
+          with tempfile.TemporaryDirectory() as tmp:
+              root=Path(tmp)
+              StagingBuildTests().make_repo(root)
+              copied=root/"gis/prototypes/f07-reference-route"
+              shutil.copytree(source,copied)
+              assert copied.exists()
+              output=build_bundle(root,root/"deploy/dist",run_pipeline=False,publish_official_gsi=False)
+              assert (output/"gis/gis/index.html").is_file()
+              assert not (output/"gis/prototypes").exists()
+              assert not any("f07-reference-route" in p.parts for p in output.rglob("*"))
+              print("F07_RENDER_BUNDLE_EXCLUSION_PASS: synthetic source present in root; absent from full generated staging distribution")
+          PY
+      - name: Print scope and publication safety constraints
+        if: ${{ always() }}
+        run: |
+          {
+            echo "### Temporary F07 safety QA"
+            echo "- Exact F07 JS/HTML/CSS from #408 branch with original CSP, local HTTP only."
+            echo "- No real locations, no GPS, no external provider, no deployment, no merge of this temporary PR."
+            echo "- Browser test checks selection, stale-route purge, NO-GO, widths, local-origin request allowlist."
+            echo "- Physical-device QA and Issue #358 publication HOLD remain unresolved."
+          } >> "$GITHUB_STEP_SUMMARY"
