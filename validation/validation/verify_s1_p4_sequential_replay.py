@@ -201,10 +201,16 @@ def replay(packet: dict) -> dict:
     fixture = build_fixture(packet["fixture"])
     if not fixture.fixture_id.startswith("synthetic:"):
         raise ReplayInputError("fixture must have an explicit fictional ID")
-    records = build_records(packet["records"], fixture)
-    if (not records or any(not r.record_id.startswith("synthetic:") or
-                           not r.fixture_id.startswith("synthetic:") for r in records)):
+    raw_records = packet["records"]
+    if (not isinstance(raw_records, list) or not raw_records or
+            any(not isinstance(r, dict) or
+                not isinstance(r.get("record_id"), str) or
+                not r["record_id"].startswith("synthetic:") or
+                not isinstance(r.get("fixture_id"), str) or
+                not r["fixture_id"].startswith("synthetic:")
+                for r in raw_records)):
         raise ReplayInputError("synthetic records only")
+    records = build_records(raw_records, fixture)
     scenarios = packet["scenarios"]
     if not isinstance(scenarios, list) or not scenarios:
         raise ReplayInputError("nonempty scenarios required")
