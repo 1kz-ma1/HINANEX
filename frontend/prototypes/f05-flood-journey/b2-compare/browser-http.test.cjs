@@ -197,7 +197,11 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
 
       // Two distinct records, unpromoted UNKNOWN, evidence trace and explicit choice.
       await evaluate("document.querySelectorAll('#recordList button')[0].click()");
+      assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,pressed:document.activeElement?.getAttribute('aria-pressed'),name:document.activeElement?.getAttribute('aria-label')})"),
+        {id:"fake-a",pressed:"true",name:"架空施設Aを比較から外す"}, "Focus and accessible action name after adding A");
       await evaluate("document.querySelectorAll('#recordList button')[1].click()");
+      assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,pressed:document.activeElement?.getAttribute('aria-pressed'),name:document.activeElement?.getAttribute('aria-label')})"),
+        {id:"fake-b",pressed:"true",name:"架空施設Bを比較から外す"}, "Focus stays on B after adding second record");
       assert.equal(await evaluate("document.querySelectorAll('#recordList button[aria-pressed=true]').length"), 2);
       assert.equal(await evaluate("document.querySelectorAll('#recordList button')[2].disabled"), true);
       assert.equal(await evaluate("document.querySelectorAll('#compareArea article').length"), 2);
@@ -205,6 +209,8 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
       assert.ok(await evaluate("document.querySelector('#compareArea').textContent.includes('fixture_row=2')"));
       assert.ok(await evaluate("document.querySelector('#compareArea').textContent.includes('安全性') && document.querySelector('#compareArea').textContent.includes('未認定')"));
       await evaluate("document.querySelectorAll('#choiceArea button')[1].click()");
+      assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,area:document.activeElement?.parentElement?.id,pressed:document.activeElement?.getAttribute('aria-pressed')})"),
+        {id:"fake-b",area:"choiceArea",pressed:"true"}, "Focus stays on chosen facility action after rerender");
       assert.ok(await evaluate("document.querySelector('#choiceMessage').textContent.includes('架空施設B')"));
       assert.equal(await evaluate("document.querySelectorAll('#choiceArea button[aria-pressed=true]').length"), 1);
 
@@ -255,6 +261,16 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
       await command("Input.dispatchKeyEvent", {type:"char",text:"\r",unmodifiedText:"\r",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
       await command("Input.dispatchKeyEvent", {type:"keyUp",key:"Enter",code:"Enter",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
       await until(evaluate, "document.querySelectorAll('#recordList button[aria-pressed=true]').length===1", "native Enter selection");
+      assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,pressed:document.activeElement?.getAttribute('aria-pressed')})"),
+        {id:"fake-a",pressed:"true"}, "Real Enter must retain focus after list buttons are recreated");
+      // A second real Enter on the same focused button deselects rather than
+      // losing keyboard focus to body or requiring a pointer click.
+      await command("Input.dispatchKeyEvent", {type:"rawKeyDown",key:"Enter",code:"Enter",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
+      await command("Input.dispatchKeyEvent", {type:"char",text:"\\r",unmodifiedText:"\\r",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
+      await command("Input.dispatchKeyEvent", {type:"keyUp",key:"Enter",code:"Enter",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
+      await until(evaluate, "document.querySelectorAll('#recordList button[aria-pressed=true]').length===0", "native Enter deselection");
+      assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,pressed:document.activeElement?.getAttribute('aria-pressed'),name:document.activeElement?.getAttribute('aria-label')})"),
+        {id:"fake-a",pressed:"false",name:"架空施設Aを比較に追加"}, "Repeated real Enter must retain focus and update accessible label");
 
       // No outbound data, storage or runtime exceptions.
       assert.equal(await evaluate("localStorage.length+sessionStorage.length"), 0);
