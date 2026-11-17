@@ -1,0 +1,2198 @@
+{
+  "schema_id": "hinanex.c.s1_p4_sequential_replay.v0.1",
+  "synthetic_only": true,
+  "fixture": {
+    "fixture_id": "synthetic:p4-c-fixture",
+    "region_code": "13123",
+    "hazard": "flood",
+    "observed_at": "2026-11-13T00:00:00Z",
+    "expires_at": "2026-11-13T00:30:00Z",
+    "source_authorization": "SYNTHETIC_TEST_ONLY"
+  },
+  "records": [
+    {
+      "record_id": "synthetic:a",
+      "fixture_id": "synthetic:p4-c-fixture",
+      "region_code": "13123",
+      "hazard": "flood",
+      "observed_at": "2026-11-13T00:00:00Z",
+      "expires_at": "2026-11-13T00:30:00Z",
+      "conditions": {
+        "pet_support": true,
+        "step_free": true
+      }
+    },
+    {
+      "record_id": "synthetic:b",
+      "fixture_id": "synthetic:p4-c-fixture",
+      "region_code": "13123",
+      "hazard": "flood",
+      "observed_at": "2026-11-13T00:00:00Z",
+      "expires_at": "2026-11-13T00:30:00Z",
+      "conditions": {
+        "pet_support": true,
+        "step_free": false
+      }
+    },
+    {
+      "record_id": "synthetic:c",
+      "fixture_id": "synthetic:p4-c-fixture",
+      "region_code": "13123",
+      "hazard": "flood",
+      "observed_at": "2026-11-13T00:00:00Z",
+      "expires_at": "2026-11-13T00:30:00Z",
+      "conditions": {
+        "pet_support": false,
+        "step_free": true
+      }
+    },
+    {
+      "record_id": "synthetic:d",
+      "fixture_id": "synthetic:p4-c-fixture",
+      "region_code": "13123",
+      "hazard": "flood",
+      "observed_at": "2026-11-13T00:00:00Z",
+      "expires_at": "2026-11-13T00:30:00Z",
+      "conditions": {
+        "pet_support": null,
+        "step_free": true
+      }
+    },
+    {
+      "record_id": "synthetic:e",
+      "fixture_id": "synthetic:p4-c-fixture",
+      "region_code": "13123",
+      "hazard": "flood",
+      "observed_at": "2026-11-13T00:00:00Z",
+      "expires_at": "2026-11-13T00:30:00Z",
+      "conditions": {
+        "pet_support": false,
+        "step_free": null
+      }
+    },
+    {
+      "record_id": "synthetic:foreign",
+      "fixture_id": "synthetic:other-fixture",
+      "region_code": "13123",
+      "hazard": "flood",
+      "observed_at": "2026-11-13T00:00:00Z",
+      "expires_at": "2026-11-13T00:30:00Z",
+      "conditions": {
+        "pet_support": true,
+        "step_free": true
+      }
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "synthetic:normal-change-review-stop",
+      "steps": [
+        {
+          "at": "2026-11-13T00:00:00Z",
+          "intent": "START",
+          "expected_generation": 0,
+          "expected_revision": 0,
+          "explicit_user_action": true,
+          "conditions": [
+            "pet_support"
+          ],
+          "selected_record_id": null,
+          "region_code": "13123",
+          "fixture": "primary",
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "SYNTHETIC_DRILL_STARTED",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 1,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "pet_support"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": null,
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [
+              "synthetic:d",
+              "synthetic:foreign"
+            ],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": null,
+          "expected_generation": null,
+          "expected_revision": null,
+          "explicit_user_action": false,
+          "conditions": [],
+          "selected_record_id": null,
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": null,
+            "transition_reason": null,
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 1,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "pet_support"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": null,
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [
+              "synthetic:d",
+              "synthetic:foreign"
+            ],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "REVIEW",
+          "expected_generation": 1,
+          "expected_revision": 1,
+          "explicit_user_action": true,
+          "conditions": [],
+          "selected_record_id": "synthetic:a",
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "EXPLICIT_FICTIONAL_REVIEW_SELECTION",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 2,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "pet_support"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": "synthetic:a",
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [
+              "synthetic:d",
+              "synthetic:foreign"
+            ],
+            "review_id": "synthetic:a",
+            "review_classification": "MATCHED_SYNTHETIC",
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "SET_CONDITIONS",
+          "expected_generation": 1,
+          "expected_revision": 2,
+          "explicit_user_action": true,
+          "conditions": [
+            "step_free"
+          ],
+          "selected_record_id": null,
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "SYNTHETIC_CONDITIONS_CHANGED_SELECTION_CLEARED",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 3,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "step_free"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": null,
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "UNKNOWN"
+            ],
+            "new_ids": [
+              "synthetic:c",
+              "synthetic:d"
+            ],
+            "removed_ids": [
+              "synthetic:b"
+            ],
+            "unknown_ids": [
+              "synthetic:e",
+              "synthetic:foreign"
+            ],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": null,
+          "expected_generation": null,
+          "expected_revision": null,
+          "explicit_user_action": false,
+          "conditions": [],
+          "selected_record_id": null,
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": null,
+            "transition_reason": null,
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 3,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "step_free"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": null,
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "UNKNOWN"
+            ],
+            "new_ids": [
+              "synthetic:c",
+              "synthetic:d"
+            ],
+            "removed_ids": [
+              "synthetic:b"
+            ],
+            "unknown_ids": [
+              "synthetic:e",
+              "synthetic:foreign"
+            ],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "REVIEW",
+          "expected_generation": 1,
+          "expected_revision": 3,
+          "explicit_user_action": true,
+          "conditions": [],
+          "selected_record_id": "synthetic:e",
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "EXPLICIT_FICTIONAL_REVIEW_SELECTION",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 4,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "step_free"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": "synthetic:e",
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "UNKNOWN"
+            ],
+            "new_ids": [
+              "synthetic:c",
+              "synthetic:d"
+            ],
+            "removed_ids": [
+              "synthetic:b"
+            ],
+            "unknown_ids": [
+              "synthetic:e",
+              "synthetic:foreign"
+            ],
+            "review_id": "synthetic:e",
+            "review_classification": "UNKNOWN",
+            "review_missing": [
+              "step_free"
+            ],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "CLEAR_REVIEW",
+          "expected_generation": 1,
+          "expected_revision": 4,
+          "explicit_user_action": false,
+          "conditions": [],
+          "selected_record_id": null,
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "SYNTHETIC_REVIEW_CLEARED",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 5,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "step_free"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": null,
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "UNKNOWN"
+            ],
+            "new_ids": [
+              "synthetic:c",
+              "synthetic:d"
+            ],
+            "removed_ids": [
+              "synthetic:b"
+            ],
+            "unknown_ids": [
+              "synthetic:e",
+              "synthetic:foreign"
+            ],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "REVIEW",
+          "expected_generation": 1,
+          "expected_revision": 5,
+          "explicit_user_action": true,
+          "conditions": [],
+          "selected_record_id": "synthetic:foreign",
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "BLOCKED",
+            "transition_reason": "RECORD_OUTSIDE_VALID_SYNTHETIC_SCOPE",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 6,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "step_free"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": null,
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "UNKNOWN"
+            ],
+            "new_ids": [
+              "synthetic:c",
+              "synthetic:d"
+            ],
+            "removed_ids": [
+              "synthetic:b"
+            ],
+            "unknown_ids": [
+              "synthetic:e",
+              "synthetic:foreign"
+            ],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "REVIEW",
+          "expected_generation": 1,
+          "expected_revision": 6,
+          "explicit_user_action": true,
+          "conditions": [],
+          "selected_record_id": "synthetic:c",
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "EXPLICIT_FICTIONAL_REVIEW_SELECTION",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 7,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "step_free"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": "synthetic:c",
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "UNKNOWN"
+            ],
+            "new_ids": [
+              "synthetic:c",
+              "synthetic:d"
+            ],
+            "removed_ids": [
+              "synthetic:b"
+            ],
+            "unknown_ids": [
+              "synthetic:e",
+              "synthetic:foreign"
+            ],
+            "review_id": "synthetic:c",
+            "review_classification": "MATCHED_SYNTHETIC",
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "STOP",
+          "expected_generation": 1,
+          "expected_revision": 7,
+          "explicit_user_action": false,
+          "conditions": [],
+          "selected_record_id": null,
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "SYNTHETIC_CONTEXT_CLEARED",
+            "mode": "NORMAL",
+            "view_mode": "NORMAL",
+            "generation": 2,
+            "revision": 8,
+            "region": "13123",
+            "fixture_id": null,
+            "conditions": [],
+            "previous_conditions": [],
+            "selected_id": null,
+            "projection": "BLOCKED",
+            "projection_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+            "before_statuses": [],
+            "after_statuses": [],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": null,
+          "expected_generation": null,
+          "expected_revision": null,
+          "explicit_user_action": false,
+          "conditions": [],
+          "selected_record_id": null,
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": null,
+            "transition_reason": null,
+            "mode": "NORMAL",
+            "view_mode": "NORMAL",
+            "generation": 2,
+            "revision": 8,
+            "region": "13123",
+            "fixture_id": null,
+            "conditions": [],
+            "previous_conditions": [],
+            "selected_id": null,
+            "projection": "BLOCKED",
+            "projection_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+            "before_statuses": [],
+            "after_statuses": [],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        }
+      ]
+    },
+    {
+      "scenario_id": "synthetic:stale-interaction-region-restart",
+      "steps": [
+        {
+          "at": "2026-11-13T00:00:00Z",
+          "intent": "START",
+          "expected_generation": 0,
+          "expected_revision": 0,
+          "explicit_user_action": true,
+          "conditions": [
+            "pet_support"
+          ],
+          "selected_record_id": null,
+          "region_code": "13123",
+          "fixture": "primary",
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "SYNTHETIC_DRILL_STARTED",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 1,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "pet_support"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": null,
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [
+              "synthetic:d",
+              "synthetic:foreign"
+            ],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "SET_CONDITIONS",
+          "expected_generation": 1,
+          "expected_revision": 1,
+          "explicit_user_action": true,
+          "conditions": [
+            "step_free"
+          ],
+          "selected_record_id": null,
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "SYNTHETIC_CONDITIONS_CHANGED_SELECTION_CLEARED",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 2,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "step_free"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": null,
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "UNKNOWN"
+            ],
+            "new_ids": [
+              "synthetic:c",
+              "synthetic:d"
+            ],
+            "removed_ids": [
+              "synthetic:b"
+            ],
+            "unknown_ids": [
+              "synthetic:e",
+              "synthetic:foreign"
+            ],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "REVIEW",
+          "expected_generation": 1,
+          "expected_revision": 1,
+          "explicit_user_action": true,
+          "conditions": [],
+          "selected_record_id": "synthetic:a",
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "BLOCKED",
+            "transition_reason": "STALE_WALKTHROUGH_ACTION",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 2,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "step_free"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": null,
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "UNKNOWN"
+            ],
+            "new_ids": [
+              "synthetic:c",
+              "synthetic:d"
+            ],
+            "removed_ids": [
+              "synthetic:b"
+            ],
+            "unknown_ids": [
+              "synthetic:e",
+              "synthetic:foreign"
+            ],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "REVIEW",
+          "expected_generation": 1,
+          "expected_revision": 2,
+          "explicit_user_action": true,
+          "conditions": [],
+          "selected_record_id": "synthetic:e",
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "EXPLICIT_FICTIONAL_REVIEW_SELECTION",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 3,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "step_free"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": "synthetic:e",
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "UNKNOWN"
+            ],
+            "new_ids": [
+              "synthetic:c",
+              "synthetic:d"
+            ],
+            "removed_ids": [
+              "synthetic:b"
+            ],
+            "unknown_ids": [
+              "synthetic:e",
+              "synthetic:foreign"
+            ],
+            "review_id": "synthetic:e",
+            "review_classification": "UNKNOWN",
+            "review_missing": [
+              "step_free"
+            ],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "SET_CONDITIONS",
+          "expected_generation": 1,
+          "expected_revision": 2,
+          "explicit_user_action": true,
+          "conditions": [
+            "pet_support"
+          ],
+          "selected_record_id": null,
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "BLOCKED",
+            "transition_reason": "STALE_WALKTHROUGH_ACTION",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 3,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "step_free"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": "synthetic:e",
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "UNKNOWN"
+            ],
+            "new_ids": [
+              "synthetic:c",
+              "synthetic:d"
+            ],
+            "removed_ids": [
+              "synthetic:b"
+            ],
+            "unknown_ids": [
+              "synthetic:e",
+              "synthetic:foreign"
+            ],
+            "review_id": "synthetic:e",
+            "review_classification": "UNKNOWN",
+            "review_missing": [
+              "step_free"
+            ],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": null,
+          "expected_generation": null,
+          "expected_revision": null,
+          "explicit_user_action": false,
+          "conditions": [],
+          "selected_record_id": null,
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": null,
+            "transition_reason": null,
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 3,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "step_free"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": "synthetic:e",
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "UNKNOWN"
+            ],
+            "new_ids": [
+              "synthetic:c",
+              "synthetic:d"
+            ],
+            "removed_ids": [
+              "synthetic:b"
+            ],
+            "unknown_ids": [
+              "synthetic:e",
+              "synthetic:foreign"
+            ],
+            "review_id": "synthetic:e",
+            "review_classification": "UNKNOWN",
+            "review_missing": [
+              "step_free"
+            ],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "SELECT_REGION",
+          "expected_generation": 1,
+          "expected_revision": 3,
+          "explicit_user_action": true,
+          "conditions": [],
+          "selected_record_id": null,
+          "region_code": "15100",
+          "fixture": null,
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "SYNTHETIC_CONTEXT_CLEARED",
+            "mode": "NORMAL",
+            "view_mode": "NORMAL",
+            "generation": 2,
+            "revision": 4,
+            "region": "15100",
+            "fixture_id": null,
+            "conditions": [],
+            "previous_conditions": [],
+            "selected_id": null,
+            "projection": "BLOCKED",
+            "projection_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+            "before_statuses": [],
+            "after_statuses": [],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "REVIEW",
+          "expected_generation": 1,
+          "expected_revision": 3,
+          "explicit_user_action": true,
+          "conditions": [],
+          "selected_record_id": "synthetic:e",
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "BLOCKED",
+            "transition_reason": "STALE_WALKTHROUGH_ACTION",
+            "mode": "NORMAL",
+            "view_mode": "NORMAL",
+            "generation": 2,
+            "revision": 4,
+            "region": "15100",
+            "fixture_id": null,
+            "conditions": [],
+            "previous_conditions": [],
+            "selected_id": null,
+            "projection": "BLOCKED",
+            "projection_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+            "before_statuses": [],
+            "after_statuses": [],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "START",
+          "expected_generation": 2,
+          "expected_revision": 4,
+          "explicit_user_action": true,
+          "conditions": [
+            "pet_support"
+          ],
+          "selected_record_id": null,
+          "region_code": "13123",
+          "fixture": "primary",
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "SYNTHETIC_DRILL_STARTED",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 3,
+            "revision": 5,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "pet_support"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": null,
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [
+              "synthetic:d",
+              "synthetic:foreign"
+            ],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        }
+      ]
+    },
+    {
+      "scenario_id": "synthetic:expiry-without-tick",
+      "steps": [
+        {
+          "at": "2026-11-13T00:00:00Z",
+          "intent": "START",
+          "expected_generation": 0,
+          "expected_revision": 0,
+          "explicit_user_action": true,
+          "conditions": [
+            "pet_support"
+          ],
+          "selected_record_id": null,
+          "region_code": "13123",
+          "fixture": "primary",
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "SYNTHETIC_DRILL_STARTED",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 1,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "pet_support"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": null,
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [
+              "synthetic:d",
+              "synthetic:foreign"
+            ],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "REVIEW",
+          "expected_generation": 1,
+          "expected_revision": 1,
+          "explicit_user_action": true,
+          "conditions": [],
+          "selected_record_id": "synthetic:a",
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "EXPLICIT_FICTIONAL_REVIEW_SELECTION",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 2,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "pet_support"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": "synthetic:a",
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [
+              "synthetic:d",
+              "synthetic:foreign"
+            ],
+            "review_id": "synthetic:a",
+            "review_classification": "MATCHED_SYNTHETIC",
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:29:59.999999Z",
+          "intent": null,
+          "expected_generation": null,
+          "expected_revision": null,
+          "explicit_user_action": false,
+          "conditions": [],
+          "selected_record_id": null,
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": null,
+            "transition_reason": null,
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 2,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "pet_support"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": "synthetic:a",
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [
+              "synthetic:d",
+              "synthetic:foreign"
+            ],
+            "review_id": "synthetic:a",
+            "review_classification": "MATCHED_SYNTHETIC",
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:30:00Z",
+          "intent": null,
+          "expected_generation": null,
+          "expected_revision": null,
+          "explicit_user_action": false,
+          "conditions": [],
+          "selected_record_id": null,
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": null,
+            "transition_reason": null,
+            "mode": "DRILL",
+            "view_mode": "NORMAL",
+            "generation": 1,
+            "revision": 2,
+            "region": "13123",
+            "fixture_id": null,
+            "conditions": [
+              "pet_support"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": "synthetic:a",
+            "projection": "BLOCKED",
+            "projection_reason": "DRILL_EXPIRED_OR_NOT_YET_VALID",
+            "before_statuses": [],
+            "after_statuses": [],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:30:00Z",
+          "intent": "REVIEW",
+          "expected_generation": 1,
+          "expected_revision": 2,
+          "explicit_user_action": true,
+          "conditions": [],
+          "selected_record_id": "synthetic:a",
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "BLOCKED",
+            "transition_reason": "STALE_WALKTHROUGH_ACTION",
+            "mode": "NORMAL",
+            "view_mode": "NORMAL",
+            "generation": 2,
+            "revision": 3,
+            "region": "13123",
+            "fixture_id": null,
+            "conditions": [],
+            "previous_conditions": [],
+            "selected_id": null,
+            "projection": "BLOCKED",
+            "projection_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+            "before_statuses": [],
+            "after_statuses": [],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:30:00Z",
+          "intent": "START",
+          "expected_generation": 2,
+          "expected_revision": 3,
+          "explicit_user_action": true,
+          "conditions": [
+            "pet_support"
+          ],
+          "selected_record_id": null,
+          "region_code": "13123",
+          "fixture": "primary",
+          "expect": {
+            "transition": "BLOCKED",
+            "transition_reason": "DRILL_INPUT_INVALID_OR_EXPIRED",
+            "mode": "NORMAL",
+            "view_mode": "NORMAL",
+            "generation": 3,
+            "revision": 4,
+            "region": "13123",
+            "fixture_id": null,
+            "conditions": [],
+            "previous_conditions": [],
+            "selected_id": null,
+            "projection": "BLOCKED",
+            "projection_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+            "before_statuses": [],
+            "after_statuses": [],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:30:00Z",
+          "intent": "START",
+          "expected_generation": 1,
+          "expected_revision": 0,
+          "explicit_user_action": true,
+          "conditions": [
+            "pet_support"
+          ],
+          "selected_record_id": null,
+          "region_code": "13123",
+          "fixture": "primary",
+          "expect": {
+            "transition": "BLOCKED",
+            "transition_reason": "STALE_WALKTHROUGH_ACTION",
+            "mode": "NORMAL",
+            "view_mode": "NORMAL",
+            "generation": 3,
+            "revision": 4,
+            "region": "13123",
+            "fixture_id": null,
+            "conditions": [],
+            "previous_conditions": [],
+            "selected_id": null,
+            "projection": "BLOCKED",
+            "projection_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+            "before_statuses": [],
+            "after_statuses": [],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        }
+      ]
+    },
+    {
+      "scenario_id": "synthetic:source-failure-reset",
+      "steps": [
+        {
+          "at": "2026-11-13T00:00:00Z",
+          "intent": "START",
+          "expected_generation": 0,
+          "expected_revision": 0,
+          "explicit_user_action": true,
+          "conditions": [
+            "pet_support"
+          ],
+          "selected_record_id": null,
+          "region_code": "13123",
+          "fixture": "primary",
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "SYNTHETIC_DRILL_STARTED",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 1,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "pet_support"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": null,
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [
+              "synthetic:d",
+              "synthetic:foreign"
+            ],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "REVIEW",
+          "expected_generation": 1,
+          "expected_revision": 1,
+          "explicit_user_action": true,
+          "conditions": [],
+          "selected_record_id": "synthetic:a",
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "EXPLICIT_FICTIONAL_REVIEW_SELECTION",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 2,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "pet_support"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": "synthetic:a",
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [
+              "synthetic:d",
+              "synthetic:foreign"
+            ],
+            "review_id": "synthetic:a",
+            "review_classification": "MATCHED_SYNTHETIC",
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "SOURCE_FAILED",
+          "expected_generation": 1,
+          "expected_revision": 2,
+          "explicit_user_action": false,
+          "conditions": [],
+          "selected_record_id": null,
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "SYNTHETIC_CONTEXT_CLEARED",
+            "mode": "NORMAL",
+            "view_mode": "NORMAL",
+            "generation": 2,
+            "revision": 3,
+            "region": "13123",
+            "fixture_id": null,
+            "conditions": [],
+            "previous_conditions": [],
+            "selected_id": null,
+            "projection": "BLOCKED",
+            "projection_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+            "before_statuses": [],
+            "after_statuses": [],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": null,
+          "expected_generation": null,
+          "expected_revision": null,
+          "explicit_user_action": false,
+          "conditions": [],
+          "selected_record_id": null,
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": null,
+            "transition_reason": null,
+            "mode": "NORMAL",
+            "view_mode": "NORMAL",
+            "generation": 2,
+            "revision": 3,
+            "region": "13123",
+            "fixture_id": null,
+            "conditions": [],
+            "previous_conditions": [],
+            "selected_id": null,
+            "projection": "BLOCKED",
+            "projection_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+            "before_statuses": [],
+            "after_statuses": [],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "START",
+          "expected_generation": 2,
+          "expected_revision": 3,
+          "explicit_user_action": true,
+          "conditions": [
+            "step_free"
+          ],
+          "selected_record_id": null,
+          "region_code": "13123",
+          "fixture": "primary",
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "SYNTHETIC_DRILL_STARTED",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 3,
+            "revision": 4,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "step_free"
+            ],
+            "previous_conditions": [
+              "step_free"
+            ],
+            "selected_id": null,
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "UNKNOWN"
+            ],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [
+              "synthetic:e",
+              "synthetic:foreign"
+            ],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "RESET",
+          "expected_generation": 3,
+          "expected_revision": 4,
+          "explicit_user_action": false,
+          "conditions": [],
+          "selected_record_id": null,
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "SYNTHETIC_CONTEXT_CLEARED",
+            "mode": "NORMAL",
+            "view_mode": "NORMAL",
+            "generation": 4,
+            "revision": 5,
+            "region": null,
+            "fixture_id": null,
+            "conditions": [],
+            "previous_conditions": [],
+            "selected_id": null,
+            "projection": "BLOCKED",
+            "projection_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+            "before_statuses": [],
+            "after_statuses": [],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": null,
+          "expected_generation": null,
+          "expected_revision": null,
+          "explicit_user_action": false,
+          "conditions": [],
+          "selected_record_id": null,
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": null,
+            "transition_reason": null,
+            "mode": "NORMAL",
+            "view_mode": "NORMAL",
+            "generation": 4,
+            "revision": 5,
+            "region": null,
+            "fixture_id": null,
+            "conditions": [],
+            "previous_conditions": [],
+            "selected_id": null,
+            "projection": "BLOCKED",
+            "projection_reason": "ACTIVE_SYNTHETIC_DRILL_REQUIRED",
+            "before_statuses": [],
+            "after_statuses": [],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        }
+      ]
+    },
+    {
+      "scenario_id": "synthetic:invalid-review-and-nonmatch",
+      "steps": [
+        {
+          "at": "2026-11-13T00:00:00Z",
+          "intent": "START",
+          "expected_generation": 0,
+          "expected_revision": 0,
+          "explicit_user_action": true,
+          "conditions": [
+            "pet_support"
+          ],
+          "selected_record_id": null,
+          "region_code": "13123",
+          "fixture": "primary",
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "SYNTHETIC_DRILL_STARTED",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 1,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "pet_support"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": null,
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [
+              "synthetic:d",
+              "synthetic:foreign"
+            ],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "REVIEW",
+          "expected_generation": 1,
+          "expected_revision": 1,
+          "explicit_user_action": true,
+          "conditions": [],
+          "selected_record_id": "synthetic:missing",
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "BLOCKED",
+            "transition_reason": "RECORD_NOT_IN_CURRENT_COMPARISON",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 2,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "pet_support"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": null,
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [
+              "synthetic:d",
+              "synthetic:foreign"
+            ],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "REVIEW",
+          "expected_generation": 1,
+          "expected_revision": 2,
+          "explicit_user_action": true,
+          "conditions": [],
+          "selected_record_id": "synthetic:c",
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "EXPLICIT_FICTIONAL_REVIEW_SELECTION",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 3,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "pet_support"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": "synthetic:c",
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [
+              "synthetic:d",
+              "synthetic:foreign"
+            ],
+            "review_id": "synthetic:c",
+            "review_classification": "NOT_MATCHED_SYNTHETIC",
+            "review_missing": [],
+            "review_failed": [
+              "pet_support"
+            ]
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "SET_CONDITIONS",
+          "expected_generation": 1,
+          "expected_revision": 3,
+          "explicit_user_action": true,
+          "conditions": [
+            "pet_support"
+          ],
+          "selected_record_id": null,
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "SYNTHETIC_CONDITIONS_CHANGED_SELECTION_CLEARED",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 4,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "pet_support"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": null,
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [
+              "synthetic:d",
+              "synthetic:foreign"
+            ],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "REVIEW",
+          "expected_generation": 1,
+          "expected_revision": 4,
+          "explicit_user_action": true,
+          "conditions": [],
+          "selected_record_id": "synthetic:c",
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "EXPLICIT_FICTIONAL_REVIEW_SELECTION",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 5,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "pet_support"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": "synthetic:c",
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [
+              "synthetic:d",
+              "synthetic:foreign"
+            ],
+            "review_id": "synthetic:c",
+            "review_classification": "NOT_MATCHED_SYNTHETIC",
+            "review_missing": [],
+            "review_failed": [
+              "pet_support"
+            ]
+          }
+        },
+        {
+          "at": "2026-11-13T00:05:00Z",
+          "intent": "CLEAR_REVIEW",
+          "expected_generation": 1,
+          "expected_revision": 5,
+          "explicit_user_action": false,
+          "conditions": [],
+          "selected_record_id": null,
+          "region_code": null,
+          "fixture": null,
+          "expect": {
+            "transition": "APPLIED_SYNTHETIC_ONLY",
+            "transition_reason": "SYNTHETIC_REVIEW_CLEARED",
+            "mode": "DRILL",
+            "view_mode": "DRILL",
+            "generation": 1,
+            "revision": 6,
+            "region": "13123",
+            "fixture_id": "synthetic:p4-c-fixture",
+            "conditions": [
+              "pet_support"
+            ],
+            "previous_conditions": [
+              "pet_support"
+            ],
+            "selected_id": null,
+            "projection": "EVALUATED_SYNTHETIC_ONLY",
+            "projection_reason": "INTERNAL_SYNTHETIC_WALKTHROUGH",
+            "before_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "after_statuses": [
+              "MATCHED_SYNTHETIC",
+              "MATCHED_SYNTHETIC",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN",
+              "NOT_MATCHED_SYNTHETIC",
+              "UNKNOWN"
+            ],
+            "new_ids": [],
+            "removed_ids": [],
+            "unknown_ids": [
+              "synthetic:d",
+              "synthetic:foreign"
+            ],
+            "review_id": null,
+            "review_classification": null,
+            "review_missing": [],
+            "review_failed": []
+          }
+        }
+      ]
+    }
+  ]
+}
