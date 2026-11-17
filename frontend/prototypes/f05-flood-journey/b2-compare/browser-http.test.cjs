@@ -214,6 +214,29 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
       assert.ok(await evaluate("document.querySelector('#choiceMessage').textContent.includes('架空施設B')"));
       assert.equal(await evaluate("document.querySelectorAll('#choiceArea button[aria-pressed=true]').length"), 1);
 
+      // Explicit clear is a user-facing, reversible operation; it never
+      // changes the source fixture, query, filter, or interpretation of UNKNOWN.
+      await evaluate("(()=>{const b=document.querySelector('#clearSelection');b.focus();b.click()})()");
+      assert.equal(await evaluate("document.activeElement?.id"),"clearSelection",
+        "Clear control must retain keyboard focus after list rerender");
+      assert.equal(await evaluate("document.querySelectorAll('#recordList button[aria-pressed=true]').length"),0);
+      assert.equal(await evaluate("document.querySelectorAll('#compareArea article').length"),0);
+      assert.equal(await evaluate("document.querySelector('#choiceArea').childElementCount"),0);
+      assert.ok(await evaluate("document.querySelector('#choiceMessage').textContent.includes('なし')"));
+      assert.ok(await evaluate("document.querySelector('#clearMessage').textContent.includes('すべて解除しました')"));
+      assert.equal(await evaluate("document.querySelector('#filter').value"),"ALL");
+      assert.ok(await evaluate("document.querySelector('#recordList').textContent.includes('UNKNOWN')"));
+      await evaluate("document.querySelector('#clearSelection').click()");
+      assert.ok(await evaluate("document.querySelector('#clearMessage').textContent.includes('ありません')"),
+        "Repeated clear is safe and does not revive a stale choice");
+      assert.equal(await evaluate("document.querySelectorAll('#recordList button[aria-pressed=true]').length"),0);
+      await evaluate("document.querySelectorAll('#recordList button')[0].click()");
+      await evaluate("document.querySelectorAll('#recordList button')[1].click()");
+      await evaluate("document.querySelectorAll('#choiceArea button')[1].click()");
+      assert.ok(await evaluate("document.querySelector('#choiceMessage').textContent.includes('架空施設B')"));
+      assert.equal(await evaluate("document.querySelector('#clearMessage').textContent"),"",
+        "New manual action clears the previous clear notification");
+
       // Changing filter, search, or fixture must erase prior personal selection.
       await evaluate("(()=>{const x=document.querySelector('#filter');x.value='UNKNOWN';x.dispatchEvent(new Event('change',{bubbles:true}))})()");
       assert.equal(await evaluate("document.querySelectorAll('#recordList button').length"), 1);
@@ -238,6 +261,13 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
       }
       await evaluate("(()=>{const x=document.querySelector('#fixture');x.value='ready';x.dispatchEvent(new Event('change',{bubbles:true}))})()");
       assert.equal(await evaluate("document.querySelectorAll('#recordList button[aria-pressed=true]').length"), 0);
+      // One partially-selected item can also be cleared without losing input
+      // criteria. Disabled clear in invalid/empty scenarios stays fail-closed.
+      await evaluate("document.querySelectorAll('#recordList button')[0].click()");
+      assert.equal(await evaluate("document.querySelectorAll('#recordList button[aria-pressed=true]').length"),1);
+      await evaluate("document.querySelector('#clearSelection').click()");
+      assert.equal(await evaluate("document.querySelectorAll('#recordList button[aria-pressed=true]').length"),0);
+      assert.ok(await evaluate("document.querySelector('#clearMessage').textContent.includes('すべて解除')"));
 
       // Emulated viewport ≠ physical device acceptance.
       for (const [width,height] of [[320,700],[390,844],[1440,900]]) {
