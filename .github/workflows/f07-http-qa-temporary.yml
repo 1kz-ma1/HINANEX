@@ -44,6 +44,29 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/f07-browser-deps" --no-save --no-package-lock playwright@1.56.1
           export NODE_PATH="$RUNNER_TEMP/f07-browser-deps/node_modules"
           timeout 90s env CHROMIUM_BIN="$chrome" node qa/f07-real-http-strict.cjs
+      - name: Verify actual synthetic Render bundle excludes complete F07 prototype
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import tempfile, shutil
+          from pathlib import Path
+          from deploy.build_staging import build_bundle
+          from deploy.tests.test_build_staging import StagingBuildTests
+          source=Path("gis/prototypes/f07-reference-route").resolve()
+          assert source.is_dir() and len(list(source.iterdir()))==7
+          with tempfile.TemporaryDirectory() as tmp:
+              root=Path(tmp)
+              StagingBuildTests().make_repo(root)
+              copied=root/"gis/prototypes/f07-reference-route"
+              shutil.copytree(source,copied)
+              assert copied.exists()
+              output=build_bundle(root,root/"deploy/dist",run_pipeline=False,publish_official_gsi=False)
+              assert (output/"gis/gis/index.html").is_file()
+              assert not (output/"gis/prototypes").exists()
+              assert not any("f07-reference-route" in p.parts for p in output.rglob("*"))
+              print("F07_RENDER_BUNDLE_EXCLUSION_PASS: synthetic source present in root; absent from full generated staging distribution")
+          PY
       - name: Print scope and publication safety constraints
         if: ${{ always() }}
         run: |
