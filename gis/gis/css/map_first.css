@@ -592,7 +592,7 @@ footer{display:none}
 .hazard-guide-legend{margin:10px 0;border-top:1px solid var(--line-strong);padding-top:9px}
 .hazard-guide-legend summary{cursor:pointer;font-size:12px;font-weight:750;min-height:44px}
 .hazard-guide-legend ul{margin:4px 0 0;padding-left:20px;columns:2;font-size:11px;line-height:1.8}
-.hazard-guide-panel :is(select,input,summary):focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+.hazard-guide-panel :is(select,input,summary,a,button):focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
 @media(max-width:680px){
   .hazard-guide-panel{left:8px;right:8px;bottom:70px;width:calc(100% - 16px);
     max-height:min(69%,510px)}
@@ -604,10 +604,14 @@ footer{display:none}
 .hazard-guide-scope{margin:14px 0;padding:10px 12px;border:1px solid var(--line-strong);
   border-radius:10px;background:var(--surface-raised)}
 .hazard-guide-scope>div{display:grid;grid-template-columns:minmax(85px,33%) minmax(0,1fr);
-  gap:8px;padding:8px 0;border-bottom:1px solid var(--line-strong);font-size:11px;line-height:1.65}
+  gap:8px;padding:8px 0;border-bottom:1px solid var(--line-strong);font-size:12px;line-height:1.65}
 .hazard-guide-scope>div:last-child{border:0}
 .hazard-guide-scope dt{font-weight:700;color:var(--muted)}
 .hazard-guide-scope dd{margin:0;overflow-wrap:anywhere}
+@media(max-width:350px){
+  .hazard-guide-scope>div{grid-template-columns:minmax(0,1fr);gap:2px}
+  .hazard-guide-scope dt{font-size:12px}
+}
 
 /* F06: region-scoped links to official publishers, not live alert state. */
 .official-alerts-panel{left:14px;right:auto;width:min(380px,calc(100% - 28px))}
