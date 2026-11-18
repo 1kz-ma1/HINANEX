@@ -69,6 +69,8 @@ node --check app.js
 
 ## 2026-11-11 HTTPブラウザ回帰（受領後の追加検証）
 
+2026-11-18 / Issue #443: Chrome起動時のDevToolsActivePort読取は、F02 Consumerと同じ`frontend/tests/helpers/chrome-active-port.cjs`を使用する。Windowsの一時ロック/未完成内容だけを従来300回×100ms上限内で再試行し、恒久障害・予期しないI/Oエラー・Chrome終了はFAILのまま。HTTP回帰の単体実行にもこのhelperを含むリポジトリcheckoutが必要（画面の直接表示には不要）。UI/model/fixture/既存assert/cleanup/skip条件は変えない。故障注入テストは`frontend/tests/chrome-active-port.test.cjs`、物理端末QAは別扱い。
+
 F02の独立試作は`tests/f02-http-browser.test.cjs`から、Chrome/Chromiumを実際に起動し、Node標準`http`で配信した**独立HTML/CSS/JSファイルをHTTP経由で読み込む**E2Eテストを追加した。従来の`page.set_content`のモック検証とは異なる。
 
 - GitHub Actions のrequired `test`にある`B Frontend tests`（`frontend/npm test`）で自動実行。実ブラウザが見つからないCIやURL遷移が遮断されたCIは**失敗扱い**とする。
