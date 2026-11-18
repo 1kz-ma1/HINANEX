@@ -66,7 +66,13 @@ const document = {
   addEventListener(type, fn) { (this.events[type] ||= []).push(fn); },
   emit(type, event) { for (const fn of this.events[type] || []) fn(event); }
 };
-const ctx = {document, Event, console};
+let fireMutation;
+const ctx = {document, Event, console,
+  MutationObserver: class {
+    constructor(fn) { fireMutation = fn; }
+    observe() {}
+  }
+};
 vm.createContext(ctx);
 vm.runInContext(script, ctx, {filename: "hazard_information.js"});
 
@@ -124,6 +130,21 @@ nodes.region.value = "13123";
 nodes.region.dispatchEvent({type:"change"});
 assert.match(nodes.hazardGuideStatus.textContent, /地域切替後/);
 assert.doesNotMatch(nodes.hazardGuideStatus.textContent, /画像取得失敗を検知しました/);
+// Late old-area loading and partial callbacks cannot clear the region guard.
+nodes.mapFloodRefreshStatus.dataset.state = "loading";
+fireMutation([{target:nodes.mapFloodRefreshStatus,type:"attributes",attributeName:"data-state"}]);
+assert.match(nodes.hazardGuideStatus.textContent, /地域切替後/);
+nodes.mapFloodRefreshStatus.dataset.state = "partial";
+fireMutation([{target:nodes.mapFloodRefreshStatus,type:"attributes",attributeName:"data-state"}]);
+assert.match(nodes.hazardGuideStatus.textContent, /地域切替後/);
+// An unchanged ON event must not impersonate the OFF -> ON request boundary.
+nodes.officialFlood.dispatchEvent({type:"change"});
+assert.match(nodes.hazardGuideStatus.textContent, /地域切替後/);
+for (const code of ["15100","23100","15100","13123"]) {
+  nodes.region.value = code;
+  nodes.region.dispatchEvent({type:"change"});
+  assert.match(nodes.hazardGuideStatus.textContent, /地域切替後/);
+}
 nodes.officialFlood.checked = false;
 nodes.officialFlood.dispatchEvent({type:"change"});
 assert.match(nodes.hazardGuideStatus.textContent, /非表示.*浸水なし/);
