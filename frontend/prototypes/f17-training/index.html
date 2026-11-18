@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>HINANEX F17 | 架空の避難判断トレーニング</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">HINANEX / F17 / LOCAL TRAINING PROTOTYPE</p>
+      <h1>避難判断の操作トレーニング</h1>
+      <p class="notice" id="fictionNotice"><strong>完全架空の訓練データです。</strong> 実際の災害情報・避難施設・開設状況・安全性・経路を表しません。選択は避難先の決定や推薦ではありません。</p>
+    </header>
+    <main id="app" hidden>
+      <nav aria-label="訓練の進み具合">
+        <ol class="steps" id="progress">
+          <li data-progress="1">1. 災害情報</li>
+          <li data-progress="2">2. 施設比較</li>
+          <li data-progress="3">3. 本人選択・振り返り</li>
+        </ol>
+      </nav>
+      <section id="step1" class="panel" aria-labelledby="heading1" hidden>
+        <p class="tag">STEP 1 / 架空シナリオ</p>
+        <h2 id="heading1" tabindex="-1">災害情報と未確認事項を読む</h2>
+        <h3 id="scenarioTitle"></h3>
+        <p id="scenarioDescription"></p>
+        <dl class="facts"><dt>出典</dt><dd id="scenarioSource"></dd><dt>確認できていないこと</dt><dd><ul id="scenarioUnknowns"></ul></dd></dl>
+        <fieldset>
+          <legend>今回の練習で気にする条件（本人が自由に設定）</legend>
+          <label class="choice-label"><input id="conditionPet" type="checkbox">ペットと一緒に行けるかを確認したい</label>
+          <label class="choice-label"><input id="conditionStep" type="checkbox">段差の少なさを確認したい</label>
+        </fieldset>
+        <p class="help">条件は比較時の確認メモです。施設の推奨順位や安全性は計算しません。</p>
+        <div class="actions"><button id="next1" class="primary" type="button">2. 架空施設を比較する</button></div>
+      </section>
+      <section id="step2" class="panel" aria-labelledby="heading2" hidden>
+        <p class="tag">STEP 2 / 架空施設 2 件</p>
+        <h2 id="heading2" tabindex="-1">出典・条件・未確認事項を比較する</h2>
+        <p class="help">左右の掲載順は順位ではありません。いずれも開設・洪水時利用可否は未確認です。</p>
+        <p id="conditionSummary" class="summary-strip"></p>
+        <div class="cards" id="facilityCards"></div>
+        <div class="actions"><button id="back2" type="button">1. 条件を変更する</button><button id="next2" class="primary" type="button">3. 本人が確認対象を選ぶ</button></div>
+      </section>
+      <section id="step3" class="panel" aria-labelledby="heading3" hidden>
+        <p class="tag">STEP 3 / 架空訓練・本人の操作</p>
+        <h2 id="heading3" tabindex="-1">確認対象を本人が選択する</h2>
+        <p class="help">正解はありません。選択は「この訓練で先に詳細を確認したい」という意味だけです。</p>
+        <fieldset><legend>架空施設を1件選ぶ</legend><div id="choiceButtons" class="choice-buttons"></div></fieldset>
+        <div class="actions"><button id="back3" type="button">2. 比較に戻る</button><button id="review" class="primary" type="button" disabled>選択内容を振り返る</button></div>
+        <section id="reviewArea" aria-labelledby="reviewHeading" class="review-panel" hidden>
+          <h3 id="reviewHeading" tabindex="-1">訓練の振り返り</h3>
+          <p id="reviewChoice"></p>
+          <p id="reviewConditions"></p>
+          <p id="reviewSource"></p>
+          <h4>まだ確認が必要なこと</h4>
+          <ul id="reviewUnknowns"></ul>
+          <p class="help">実際の避難時は自治体等の最新の公式情報を別途確認してください。この訓練では安全かどうかは判断しません。</p>
+        </section>
+      </section>
+      <section id="interrupted" class="panel" role="status" hidden>
+        <h2 id="stopTitle" tabindex="-1"></h2>
+        <p id="stopMessage"></p>
+        <p>以前の選択と振り返りは破棄されました。</p>
+        <button id="restart" class="primary" type="button">最初からやり直す</button>
+      </section>
+      <footer class="panel footer">
+        <p class="help">F17独立Prototype / 完全架空・端末保存なし・GPSなし・外部APIなし・正式採用/一般公開未承認</p>
+        <div class="actions"><button id="stop" type="button">訓練を中断する</button><button id="reset" type="button">最初からやり直す</button></div>
+        <p id="status" role="status" aria-live="polite"></p>
+      </footer>
+    </main>
+    <section id="localBlock" class="panel" role="alert">
+      <h2>ローカルHTTP以外では利用できません</h2>
+      <p>127.0.0.1 または localhost で開く操作検証専用画面です。JavaScriptが必要です。公開画面では実行しません。</p>
+    </section>
+  </div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
