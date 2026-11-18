@@ -539,7 +539,7 @@ function renderAnalysisSummary(viewModel) {
 
 const SCENARIO_PAGE_SIZE = 20;
 
-function renderFloodScenario(scenario) {
+function renderFloodScenario(scenario, pagingAction = null) {
   const hasScenario = Boolean(scenario);
   floodScenarioSection.hidden = !hasScenario;
   floodScenarioNav.hidden = !hasScenario;
@@ -645,7 +645,7 @@ function renderFloodScenario(scenario) {
   previous.disabled = scenarioPageIndex === 0;
   previous.addEventListener("click", () => {
     scenarioPageIndex -= 1;
-    renderFloodScenario(scenario);
+    renderFloodScenario(scenario, "previous");
   });
   const next = element("button", {
     className: "source-button",
@@ -655,7 +655,11 @@ function renderFloodScenario(scenario) {
   next.disabled = scenarioPageIndex >= pages - 1;
   next.addEventListener("click", () => {
     scenarioPageIndex += 1;
-    renderFloodScenario(scenario);
+    renderFloodScenario(scenario, "next");
+  });
+  const pageCount = element("span", {
+    text: `${scenario.total}件中 ${start + 1}〜${Math.min(start + SCENARIO_PAGE_SIZE, scenario.total)}件（${scenarioPageIndex + 1}/${pages}ページ）`,
+    attributes: { tabindex: "-1" },
   });
 
   floodScenarioRoot.append(note, summary);
@@ -684,13 +688,17 @@ function renderFloodScenario(scenario) {
       attributes: { "aria-label": "Scenario施設一覧のページ" },
       children: [
         previous,
-        element("span", {
-          text: `${scenario.total}件中 ${start + 1}〜${Math.min(start + SCENARIO_PAGE_SIZE, scenario.total)}件（${scenarioPageIndex + 1}/${pages}ページ）`,
-        }),
+        pageCount,
         next,
       ],
     }),
   );
+  if (pagingAction) {
+    const button = pagingAction === "previous" ? previous : next;
+    // Recreated controls lose focus. At a disabled boundary, focus the count
+    // instead of silently changing the action to the opposite direction.
+    (button.disabled ? pageCount : button).focus({ preventScroll: true });
+  }
 }
 
 function renderOverview(viewModel) {
