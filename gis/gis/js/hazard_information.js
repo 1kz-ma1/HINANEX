@@ -26,6 +26,7 @@
   // has changed. Do not carry an old area's tile-result label into the new one.
   let lastRegion = region.value;
   let regionStatusStale = false;
+  let previousFloodEnabled = !!flood.checked;
 
   function getStatus() {
     if (!knownRegions.has(region.value)) {
@@ -110,9 +111,11 @@
   });
   region.addEventListener("change", synchronize);
   flood.addEventListener("change", () => {
-    // A deliberate re-enable starts a new tile attempt through the existing
-    // map controller. No previous-area result is treated as current evidence.
-    if (flood.checked) regionStatusStale = false;
+    // A *real OFF -> ON transition* reattaches the Leaflet layer and starts a
+    // new attempt. Repeated ON events do not authorize an old partial result.
+    const enabled = !!flood.checked;
+    if (enabled && !previousFloodEnabled) regionStatusStale = false;
+    previousFloodEnabled = enabled;
     synchronize();
   });
   document.addEventListener("keydown", event => {
@@ -126,14 +129,10 @@
     setOpen(false);
   }, true);
   if (typeof MutationObserver !== "undefined") {
-    const observer = new MutationObserver(records => {
-      // Clear the region switch guard only for a newly observed raster load.
-      // A pre-existing partial/error flag is not evidence for the new region.
-      if (regionStatusStale && refresh?.dataset?.state === "loading" &&
-          records.some(record => record.target === refresh &&
-            record.type === "attributes" && record.attributeName === "data-state")) {
-        regionStatusStale = false;
-      }
+    const observer = new MutationObserver(() => {
+      // Leaflet's async loading/tileerror notifications have no region/request
+      // identity. A delayed event from the previous view must never clear the
+      // guard after region selection. The OFF -> ON path above is explicit.
       if (!panel.hidden) synchronize();
     });
     if (refresh) observer.observe(refresh, {
