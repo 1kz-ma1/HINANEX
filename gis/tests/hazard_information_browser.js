@@ -90,6 +90,8 @@ async function runHazardInformationBrowser({context,base,out,waitUntilLoaded}) {
     assert.equal(await browserPage.locator("#region").inputValue(),"15100");
     assert.equal(await browserPage.locator("#hazardGuideRegion").inputValue(),"15100");
     assert.equal(await guide.isVisible(),true);
+    assert.match(await browserPage.locator("#hazardGuideStatus").innerText(),/地域切替後/,
+      "F13 must not reuse the previous viewport's raster status after region switch");
     checks.push("F01_MANUAL_REGION_USES_EXISTING_D_CONTROLLER");
 
     // Keyboard navigation: Escape closes, restores focus and aria-expanded.
