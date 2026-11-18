@@ -101,8 +101,14 @@ async function waitFor(evalFn,expression,label) {
   throw Error('Timed out waiting for '+label);
 }
 async function keyboard(cmd,key,code) {
-  const params={type:'keyDown',key,code,windowsVirtualKeyCode:key==='Enter'?13:key==='Tab'?9:32};
-  await cmd('Input.dispatchKeyEvent',params);
+  const vk=key==='Enter'?13:key==='Tab'?9:32;
+  const params={key,code,windowsVirtualKeyCode:vk,nativeVirtualKeyCode:vk};
+  if(key==='Enter') {
+    await cmd('Input.dispatchKeyEvent',{...params,type:'rawKeyDown'});
+    await cmd('Input.dispatchKeyEvent',{type:'char',text:'\\r',unmodifiedText:'\\r',windowsVirtualKeyCode:vk,nativeVirtualKeyCode:vk});
+  } else {
+    await cmd('Input.dispatchKeyEvent',{...params,type:'keyDown'});
+  }
   await cmd('Input.dispatchKeyEvent',{...params,type:'keyUp'});
 }
 
