@@ -12,7 +12,7 @@ for (const name of ["hazardGuideOpen", "hazardGuideClose", "hazardGuidePanel",
   assert.equal((html.match(new RegExp('id="' + name + '"', "g")) || []).length, 1,
     "F01 control must exist exactly once: " + name);
 }
-assert.match(html, /js\/hazard_information\.js\?v=f01-flood-20261104-v1/);
+assert.match(html, /js\/hazard_information\.js\?v=f13-evidence-20261118-v1/);
 assert.match(css, /\.hazard-guide-panel\[hidden\]\{display:none\}/);
 assert.match(html, /disaportal\.gsi\.go\.jp/);
 for (const label of ["対象情報", "出典・根拠", "情報時点", "対象外の判定", "未確認事項"]) {
