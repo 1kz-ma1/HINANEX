@@ -6,6 +6,7 @@
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs");
 const os=require("node:os"),path=require("node:path"),http=require("node:http");
 const {spawn,spawnSync}=require("node:child_process");
+const {waitForDevToolsPort}=require("../../../tests/helpers/chrome-active-port.cjs");
 const dir=path.resolve(__dirname,"..");
 const files=["index.html","styles.css","fixtures.js","model.js","app.js"];
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
@@ -95,14 +96,7 @@ async function launch(bin){
   let stderr="";child.stderr.on("data",x=>{stderr=(stderr+x.toString()).slice(-1500);});
   let ws=null;
   try{
-    let port=0;
-    for(let i=0;i<300;i++){
-      const active=path.join(profile,"DevToolsActivePort");
-      if(fs.existsSync(active)){port=Number(fs.readFileSync(active,"utf8").split("\n")[0]);break;}
-      if(child.exitCode!==null)throw Error("Browser exited: "+stderr);
-      await wait(100);
-    }
-    if(!port)throw Error("Browser CDP startup timed out: "+stderr);
+    const port=await waitForDevToolsPort(profile,child,()=>stderr);
     const targets=await(await fetch("http://127.0.0.1:"+port+"/json/list",{signal:AbortSignal.timeout(10000)})).json();
     const page=targets.find(x=>x.type==="page"&&x.webSocketDebuggerUrl);
     if(!page)throw Error("CDP page target missing");
