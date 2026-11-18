@@ -8,6 +8,7 @@ const sources = document.getElementById("sources");
 const status = document.getElementById("load-state");
 const count = document.getElementById("record-count");
 const detailTitle = document.getElementById("detail-title");
+const returnToRecord = document.getElementById("return-to-record");
 let reference = null;
 let selectedId = null;
 
@@ -24,6 +25,8 @@ function paragraph(parent, text, className) {
   parent.append(create("p", text, className));
 }
 function clearDetail() {
+  returnToRecord.hidden = true;
+  returnToRecord.removeAttribute("aria-label");
   detail.replaceChildren();
   paragraph(detail, "施設を選択してください。出典はDataset単位で、施設単位の承認とは区別します。");
 }
@@ -31,6 +34,8 @@ function addDetailField(table, label, value) {
   table.append(create("dt", label), create("dd", value));
 }
 function renderDetail(record) {
+  returnToRecord.hidden = false;
+  returnToRecord.setAttribute("aria-label", "選択した施設へ戻る（" + record.name + "）");
   detail.replaceChildren();
   detail.append(create("h3", record.name));
   paragraph(detail, "Dの正規化記録を表示しています。施設区分は名称から作成したD内部の分類で、正式な指定ではありません。対象災害への適合、安全性や現在の開設は、この画面では判断しません。", "notice");
@@ -107,7 +112,9 @@ function renderList() {
     return;
   }
   status.textContent = "Dの掲載記録を表示しています。施設の安全性や開設中を意味しません。";
-  if (selectedId && !matches.some(item => item.id === selectedId)) {
+  // The return target must exist in the displayed first 50 results, not only
+  // in the full set of matches after a search change.
+  if (selectedId && !shown.some(item => item.id === selectedId)) {
     selectedId = null;
     clearDetail();
   }
@@ -169,4 +176,12 @@ const controller = createRegionExportController({
   },
 });
 search.addEventListener("input", renderList);
+returnToRecord.addEventListener("click", () => {
+  const target = [...results.querySelectorAll(".record")]
+    .find(button => button.dataset.recordId === selectedId);
+  if (!target) return;
+  target.focus({ preventScroll: true });
+  // Only this explicit return action scrolls to the selected list item.
+  target.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+});
 controller.selectRegion("13123");
