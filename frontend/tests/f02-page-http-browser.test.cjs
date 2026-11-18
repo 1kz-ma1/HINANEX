@@ -304,6 +304,23 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       assert.ok(await evaluate("document.querySelector('.official-guidance a').rel.includes('noopener')"));
       assert.ok(await evaluate("document.querySelector('.official-guidance').innerText.includes('最新の開設・混雑状況')"));
       await command("Accessibility.enable");
+      const documentNode = (await command("DOM.getDocument")).root.nodeId;
+      const countNode = (await command("DOM.querySelector", {nodeId:documentNode, selector:"#record-count"})).nodeId;
+      const countAX = (await command("Accessibility.getPartialAXTree", {nodeId:countNode, fetchRelatives:false})).nodes.find(node=>!node.ignored);
+      assert.equal(countAX.role?.value, "status", "Search count must be exposed as a status");
+      assert.equal(countAX.properties.find(p=>p.name==="live")?.value.value, "polite");
+      assert.equal(countAX.properties.find(p=>p.name==="atomic")?.value.value, true);
+      await evaluate("(()=>{const q=document.querySelector('#search');q.focus();q.value='ｽｽﾞﾗﾝ';q.dispatchEvent(new Event('input',{bubbles:true}))})()");
+      assert.ok(await evaluate("document.querySelector('#record-count').textContent.includes('検索一致 1件')"));
+      assert.equal(await evaluate("document.activeElement?.id"), "search");
+      assert.equal(await evaluate("(()=>{const c=document.querySelector('#record-count'),o=new MutationObserver(()=>{});o.observe(c,{childList:true,characterData:true,subtree:true});const q=document.querySelector('#search');q.value='スズラン';q.dispatchEvent(new Event('input',{bubbles:true}));const n=o.takeRecords().length;o.disconnect();return n})()"), 0,
+        "NFKC-equivalent search with equal counts must not rewrite the live region");
+      await evaluate("(()=>{const q=document.querySelector('#search');q.value='該当なし';q.dispatchEvent(new Event('input',{bubbles:true}))})()");
+      assert.ok(await evaluate("document.querySelector('#record-count').textContent.includes('検索一致 0件') && document.querySelector('#load-state').textContent.includes('検索に一致する記録はありません')"));
+      await evaluate("(()=>{const q=document.querySelector('#search');q.value='';q.dispatchEvent(new Event('input',{bubbles:true}))})()");
+      assert.ok(await evaluate("document.querySelector('#record-count').textContent.includes('検索一致 2件')"));
+      assert.equal(await evaluate("document.activeElement?.id"), "search");
+      console.log("F02_COUNT_HTTP: AX status/polite/atomic, 1/0/2 search counts, stable search focus, no equal-count rewrite PASS");
       const axNodes = (await command("Accessibility.getFullAXTree")).nodes.filter(node => !node.ignored);
       assert.ok(axNodes.some(node => node.role?.value === "searchbox" &&
         node.name?.value === "施設名で検索"), "Search field missing accessible name");
