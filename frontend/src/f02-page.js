@@ -97,9 +97,11 @@ function renderList() {
   if (!reference || reference.state !== "READY") return;
   const matches = searchF02Facilities(reference.records, search.value);
   const shown = matches.slice(0, 50);
-  count.textContent = "D記録 " + reference.records.length + "件 / 座標なし " +
+  const countMessage = "D記録 " + reference.records.length + "件 / 座標なし " +
     reference.withoutCoordinates + "件 / 検索一致 " + matches.length +
     "件 / 表示 " + shown.length + "件（最大50件。検索で絞り込めます）";
+  // Equal result counts need no repeated live-region DOM announcement.
+  if (count.textContent !== countMessage) count.textContent = countMessage;
   if (!reference.records.length) {
     status.textContent = "この取得済みDatasetの記録は0件です。地域に避難施設がないという意味ではありません。";
     clearDetail();

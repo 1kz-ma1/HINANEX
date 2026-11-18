@@ -28,7 +28,7 @@
         <label for="search">施設名で検索</label>
         <input type="search" id="search" placeholder="施設名を入力" autocomplete="off" aria-controls="results" aria-describedby="record-count" disabled>
         <p id="load-state" role="status" aria-live="polite">RegionExportを読み込み中です。</p>
-        <p id="record-count" class="count"></p>
+        <p id="record-count" class="count" role="status" aria-live="polite" aria-atomic="true"></p>
         <div id="results" class="results" role="group" aria-label="施設記録一覧"></div>
       </section>
       <section class="panel" aria-labelledby="detail-title">
