@@ -105,7 +105,7 @@ async function keyboard(cmd,key,code) {
   const params={key,code,windowsVirtualKeyCode:vk,nativeVirtualKeyCode:vk};
   if(key==='Enter') {
     await cmd('Input.dispatchKeyEvent',{...params,type:'rawKeyDown'});
-    await cmd('Input.dispatchKeyEvent',{type:'char',text:'\\r',unmodifiedText:'\\r',windowsVirtualKeyCode:vk,nativeVirtualKeyCode:vk});
+    await cmd('Input.dispatchKeyEvent',{type:'char',text:'\r',unmodifiedText:'\r',windowsVirtualKeyCode:vk,nativeVirtualKeyCode:vk});
   } else {
     await cmd('Input.dispatchKeyEvent',{...params,type:'keyDown'});
   }
