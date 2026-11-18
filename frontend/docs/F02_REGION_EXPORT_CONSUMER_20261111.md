@@ -1,6 +1,10 @@
 # F02 S-03 — RegionExport v0.9 read-only Consumer（実装仕様 / Draft）
 2026-11-11 / Issue #355 / owner P0
 
+## 2026-11-18 Chrome回帰の起動ファイル競合（Issue #443）
+
+F02実HTTP Chrome回帰は、DevToolsActivePortが一時的に未作成/ロック中（ENOENT/EBUSY/EPERM/EACCES）または内容未完成の場合、従来の300回×100msの上限内で再読込する。有効なポート番号が得られない期限超過、Chromeの早期終了、その他のI/OエラーはFAILのまま。独立した故障注入テストで回復と恒久障害を区別し、既存ChromeのUI/assert/cleanup/skip条件を変更しない。テスト/文書のみの変更でDevice QA NOT_REQUIRED。物理端末・権利・施設安全・一般公開の承認とは別。
+
 ## Decision
 - **1地域のみ**：江戸川区 region.code=13123。既存D出力 pipeline/data/output/edogawa.json を frontend/src/region-export-loader.js から読む。配信パスは frontend/f02.html を基準として既存の ../pipeline/data/output/edogawa.json を解決する。
 - 合成F02 Prototype (frontend/prototypes/f02-shelter-explore) は改変しない。新画面 frontend/f02.html は読み取り専用で、既存本番ナビにはまだ接続しない。

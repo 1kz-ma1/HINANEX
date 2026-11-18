@@ -9,6 +9,7 @@ const os = require("node:os");
 const path = require("node:path");
 const http = require("node:http");
 const { spawn, spawnSync } = require("node:child_process");
+const {waitForDevToolsPort} = require("./helpers/chrome-active-port.cjs");
 const root = path.resolve(__dirname, "../..");
 const assets = new Set([
   "/frontend/f02.html",
@@ -162,17 +163,7 @@ async function launchChrome(bin) {
   child.stderr.on("data", x => { diagnostics = (diagnostics + x.toString()).slice(-1000); });
   let ws = null;
   try {
-    let port = 0;
-    for (let i = 0; i < 300; i++) {
-      const active = path.join(profile, "DevToolsActivePort");
-      if (fs.existsSync(active)) {
-        port = Number(fs.readFileSync(active, "utf8").split("\n")[0]);
-        break;
-      }
-      if (child.exitCode !== null) throw Error("Chrome exited: " + diagnostics);
-      await wait(100);
-    }
-    if (!port) throw Error("Chrome CDP startup timed out: " + diagnostics);
+    const port = await waitForDevToolsPort(profile, child, () => diagnostics);
     const targets = await (await fetch("http://127.0.0.1:" + port + "/json/list", { signal: AbortSignal.timeout(10000) })).json();
     const page = targets.find(x => x.type === "page" && x.webSocketDebuggerUrl);
     if (!page) throw Error("Chrome CDP page unavailable");
