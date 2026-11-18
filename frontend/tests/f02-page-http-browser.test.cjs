@@ -112,8 +112,8 @@ function fixtureFor(name) {
   if (name === "missing") body.datasets = [];
   if (name === "bad-region") body.region.code = "15100";
   if (name === "bad-contract") body.datasets[0].records[0].latitude = 35;
-  if (name === "long-list") {
-    body.datasets[0].records = Array.from({length: 50}, (_, i) => ({
+  if (name === "long-list" || name === "over-limit") {
+    body.datasets[0].records = Array.from({length: name === "over-limit" ? 60 : 50}, (_, i) => ({
       id: "synthetic-scroll-" + i, name: "架空の検証施設" + i,
       address: null, facility_type: null, supported_disasters: null,
       latitude: null, longitude: null
@@ -264,12 +264,28 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
         assert.ok(!result.errorText, "HTTP document navigation failure: " + result.errorText);
         await waitUntil(evaluate, condition, "F02 " + scenario);
       }
+      async function pressKey(key) {
+        const code = key === "Tab" ? 9 : 13;
+        await command("Input.dispatchKeyEvent", {
+          type: key === "Tab" ? "keyDown" : "rawKeyDown", key, code: key,
+          windowsVirtualKeyCode: code, nativeVirtualKeyCode: code
+        });
+        if (key === "Enter") await command("Input.dispatchKeyEvent", {
+          type: "char", text: "\r", unmodifiedText: "\r",
+          windowsVirtualKeyCode: code, nativeVirtualKeyCode: code
+        });
+        await command("Input.dispatchKeyEvent", {
+          type: "keyUp", key, code: key,
+          windowsVirtualKeyCode: code, nativeVirtualKeyCode: code
+        });
+      }
 
       await navigate("normal", "document.readyState==='complete' && !document.querySelector('#search').disabled && document.querySelector('#record-count').textContent.includes('D記録 2件')");
       for (const asset of assets) assert.ok(requests.includes(asset), "Browser did not fetch asset: " + asset);
       assert.ok(requests.includes("/pipeline/data/output/edogawa.json"));
       assert.ok(await evaluate("document.body.innerText.includes('安全性・災害適合性・開設・経路')"));
       assert.equal(await evaluate("document.querySelectorAll('#results .record').length"), 2);
+      assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true);
       assert.equal(await evaluate("document.querySelector('#sources a')?.href"),
         "https://example.invalid/synthetic-f02");
       assert.equal(await evaluate("document.querySelectorAll('#results script').length"), 0);
@@ -321,12 +337,23 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
         "document.activeElement?.id==='detail-title' && document.querySelector('#detail').innerText.includes('名称ベース分類')",
         "F02 keyboard facility selection");
       assert.ok(await evaluate("document.querySelector('#detail').innerText.includes('正式指定未確認')"));
+      await pressKey("Tab");
+      assert.equal(await evaluate("document.activeElement?.id"), "return-to-record",
+        "Tab from the detail heading must reach the explicit return action");
+      const returnTree = (await command("Accessibility.getFullAXTree")).nodes.filter(node => !node.ignored);
+      assert.ok(returnTree.some(node => node.role?.value === "button" &&
+        node.name?.value === "選択した施設へ戻る（架空スズラン会館）"));
+      await pressKey("Enter");
+      assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,pressed:document.activeElement?.getAttribute('aria-pressed'),query:document.querySelector('#search').value})"),
+        {id:"synthetic-1", pressed:"true", query:""}, "Return must preserve selection and search");
       console.log("F02_A11Y_HTTP: named search/group, live status, Tab/Enter, detail focus, and official live-status separation PASS");
       console.log("F02_CONSUMER_HTTP: real HTTP HTML/CSS/ESM/JSON, safety, evidence and escaping PASS");
 
       assert.equal(await evaluate("(()=>{const q=document.querySelector('#search');q.value='ｽｽﾞﾗﾝ';q.dispatchEvent(new Event('input',{bubbles:true}));return document.querySelectorAll('#results .record').length})()"), 1);
       assert.ok(await evaluate("(()=>{document.querySelector('#results .record').click();return document.activeElement?.id==='detail-title' && document.querySelector('#detail').innerText.includes('座標なし・位置未確認') && document.querySelector('#detail').innerText.includes('未確認')})()"));
       assert.ok(await evaluate("(()=>{const q=document.querySelector('#search');q.value='該当なし';q.dispatchEvent(new Event('input',{bubbles:true}));return document.querySelector('#load-state').innerText.includes('検索に一致する記録はありません') && document.querySelectorAll('#results .record').length===0})()"));
+      assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true,
+        "Zero matches must remove the stale return action");
       // Regression: a selected facility must not silently reappear as pressed
       // after no-match search clears its details and the query is reset.
       assert.ok(await evaluate("(()=>{const q=document.querySelector('#search');q.value='';q.dispatchEvent(new Event('input',{bubbles:true}));return [...document.querySelectorAll('#results .record')].every(b=>b.getAttribute('aria-pressed')==='false') && document.querySelector('#detail').innerText.includes('施設を選択してください')})()"),
@@ -376,13 +403,61 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       await command("Emulation.clearDeviceMetricsOverride");
       console.log("F02_SCROLL_HTTP: repeated selection preserves viewport, existing list DOM, detail focus and sticky desktop panel PASS");
 
+      // Explicit return is allowed to scroll, unlike selection's preventScroll.
+      // Use a real long list and native Tab/Enter to exercise the focused action.
+      for (const [width, height] of [[320,700], [390,844], [1440,900]]) {
+        await command("Emulation.setDeviceMetricsOverride",
+          {width, height, deviceScaleFactor:1, mobile:false});
+        await navigate("long-list", "document.querySelectorAll('#results .record').length===50");
+        await evaluate("(()=>{const q=document.querySelector('#search');q.value='架空';q.dispatchEvent(new Event('input',{bubbles:true}))})()");
+        for (const index of [39, 40]) {
+          await evaluate("(()=>{const b=document.querySelectorAll('#results .record')[" + index + "];window.__f02ReturnButton=b;b.click()})()");
+          assert.equal(await evaluate("document.activeElement?.id"), "detail-title");
+          await pressKey("Tab");
+          assert.equal(await evaluate("document.activeElement?.id"), "return-to-record");
+          assert.ok(await evaluate("document.activeElement.getAttribute('aria-label').includes('架空の検証施設" + index + "')"));
+          assert.ok(await evaluate("document.activeElement.getBoundingClientRect().height>=44"));
+          if (width < 700) assert.ok(await evaluate("window.__f02ReturnButton.getBoundingClientRect().bottom<0"),
+            "Mobile return must start with the selected list item off screen");
+          await pressKey("Enter");
+          const returned = await evaluate("(()=>{const b=document.activeElement,r=b.getBoundingClientRect();return {same:b===window.__f02ReturnButton,id:b.dataset.recordId,pressed:b.getAttribute('aria-pressed'),visible:r.top>=-1&&r.bottom<=innerHeight+1,query:document.querySelector('#search').value,overflow:document.documentElement.scrollWidth-innerWidth}})()");
+          assert.equal(returned.same, true, "Restore the original list node at " + width);
+          assert.equal(returned.id, "synthetic-scroll-" + index, "Return to latest selection, not first item");
+          assert.equal(returned.pressed, "true");
+          assert.equal(returned.visible, true, "Return target must be in view at " + width);
+          assert.equal(returned.query, "架空");
+          assert.ok(returned.overflow <= 2, "Return control must not overflow at " + width);
+          assert.ok(await evaluate("document.querySelector('#detail h3').textContent==='架空の検証施設" + index + "'"));
+        }
+      }
+      await command("Emulation.clearDeviceMetricsOverride");
+      console.log("F02_RETURN_HTTP: native Tab/Enter returns to latest selected record, visible at 320/390/1440px, query and details unchanged PASS");
+
+      await navigate("over-limit", "document.querySelector('#record-count').textContent.includes('D記録 60件')");
+      await evaluate("(()=>{const q=document.querySelector('#search');q.value='施設55';q.dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#results .record').click()})()");
+      assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), false);
+      await evaluate("(()=>{const q=document.querySelector('#search');q.value='施設';q.dispatchEvent(new Event('input',{bubbles:true}))})()");
+      assert.equal(await evaluate("document.querySelectorAll('#results .record').length"), 50);
+      assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true,
+        "Selection beyond the displayed 50 must not retain an unreachable return target");
+      assert.ok(await evaluate("document.querySelector('#detail').textContent.includes('施設を選択してください')"));
+      await evaluate("(()=>{const q=document.querySelector('#search');q.value='施設55';q.dispatchEvent(new Event('input',{bubbles:true}))})()");
+      assert.equal(await evaluate("document.querySelector('#results .record').getAttribute('aria-pressed')"), "false");
+      assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true,
+        "Narrowing the search again must not restore an old selection");
+
       await navigate("empty", "document.querySelector('#load-state')?.innerText.includes('記録は0件です')");
+      assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true);
       assert.equal(await evaluate("document.querySelectorAll('#results .record').length"), 0);
       await navigate("missing", "document.querySelector('#load-state')?.innerText.includes('Datasetが収録されていません')");
+      assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true);
       assert.equal(await evaluate("document.querySelector('#search').disabled"), true);
       await navigate("bad-region", "document.querySelector('#load-state')?.innerText.includes('RegionExportを表示できません')");
+      assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true);
       await navigate("bad-contract", "document.querySelector('#load-state')?.innerText.includes('coordinates')");
+      assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true);
       await navigate("http-error", "document.querySelector('#load-state')?.innerText.includes('HTTP 503')");
+      assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true);
       if (realOutput !== null) {
         assert.ok(Number.isInteger(expectedRealRecords) && expectedRealRecords > 0,
           "Real D export must contain at least one shelter_location record");

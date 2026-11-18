@@ -12,6 +12,15 @@
 - 一覧の初期表示は最大50件。名称検索は全レコードに適用する。件数はこのDatasetの記録数であり自治体内の全避難施設数ではない。
 - 新データにはネットワーク送信、ブラウザlocalStorage、個人入力、位置取得、外部API呼出なし（既存D JSONのsame-origin fetchのみ）。
 
+## 詳細から選択した一覧項目へ戻る（2026-11-17 / Issue #424）
+
+- 施設詳細の見出しに続く「選択した施設へ戻る」ボタンで、直前に選択した施設の一覧ボタンへフォーカスを戻す。アクセシブル名称には施設名を含める。検索条件・詳細・選択状態は維持する。
+- 一覧選択時の `focus({preventScroll:true})` と既存DOM保持は維持する。**本人が戻る操作を実行した時だけ**、元の一覧項目が見える位置へ `scrollIntoView` する。長い一覧やスマホ幅でも、一覧の先頭へ一律に戻さない。
+- 選択なし・検索一致0件・Dataset0件・取得/契約失敗ではボタンを隠す。検索変更で選択した施設が表示上限50件の外に移った場合も選択と詳細を消去し、存在しない一覧項目への戻り先を残さない。再び絞り込んでも以前の選択を復元しない。
+- 実HTTP/headless Chrome回帰は、ネイティブTab/Enterによる詳細→戻る→元の一覧、施設名付きのアクセシブル名称、50件一覧の39/40番目への繰返し復帰、320/390/1440 CSS px、44px操作領域、検索・詳細保持、上限50件からの選択消去、0件/異常系を検証する。`F02_RETURN_HTTP` のPASSは合成データでの自動操作の範囲のみ。
+- D/RegionExport/Schema/評価モデル・公式原本・災害属性・UNKNOWN/未確認の意味は変更しない。位置取得、外部送信、端末保存、経路、実データ公開は追加しない。既存のF02非公開配信ガードを維持する。
+- **Device QA: DEFERRED / #372 DQA-002**。物理Android/iOS/Safari/VoiceOver/TalkBackの今回追加操作はNOT_RUN。過去のSafari/VoiceOver5項目PASSを新操作の実機PASSへ流用しない。QA-1（2026-12-06 JST）候補・担当未定。具体的な対象HEAD、CI、登録コメントURLはPRに記録する。
+
 ## Implementation paths
 - frontend/f02.html, frontend/f02.css
 - frontend/src/f02-page.js: DOM textContent only, remote/unsafe URL notリンク化
