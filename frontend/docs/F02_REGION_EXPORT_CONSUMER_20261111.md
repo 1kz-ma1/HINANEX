@@ -21,6 +21,12 @@
 - D/RegionExport/Schema/評価モデル・公式原本・災害属性・UNKNOWN/未確認の意味は変更しない。位置取得、外部送信、端末保存、経路、実データ公開は追加しない。既存のF02非公開配信ガードを維持する。
 - **Device QA: DEFERRED / #372 DQA-002**。物理Android/iOS/Safari/VoiceOver/TalkBackの今回追加操作はNOT_RUN。過去のSafari/VoiceOver5項目PASSを新操作の実機PASSへ流用しない。QA-1（2026-12-06 JST）候補・担当未定。具体的な対象HEAD、CI、登録コメントURLはPRに記録する。
 
+## 検索結果件数の状態通知（2026-11-18 / Issue #434）
+
+既存の件数表示を `role=status / aria-live=polite / aria-atomic=true` とし、検索後の件数変更を支援技術へ公開する。検索欄の `aria-describedby=record-count` と既存の文言・最大50件・0件/取得失敗の区別は維持。同一文言になるNFKC等価検索等では件数DOMを再書込せず、不要な重複通知を避ける。件数更新でフォーカスを移動しない。
+
+実HTTP ChromeでAX treeのstatus/polite/atomic、検索1件→0件→解除2件、検索欄focus維持、同一件数でのDOM mutationなしを確認する。音声による実際の通知は自動テストでは未確認。**Device QA DEFERRED / #372 DQA-002**、物理Safari/VoiceOver/Android/TalkBackはNOT_RUN。既存合成データのみで試験し、Contract/UNKNOWN/出典/安全・公開ゲートを変更しない。
+
 ## Implementation paths
 - frontend/f02.html, frontend/f02.css
 - frontend/src/f02-page.js: DOM textContent only, remote/unsafe URL notリンク化
