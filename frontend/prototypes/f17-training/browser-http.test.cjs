@@ -101,7 +101,7 @@ async function waitFor(evalFn,expression,label) {
   throw Error('Timed out waiting for '+label);
 }
 async function keyboard(cmd,key,code) {
-  const params={type:'keyDown',key,code,windowsVirtualKeyCode:key==='Enter'?13:32};
+  const params={type:'keyDown',key,code,windowsVirtualKeyCode:key==='Enter'?13:key==='Tab'?9:32};
   await cmd('Input.dispatchKeyEvent',params);
   await cmd('Input.dispatchKeyEvent',{...params,type:'keyUp'});
 }
@@ -129,6 +129,8 @@ test('F17 actual HTTP Chrome: 3 steps, keyboard, invalidation, reset, mobile and
     await keyboard(command,'Enter','Enter');
     await waitFor(evaluate,"!document.querySelector('#step2').hidden",'comparison');
     assert.equal(await evaluate('document.activeElement?.id'),'heading2');
+    await keyboard(command,'Tab','Tab');
+    assert.equal(await evaluate('document.activeElement?.id'),'back2','Native Tab should reach previous-step control');
     assert.equal(await evaluate("document.querySelectorAll('#facilityCards article').length"),2);
     assert.ok(await evaluate("document.querySelector('#facilityCards').textContent.includes('記載なし・未確認')"));
     await evaluate("document.querySelector('#back2').click()");
