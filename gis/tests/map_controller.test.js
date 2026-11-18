@@ -11,6 +11,9 @@ const mapCode = fs.readFileSync(path.join(root, "map.js"), "utf8");
 const discoveryCode = fs.readFileSync(path.join(root, "flood_discovery.js"), "utf8");
 const referenceCode = fs.readFileSync(path.join(root, "reference_data.js"), "utf8");
 
+// F13 extends the existing F01 regression; keep the required GIS gate wired.
+require("./hazard_information.test.js");
+
 // Ensure the independent REAL-browser predeploy smoke remains syntactically
 // runnable and follows the current GIS consumer copy after white-card changes.
 // Chromium itself is deliberately NOT implied by this static CI validation.
