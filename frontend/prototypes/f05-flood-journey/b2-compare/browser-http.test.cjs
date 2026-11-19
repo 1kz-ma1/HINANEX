@@ -207,6 +207,15 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
       assert.equal(await evaluate("document.querySelectorAll('#compareArea article').length"), 2);
       assert.ok(await evaluate("document.querySelector('#compareArea').textContent.includes('合成区分：UNKNOWN')"));
       assert.ok(await evaluate("document.querySelector('#compareArea').textContent.includes('fixture_row=2')"));
+      const evidenceValues = await evaluate(`[...document.querySelectorAll('#compareArea article')].map(card => {
+        const fields = Object.fromEntries([...card.querySelectorAll('dt')].map(term => [term.textContent, term.nextElementSibling.textContent]));
+        return {raw: fields['元値（合成）'], open: fields['現在の開設']};
+      })`);
+      assert.deepEqual(evidenceValues, [
+        {raw:"SYNTHETIC_A", open:"未確認"},
+        {raw:"合成データに値なし", open:"未確認"},
+      ]);
+      console.log("F05_B2_MISSING_RAW_HTTP: explicit missing synthetic raw value and unverified opening displayed separately PASS");
       assert.ok(await evaluate("document.querySelector('#compareArea').textContent.includes('安全性') && document.querySelector('#compareArea').textContent.includes('未認定')"));
       await evaluate("document.querySelectorAll('#choiceArea button')[1].click()");
       assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,area:document.activeElement?.parentElement?.id,pressed:document.activeElement?.getAttribute('aria-pressed')})"),
