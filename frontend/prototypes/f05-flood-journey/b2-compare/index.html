@@ -72,6 +72,7 @@ button:disabled{opacity:.53;cursor:not-allowed}
     <h2 id="listTitle">掲載記録（合成のみ）</h2>
     <div id="recordList" class="grid"></div>
     <p id="emptyMessage" role="status"></p>
+    <button id="resetCriteria" type="button" hidden>検索と区分をリセット</button>
   </section>
   <section class="panel" aria-labelledby="compareTitle">
     <h2 id="compareTitle">2件の根拠を並べて確認</h2>
@@ -97,6 +98,7 @@ if (isB2Loopback(window.location.origin)) {
   const fixture=el("fixture"),filter=el("filter"),query=el("query");
   const list=el("recordList"),compare=el("compareArea"),choice=el("choiceArea");
   const clearSelection=el("clearSelection"),clearMessage=el("clearMessage");
+  const resetCriteria=el("resetCriteria");
   let session=null;
   const focusRow=(container,id)=>{
     // render() recreates buttons: restore focus to the matching new control.
@@ -134,6 +136,7 @@ if (isB2Loopback(window.location.origin)) {
     const usable=session.state==="READY";
     filter.disabled=!usable;query.disabled=!usable;
     clearSelection.disabled=!usable;
+    resetCriteria.hidden=true;
     el("state").textContent=session.message;
     el("stats").textContent=usable||session.state==="EMPTY_DATASET"?
       "合成総数 "+session.total+"件｜CANDIDATE "+session.counts.CANDIDATE+
@@ -146,7 +149,8 @@ if (isB2Loopback(window.location.origin)) {
       return;
     }
     const rows=session.rows(), chosen=new Set(session.selected().map(x=>x.id));
-    el("emptyMessage").textContent=rows.length?"": "検索一致0件。元のデータ件数0とは違います。";
+    resetCriteria.hidden=rows.length!==0;
+    el("emptyMessage").textContent=rows.length?"":"表示条件に一致する施設は0件です。";
     for(const row of rows){
       const item=node("article",null,"facility");
       item.append(node("h3",row.name),node("p","D区分（合成）："+row.status),
@@ -200,6 +204,11 @@ if (isB2Loopback(window.location.origin)) {
     }
   });
   fixture.addEventListener("change",load);
+  resetCriteria.addEventListener("click",()=>{
+    if(resetCriteria.hidden||!session.setCriteria("","ALL").ok)return;
+    query.value="";filter.value="ALL";clearMessage.textContent="";
+    render();query.focus();
+  });
   filter.addEventListener("change",()=>{
     if(session.setCriteria(query.value,filter.value).ok){clearMessage.textContent="";render();}
   });
