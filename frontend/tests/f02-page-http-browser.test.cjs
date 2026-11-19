@@ -125,6 +125,12 @@ function fixtureFor(name) {
     body.datasets[0].evidence[0].license = "CC BY 2.1 JP";
   }
   if (name === "custom-license") body.datasets[0].evidence[0].license = "other";
+  if (name === "multiple-sources") {
+    body.datasets[0].evidence.push(
+      {source_name: "別の合成資料", source_url: "https://example.invalid/second-f02"},
+      {source_name: "URL未確認の合成資料", source_url: "http://example.invalid/unverified-f02"}
+    );
+  }
   return body;
 }
 async function serve(realOutput = null) {
@@ -379,6 +385,16 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       assert.equal(await evaluate("document.querySelector('#sources a.license-link')"), null);
       assert.ok(await evaluate("document.querySelector('#sources').innerText.includes('ライセンスURL: 未確認')"));
       console.log("F02_CREDIT_HTTP: explicit source, adaptation and conditional CC BY 2.1 JP link PASS");
+      await navigate("multiple-sources", "document.querySelectorAll('#sources .source').length===3");
+      const sourceTree = (await command("Accessibility.getFullAXTree")).nodes.filter(node => !node.ignored);
+      for (const name of ["合成資料", "別の合成資料"]) {
+        assert.ok(sourceTree.some(node => node.role?.value === "link" &&
+          node.name?.value === "資料URLを開く（" + name + "）"));
+      }
+      assert.deepEqual(await evaluate("[...document.querySelectorAll('#sources a')].map(link=>link.href)"),
+        ["https://example.invalid/synthetic-f02", "https://example.invalid/second-f02"]);
+      assert.ok(await evaluate("document.querySelector('#sources .source:last-child').textContent.includes('HTTPSの出典URL: 未確認')"));
+      console.log("F02_SOURCE_LINK_AX_HTTP: distinct dataset source link names and HTTPS boundaries PASS");
 
       for (const size of [[320, 700], [390, 844], [1440, 900]]) {
         await command("Emulation.setDeviceMetricsOverride",
