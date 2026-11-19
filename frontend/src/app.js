@@ -539,7 +539,7 @@ function renderAnalysisSummary(viewModel) {
 
 const SCENARIO_PAGE_SIZE = 20;
 
-function renderFloodScenario(scenario, pagingAction = null) {
+function renderFloodScenario(scenario, { pagingAction = null, isSynthetic = false } = {}) {
   const hasScenario = Boolean(scenario);
   floodScenarioSection.hidden = !hasScenario;
   floodScenarioNav.hidden = !hasScenario;
@@ -596,10 +596,11 @@ function renderFloodScenario(scenario, pagingAction = null) {
     ],
   });
 
+  const traceLabel = isSynthetic ? "合成記録と出典を確認" : "公式記録と出典を確認";
   const cards = selected.map((row) => {
     const source = row.sourceUrl
       ? element("a", {
-          text: "公式Sourceを確認",
+          text: isSynthetic ? "合成データの出典URLを開く" : "公式Sourceを確認",
           attributes: { href: row.sourceUrl, target: "_blank", rel: "noopener noreferrer" },
         })
       : element("span", { text: "出典URL未確認" });
@@ -619,14 +620,14 @@ function renderFloodScenario(scenario, pagingAction = null) {
           className: "scenario-trace",
           children: [
             element("summary", {
-              text: "公式記録と出典を確認",
-              attributes: { "aria-label": `公式記録と出典を確認（${row.name}）` },
+              text: traceLabel,
+              attributes: { "aria-label": `${traceLabel}（${row.name}）` },
             }),
             element("dl", {
               className: "scenario-facts",
               children: [
                 ...definitionRow("災害列の原文", row.hazardScopeRaw),
-                ...definitionRow("公式セルの値", row.rawValue),
+                ...definitionRow(isSynthetic ? "合成セルの値" : "公式セルの値", row.rawValue),
                 ...definitionRow("利用階の原文", row.floorRaw),
                 ...definitionRow("施設行の照合", row.joinStatus),
                 ...definitionRow("元データの行", row.sourceTrace),
@@ -648,7 +649,7 @@ function renderFloodScenario(scenario, pagingAction = null) {
   previous.disabled = scenarioPageIndex === 0;
   previous.addEventListener("click", () => {
     scenarioPageIndex -= 1;
-    renderFloodScenario(scenario, "previous");
+    renderFloodScenario(scenario, { pagingAction: "previous", isSynthetic });
   });
   const next = element("button", {
     className: "source-button",
@@ -658,7 +659,7 @@ function renderFloodScenario(scenario, pagingAction = null) {
   next.disabled = scenarioPageIndex >= pages - 1;
   next.addEventListener("click", () => {
     scenarioPageIndex += 1;
-    renderFloodScenario(scenario, "next");
+    renderFloodScenario(scenario, { pagingAction: "next", isSynthetic });
   });
   const pageCount = element("span", {
     text: `${scenario.total}件中 ${start + 1}〜${Math.min(start + SCENARIO_PAGE_SIZE, scenario.total)}件（${scenarioPageIndex + 1}/${pages}ページ）`,
@@ -737,7 +738,7 @@ function renderPage(viewModel) {
   renderAnalysisSummary(viewModel);
   renderOverview(viewModel);
   scenarioPageIndex = 0;
-  renderFloodScenario(viewModel.floodScenario);
+  renderFloodScenario(viewModel.floodScenario, { isSynthetic: viewModel.isSynthetic });
   renderCollection(
     capabilityRoot,
     viewModel.capabilities,
