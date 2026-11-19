@@ -269,6 +269,45 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
       assert.equal(await evaluate("document.querySelectorAll('#recordList button[aria-pressed=true]').length"),0);
       assert.ok(await evaluate("document.querySelector('#clearMessage').textContent.includes('すべて解除')"));
 
+      // Nonempty search and every original status must survive explicit clear.
+      // Activate the clear control through real Enter, not only DOM click.
+      for (const [filterValue, queryValue, expectedRows] of [
+        ["ALL", "架空", 3], ["UNKNOWN", "施設", 1],
+        ["EXCLUDED", "施設", 1], ["CANDIDATE", "施設", 1], ["ALL", "該当なし", 0]
+      ]) {
+        await evaluate("(()=>{const f=document.querySelector('#fixture');f.value='ready';f.dispatchEvent(new Event('change',{bubbles:true}));const x=document.querySelector('#filter');x.value=" + JSON.stringify(filterValue) + ";x.dispatchEvent(new Event('change',{bubbles:true}));const q=document.querySelector('#query');q.value=" + JSON.stringify(queryValue) + ";q.dispatchEvent(new Event('input',{bubbles:true}))})()");
+        assert.equal(await evaluate("document.querySelectorAll('#recordList button').length"), expectedRows);
+        const baseline = await evaluate("({fixture:document.querySelector('#fixture').value,query:document.querySelector('#query').value,filter:document.querySelector('#filter').value,stats:document.querySelector('#stats').textContent,rows:[...document.querySelectorAll('#recordList article')].map(x=>({name:x.querySelector('h3').textContent,status:x.querySelector('p').textContent}))})");
+        if (expectedRows) await evaluate("document.querySelectorAll('#recordList button')[0].click()");
+        let evidence = null;
+        if (expectedRows > 1) {
+          await evaluate("document.querySelectorAll('#recordList button')[1].click();document.querySelectorAll('#choiceArea button')[1].click()");
+          evidence = await evaluate("document.querySelector('#compareArea').textContent");
+        }
+        await evaluate("document.querySelector('#clearSelection').focus({preventScroll:true})");
+        for (let repeat = 0; repeat < 2; repeat++) {
+          await command("Input.dispatchKeyEvent", {type:"rawKeyDown",key:"Enter",code:"Enter",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
+          await command("Input.dispatchKeyEvent", {type:"char",text:"\r",unmodifiedText:"\r",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
+          await command("Input.dispatchKeyEvent", {type:"keyUp",key:"Enter",code:"Enter",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
+          assert.equal(await evaluate("document.activeElement?.id"), "clearSelection");
+          assert.deepEqual(await evaluate("({fixture:document.querySelector('#fixture').value,query:document.querySelector('#query').value,filter:document.querySelector('#filter').value,stats:document.querySelector('#stats').textContent,rows:[...document.querySelectorAll('#recordList article')].map(x=>({name:x.querySelector('h3').textContent,status:x.querySelector('p').textContent}))})"), baseline);
+          assert.equal(await evaluate("document.querySelectorAll('#recordList button[aria-pressed=true]').length"), 0);
+          assert.equal(await evaluate("document.querySelectorAll('#compareArea article').length"), 0);
+          assert.equal(await evaluate("document.querySelector('#choiceArea').childElementCount"), 0);
+          assert.ok(await evaluate("document.querySelector('#choiceMessage').textContent.includes('なし')"));
+          assert.ok(await evaluate("document.querySelector('#clearMessage').textContent.includes('解除')"));
+        }
+        if (evidence !== null) {
+          await evaluate("document.querySelectorAll('#recordList button')[0].click();document.querySelectorAll('#recordList button')[1].click()");
+          assert.equal(await evaluate("document.querySelector('#compareArea').textContent"), evidence,
+            "Manual re-comparison must preserve synthetic source/reason/UNKNOWN details");
+          assert.equal(await evaluate("document.querySelectorAll('#choiceArea button[aria-pressed=true]').length"), 0);
+        }
+      }
+      await evaluate("(()=>{const f=document.querySelector('#fixture');f.value='ready';f.dispatchEvent(new Event('change',{bubbles:true}))})()");
+      assert.equal(await evaluate("document.querySelectorAll('#recordList button[aria-pressed=true]').length"), 0);
+      console.log("F05_B2_CLEAR_CRITERIA_HTTP: native Enter twice, nonempty search across ALL/UNKNOWN/EXCLUDED/CANDIDATE/zero-match, input/source/status retention PASS");
+
       // Emulated viewport ≠ physical device acceptance.
       for (const [width,height] of [[320,700],[390,844],[1440,900]]) {
         await command("Emulation.setDeviceMetricsOverride",
