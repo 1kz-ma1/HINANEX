@@ -53,7 +53,7 @@ async function serveDemo() {
   return {server, state, base:"http://127.0.0.1:" + server.address().port};
 }
 
-test("F01 real HTTP Chrome: synthetic Scenario paging retains keyboard focus and clears stale states",
+test("F01 real HTTP Chrome: explicit error recovery and synthetic Scenario paging retain keyboard access",
   {timeout:120000}, async t => {
     const bin = browserBinary();
     if (!bin) {
@@ -82,6 +82,38 @@ test("F01 real HTTP Chrome: synthetic Scenario paging retains keyboard focus and
         await command("Input.dispatchKeyEvent", {type:"char",text:"\r",unmodifiedText:"\r",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
         await command("Input.dispatchKeyEvent", {type:"keyUp",key:"Enter",code:"Enter",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
       }
+      const dataRequests = () => state.requests.filter(x=>x.startsWith("/pipeline/data/output/") || x==="/frontend/mock/region-export.json").length;
+      for (const [width, height] of [[320,700], [390,844], [1440,900]]) {
+        await command("Emulation.setDeviceMetricsOverride", {width,height,deviceScaleFactor:1,mobile:false});
+        await evaluate("document.querySelector('#developerSettings').open=false;document.querySelector('.error-card button').focus()");
+        assert.equal(await evaluate("document.querySelector('.error-card button').textContent"), "読み込み設定を開く");
+        assert.ok(await evaluate("document.querySelector('.error-card button').getBoundingClientRect().height>=44"));
+        const beforeOpen = dataRequests();
+        await enter();
+        await evaluate("new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))");
+        assert.ok(await evaluate("document.querySelector('#developerSettings').open && document.activeElement===document.querySelector('#developerSettings > summary')"));
+        assert.equal(dataRequests(), beforeOpen, "Opening settings must not fetch data or silently load demo");
+        assert.equal(await evaluate("document.querySelectorAll('.scenario-facility').length"), 0);
+        assert.ok(await evaluate("document.querySelector('.scenario-feedback--error').textContent.includes('表示できません')"));
+        for (let i=0; i<2; i++) {
+          await command("Input.dispatchKeyEvent", {type:"keyDown",key:"Tab",code:"Tab",windowsVirtualKeyCode:9});
+          await command("Input.dispatchKeyEvent", {type:"keyUp",key:"Tab",code:"Tab",windowsVirtualKeyCode:9});
+        }
+        assert.equal(await evaluate("document.activeElement?.id"), "reloadRegionExport");
+        await enter();
+        await waitUntil(evaluate, "document.querySelector('#sourceStatus').dataset.tone==='error'", "explicit retry failure");
+        assert.equal(dataRequests(), beforeOpen+1, "Only explicit reload may retry the same-origin JSON");
+        assert.ok(!state.requests.includes("/frontend/mock/region-export.json"));
+        assert.equal(await evaluate("document.querySelectorAll('.scenario-facility').length"), 0);
+        assert.ok(await evaluate("document.querySelector('.error-card').scrollWidth-document.querySelector('.error-card').clientWidth<=2"));
+      }
+      console.log("F01_ERROR_RECOVERY_HTTP: native Enter opens settings/focus without fetch, Tab/Enter explicitly retries, HTTP503 stays empty, 320/390/1440px PASS");
+      // Isolate paging from the settings focus/Tab smooth-scroll animation.
+      // A fresh document preserves the existing nonzero-scroll assertion.
+      const previousTimeOrigin = await evaluate("performance.timeOrigin");
+      const reset = await command("Page.navigate", {url:base + "/frontend/"});
+      assert.ok(!reset.errorText, reset.errorText);
+      await waitUntil(evaluate, "performance.timeOrigin!==" + previousTimeOrigin + " && document.readyState==='complete' && document.querySelector('#sourceStatus')?.dataset.tone==='error'", "fresh paging document");
       const ready = "document.querySelectorAll('.scenario-facility').length===20 && document.querySelector('.scenario-pagination')?.textContent.includes('1/3ページ')";
       for (const [width, height] of [[320,700], [390,844], [1440,900]]) {
         await command("Emulation.setDeviceMetricsOverride", {width,height,deviceScaleFactor:1,mobile:false});
