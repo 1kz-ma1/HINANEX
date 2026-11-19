@@ -437,9 +437,19 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
           assert.ok(returned.overflow <= 2, "Return control must not overflow at " + width);
           assert.ok(await evaluate("document.querySelector('#detail h3').textContent==='架空の検証施設" + index + "'"));
         }
+        await evaluate("document.activeElement.click()");
+        await pressKey("Tab");
+        await pressKey("Tab");
+        assert.equal(await evaluate("document.activeElement.textContent"), "データセット全体の出典へ移動");
+        await pressKey("Enter");
+        assert.equal(await evaluate("document.activeElement.id"), "source-title");
+        assert.equal(await evaluate("document.querySelector('#search').value"), "架空");
+        assert.equal(await evaluate("document.querySelector('#results [aria-pressed=true]').dataset.recordId"),
+          await evaluate("window.__f02ReturnButton.dataset.recordId"));
       }
       await command("Emulation.clearDeviceMetricsOverride");
       console.log("F02_RETURN_HTTP: native Tab/Enter returns to latest selected record, visible at 320/390/1440px, query and details unchanged PASS");
+      console.log("F02_SOURCE_NAV_HTTP: native Tab/Enter focuses dataset source heading and preserves query and selection PASS");
 
       await navigate("over-limit", "document.querySelector('#record-count').textContent.includes('D記録 60件')");
       await evaluate("(()=>{const q=document.querySelector('#search');q.value='施設55';q.dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#results .record').click()})()");

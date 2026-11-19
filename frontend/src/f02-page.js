@@ -52,6 +52,9 @@ function renderDetail(record) {
   addDetailField(fields, "施設単位の確認", "正式指定・開設状況・入口・災害適合・安全性は未確認");
   addDetailField(fields, "施設単位の出典対応", "Dataset単位の出典のみを表示します。CSVとDの変換整合性確認は、施設の正式指定・位置・運用状況の承認ではありません");
   detail.append(fields);
+  const sourceLink = create("a", "データセット全体の出典へ移動");
+  sourceLink.href = "#source-title";
+  detail.append(sourceLink);
 }
 function renderSources() {
   sources.replaceChildren();
