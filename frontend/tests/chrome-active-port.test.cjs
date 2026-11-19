@@ -45,6 +45,27 @@ test("Chrome unexpected port I/O error fails immediately without retry", async (
   assert.equal(waits, 0);
 });
 
+test("F02 prototype startup budget accepts a late port and reports a persistent missing file", async () => {
+  let elapsed = 0;
+  const port = await waitForDevToolsPort("synthetic-profile", running(), () => "", {
+    maxAttempts:450,
+    readFile() {
+      if (elapsed < 35000) throw ioError("ENOENT");
+      return "43210\n";
+    },
+    pause:async ms => {elapsed += ms;},
+  });
+  assert.equal(port, 43210);
+  assert.equal(elapsed, 35000);
+
+  elapsed = 0;
+  await assert.rejects(waitForDevToolsPort("synthetic-profile", running(), () => "still starting", {
+    maxAttempts:450, readFile() {throw ioError("ENOENT");},
+    pause:async ms => {elapsed += ms;},
+  }), /DevToolsActivePort after 450 reads: ENOENT/);
+  assert.equal(elapsed, 45000);
+});
+
 test("Chrome exit during startup fails before trusting a stale port file", async () => {
   for (const child of [{exitCode:1,signalCode:null}, {exitCode:null,signalCode:"SIGTERM"}]) {
     await assert.rejects(waitForDevToolsPort("synthetic-profile", child, () => "synthetic early exit", {

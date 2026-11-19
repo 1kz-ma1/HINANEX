@@ -96,7 +96,8 @@ async function launch(bin){
   let stderr="";child.stderr.on("data",x=>{stderr=(stderr+x.toString()).slice(-1500);});
   let ws=null;
   try{
-    const port=await waitForDevToolsPort(profile,child,()=>stderr);
+    // CI has observed slow startup here before DevToolsActivePort is readable.
+    const port=await waitForDevToolsPort(profile,child,()=>stderr,{maxAttempts:450});
     const targets=await(await fetch("http://127.0.0.1:"+port+"/json/list",{signal:AbortSignal.timeout(10000)})).json();
     const page=targets.find(x=>x.type==="page"&&x.webSocketDebuggerUrl);
     if(!page)throw Error("CDP page target missing");
