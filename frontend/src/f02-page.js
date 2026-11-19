@@ -85,6 +85,7 @@ function renderSources() {
     paragraph(box, "Dの資料取得日時: " + valueOrUnknown(src.fetchedAt));
     if (src.url) {
       const link = create("a", "資料URLを開く");
+      link.setAttribute("aria-label", "資料URLを開く（" + src.name + "）");
       link.href = src.url;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
