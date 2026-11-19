@@ -618,7 +618,10 @@ function renderFloodScenario(scenario, pagingAction = null) {
         element("details", {
           className: "scenario-trace",
           children: [
-            element("summary", { text: "公式記録と出典を確認" }),
+            element("summary", {
+              text: "公式記録と出典を確認",
+              attributes: { "aria-label": `公式記録と出典を確認（${row.name}）` },
+            }),
             element("dl", {
               className: "scenario-facts",
               children: [

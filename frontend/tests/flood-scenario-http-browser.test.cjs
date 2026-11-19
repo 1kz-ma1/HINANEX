@@ -146,13 +146,23 @@ test("F01 real HTTP Chrome: explicit error recovery and synthetic Scenario pagin
         assert.equal(await evaluate("document.querySelector('.scenario-pagination button:first-child').disabled"), true);
         assert.ok(await evaluate("document.querySelector('.scenario-pagination').textContent.includes('1/3ページ')"));
         assert.ok(await evaluate("[...document.querySelectorAll('.scenario-facility .status-badge')].every(x=>x.textContent==='D判定：UNKNOWN')"));
-        await evaluate("document.querySelector('.scenario-trace').open=true");
+        const axNodes = (await command("Accessibility.getFullAXTree")).nodes.filter(node => !node.ignored);
+        for (const index of [0, 1]) {
+          const name = "公式記録と出典を確認（架空の洪水確認施設" + index + "）";
+          assert.ok(axNodes.some(node => node.name?.value === name &&
+            node.properties?.some(property => property.name === "expanded" && property.value.value === false)),
+          "A collapsed disclosure must expose the visible label and its own facility name");
+        }
+        await evaluate("document.querySelector('.scenario-trace > summary').focus({preventScroll:true})");
+        await enter();
+        assert.ok(await evaluate("document.querySelector('.scenario-trace').open && document.querySelectorAll('.scenario-trace[open]').length===1 && document.activeElement===document.querySelector('.scenario-trace > summary')"));
         assert.ok(await evaluate("document.querySelector('.scenario-trace').textContent.includes('synthetic_row=1') && document.querySelector('.scenario-trace').textContent.includes('○')"));
         assert.ok(await evaluate("document.querySelector('.scenario-alert').textContent.includes('安全・開設を保証する情報ではありません')"));
         assert.ok(await evaluate("document.querySelector('#floodScenario').scrollWidth-document.querySelector('#floodScenario').clientWidth<=2"));
       }
       await command("Emulation.clearDeviceMetricsOverride");
       console.log("F01_PAGING_HTTP: native Enter, repeated paging, boundary count focus, nonzero scroll, 320/390/1440px, UNKNOWN and trace retained PASS");
+      console.log("F01_TRACE_AX_HTTP: named facility disclosures and native Enter open behavior PASS");
       for (const [mode, condition] of [
         ["empty", "document.querySelector('.scenario-feedback--empty')!==null"],
         ["invalid", "document.querySelector('.scenario-feedback--unsupported')!==null"],
