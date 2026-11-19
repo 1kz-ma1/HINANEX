@@ -31,6 +31,10 @@ F02実HTTP Chrome回帰は、DevToolsActivePortが一時的に未作成/ロッ�
 
 実HTTP ChromeでAX treeのstatus/polite/atomic、検索1件→0件→解除2件、検索欄focus維持、同一件数でのDOM mutationなしを確認する。音声による実際の通知は自動テストでは未確認。**Device QA DEFERRED / #372 DQA-002**、物理Safari/VoiceOver/Android/TalkBackはNOT_RUN。既存合成データのみで試験し、Contract/UNKNOWN/出典/安全・公開ゲートを変更しない。
 
+## 施設詳細から出典へ移動（Issue #445）
+
+施設の選択後、「データセット全体の出典へ移動」リンクで同じページの出典見出しに移動できます。検索語と選択は保持します。出典の範囲はデータセット全体です。資料が確認できない場合は、出典欄に既存の未確認表示が出ます。
+
 ## Implementation paths
 - frontend/f02.html, frontend/f02.css
 - frontend/src/f02-page.js: DOM textContent only, remote/unsafe URL notリンク化
