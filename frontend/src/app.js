@@ -818,6 +818,16 @@ function renderError(error, source = null) {
   generatedAt.textContent = "読込失敗";
   schemaVersion.textContent = "—";
   demoNotice.hidden = true;
+  const openSettings = element("button", {
+    className: "source-button",
+    text: "読み込み設定を開く",
+    attributes: { type: "button", "aria-controls": "developerSettings" },
+  });
+  openSettings.addEventListener("click", () => {
+    const settings = document.querySelector("#developerSettings");
+    settings.open = true;
+    settings.querySelector("summary").focus();
+  });
   summaryRoot.append(
     element("div", {
       className: "error-card",
@@ -828,6 +838,7 @@ function renderError(error, source = null) {
             : "RegionExportを表示できませんでした。",
         }),
         element("span", { text: error.message }),
+        openSettings,
       ],
     }),
   );
