@@ -333,10 +333,13 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
       for (const [width,height] of [[320,700],[390,844],[1440,900]]) {
         await command("Emulation.setDeviceMetricsOverride",
           {width,height,deviceScaleFactor:1,mobile:false});
-        const metrics = await evaluate("({width:innerWidth,overflow:document.documentElement.scrollWidth-innerWidth,minTarget:Math.min(...[...document.querySelectorAll('button,select,input')].map(e=>e.getBoundingClientRect().height))})");
+        const metrics = await evaluate("({width:innerWidth,overflow:document.documentElement.scrollWidth-innerWidth,minTarget:Math.min(...[...document.querySelectorAll('button:not([hidden]),select,input')].map(e=>e.getBoundingClientRect().height))})");
         assert.equal(metrics.width, width, "viewport " + width);
         assert.ok(metrics.overflow <= 2, "horizontal overflow at " + width + ": " + metrics.overflow);
         assert.ok(metrics.minTarget >= 44, "touch target below 44px at " + width);
+        await evaluate("(()=>{const q=document.querySelector('#query');q.value='該当なし';q.dispatchEvent(new Event('input',{bubbles:true}))})()");
+        assert.ok(await evaluate("document.querySelector('#resetCriteria').getBoundingClientRect().height>=44 && document.documentElement.scrollWidth-innerWidth<=2"), "Visible recovery must fit at " + width);
+        await evaluate("document.querySelector('#resetCriteria').click()");
       }
       // Deliberately keep the operated button OFF SCREEN: if focusRow ever
       // calls focus() without preventScroll, this will jump the viewport and
