@@ -122,7 +122,7 @@ if (isB2Loopback(window.location.origin)) {
     detail(dl,"記録上の理由",row.reason);
     detail(dl,"出典ID（合成）",row.sourceId);
     detail(dl,"原文トレース（合成）",row.sourceTrace);
-    detail(dl,"元値（合成）",row.rawValue);
+    detail(dl,"元値（合成）",row.rawValue ?? "合成データに値なし");
     detail(dl,"未確認事項",row.unknowns.join("／"));
     detail(dl,"現在の開設",row.openStatus);
     detail(dl,"安全性","未認定");
