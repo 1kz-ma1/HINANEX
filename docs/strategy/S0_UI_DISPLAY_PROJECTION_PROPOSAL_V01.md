@@ -15,6 +15,8 @@
 
 ## 2. データモデル（候補、全キー必須、追加キー禁止）
 
+**キー数の表記：** 本projectionは**14キー**（`schema_id` 1キー＋表示・検証用13項目）。13項目には画面に直接描画しないフラグ・世代・時刻を含む。`required`と`properties`は14キーで完全一致し、`additionalProperties=false`とする。識別子を除く13項目という数え方と、Schemaの必須キー総数14を混同しない。
+
 | キー | 値 / 根拠 | 承認前の意味 |
 |---|---|---|
 | `schema_id` | 固定 `hinanex.s0.ui_display_projection.review.v0.1` | プロトタイプ用草案の識別子。production Contract番号ではない |
@@ -46,12 +48,12 @@
 
 **状態：D03_DESIGN_ACCEPTED_SCOPED / CONTRACT_ADOPTION_HOLD / IMPLEMENTATION_HOLD**
 
-本節は第3節のfail-closed規則を実行時の責務として補足する**未採用設計案**である。既存13フィールドprojection、S0 `Session/reduce_session/safe_view`、RegionExport、F05を変更しない。新たな正式Session ID、bridge、transport API、製品Contractの採用ではない。
+本節は第3節のfail-closed規則を実行時の責務として補足する**未採用設計案**である。既存14キーprojection（`schema_id` 1キー＋表示・検証用13項目）、S0 `Session/reduce_session/safe_view`、RegionExport、F05を変更しない。新たな正式Session ID、bridge、transport API、製品Contractの採用ではない。
 
 #### 3.1.1 適用範囲とcontroller identity
 
 - 初期適用範囲は**単一画面・単一インメモリcontroller・合成fixture・B read-only**に限定する。別画面/タブへの伝搬、保存、復元、公式データ連携、一般公開は対象外。
-- Dは生存中controllerへ紐付く信頼済み一時bindingを所有し、破棄・再生成時に旧bindingを失効させる。identityは13フィールドへ追加せず、URL・localStorage・ファイルへ保存しない。
+- Dは生存中controllerへ紐付く信頼済み一時bindingを所有し、破棄・再生成時に旧bindingを失効させる。identityは既存14キーprojectionへ追加せず、URL・localStorage・ファイルへ保存しない。
 - `generation`は同一S0 controller内の世代番号であり、controller間で一意とは限らない。**別controllerが同一generationを返した場合でも必ず拒否**する。
 - Bが受け取ったpayload自身をcontroller同一性の証明に使わず、信頼された実行時bindingとDの現在generationを独立に照合する。binding方式・認証・搬送は未決。
 
@@ -95,7 +97,7 @@ Python S0と静的Bの間には**非公開local-only bridge**を初期候補と�
 | D03-02 | Dの時刻権威、D/B時計の安全条件、時刻不明時BLOCKED | 時計検出方法・閾値とその試験 |
 | D03-03 | 状態変更と旧表示失効の順序、通知喪失時fail-closed保証 | 通知の実装方法・要求番号の実現 |
 | D03-04 | unmount/remount、非表示復帰、BFCache、離脱時の破棄条件 | 画面状態管理・イベント処理の配置 |
-| D03-05 | D/B/C合同採用、13フィールド維持、独立試験、公開HOLD | PR分割・QA実施時期 |
+| D03-05 | D/B/C合同採用、既存14キー構成維持（`schema_id`＋13項目）、独立試験、公開HOLD | PR分割・QA実施時期 |
 
 実装段階に委ねるのは手段であり、安全条件の省略ではない。
 
