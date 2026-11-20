@@ -1,0 +1,544 @@
+{
+  "schema_id": "hinanex.c.s0_ui_display_draft_preflight.v0.1",
+  "synthetic_only": true,
+  "fixtures": {
+    "flood": {
+      "fixture_id": "synthetic:ui-flood-001",
+      "region_code": "13123",
+      "hazard": "flood",
+      "observed_at": "2026-11-13T00:00:00Z",
+      "expires_at": "2026-11-13T00:30:00Z",
+      "source_authorization": "SYNTHETIC_TEST_ONLY"
+    },
+    "landslide": {
+      "fixture_id": "synthetic:ui-landslide-002",
+      "region_code": "15100",
+      "hazard": "landslide",
+      "observed_at": "2026-11-13T00:00:00Z",
+      "expires_at": "2026-11-13T00:30:00Z",
+      "source_authorization": "SYNTHETIC_TEST_ONLY"
+    },
+    "future": {
+      "fixture_id": "synthetic:ui-future-003",
+      "region_code": "13123",
+      "hazard": "flood",
+      "observed_at": "2026-11-13T00:10:00Z",
+      "expires_at": "2026-11-13T00:40:00Z",
+      "source_authorization": "SYNTHETIC_TEST_ONLY"
+    }
+  },
+  "cases": [
+    {
+      "id": "normal_initial",
+      "events": [],
+      "issued_at": "2026-11-13T00:00:00Z",
+      "render_at": "2026-11-13T00:00:00Z",
+      "active_generation": 0,
+      "expected": {
+        "status": "PASS",
+        "code": "CONSISTENT_REVIEW_PROJECTION"
+      }
+    },
+    {
+      "id": "region_manual_normal",
+      "events": [
+        {
+          "action": "SELECT_REGION",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123"
+        }
+      ],
+      "issued_at": "2026-11-13T00:05:00Z",
+      "render_at": "2026-11-13T00:05:00Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "PASS",
+        "code": "CONSISTENT_REVIEW_PROJECTION"
+      }
+    },
+    {
+      "id": "active_synthetic_drill",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "fixture": "flood"
+        }
+      ],
+      "issued_at": "2026-11-13T00:00:00Z",
+      "render_at": "2026-11-13T00:05:00Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "PASS",
+        "code": "CONSISTENT_REVIEW_PROJECTION"
+      }
+    },
+    {
+      "id": "drill_end_inclusive_before_expiry",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "fixture": "flood"
+        }
+      ],
+      "issued_at": "2026-11-13T00:05:00Z",
+      "render_at": "2026-11-13T00:29:59Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "PASS",
+        "code": "CONSISTENT_REVIEW_PROJECTION"
+      }
+    },
+    {
+      "id": "drill_expired_at_boundary",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "fixture": "flood"
+        }
+      ],
+      "issued_at": "2026-11-13T00:00:00Z",
+      "render_at": "2026-11-13T00:30:00Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "FAIL",
+        "code": "EXPIRED_DRILL"
+      }
+    },
+    {
+      "id": "drill_notice_tampered",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "fixture": "flood"
+        }
+      ],
+      "issued_at": "2026-11-13T00:05:00Z",
+      "render_at": "2026-11-13T00:05:00Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "FAIL",
+        "code": "DRILL_NOTICE_MISMATCH"
+      },
+      "patch": {
+        "notice": "現在発生した災害です。"
+      }
+    },
+    {
+      "id": "live_verified_forged",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "fixture": "flood"
+        }
+      ],
+      "issued_at": "2026-11-13T00:05:00Z",
+      "render_at": "2026-11-13T00:05:00Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "FAIL",
+        "code": "FALSE_LIVE_ASSERTION"
+      },
+      "patch": {
+        "live_data_verified": true
+      }
+    },
+    {
+      "id": "official_auth_forged",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "fixture": "flood"
+        }
+      ],
+      "issued_at": "2026-11-13T00:05:00Z",
+      "render_at": "2026-11-13T00:05:00Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "FAIL",
+        "code": "NON_SYNTHETIC_SOURCE"
+      },
+      "patch": {
+        "source_authorization": "OFFICIAL_APPROVED"
+      }
+    },
+    {
+      "id": "extra_facility_claim",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "fixture": "flood"
+        }
+      ],
+      "issued_at": "2026-11-13T00:05:00Z",
+      "render_at": "2026-11-13T00:05:00Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "FAIL",
+        "code": "UNREVIEWED_DISPLAY_FIELD"
+      },
+      "patch": {
+        "facility_open": true
+      }
+    },
+    {
+      "id": "stale_generation_after_region_change",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "fixture": "flood"
+        },
+        {
+          "action": "SELECT_REGION",
+          "expected_generation": 1,
+          "at": "2026-11-13T00:05:00Z",
+          "region_code": "15100"
+        }
+      ],
+      "issued_at": "2026-11-13T00:05:00Z",
+      "render_at": "2026-11-13T00:05:00Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "FAIL",
+        "code": "STALE_CONTEXT_GENERATION"
+      }
+    },
+    {
+      "id": "region_change_clears_fixture",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "fixture": "flood"
+        },
+        {
+          "action": "SELECT_REGION",
+          "expected_generation": 1,
+          "at": "2026-11-13T00:05:00Z",
+          "region_code": "15100"
+        }
+      ],
+      "issued_at": "2026-11-13T00:05:00Z",
+      "render_at": "2026-11-13T00:05:00Z",
+      "active_generation": 2,
+      "expected": {
+        "status": "PASS",
+        "code": "CONSISTENT_REVIEW_PROJECTION"
+      }
+    },
+    {
+      "id": "source_failure_clears_fixture",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "fixture": "flood"
+        },
+        {
+          "action": "SOURCE_FAILED",
+          "expected_generation": 1,
+          "at": "2026-11-13T00:05:00Z"
+        }
+      ],
+      "issued_at": "2026-11-13T00:05:00Z",
+      "render_at": "2026-11-13T00:05:00Z",
+      "active_generation": 2,
+      "expected": {
+        "status": "PASS",
+        "code": "CONSISTENT_REVIEW_PROJECTION"
+      }
+    },
+    {
+      "id": "stop_clears_fixture",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "fixture": "flood"
+        },
+        {
+          "action": "STOP_DRILL",
+          "expected_generation": 1,
+          "at": "2026-11-13T00:05:00Z"
+        }
+      ],
+      "issued_at": "2026-11-13T00:05:00Z",
+      "render_at": "2026-11-13T00:05:00Z",
+      "active_generation": 2,
+      "expected": {
+        "status": "PASS",
+        "code": "CONSISTENT_REVIEW_PROJECTION"
+      }
+    },
+    {
+      "id": "hazard_field_replaced",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "fixture": "flood"
+        }
+      ],
+      "issued_at": "2026-11-13T00:05:00Z",
+      "render_at": "2026-11-13T00:05:00Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "FAIL",
+        "code": "S0_VIEW_PROVENANCE_MISMATCH"
+      },
+      "patch": {
+        "hazard": "landslide"
+      }
+    },
+    {
+      "id": "normal_with_drill_data",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "fixture": "flood"
+        }
+      ],
+      "issued_at": "2026-11-13T00:05:00Z",
+      "render_at": "2026-11-13T00:05:00Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "FAIL",
+        "code": "NORMAL_LEAKED_FIXTURE"
+      },
+      "patch": {
+        "mode": "NORMAL"
+      }
+    },
+    {
+      "id": "expired_in_modified_window",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "fixture": "flood"
+        }
+      ],
+      "issued_at": "2026-11-13T00:05:00Z",
+      "render_at": "2026-11-13T00:05:00Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "FAIL",
+        "code": "S0_VIEW_PROVENANCE_MISMATCH"
+      },
+      "patch": {
+        "expires_at": "2026-11-13T00:40:00Z"
+      }
+    },
+    {
+      "id": "future_issue_timestamp",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "fixture": "flood"
+        }
+      ],
+      "issued_at": "2026-11-13T00:05:00Z",
+      "render_at": "2026-11-13T00:00:00Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "FAIL",
+        "code": "FUTURE_ISSUE"
+      }
+    },
+    {
+      "id": "invalid_timestamp",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "fixture": "flood"
+        }
+      ],
+      "issued_at": "2026-11-13T00:05:00Z",
+      "render_at": "2026-11-13T00:05:00Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "BLOCKED",
+        "code": "INVALID_TIMESTAMP"
+      },
+      "patch": {
+        "expires_at": "2026-11-13T00:30:00"
+      }
+    },
+    {
+      "id": "missing_required_field",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "fixture": "flood"
+        }
+      ],
+      "issued_at": "2026-11-13T00:05:00Z",
+      "render_at": "2026-11-13T00:05:00Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "BLOCKED",
+        "code": "MISSING_DISPLAY_FIELD"
+      },
+      "remove": [
+        "notice"
+      ]
+    },
+    {
+      "id": "normal_leaking_drill",
+      "events": [
+        {
+          "action": "STOP_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z"
+        }
+      ],
+      "issued_at": "2026-11-13T00:00:00Z",
+      "render_at": "2026-11-13T00:00:00Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "FAIL",
+        "code": "NORMAL_LEAKED_FIXTURE"
+      },
+      "patch": {
+        "fixture_id": "synthetic:ui-flood-001"
+      }
+    },
+    {
+      "id": "mismatched_fixture_start_denied",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "15100",
+          "fixture": "flood"
+        }
+      ],
+      "issued_at": "2026-11-13T00:00:00Z",
+      "render_at": "2026-11-13T00:00:00Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "PASS",
+        "code": "CONSISTENT_REVIEW_PROJECTION"
+      }
+    },
+    {
+      "id": "future_fixture_start_denied",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "fixture": "future"
+        }
+      ],
+      "issued_at": "2026-11-13T00:00:00Z",
+      "render_at": "2026-11-13T00:00:00Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "PASS",
+        "code": "CONSISTENT_REVIEW_PROJECTION"
+      }
+    },
+    {
+      "id": "preferred_region_not_exposed",
+      "events": [
+        {
+          "action": "SET_PREFERRED_REGION",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "explicit_consent": true
+        }
+      ],
+      "issued_at": "2026-11-13T00:00:00Z",
+      "render_at": "2026-11-13T00:00:00Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "PASS",
+        "code": "CONSISTENT_REVIEW_PROJECTION"
+      }
+    },
+    {
+      "id": "issued_at_rewritten_within_valid_window",
+      "events": [
+        {
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "at": "2026-11-13T00:00:00Z",
+          "region_code": "13123",
+          "fixture": "flood"
+        }
+      ],
+      "issued_at": "2026-11-13T00:00:00Z",
+      "render_at": "2026-11-13T00:05:00Z",
+      "active_generation": 1,
+      "expected": {
+        "status": "FAIL",
+        "code": "ISSUED_AT_MISMATCH"
+      },
+      "patch": {
+        "issued_at": "2026-11-13T00:05:00Z"
+      }
+    },
+    {
+      "id": "device_ui_not_executed",
+      "events": [],
+      "issued_at": "2026-11-13T00:00:00Z",
+      "render_at": "2026-11-13T00:00:00Z",
+      "active_generation": 0,
+      "expected": {
+        "status": "NOT_RUN",
+        "code": "EXPLICITLY_DISABLED"
+      },
+      "run": false
+    }
+  ]
+}
