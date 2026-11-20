@@ -148,19 +148,6 @@ test("F01 real HTTP Chrome: explicit error recovery and synthetic Scenario pagin
         await enter();
         assert.equal(await evaluate("document.querySelector('.scenario-pagination').textContent"), lastText,
           "Enter on page count must not reverse the user's paging direction");
-        const beforeJump = dataRequests();
-        await tab();
-        assert.equal(await evaluate("document.activeElement.textContent"), "このページの施設一覧の先頭へ");
-        assert.ok(await evaluate("document.activeElement.getBoundingClientRect().height>=44"));
-        await enter();
-        assert.deepEqual(await evaluate("({active:document.activeElement.id, name:document.activeElement.textContent})"),
-          {active:"floodScenarioFirstResult", name:"架空の洪水確認施設40"});
-        await waitUntil(evaluate, "(()=>{const box=document.activeElement.getBoundingClientRect();return box.top>=document.querySelector('.site-header').getBoundingClientRect().bottom&&box.bottom<=innerHeight})()",
-          "first result in view below the sticky header at " + width);
-        await tab();
-        assert.ok(await evaluate("document.activeElement===document.querySelector('.scenario-trace > summary')"));
-        assert.equal(await evaluate("document.querySelector('.scenario-pagination').textContent"), lastText);
-        assert.equal(dataRequests(), beforeJump, "In-page jump must not load data again");
         await evaluate("document.querySelector('.scenario-pagination button:first-child').focus({preventScroll:true})");
         await enter();
         assert.equal(await evaluate("document.activeElement===document.querySelector('.scenario-pagination button:first-child')"), true);
@@ -184,6 +171,30 @@ test("F01 real HTTP Chrome: explicit error recovery and synthetic Scenario pagin
         assert.ok(await evaluate("[...document.querySelectorAll('.scenario-trace dt')].some(dt => dt.textContent === '合成セルの値' && dt.nextElementSibling.textContent === '○')"));
         assert.ok(await evaluate("document.querySelector('.scenario-alert').textContent.includes('安全・開設を保証する情報ではありません')"));
         assert.ok(await evaluate("document.querySelector('#floodScenario').scrollWidth-document.querySelector('#floodScenario').clientWidth<=2"));
+      }
+      // Exercise deliberate scrolling after the nonzero scroll-preservation assertions.
+      for (const [width, height] of [[320,700], [390,844], [1440,900]]) {
+        await command("Emulation.setDeviceMetricsOverride", {width,height,deviceScaleFactor:1,mobile:false});
+        await load("ready", ready);
+        await evaluate("document.querySelector('.scenario-pagination button:last-child').focus({preventScroll:true})");
+        await enter();
+        await enter();
+        assert.equal(await evaluate("document.activeElement===document.querySelector('.scenario-pagination > span')"), true);
+        const lastText = await evaluate("document.querySelector('.scenario-pagination').textContent");
+        assert.ok(lastText.includes("3/3ページ"));
+        const beforeJump = dataRequests();
+        await tab();
+        assert.equal(await evaluate("document.activeElement.textContent"), "このページの施設一覧の先頭へ");
+        assert.ok(await evaluate("document.activeElement.getBoundingClientRect().height>=44"));
+        await enter();
+        assert.deepEqual(await evaluate("({active:document.activeElement.id, name:document.activeElement.textContent})"),
+          {active:"floodScenarioFirstResult", name:"架空の洪水確認施設40"});
+        await waitUntil(evaluate, "(()=>{const box=document.activeElement.getBoundingClientRect();return box.top>=document.querySelector('.site-header').getBoundingClientRect().bottom&&box.bottom<=innerHeight})()",
+          "first result in view below the sticky header at " + width);
+        await tab();
+        assert.ok(await evaluate("document.activeElement===document.querySelector('.scenario-trace > summary')"));
+        assert.equal(await evaluate("document.querySelector('.scenario-pagination').textContent"), lastText);
+        assert.equal(dataRequests(), beforeJump, "In-page jump must not load data again");
       }
       await command("Emulation.clearDeviceMetricsOverride");
       console.log("F01_PAGING_HTTP: native Enter, repeated paging, boundary count focus, nonzero scroll, 320/390/1440px, UNKNOWN and trace retained PASS");
