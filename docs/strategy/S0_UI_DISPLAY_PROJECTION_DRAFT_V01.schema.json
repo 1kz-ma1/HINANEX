@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DRAFT ONLY S0 synthetic UI display projection (NOT ADOPTED)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "review_only",
+    "synthetic_only",
+    "mode",
+    "generation",
+    "selected_region",
+    "fixture_id",
+    "hazard",
+    "source_authorization",
+    "notice",
+    "live_data_verified",
+    "issued_at",
+    "observed_at",
+    "expires_at"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "hinanex.s0.ui_display_projection.review.v0.1"
+    },
+    "review_only": {
+      "const": true
+    },
+    "synthetic_only": {
+      "const": true
+    },
+    "mode": {
+      "enum": [
+        "NORMAL",
+        "DRILL"
+      ]
+    },
+    "generation": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "selected_region": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[0-9]{5}$"
+        }
+      ]
+    },
+    "fixture_id": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:-]{1,80}$"
+        }
+      ]
+    },
+    "hazard": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,39}$"
+        }
+      ]
+    },
+    "source_authorization": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "const": "SYNTHETIC_TEST_ONLY"
+        }
+      ]
+    },
+    "notice": {
+      "type": "string"
+    },
+    "live_data_verified": {
+      "const": false
+    },
+    "issued_at": {
+      "type": "string"
+    },
+    "observed_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "expires_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "NORMAL"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "fixture_id": {
+            "type": "null"
+          },
+          "hazard": {
+            "type": "null"
+          },
+          "source_authorization": {
+            "type": "null"
+          },
+          "observed_at": {
+            "type": "null"
+          },
+          "expires_at": {
+            "type": "null"
+          },
+          "notice": {
+            "const": "通常モードです。現在の災害や避難所の開設状態を確認したものではありません。"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "DRILL"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "selected_region": {
+            "type": "string",
+            "pattern": "^[0-9]{5}$"
+          },
+          "fixture_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._:-]{1,80}$"
+          },
+          "hazard": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,39}$"
+          },
+          "source_authorization": {
+            "const": "SYNTHETIC_TEST_ONLY"
+          },
+          "observed_at": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "notice": {
+            "const": "訓練・模擬情報です。現在発生している災害、施設の開設や安全性を示しません。"
+          }
+        }
+      }
+    }
+  ]
+}
