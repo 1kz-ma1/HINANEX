@@ -2,6 +2,7 @@ import { createRegionExportController } from "./region-export-loader.js";
 import { buildF02ShelterReference, searchF02Facilities } from "./f02-shelter-reference.js";
 
 const search = document.getElementById("search");
+const clearSearch = document.getElementById("clear-search");
 const results = document.getElementById("results");
 const detail = document.getElementById("detail");
 const sources = document.getElementById("sources");
@@ -98,6 +99,7 @@ function renderSources() {
 }
 function renderList() {
   results.replaceChildren();
+  clearSearch.hidden = true;
   if (!reference || reference.state !== "READY") return;
   const matches = searchF02Facilities(reference.records, search.value);
   const shown = matches.slice(0, 50);
@@ -115,6 +117,7 @@ function renderList() {
     selectedId = null;
     status.textContent = "検索に一致する記録はありません。Datasetの未収録や通信障害とは異なります。";
     clearDetail();
+    clearSearch.hidden = false;
     return;
   }
   status.textContent = "Dの掲載記録を表示しています。施設の安全性や開設中を意味しません。";
@@ -151,6 +154,7 @@ function setFailure(message) {
   selectedId = null;
   search.disabled = true;
   search.value = "";
+  clearSearch.hidden = true;
   results.replaceChildren();
   sources.replaceChildren();
   count.textContent = "";
@@ -182,6 +186,12 @@ const controller = createRegionExportController({
   },
 });
 search.addEventListener("input", renderList);
+clearSearch.addEventListener("click", () => {
+  if (clearSearch.hidden) return;
+  search.value = "";
+  renderList();
+  search.focus();
+});
 returnToRecord.addEventListener("click", () => {
   const target = [...results.querySelectorAll(".record")]
     .find(button => button.dataset.recordId === selectedId);

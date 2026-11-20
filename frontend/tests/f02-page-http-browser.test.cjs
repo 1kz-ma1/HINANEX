@@ -370,8 +370,16 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
         "Zero matches must remove the stale return action");
       // Regression: a selected facility must not silently reappear as pressed
       // after no-match search clears its details and the query is reset.
-      assert.ok(await evaluate("(()=>{const q=document.querySelector('#search');q.value='';q.dispatchEvent(new Event('input',{bubbles:true}));return [...document.querySelectorAll('#results .record')].every(b=>b.getAttribute('aria-pressed')==='false') && document.querySelector('#detail').innerText.includes('施設を選択してください')})()"),
+      await evaluate("document.querySelector('#search').focus()");
+      await pressKey("Tab");
+      assert.equal(await evaluate("document.activeElement.id"), "clear-search");
+      assert.ok(await evaluate("document.activeElement.getBoundingClientRect().height>=44"));
+      await pressKey("Enter");
+      assert.deepEqual(await evaluate("({focus:document.activeElement.id,query:document.querySelector('#search').value,hidden:document.querySelector('#clear-search').hidden,records:document.querySelectorAll('#results .record').length})"),
+        {focus:"search",query:"",hidden:true,records:2});
+      assert.ok(await evaluate("[...document.querySelectorAll('#results .record')].every(b=>b.getAttribute('aria-pressed')==='false') && document.querySelector('#detail').innerText.includes('施設を選択してください')"),
         "Clearing a zero-match search must not restore stale selected/pressed state");
+      console.log("F02_SEARCH_RECOVERY_HTTP: native Tab/Enter clears a zero-match query, restores results and focuses search PASS");
       assert.ok(await evaluate("(()=>{const q=document.querySelector('#search');q.value='';q.dispatchEvent(new Event('input',{bubbles:true}));document.querySelectorAll('#results .record')[1].click();return document.querySelector('#detail').innerText.includes('○ / －') && document.querySelector('#detail').innerText.includes('敷地・入口・指定範囲は未承認')})()"));
       console.log("F02_CONSUMER_HTTP: NFKC search, focus, raw symbols, unknown fields, no-results PASS");
 
@@ -481,9 +489,11 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
         "Narrowing the search again must not restore an old selection");
 
       await navigate("empty", "document.querySelector('#load-state')?.innerText.includes('記録は0件です')");
+      assert.ok(await evaluate("document.querySelector('#clear-search').hidden"));
       assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true);
       assert.equal(await evaluate("document.querySelectorAll('#results .record').length"), 0);
       await navigate("missing", "document.querySelector('#load-state')?.innerText.includes('Datasetが収録されていません')");
+      assert.ok(await evaluate("document.querySelector('#clear-search').hidden"));
       assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true);
       assert.equal(await evaluate("document.querySelector('#search').disabled"), true);
       await navigate("bad-region", "document.querySelector('#load-state')?.innerText.includes('RegionExportを表示できません')");
@@ -491,6 +501,7 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       await navigate("bad-contract", "document.querySelector('#load-state')?.innerText.includes('coordinates')");
       assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true);
       await navigate("http-error", "document.querySelector('#load-state')?.innerText.includes('HTTP 503')");
+      assert.ok(await evaluate("document.querySelector('#clear-search').hidden"));
       assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true);
       if (realOutput !== null) {
         assert.ok(Number.isInteger(expectedRealRecords) && expectedRealRecords > 0,
