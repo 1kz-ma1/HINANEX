@@ -180,6 +180,14 @@ function setFailure(message, canRetry = false) {
   }
 }
 const controller = createRegionExportController({
+  async fetchImpl(url, options) {
+    try {
+      return await fetch(url, options);
+    } catch (error) {
+      if (error?.name === "AbortError") throw error;
+      throw new RegionExportLoadError("RegionExportの取得先に接続できませんでした", { cause: error });
+    }
+  },
   onLoading() {
     if (!retryLoad.hidden) retryLoad.setAttribute("aria-disabled", "true");
     status.classList.remove("error");
