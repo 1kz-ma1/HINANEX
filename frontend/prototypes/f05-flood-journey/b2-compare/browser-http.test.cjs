@@ -374,7 +374,30 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
         await evaluate("(()=>{const q=document.querySelector('#query');q.value='該当なし';q.dispatchEvent(new Event('input',{bubbles:true}))})()");
         assert.ok(await evaluate("document.querySelector('#resetCriteria').getBoundingClientRect().height>=44 && document.documentElement.scrollWidth-innerWidth<=2"), "Visible recovery must fit at " + width);
         await evaluate("document.querySelector('#resetCriteria').click()");
+        await evaluate("document.querySelectorAll('#recordList button')[0].click();document.querySelectorAll('#recordList button')[1].click()");
+        const evidenceLayout = await evaluate(`[...document.querySelectorAll('#compareArea article')].map(card =>
+          [...card.querySelectorAll('dt')]
+            .filter(term => ['出典ID（合成）', '原文トレース（合成）', '未確認事項'].includes(term.textContent))
+            .map(term => {
+              const value = term.nextElementSibling;
+              const labelBox = term.getBoundingClientRect();
+              const valueBox = value.getBoundingClientRect();
+              return {label:term.textContent, text:value.textContent, stacked:valueBox.top>=labelBox.bottom && valueBox.left===labelBox.left,
+                sideBySide:valueBox.top===labelBox.top && valueBox.left>=labelBox.right};
+            })
+        )`);
+        assert.equal(evidenceLayout.length, 2, "Evidence cards at " + width);
+        for (const fields of evidenceLayout) {
+          assert.deepEqual(fields.map(field=>field.label), ["出典ID（合成）","原文トレース（合成）","未確認事項"]);
+          for (const field of fields) {
+            assert.ok(field.text.trim(), field.label + " is empty at " + width);
+            assert.ok(width <= 420 ? field.stacked : field.sideBySide, field.label + " layout at " + width);
+          }
+        }
+        assert.ok(await evaluate("document.documentElement.scrollWidth-innerWidth<=2"), "Comparison evidence must fit at " + width);
+        await evaluate("document.querySelector('#clearSelection').click()");
       }
+      console.log("F05_B2_EVIDENCE_LAYOUT_HTTP: two evidence cards fit 320/390/1440px with labels above values on narrow screens PASS");
       // Deliberately keep the operated button OFF SCREEN: if focusRow ever
       // calls focus() without preventScroll, this will jump the viewport and
       // fail.  A real nonzero scroll offset + short viewport avoids a vacuous
