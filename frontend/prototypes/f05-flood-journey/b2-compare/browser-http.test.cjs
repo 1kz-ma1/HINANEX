@@ -194,16 +194,27 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
       assert.equal(await evaluate("document.querySelector('#safetyNotice').textContent.includes('訓練用の完全な合成データ')"), true);
       assert.ok(await evaluate("document.querySelector('#stats').textContent.includes('合成総数 3件')"));
       assert.ok(await evaluate("document.querySelector('#recordList').textContent.includes('UNKNOWN')"));
+      assert.ok(await evaluate("document.querySelector('#openComparison').hidden"));
 
       // Two distinct records, unpromoted UNKNOWN, evidence trace and explicit choice.
       await evaluate("document.querySelectorAll('#recordList button')[0].click()");
       assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,pressed:document.activeElement?.getAttribute('aria-pressed'),name:document.activeElement?.getAttribute('aria-label')})"),
         {id:"fake-a",pressed:"true",name:"架空施設Aを比較から外す"}, "Focus and accessible action name after adding A");
+      assert.ok(await evaluate("document.querySelector('#openComparison').hidden && document.querySelector('#compareMessage').textContent.includes('もう1件')"));
       await evaluate("document.querySelectorAll('#recordList button')[1].click()");
       assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,pressed:document.activeElement?.getAttribute('aria-pressed'),name:document.activeElement?.getAttribute('aria-label')})"),
         {id:"fake-b",pressed:"true",name:"架空施設Bを比較から外す"}, "Focus stays on B after adding second record");
       assert.equal(await evaluate("document.querySelectorAll('#recordList button[aria-pressed=true]').length"), 2);
       assert.equal(await evaluate("document.querySelectorAll('#recordList button')[2].disabled"), true);
+      assert.equal(await evaluate("document.querySelectorAll('#compareArea article').length"), 2);
+      await command("Input.dispatchKeyEvent", {type:"keyDown",key:"Tab",code:"Tab",windowsVirtualKeyCode:9});
+      await command("Input.dispatchKeyEvent", {type:"keyUp",key:"Tab",code:"Tab",windowsVirtualKeyCode:9});
+      assert.equal(await evaluate("document.activeElement.id"), "openComparison");
+      assert.ok(await evaluate("document.activeElement.getBoundingClientRect().height>=44"));
+      await command("Input.dispatchKeyEvent", {type:"rawKeyDown",key:"Enter",code:"Enter",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
+      await command("Input.dispatchKeyEvent", {type:"char",text:"\r",unmodifiedText:"\r",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
+      await command("Input.dispatchKeyEvent", {type:"keyUp",key:"Enter",code:"Enter",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
+      assert.equal(await evaluate("document.activeElement.id"), "compareTitle");
       assert.equal(await evaluate("document.querySelectorAll('#compareArea article').length"), 2);
       assert.ok(await evaluate("document.querySelector('#compareArea').textContent.includes('合成区分：UNKNOWN')"));
       assert.ok(await evaluate("document.querySelector('#compareArea').textContent.includes('fixture_row=2')"));
@@ -231,6 +242,7 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
       assert.equal(await evaluate("document.querySelectorAll('#recordList button[aria-pressed=true]').length"),0);
       assert.equal(await evaluate("document.querySelectorAll('#compareArea article').length"),0);
       assert.equal(await evaluate("document.querySelector('#choiceArea').childElementCount"),0);
+      assert.ok(await evaluate("document.querySelector('#openComparison').hidden"));
       assert.ok(await evaluate("document.querySelector('#choiceMessage').textContent.includes('なし')"));
       assert.ok(await evaluate("document.querySelector('#clearMessage').textContent.includes('すべて解除しました')"));
       assert.equal(await evaluate("document.querySelector('#filter').value"),"ALL");
@@ -278,7 +290,9 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
         assert.equal(await evaluate("document.querySelectorAll('#choiceArea button').length"), 0, mode);
         assert.equal(await evaluate("document.querySelector('#query').disabled"), true, mode);
         assert.equal(await evaluate("document.querySelector('#resetCriteria').hidden"), true, mode);
+        assert.equal(await evaluate("document.querySelector('#openComparison').hidden"), true, mode);
       }
+      console.log("F05_B2_COMPARE_NAV_HTTP: native Tab/Enter reaches comparison heading only when two records are selected PASS");
       console.log("F05_B2_ZERO_MATCH_HTTP: native Tab/Enter restores criteria, list and query focus only for filtered zero matches PASS");
       await evaluate("(()=>{const x=document.querySelector('#fixture');x.value='ready';x.dispatchEvent(new Event('change',{bubbles:true}))})()");
       assert.equal(await evaluate("document.querySelectorAll('#recordList button[aria-pressed=true]').length"), 0);
