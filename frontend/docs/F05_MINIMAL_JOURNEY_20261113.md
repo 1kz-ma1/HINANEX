@@ -69,3 +69,14 @@
 - **前回HEADのCI（履歴）：** [`da5f0b4...` required test SUCCESS #44678596404](https://github.com/1kz-ma1/HINANEX/actions/runs/44678596404)：Frontend 133/133、GIS Node 39/39、Deploy 21/21、F02/B2 Chrome CI・Scope Guard等PASS。**本追補コミットの最終HEADでrequired testを改めて照合**すること。
 - **非公開：** `deploy/build_staging.py` のF05/B1モデル・ページ・テスト・文書、および `prototypes/f05-flood-journey/**`（B2含む）の除外は維持。コード統合後の実Render LIVE非配信（Issue #373）、iOS/Android/Safari・読上げ（Issue #372）、CSV権利/実施設承認（Issue #366）は別ゲート、**NOT_VERIFIED / NO-GO**。
 - **現在の統合準備判定：** `CAPTAIN_REVIEW_CANDIDATE_WITH_OPEN_EVIDENCE / MERGE_HOLD`。人間Merge Captain本人が、独立B1 Chrome未実施の残余リスクをHOLD/DEFERRED/必要追加証拠として明示決定するまで`MERGE`の代理承認はしない。PRはDraft・`merge: blocked`を維持。
+
+## 2026-11-20 追加追補：GitHub Actionsの独立B1実HTTP Chrome受入
+
+> 直前節の `NOT_RUN` は、管理ポリシーにより遮断された**隔離ローカル環境での試行結果**です。以下はそれとは別に、実Chromeを利用できるGitHub Actionsで独立に実行した**新しい受入証拠**です。どちらの履歴も保持します。
+
+- **対象と証拠：** B1専用の `frontend/tests/f05-journey-http-browser.test.cjs` をB担当内に追加。B1の既存 `index.html`・`f05-journey-model.js`・`f05-journey.test.js` は無変更。[PR #371 HEAD `74bea898b95ef5638cab74726161f70810a3ddce` のrequired `test` run #44681513822](https://github.com/1kz-ma1/HINANEX/actions/runs/44681513822)：**COMPLETED / SUCCESS**。
+- **B1 Chrome実HTTP：PASS。** 実B1 HTML・ESMをloopback HTTP配信し、320/390/1440pxで未選択→江戸川区13123本人選択→F02リンク生成→解除時href削除、F01/F02の手動経路、native Tab/Enter、横はみ出しなし、端末保存なし、ページ例外なし、外部自動リクエスト0件を検証。
+- **Origin拒否：** 127.0.0.2の**許可リスト外ループバック別名**へのHTTPアクセスから、江戸川区選択後もF02リンクが生成されないことを実ChromeでPASS。通常の非loopback公開ドメインに置いた実Chrome操作は**NOT_RUN**（既存のB1 Nodeテストでは公開origin拒否をPASS）。
+- **対象外：** F01/F02クリック先は**QA用のHTTP応答（QA_STUB）**であり、実GIS・F02本体データの受入ではない。CIのChrome操作に独立HAR/スクリーンショット添付なし。物理Android/iOS/Safari/読上げ・Render LIVEの実ソース非配信・実施設権利/安全/公開は別ゲート。
+- **全体回帰：** 同一HEADでFrontend **134/134 PASS（fail 0 / skip 0）**、GIS Node **39/39 PASS**、Deploy staging **21/21 PASS**、Scope Guard・Frontend lint/build・契約照合もPASS。
+- **統合審査：** `B1_HTTP_CHROME_CI_PASS_SCOPED / CAPTAIN_REVIEW_CANDIDATE_SCOPED / MERGE_HOLD / PUBLICATION_NO_GO`。この文書追補後の**新HEAD**でもrequired `test` と最新main追従状態を再照合すること。人間Merge Captainによる別のMERGE/HOLD決裁は未実施。
