@@ -11,6 +11,9 @@ const mapCode = fs.readFileSync(path.join(root, "map.js"), "utf8");
 const discoveryCode = fs.readFileSync(path.join(root, "flood_discovery.js"), "utf8");
 const referenceCode = fs.readFileSync(path.join(root, "reference_data.js"), "utf8");
 
+// F13 extends the existing F01 regression; keep the required GIS gate wired.
+require("./hazard_information.test.js");
+
 // Ensure the independent REAL-browser predeploy smoke remains syntactically
 // runnable and follows the current GIS consumer copy after white-card changes.
 // Chromium itself is deliberately NOT implied by this static CI validation.
@@ -1099,10 +1102,10 @@ nagoya.scenarios = [{
   assert.match(pageSource, /id="uiTabScenario"[^>]*role="tab"/);
   assert.match(pageSource, /id="gisLayout"[^>]*role="tabpanel"/);
   assert.match(pageSource, /current_theme[.]css[?]v=gis-facility-drawer-20261009-v6/);
-  assert.match(pageSource, /map_first[.]css[?]v=mobile-quiet-map-20261023-v1/);
+  assert.match(pageSource, /map_first[.]css[?]v=f13-evidence-20261118-v1/);
   assert.match(pageSource, /place_card[.]css[?]v=zoom-compact-popup-20261014-v1/);
   assert.match(pageSource,/id="mapFloodRefreshStatus"/);
-  assert.match(pageSource,/map_first[.]css[?]v=mobile-quiet-map-20261023-v1/);
+  assert.match(pageSource,/map_first[.]css[?]v=f13-evidence-20261118-v1/);
   const floodCss=fs.readFileSync(path.resolve(__dirname,"../gis/css/map_first.css"),"utf8");
   assert.match(floodCss,/\.map-flood-refresh-status\[hidden\]\{display:none\}/);
   assert.match(floodCss,/pointer-events:none/);
@@ -2910,7 +2913,7 @@ nagoya.scenarios = [{
   assert.match(page, /js\/audience_share[.]js[?]v=edogawa-local-compare-20261021-v1/);
   assert.match(page, /id="mapEdogawaCompareOpen"/);
   assert.match(page, /id="edogawaComparePanel"[^>]*hidden/);
-  assert.match(page, /css\/map_first[.]css[?]v=mobile-quiet-map-20261023-v1/);
+  assert.match(page, /css\/map_first[.]css[?]v=f13-evidence-20261118-v1/);
   assert.match(styles, /\.map-share-panel\[hidden\],\.map-audience-intro\[hidden\]\{display:none\}/);
   assert.match(shareSource, /const AUDIENCE_URL = "https:\/\/hinanex-staging\.onrender\.com\/gis\/gis\/\?demo=audience"/);
   assert.doesNotMatch(shareSource, /geolocation|getCurrentPosition|flyTo|map\.setView|fetch\(|sendBeacon|XMLHttpRequest|<iframe/);
@@ -3164,7 +3167,7 @@ nagoya.scenarios = [{
   assert.match(html, /id="mapEvidenceOpen"[^>]*aria-controls="mapEvidencePanel"/);
   assert.match(html, /id="mapEvidencePanel"[^>]*hidden/);
   assert.match(html, /js\/evidence_sheet[.]js[?]v=evidence-sheet-20261010-v1/);
-  assert.match(html, /css\/map_first[.]css[?]v=mobile-quiet-map-20261023-v1/);
+  assert.match(html, /css\/map_first[.]css[?]v=f13-evidence-20261118-v1/);
   assert.match(html, /地域の避難施設と国土地理院の公式掲載地点は別情報源/);
   assert.match(style, /\.map-evidence-panel\[hidden\]\{display:none\}/);
   assert.doesNotMatch(source, /fetch\(|getCurrentPosition|geolocation|setView\(|flyTo|sendBeacon/);

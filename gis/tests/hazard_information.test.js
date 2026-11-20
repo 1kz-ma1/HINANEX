@@ -12,9 +12,15 @@ for (const name of ["hazardGuideOpen", "hazardGuideClose", "hazardGuidePanel",
   assert.equal((html.match(new RegExp('id="' + name + '"', "g")) || []).length, 1,
     "F01 control must exist exactly once: " + name);
 }
-assert.match(html, /js\/hazard_information\.js\?v=f01-flood-20261104-v1/);
+assert.match(html, /js\/hazard_information\.js\?v=f13-evidence-20261118-v1/);
 assert.match(css, /\.hazard-guide-panel\[hidden\]\{display:none\}/);
 assert.match(html, /disaportal\.gsi\.go\.jp/);
+for (const label of ["対象情報", "出典・根拠", "情報時点", "対象外の判定", "未確認事項"]) {
+  assert.match(html, new RegExp("<dt>" + label + "</dt>"), "F13 visible source field: " + label);
+}
+assert.match(html, /未取得・通信失敗・無着色を「対象外」や「安全」と解釈しません/);
+assert.match(html, /hazardGuideStatus"[^>]*aria-atomic="true"/);
+assert.match(css, /@media\(max-width:350px\)/);
 assert.match(html, /施設を選択せずに/);
 assert.match(html, /aria-label="この洪水画像で確認できる情報の範囲"/);
 assert.match(html, /元図面の作成年・改訂日を特定できません/);
@@ -60,7 +66,13 @@ const document = {
   addEventListener(type, fn) { (this.events[type] ||= []).push(fn); },
   emit(type, event) { for (const fn of this.events[type] || []) fn(event); }
 };
-const ctx = {document, Event, console};
+let fireMutation;
+const ctx = {document, Event, console,
+  MutationObserver: class {
+    constructor(fn) { fireMutation = fn; }
+    observe() {}
+  }
+};
 vm.createContext(ctx);
 vm.runInContext(script, ctx, {filename: "hazard_information.js"});
 
@@ -79,6 +91,7 @@ nodes.hazardGuideRegion.value = "15100";
 nodes.hazardGuideRegion.dispatchEvent({type:"change"});
 assert.equal(nodes.region.value, "15100");
 assert.deepEqual(selected, ["15100"]);
+assert.match(nodes.hazardGuideStatus.textContent, /地域切替後.*以前の表示範囲/);
 nodes.region.value = "23100";
 nodes.region.dispatchEvent({type:"change"});
 assert.equal(nodes.hazardGuideRegion.value, "23100");
@@ -101,10 +114,47 @@ assert.match(nodes.hazardGuideStatus.textContent, /更新中/);
 nodes.mapFloodRefreshStatus.dataset.state = "partial";
 nodes.officialFlood.dispatchEvent({type:"change"});
 assert.match(nodes.hazardGuideStatus.textContent, /取得失敗/);
+assert.match(nodes.hazardGuideStatus.textContent, /通信失敗・配信対象外.*原因は未確認/);
 nodes.mapFloodRefreshStatus.dataset.state = "";
 nodes.mapRasterBanner.dataset.partial = "true";
 nodes.officialFlood.dispatchEvent({type:"change"});
 assert.match(nodes.hazardGuideStatus.textContent, /過去の閲覧範囲/);
+
+// F13: an old tile error must not be presented as the new region's outcome.
+nodes.mapRasterBanner.dataset.partial = "false";
+nodes.externalFloodTileNotice.hidden = true;
+nodes.mapFloodRefreshStatus.dataset.state = "partial";
+nodes.officialFlood.dispatchEvent({type:"change"});
+assert.match(nodes.hazardGuideStatus.textContent, /画像取得失敗/);
+nodes.region.value = "13123";
+nodes.region.dispatchEvent({type:"change"});
+assert.match(nodes.hazardGuideStatus.textContent, /地域切替後/);
+assert.doesNotMatch(nodes.hazardGuideStatus.textContent, /画像取得失敗を検知しました/);
+// Late old-area loading and partial callbacks cannot clear the region guard.
+nodes.mapFloodRefreshStatus.dataset.state = "loading";
+fireMutation([{target:nodes.mapFloodRefreshStatus,type:"attributes",attributeName:"data-state"}]);
+assert.match(nodes.hazardGuideStatus.textContent, /地域切替後/);
+nodes.mapFloodRefreshStatus.dataset.state = "partial";
+fireMutation([{target:nodes.mapFloodRefreshStatus,type:"attributes",attributeName:"data-state"}]);
+assert.match(nodes.hazardGuideStatus.textContent, /地域切替後/);
+// An unchanged ON event must not impersonate the OFF -> ON request boundary.
+nodes.officialFlood.dispatchEvent({type:"change"});
+assert.match(nodes.hazardGuideStatus.textContent, /地域切替後/);
+for (const code of ["15100","23100","15100","13123"]) {
+  nodes.region.value = code;
+  nodes.region.dispatchEvent({type:"change"});
+  assert.match(nodes.hazardGuideStatus.textContent, /地域切替後/);
+}
+nodes.officialFlood.checked = false;
+nodes.officialFlood.dispatchEvent({type:"change"});
+assert.match(nodes.hazardGuideStatus.textContent, /非表示.*浸水なし/);
+nodes.mapFloodRefreshStatus.dataset.state = "loading";
+nodes.officialFlood.checked = true;
+nodes.officialFlood.dispatchEvent({type:"change"});
+assert.match(nodes.hazardGuideStatus.textContent, /取得中/);
+nodes.mapFloodRefreshStatus.dataset.state = "";
+nodes.officialFlood.dispatchEvent({type:"change"});
+assert.match(nodes.hazardGuideStatus.textContent, /取得状態未確認/);
 
 // An existing evidence sheet is closed before F01 opens; no facility UI is required.
 nodes.hazardGuideClose.click();
