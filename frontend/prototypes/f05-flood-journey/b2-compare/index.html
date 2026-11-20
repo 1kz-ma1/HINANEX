@@ -32,6 +32,7 @@ button:disabled{opacity:.53;cursor:not-allowed}
 .facility dt{color:var(--muted)}
 .facility dd{margin:0;overflow-wrap:anywhere}
 .facility button{width:100%}
+#openComparison,#returnToList{display:inline-flex;align-items:center;min-height:44px;color:var(--cyan)}
 .tag{display:inline-block;background:#1b4553;border:1px solid #457888;border-radius:8px;padding:2px 9px;font-size:.9rem}
 #recordList:empty,#compareArea:empty,#choiceArea:empty{display:none}
 #clearMessage{min-height:1.65em}
@@ -69,14 +70,17 @@ button:disabled{opacity:.53;cursor:not-allowed}
     <p class="muted">UNKNOWNは危険・安全のどちらの意味でもありません。EXCLUDEDも危険認定ではありません。比較は最大2件で、選択はこのページ内だけに保持されます。</p>
   </section>
   <section class="panel" aria-labelledby="listTitle">
-    <h2 id="listTitle">掲載記録（合成のみ）</h2>
+    <h2 id="listTitle" tabindex="-1">掲載記録（合成のみ）</h2>
     <div id="recordList" class="grid"></div>
     <p id="emptyMessage" role="status"></p>
+    <button id="resetCriteria" type="button" hidden>検索と区分をリセット</button>
+    <p id="compareMessage" role="status"></p>
+    <a id="openComparison" href="#compareTitle" hidden>2件の比較へ移動</a>
   </section>
   <section class="panel" aria-labelledby="compareTitle">
-    <h2 id="compareTitle">2件の根拠を並べて確認</h2>
+    <h2 id="compareTitle" tabindex="-1">2件の根拠を並べて確認</h2>
     <div id="compareArea" class="columns"></div>
-    <p id="compareMessage" role="status"></p>
+    <div><a id="returnToList" href="#listTitle" hidden>掲載記録の一覧へ戻る</a></div>
     <button id="clearSelection" type="button">比較と本人選択をすべて解除</button>
     <p id="clearMessage" role="status" aria-live="polite"></p>
   </section>
@@ -97,6 +101,9 @@ if (isB2Loopback(window.location.origin)) {
   const fixture=el("fixture"),filter=el("filter"),query=el("query");
   const list=el("recordList"),compare=el("compareArea"),choice=el("choiceArea");
   const clearSelection=el("clearSelection"),clearMessage=el("clearMessage");
+  const resetCriteria=el("resetCriteria");
+  const openComparison=el("openComparison");
+  const returnToList=el("returnToList");
   let session=null;
   const focusRow=(container,id)=>{
     // render() recreates buttons: restore focus to the matching new control.
@@ -122,7 +129,7 @@ if (isB2Loopback(window.location.origin)) {
     detail(dl,"記録上の理由",row.reason);
     detail(dl,"出典ID（合成）",row.sourceId);
     detail(dl,"原文トレース（合成）",row.sourceTrace);
-    detail(dl,"元値（合成）",row.rawValue);
+    detail(dl,"元値（合成）",row.rawValue ?? "合成データに値なし");
     detail(dl,"未確認事項",row.unknowns.join("／"));
     detail(dl,"現在の開設",row.openStatus);
     detail(dl,"安全性","未認定");
@@ -134,6 +141,8 @@ if (isB2Loopback(window.location.origin)) {
     const usable=session.state==="READY";
     filter.disabled=!usable;query.disabled=!usable;
     clearSelection.disabled=!usable;
+    resetCriteria.hidden=true;
+    openComparison.hidden=returnToList.hidden=true;
     el("state").textContent=session.message;
     el("stats").textContent=usable||session.state==="EMPTY_DATASET"?
       "合成総数 "+session.total+"件｜CANDIDATE "+session.counts.CANDIDATE+
@@ -146,7 +155,8 @@ if (isB2Loopback(window.location.origin)) {
       return;
     }
     const rows=session.rows(), chosen=new Set(session.selected().map(x=>x.id));
-    el("emptyMessage").textContent=rows.length?"": "検索一致0件。元のデータ件数0とは違います。";
+    resetCriteria.hidden=rows.length!==0;
+    el("emptyMessage").textContent=rows.length?"":"表示条件に一致する施設は0件です。";
     for(const row of rows){
       const item=node("article",null,"facility");
       item.append(node("h3",row.name),node("p","D区分（合成）："+row.status),
@@ -164,11 +174,14 @@ if (isB2Loopback(window.location.origin)) {
     }
     const selected=session.selected();
     if(selected.length!==2){
-      el("compareMessage").textContent="異なる2件を選ぶと、出典・理由・未確認事項を比較できます。";
+      el("compareMessage").textContent=selected.length===1
+        ?"比較対象は1件です。もう1件選ぶと、出典・理由・未確認事項を比較できます。"
+        :"異なる2件を選ぶと、出典・理由・未確認事項を比較できます。";
       el("choiceMessage").textContent="本人の確認対象：なし";
       return;
     }
     el("compareMessage").textContent="2件を比較中。順位付け・安全性の判定はしません。";
+    openComparison.hidden=returnToList.hidden=false;
     selected.forEach((r,i)=>compare.append(card(r,i?"B":"A")));
     const chosenRow=session.choice();
     for(const row of selected){
@@ -200,6 +213,11 @@ if (isB2Loopback(window.location.origin)) {
     }
   });
   fixture.addEventListener("change",load);
+  resetCriteria.addEventListener("click",()=>{
+    if(resetCriteria.hidden||!session.setCriteria("","ALL").ok)return;
+    query.value="";filter.value="ALL";clearMessage.textContent="";
+    render();query.focus();
+  });
   filter.addEventListener("change",()=>{
     if(session.setCriteria(query.value,filter.value).ok){clearMessage.textContent="";render();}
   });

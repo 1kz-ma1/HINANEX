@@ -28,16 +28,17 @@
         <label for="search">施設名で検索</label>
         <input type="search" id="search" placeholder="施設名を入力" autocomplete="off" aria-controls="results" aria-describedby="record-count" disabled>
         <p id="load-state" role="status" aria-live="polite">RegionExportを読み込み中です。</p>
-        <p id="record-count" class="count"></p>
+        <p id="record-count" class="count" role="status" aria-live="polite" aria-atomic="true"></p>
+        <button type="button" id="clear-search" class="clear-search" hidden>検索語を消して一覧に戻る</button>
         <div id="results" class="results" role="group" aria-label="施設記録一覧"></div>
       </section>
       <section class="panel" aria-labelledby="detail-title">
-        <div class="panel-head"><h2 id="detail-title" tabindex="-1">掲載記録と未確認事項</h2></div>
+        <div class="panel-head"><h2 id="detail-title" tabindex="-1">掲載記録と未確認事項</h2><button type="button" id="return-to-record" class="return-record" hidden>選択した施設へ戻る</button></div>
         <div id="detail" class="detail"><p>一覧から施設を選ぶと、Dが記録した元属性を確認できます。</p></div>
       </section>
     </div>
     <section class="panel source-panel" aria-labelledby="source-title">
-      <h2 id="source-title">データセット全体の出典</h2>
+      <h2 id="source-title" tabindex="-1">データセット全体の出典</h2>
       <p>この出典はDataset単位の情報です。個々の施設の指定・参照地点・敷地・入口・現在の開設状況の承認を証明しません。取得日時を公式の公開日や最新性の保証と読み替えないでください。</p>
       <div id="sources"><p>データ読込後に表示します。</p></div>
     </section>

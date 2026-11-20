@@ -37,6 +37,8 @@ Chromeで `http://127.0.0.1:8000/frontend/prototypes/f05-flood-journey/b2-compar
 
 ## テスト
 
+Issue #439のChrome回帰は、非空検索＋ALL/UNKNOWN/EXCLUDED/CANDIDATE/検索0一致を独立に初期化し、全解除ボタンをnative Enterで2回操作します。検索文字列・区分・Fixture・元区分/件数の保持、比較/本人選択の消去、focus継続を検証。ALLの再比較では出典/理由/UNKNOWNの表示が同じで、本人選択が復活しないことも確認します。UI/モデル/Fixtureは変更せず、全組合せ・物理タッチ・読み上げの受入を保証するテストではありません。既存DQA-007の物理端末QAはDEFERREDのままです。
+
 ```powershell
 cd frontend
 node --test prototypes/f05-flood-journey/b2-compare/model.test.js

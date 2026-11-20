@@ -8,7 +8,11 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from deploy.build_staging import _copy_public_frontend, UNPUBLISHED_F09_PREVIEW_PATHS
+from deploy.build_staging import (
+    _copy_public_frontend,
+    UNPUBLISHED_F09_PREVIEW_PATHS,
+    UNPUBLISHED_F17_PREVIEW_PATHS,
+)
 
 
 class F09UnpublishedBundleTests(unittest.TestCase):
@@ -20,6 +24,8 @@ class F09UnpublishedBundleTests(unittest.TestCase):
             fixtures = {
                 "index.html": "<html>Existing public frontend</html>",
                 "prototypes/f02-shelter-explore/index.html": "<html>Existing public synthetic F02</html>",
+                "prototypes/f17-training/index.html": "F17 NOT PUBLIC",
+                "prototypes/f17-training/nested/future.js": "F17 NOT PUBLIC",
                 "prototypes/f09-preparedness/index.html": "<html>F09 NOT PUBLIC</html>",
                 "prototypes/f09-preparedness/model.js": "F09 NOT PUBLIC",
                 "prototypes/f09-preparedness/nested/future.js": "F09 NOT PUBLIC",
@@ -36,6 +42,9 @@ class F09UnpublishedBundleTests(unittest.TestCase):
             self.assertTrue((dst / "index.html").exists())
             self.assertTrue((dst / "prototypes/f02-shelter-explore/index.html").exists())
             self.assertFalse((dst / "prototypes/f09-preparedness").exists())
+            self.assertFalse((dst / "prototypes/f17-training").exists())
+            for private in UNPUBLISHED_F17_PREVIEW_PATHS:
+                self.assertFalse((dst / private).exists(), private)
             for private in UNPUBLISHED_F09_PREVIEW_PATHS:
                 self.assertFalse((dst / private).exists(), private)
 
