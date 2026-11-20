@@ -604,7 +604,7 @@ function renderFloodScenario(scenario, { pagingAction = null, isSynthetic = fals
   });
 
   const traceLabel = isSynthetic ? "合成記録と出典を確認" : "公式記録と出典を確認";
-  const cards = selected.map((row) => {
+  const cards = selected.map((row, index) => {
     const source = row.sourceUrl
       ? element("a", {
           text: isSynthetic ? "合成データの出典URLを開く" : "公式Sourceを確認",
@@ -618,7 +618,12 @@ function renderFloodScenario(scenario, { pagingAction = null, isSynthetic = fals
         element("div", {
           className: "scenario-facility-header",
           children: [
-            element("h3", { text: row.name }),
+            element("h3", {
+              text: row.name,
+              attributes: index === 0 && pages > 1
+                ? { id: "floodScenarioFirstResult", tabindex: "-1" }
+                : {},
+            }),
             statusBadge(`D判定：${row.statusCode}`, "unknown"),
           ],
         }),
@@ -704,6 +709,13 @@ function renderFloodScenario(scenario, { pagingAction = null, isSynthetic = fals
       ],
     }),
   );
+  if (pages > 1) {
+    floodScenarioRoot.append(element("a", {
+      className: "source-button scenario-first-result-link",
+      text: "このページの施設一覧の先頭へ",
+      attributes: { href: "#floodScenarioFirstResult" },
+    }));
+  }
   if (pagingAction) {
     const button = pagingAction === "previous" ? previous : next;
     // Recreated controls lose focus. At a disabled boundary, focus the count
