@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'none'; img-src 'none'; object-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'">
+  <title>HINANEX F04｜合成洪水タイムライン・非公開試作</title>
+  <link rel="stylesheet" href="./style.css">
+  <script defer src="./synthetic-data.js"></script>
+  <script defer src="./timeline-model.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <p class="eyebrow">HINANEX / F04 / PRIVATE SYNTHETIC PROTOTYPE</p>
+      <h1>合成洪水タイムライン</h1>
+      <p class="warning" role="note"><strong>常時表示：完全架空・訓練用の模式図です。</strong> 実際の洪水、現在の災害、浸水深、地図、予報・予測を表しません。避難の安全性、避難先の適合性、到達時間は判断できません。</p>
+    </header>
+    <div class="layout">
+      <section class="panel control-panel" aria-labelledby="controls-heading">
+        <h2 id="controls-heading">架空シナリオを選ぶ</h2>
+        <p>明示的に選択するまで、浸水を模した色付きセルは表示しません。</p>
+        <label for="scenario">訓練用・架空シナリオ</label>
+        <select id="scenario"><option value="">選択してください（未選択）</option></select>
+        <p class="hint">2つの固定例は、現実の地形・時系列・水位を基にしていません。</p>
+        <h2>模式ステップの操作</h2>
+        <div class="actions">
+          <button id="play" type="button" disabled>再生</button>
+          <button id="pause" type="button" class="secondary" disabled>一時停止</button>
+          <button id="restart" type="button" class="secondary" disabled>先頭から</button>
+          <button id="clear" type="button" class="secondary">選択と表示を解除</button>
+        </div>
+        <label for="step">模擬ステップを手動で切り替える</label>
+        <input id="step" type="range" min="0" max="0" value="0" step="1" disabled>
+        <output id="timeLabel" for="step">未選択</output>
+        <div class="feedback" role="status" aria-live="polite" aria-atomic="true">
+          <p id="status">架空シナリオを選択してください。</p>
+          <p id="nextAction">選択すると模式図を表示できます。</p>
+        </div>
+      </section>
+      <section class="panel diagram-panel" aria-labelledby="diagram-heading">
+        <div class="diagram-head">
+          <h2 id="diagram-heading">合成浸水の模式グリッド</h2>
+          <span class="chip">架空・訓練用</span>
+        </div>
+        <p>8列 × 5行の模式セル。地理座標・浸水深・距離・時間尺度はありません。</p>
+        <div class="grid-frame">
+          <div id="floodGrid" class="flood-grid" role="img" aria-label="訓練用の模式グリッド。未選択のためセルは表示されていません。"></div>
+          <p id="emptyOverlay" class="empty-overlay">シナリオ未選択｜NO-GO</p>
+        </div>
+        <p class="legend"><span class="swatch" aria-hidden="true"></span> 青色は架空の「塗られたセル」だけを示します。無色は現実の安全や浸水なしを意味しません。</p>
+        <p class="hint">各ステップの増減は予測演算ではなく、事前に固定した合成図形の切り替えです。</p>
+      </section>
+    </div>
+    <footer>NO-GO：本試作は実災害データ・GPS・外部API・避難施設データに接続しません。一般公開は未承認です。</footer>
+  </main>
+</body>
+</html>
