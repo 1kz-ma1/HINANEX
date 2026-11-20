@@ -1,4 +1,4 @@
-import { createRegionExportController } from "./region-export-loader.js";
+import { createRegionExportController, RegionExportLoadError } from "./region-export-loader.js";
 import { buildF02ShelterReference, searchF02Facilities } from "./f02-shelter-reference.js";
 
 const search = document.getElementById("search");
@@ -7,10 +7,12 @@ const results = document.getElementById("results");
 const detail = document.getElementById("detail");
 const sources = document.getElementById("sources");
 const status = document.getElementById("load-state");
+const retryLoad = document.getElementById("retry-load");
 const count = document.getElementById("record-count");
 const detailTitle = document.getElementById("detail-title");
 const returnToRecord = document.getElementById("return-to-record");
 const returnToDetail = document.getElementById("return-to-detail");
+const regionCode = "13123";
 let reference = null;
 let selectedId = null;
 
@@ -152,7 +154,12 @@ function renderList() {
     results.append(button);
   });
 }
-function setFailure(message) {
+function hideRetry(focusTarget) {
+  const wasFocused = document.activeElement === retryLoad;
+  retryLoad.hidden = true;
+  if (wasFocused) focusTarget.focus();
+}
+function setFailure(message, canRetry = false) {
   reference = null;
   selectedId = null;
   search.disabled = true;
@@ -165,14 +172,21 @@ function setFailure(message) {
   status.textContent = "RegionExportを表示できません: " + message +
     "。施設0件と同一視せず、取得または契約を確認してください。";
   clearDetail();
+  if (canRetry) {
+    retryLoad.hidden = false;
+    retryLoad.removeAttribute("aria-disabled");
+  } else {
+    hideRetry(status);
+  }
 }
 const controller = createRegionExportController({
   onLoading() {
+    if (!retryLoad.hidden) retryLoad.setAttribute("aria-disabled", "true");
     status.classList.remove("error");
     status.textContent = "RegionExportを読み込み中です。";
   },
   onSuccess(payload) {
-    reference = buildF02ShelterReference(payload, "13123");
+    reference = buildF02ShelterReference(payload, regionCode);
     selectedId = null;
     if (reference.state === "NO_DATASET") {
       setFailure("shelter_location Datasetが収録されていません");
@@ -183,10 +197,15 @@ const controller = createRegionExportController({
     clearDetail();
     renderSources();
     renderList();
+    hideRetry(search);
   },
   onError(error) {
-    setFailure(error.message);
+    setFailure(error.message, error instanceof RegionExportLoadError);
   },
+});
+retryLoad.addEventListener("click", () => {
+  if (retryLoad.hidden || retryLoad.getAttribute("aria-disabled") === "true") return;
+  controller.selectRegion(regionCode);
 });
 search.addEventListener("input", renderList);
 clearSearch.addEventListener("click", () => {
@@ -203,4 +222,4 @@ returnToRecord.addEventListener("click", () => {
   // Only this explicit return action scrolls to the selected list item.
   target.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
 });
-controller.selectRegion("13123");
+controller.selectRegion(regionCode);

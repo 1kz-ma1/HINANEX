@@ -229,6 +229,18 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
         {raw:"合成データに値なし", open:"未確認"},
       ]);
       console.log("F05_B2_MISSING_RAW_HTTP: explicit missing synthetic raw value and unverified opening displayed separately PASS");
+      const unknownItems = await evaluate(`[...document.querySelectorAll('#compareArea article')].map(card => {
+        const label = [...card.querySelectorAll('dt')].find(term => term.textContent === '未確認事項');
+        return [...label.nextElementSibling.querySelectorAll('ul > li')].map(item => item.textContent);
+      })`);
+      assert.deepEqual(unknownItems, [
+        ["実際の災害適合性", "現在の開設状況", "正確な所在地"],
+        ["元の指定条件", "利用可能性", "現在の開設状況"],
+      ]);
+      const accessibility = await command("Accessibility.getFullAXTree");
+      assert.equal(accessibility.nodes.filter(node=>!node.ignored && node.role?.value==="listitem").length, 6,
+        "The unknown evidence must be exposed as six individual list items");
+      console.log("F05_B2_UNKNOWN_ITEMS_HTTP: original unverified items stay grouped by facility and exposed as list items PASS");
       assert.ok(await evaluate("document.querySelector('#compareArea').textContent.includes('安全性') && document.querySelector('#compareArea').textContent.includes('未認定')"));
       await evaluate("document.querySelectorAll('#choiceArea button')[1].click()");
       assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,area:document.activeElement?.parentElement?.id,pressed:document.activeElement?.getAttribute('aria-pressed')})"),
