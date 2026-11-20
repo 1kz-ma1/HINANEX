@@ -136,14 +136,21 @@ function fixtureFor(name) {
 async function serve(realOutput = null) {
   const requests = [];
   let scenario = "normal";
+  let exportRequestsForScenario = 0;
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, "http://localhost");
     const name = url.pathname;
     requests.push(name);
     if (req.method !== "GET") { res.writeHead(405); res.end(); return; }
-    if (name === "/frontend/f02.html") scenario = url.searchParams.get("scenario") || "normal";
+    if (name === "/frontend/f02.html") {
+      scenario = url.searchParams.get("scenario") || "normal";
+      exportRequestsForScenario = 0;
+    }
     if (name === "/pipeline/data/output/edogawa.json") {
-      if (scenario === "http-error") { res.writeHead(503); res.end("not available"); return; }
+      exportRequestsForScenario += 1;
+      if (scenario === "http-error" || (scenario === "http-error-once" && exportRequestsForScenario === 1)) {
+        res.writeHead(503); res.end("not available"); return;
+      }
       res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
       res.end(scenario === "real-data" && realOutput !== null ? realOutput : JSON.stringify(fixtureFor(scenario)));
       return;
@@ -499,21 +506,52 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
         "Narrowing the search again must not restore an old selection");
 
       await navigate("empty", "document.querySelector('#load-state')?.innerText.includes('記録は0件です')");
+      assert.equal(await evaluate("document.querySelector('#retry-load').hidden"), true);
       assert.ok(await evaluate("document.querySelector('#clear-search').hidden"));
       assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true);
       assert.equal(await evaluate("document.querySelectorAll('#results .record').length"), 0);
       await navigate("missing", "document.querySelector('#load-state')?.innerText.includes('Datasetが収録されていません')");
+      assert.equal(await evaluate("document.querySelector('#retry-load').hidden"), true);
       assert.ok(await evaluate("document.querySelector('#clear-search').hidden"));
       assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true);
       assert.equal(await evaluate("document.querySelector('#search').disabled"), true);
       await navigate("bad-region", "document.querySelector('#load-state')?.innerText.includes('RegionExportを表示できません')");
       assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true);
       await navigate("bad-contract", "document.querySelector('#load-state')?.innerText.includes('coordinates')");
+      assert.equal(await evaluate("document.querySelector('#retry-load').hidden"), true);
       assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true);
+      const exportRequests = () => requests.filter(path => path === "/pipeline/data/output/edogawa.json").length;
+      const beforeError = exportRequests();
       await navigate("http-error", "document.querySelector('#load-state')?.innerText.includes('HTTP 503')");
       assert.ok(await evaluate("document.querySelector('#clear-search').hidden"));
       assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true);
       assert.equal(await evaluate("document.querySelector('#return-to-detail').hidden"), true);
+      assert.equal(exportRequests(), beforeError + 1, "There must be no automatic retry");
+      await evaluate("document.querySelector('#load-state').focus()");
+      await pressKey("Tab");
+      assert.equal(await evaluate("document.activeElement.id"), "retry-load");
+      assert.ok(await evaluate("document.activeElement.getBoundingClientRect().height>=44"));
+      await pressKey("Enter");
+      await waitUntil(evaluate, "document.querySelector('#load-state').textContent.includes('HTTP 503') && !document.querySelector('#retry-load').hasAttribute('aria-disabled')", "explicit retry still fails");
+      assert.equal(exportRequests(), beforeError + 2);
+      assert.equal(await evaluate("document.activeElement.id"), "retry-load");
+      assert.equal(await evaluate("document.querySelectorAll('#results .record').length"), 0);
+      assert.equal(await evaluate("(()=>{const retry=document.querySelector('#retry-load');retry.click();retry.click();return retry.getAttribute('aria-disabled')})()"), "true");
+      await waitUntil(evaluate, "document.querySelector('#load-state').textContent.includes('HTTP 503') && !document.querySelector('#retry-load').hasAttribute('aria-disabled')", "repeat requests while pending");
+      assert.equal(exportRequests(), beforeError + 3, "A second activation while loading must not send a request");
+
+      await navigate("http-error-once", "document.querySelector('#load-state')?.innerText.includes('HTTP 503')");
+      const beforeRecovery = exportRequests();
+      await evaluate("document.querySelector('#load-state').focus()");
+      await pressKey("Tab");
+      assert.equal(await evaluate("document.activeElement.id"), "retry-load");
+      await pressKey("Enter");
+      await waitUntil(evaluate, "document.querySelectorAll('#results .record').length===2", "explicit retry restores records");
+      assert.equal(exportRequests(), beforeRecovery + 1);
+      assert.equal(await evaluate("document.querySelector('#retry-load').hidden"), true);
+      assert.equal(await evaluate("document.activeElement.id"), "search");
+      assert.equal(await evaluate("document.querySelector('#results [aria-pressed=true]')"), null);
+      console.log("F02_RETRY_HTTP: native Tab/Enter retries only on request, retains focus on repeated HTTP error and restores search on success PASS");
       if (realOutput !== null) {
         assert.ok(Number.isInteger(expectedRealRecords) && expectedRealRecords > 0,
           "Real D export must contain at least one shelter_location record");

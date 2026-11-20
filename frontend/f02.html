@@ -27,7 +27,8 @@
         <div class="panel-head"><h2 id="results-title">施設一覧</h2><span class="region">対象：東京都 江戸川区のみ</span></div>
         <label for="search">施設名で検索</label>
         <input type="search" id="search" placeholder="施設名を入力" autocomplete="off" aria-controls="results" aria-describedby="record-count" disabled>
-        <p id="load-state" role="status" aria-live="polite">RegionExportを読み込み中です。</p>
+        <p id="load-state" role="status" aria-live="polite" tabindex="-1">RegionExportを読み込み中です。</p>
+        <button type="button" id="retry-load" class="retry-load" hidden>施設記録を再取得する</button>
         <p id="record-count" class="count" role="status" aria-live="polite" aria-atomic="true"></p>
         <button type="button" id="clear-search" class="clear-search" hidden>検索語を消して一覧に戻る</button>
         <div id="results" class="results" role="group" aria-label="施設記録一覧"></div>
