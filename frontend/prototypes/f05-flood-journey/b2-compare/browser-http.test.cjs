@@ -233,6 +233,9 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
         {id:"fake-b",area:"choiceArea",pressed:"true"}, "Focus stays on chosen facility action after rerender");
       assert.ok(await evaluate("document.querySelector('#choiceMessage').textContent.includes('架空施設B')"));
       assert.equal(await evaluate("document.querySelectorAll('#choiceArea button[aria-pressed=true]').length"), 1);
+      await evaluate("document.querySelector('#openComparison').click()");
+      assert.equal(await evaluate("document.querySelector('#choiceArea button[aria-pressed=true]')?.dataset.recordId"), "fake-b");
+      assert.equal(await evaluate("document.querySelectorAll('#compareArea article').length"), 2);
 
       // Explicit clear is a user-facing, reversible operation; it never
       // changes the source fixture, query, filter, or interpretation of UNKNOWN.
