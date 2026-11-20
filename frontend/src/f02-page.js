@@ -2,12 +2,14 @@ import { createRegionExportController } from "./region-export-loader.js";
 import { buildF02ShelterReference, searchF02Facilities } from "./f02-shelter-reference.js";
 
 const search = document.getElementById("search");
+const clearSearch = document.getElementById("clear-search");
 const results = document.getElementById("results");
 const detail = document.getElementById("detail");
 const sources = document.getElementById("sources");
 const status = document.getElementById("load-state");
 const count = document.getElementById("record-count");
 const detailTitle = document.getElementById("detail-title");
+const returnToRecord = document.getElementById("return-to-record");
 let reference = null;
 let selectedId = null;
 
@@ -24,6 +26,8 @@ function paragraph(parent, text, className) {
   parent.append(create("p", text, className));
 }
 function clearDetail() {
+  returnToRecord.hidden = true;
+  returnToRecord.removeAttribute("aria-label");
   detail.replaceChildren();
   paragraph(detail, "施設を選択してください。出典はDataset単位で、施設単位の承認とは区別します。");
 }
@@ -31,6 +35,8 @@ function addDetailField(table, label, value) {
   table.append(create("dt", label), create("dd", value));
 }
 function renderDetail(record) {
+  returnToRecord.hidden = false;
+  returnToRecord.setAttribute("aria-label", "選択した施設へ戻る（" + record.name + "）");
   detail.replaceChildren();
   detail.append(create("h3", record.name));
   paragraph(detail, "Dの正規化記録を表示しています。施設区分は名称から作成したD内部の分類で、正式な指定ではありません。対象災害への適合、安全性や現在の開設は、この画面では判断しません。", "notice");
@@ -47,6 +53,9 @@ function renderDetail(record) {
   addDetailField(fields, "施設単位の確認", "正式指定・開設状況・入口・災害適合・安全性は未確認");
   addDetailField(fields, "施設単位の出典対応", "Dataset単位の出典のみを表示します。CSVとDの変換整合性確認は、施設の正式指定・位置・運用状況の承認ではありません");
   detail.append(fields);
+  const sourceLink = create("a", "データセット全体の出典へ移動");
+  sourceLink.href = "#source-title";
+  detail.append(sourceLink);
 }
 function renderSources() {
   sources.replaceChildren();
@@ -77,6 +86,7 @@ function renderSources() {
     paragraph(box, "Dの資料取得日時: " + valueOrUnknown(src.fetchedAt));
     if (src.url) {
       const link = create("a", "資料URLを開く");
+      link.setAttribute("aria-label", "資料URLを開く（" + src.name + "）");
       link.href = src.url;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
@@ -89,12 +99,15 @@ function renderSources() {
 }
 function renderList() {
   results.replaceChildren();
+  clearSearch.hidden = true;
   if (!reference || reference.state !== "READY") return;
   const matches = searchF02Facilities(reference.records, search.value);
   const shown = matches.slice(0, 50);
-  count.textContent = "D記録 " + reference.records.length + "件 / 座標なし " +
+  const countMessage = "D記録 " + reference.records.length + "件 / 座標なし " +
     reference.withoutCoordinates + "件 / 検索一致 " + matches.length +
     "件 / 表示 " + shown.length + "件（最大50件。検索で絞り込めます）";
+  // Equal result counts need no repeated live-region DOM announcement.
+  if (count.textContent !== countMessage) count.textContent = countMessage;
   if (!reference.records.length) {
     status.textContent = "この取得済みDatasetの記録は0件です。地域に避難施設がないという意味ではありません。";
     clearDetail();
@@ -104,10 +117,13 @@ function renderList() {
     selectedId = null;
     status.textContent = "検索に一致する記録はありません。Datasetの未収録や通信障害とは異なります。";
     clearDetail();
+    clearSearch.hidden = false;
     return;
   }
   status.textContent = "Dの掲載記録を表示しています。施設の安全性や開設中を意味しません。";
-  if (selectedId && !matches.some(item => item.id === selectedId)) {
+  // The return target must exist in the displayed first 50 results, not only
+  // in the full set of matches after a search change.
+  if (selectedId && !shown.some(item => item.id === selectedId)) {
     selectedId = null;
     clearDetail();
   }
@@ -138,6 +154,7 @@ function setFailure(message) {
   selectedId = null;
   search.disabled = true;
   search.value = "";
+  clearSearch.hidden = true;
   results.replaceChildren();
   sources.replaceChildren();
   count.textContent = "";
@@ -169,4 +186,18 @@ const controller = createRegionExportController({
   },
 });
 search.addEventListener("input", renderList);
+clearSearch.addEventListener("click", () => {
+  if (clearSearch.hidden) return;
+  search.value = "";
+  renderList();
+  search.focus();
+});
+returnToRecord.addEventListener("click", () => {
+  const target = [...results.querySelectorAll(".record")]
+    .find(button => button.dataset.recordId === selectedId);
+  if (!target) return;
+  target.focus({ preventScroll: true });
+  // Only this explicit return action scrolls to the selected list item.
+  target.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+});
 controller.selectRegion("13123");
