@@ -1,6 +1,10 @@
 # F02 S-03 — RegionExport v0.9 read-only Consumer（実装仕様 / Draft）
 2026-11-11 / Issue #355 / owner P0
 
+## 2026-11-18 Chrome回帰の起動ファイル競合（Issue #443）
+
+F02実HTTP Chrome回帰は、DevToolsActivePortが一時的に未作成/ロック中（ENOENT/EBUSY/EPERM/EACCES）または内容未完成の場合、従来の300回×100msの上限内で再読込する。有効なポート番号が得られない期限超過、Chromeの早期終了、その他のI/OエラーはFAILのまま。独立した故障注入テストで回復と恒久障害を区別し、既存ChromeのUI/assert/cleanup/skip条件を変更しない。テスト/文書のみの変更でDevice QA NOT_REQUIRED。物理端末・権利・施設安全・一般公開の承認とは別。
+
 ## Decision
 - **1地域のみ**：江戸川区 region.code=13123。既存D出力 pipeline/data/output/edogawa.json を frontend/src/region-export-loader.js から読む。配信パスは frontend/f02.html を基準として既存の ../pipeline/data/output/edogawa.json を解決する。
 - 合成F02 Prototype (frontend/prototypes/f02-shelter-explore) は改変しない。新画面 frontend/f02.html は読み取り専用で、既存本番ナビにはまだ接続しない。
@@ -11,6 +15,25 @@
 - 見つからないDataset、取得/Parse/Contract失敗、Datasetのレコード0、検索一致0を分離し、合成fixtureにfallbackしない。
 - 一覧の初期表示は最大50件。名称検索は全レコードに適用する。件数はこのDatasetの記録数であり自治体内の全避難施設数ではない。
 - 新データにはネットワーク送信、ブラウザlocalStorage、個人入力、位置取得、外部API呼出なし（既存D JSONのsame-origin fetchのみ）。
+
+## 詳細から選択した一覧項目へ戻る（2026-11-17 / Issue #424）
+
+- 施設詳細の見出しに続く「選択した施設へ戻る」ボタンで、直前に選択した施設の一覧ボタンへフォーカスを戻す。アクセシブル名称には施設名を含める。検索条件・詳細・選択状態は維持する。
+- 一覧選択時の `focus({preventScroll:true})` と既存DOM保持は維持する。**本人が戻る操作を実行した時だけ**、元の一覧項目が見える位置へ `scrollIntoView` する。長い一覧やスマホ幅でも、一覧の先頭へ一律に戻さない。
+- 選択なし・検索一致0件・Dataset0件・取得/契約失敗ではボタンを隠す。検索変更で選択した施設が表示上限50件の外に移った場合も選択と詳細を消去し、存在しない一覧項目への戻り先を残さない。再び絞り込んでも以前の選択を復元しない。
+- 実HTTP/headless Chrome回帰は、ネイティブTab/Enterによる詳細→戻る→元の一覧、施設名付きのアクセシブル名称、50件一覧の39/40番目への繰返し復帰、320/390/1440 CSS px、44px操作領域、検索・詳細保持、上限50件からの選択消去、0件/異常系を検証する。`F02_RETURN_HTTP` のPASSは合成データでの自動操作の範囲のみ。
+- D/RegionExport/Schema/評価モデル・公式原本・災害属性・UNKNOWN/未確認の意味は変更しない。位置取得、外部送信、端末保存、経路、実データ公開は追加しない。既存のF02非公開配信ガードを維持する。
+- **Device QA: DEFERRED / #372 DQA-002**。物理Android/iOS/Safari/VoiceOver/TalkBackの今回追加操作はNOT_RUN。過去のSafari/VoiceOver5項目PASSを新操作の実機PASSへ流用しない。QA-1（2026-12-06 JST）候補・担当未定。具体的な対象HEAD、CI、登録コメントURLはPRに記録する。
+
+## 検索結果件数の状態通知（2026-11-18 / Issue #434）
+
+既存の件数表示を `role=status / aria-live=polite / aria-atomic=true` とし、検索後の件数変更を支援技術へ公開する。検索欄の `aria-describedby=record-count` と既存の文言・最大50件・0件/取得失敗の区別は維持。同一文言になるNFKC等価検索等では件数DOMを再書込せず、不要な重複通知を避ける。件数更新でフォーカスを移動しない。
+
+実HTTP ChromeでAX treeのstatus/polite/atomic、検索1件→0件→解除2件、検索欄focus維持、同一件数でのDOM mutationなしを確認する。音声による実際の通知は自動テストでは未確認。**Device QA DEFERRED / #372 DQA-002**、物理Safari/VoiceOver/Android/TalkBackはNOT_RUN。既存合成データのみで試験し、Contract/UNKNOWN/出典/安全・公開ゲートを変更しない。
+
+## 施設詳細から出典へ移動（Issue #445）
+
+施設の選択後、「データセット全体の出典へ移動」リンクで同じページの出典見出しに移動できます。検索語と選択は保持します。出典の範囲はデータセット全体です。資料が確認できない場合は、出典欄に既存の未確認表示が出ます。
 
 ## Implementation paths
 - frontend/f02.html, frontend/f02.css

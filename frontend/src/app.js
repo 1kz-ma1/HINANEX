@@ -14,6 +14,8 @@ const capabilityRoot = document.querySelector("#capabilityRoot");
 const floodScenarioRoot = document.querySelector("#floodScenarioRoot");
 const floodScenarioSection = document.querySelector("#floodScenario");
 const floodScenarioNav = document.querySelector("#floodScenarioNav");
+const floodScenarioTitle = document.querySelector("#floodScenarioTitle");
+const floodScenarioDescription = document.querySelector("#floodScenarioDescription");
 let scenarioPageIndex = 0;
 const assessmentRoot = document.querySelector("#assessmentRoot");
 const gapRoot = document.querySelector("#gapRoot");
@@ -539,10 +541,15 @@ function renderAnalysisSummary(viewModel) {
 
 const SCENARIO_PAGE_SIZE = 20;
 
-function renderFloodScenario(scenario) {
+function renderFloodScenario(scenario, { pagingAction = null, isSynthetic = false } = {}) {
   const hasScenario = Boolean(scenario);
   floodScenarioSection.hidden = !hasScenario;
   floodScenarioNav.hidden = !hasScenario;
+  floodScenarioNav.textContent = isSynthetic ? "洪水Scenario（合成デモ）" : "洪水Scenario";
+  floodScenarioTitle.textContent = isSynthetic ? "洪水シナリオ（合成デモ）" : "洪水に関する公式情報";
+  floodScenarioDescription.textContent = isSynthetic
+    ? "操作確認用の合成データです。実際の災害、施設、安全性、開設状況を示しません。"
+    : "公式のraw値をそのまま表示し、施設の安全性や開設状況を推測しません。";
   floodScenarioRoot.replaceChildren();
   floodScenarioRoot.setAttribute("aria-busy", String(scenario?.uiState === "loading"));
   if (!hasScenario) return;
@@ -576,8 +583,8 @@ function renderFloodScenario(scenario) {
   const summary = element("div", {
     className: "scenario-metrics",
     children: [
-      summaryMetric("Scenario評価範囲（D原値）", `${scenario.statusDescription}（${scenario.statusCode}）`),
-      summaryMetric("公式raw値の件数（D提供）", scenario.rawValueCount === null ? "未確認" : `${scenario.rawValueCount}件`),
+      summaryMetric(isSynthetic ? "合成シナリオの評価範囲" : "Scenario評価範囲（D原値）", `${scenario.statusDescription}（${scenario.statusCode}）`),
+      summaryMetric(isSynthetic ? "合成raw値の件数" : "公式raw値の件数（D提供）", scenario.rawValueCount === null ? "未確認" : `${scenario.rawValueCount}件`),
       summaryMetric("施設の判定がUNKNOWN", `${scenario.unknownCount} / ${scenario.total}件`),
       summaryMetric("利用階の原文を保持", `${scenario.rawFloorCount}件`),
     ],
@@ -588,18 +595,19 @@ function renderFloodScenario(scenario) {
     attributes: { role: "note" },
     children: [
       element("strong", { text: "洪水時の安全・開設を保証する情報ではありません" }),
-      element("p", { text: scenario.caveat }),
-      element("p", { text: scenario.interpretationNotice }),
+      element("p", { text: isSynthetic ? "UNKNOWNは危険・利用不可を意味しません。合成の区分や記号は操作確認用です。" : scenario.caveat }),
+      ...(isSynthetic ? [] : [element("p", { text: scenario.interpretationNotice })]),
       element("small", {
-        text: `公式Sourceの取得状態（D原値）：${scenario.discoveryDescription}（${scenario.discoveryStatus}）`,
+        text: `${isSynthetic ? "合成データ上の取得状態" : "公式Sourceの取得状態（D原値）"}：${scenario.discoveryDescription}（${scenario.discoveryStatus}）`,
       }),
     ],
   });
 
-  const cards = selected.map((row) => {
+  const traceLabel = isSynthetic ? "合成記録と出典を確認" : "公式記録と出典を確認";
+  const cards = selected.map((row, index) => {
     const source = row.sourceUrl
       ? element("a", {
-          text: "公式Sourceを確認",
+          text: isSynthetic ? "合成データの出典URLを開く" : "公式Sourceを確認",
           attributes: { href: row.sourceUrl, target: "_blank", rel: "noopener noreferrer" },
         })
       : element("span", { text: "出典URL未確認" });
@@ -610,7 +618,12 @@ function renderFloodScenario(scenario) {
         element("div", {
           className: "scenario-facility-header",
           children: [
-            element("h3", { text: row.name }),
+            element("h3", {
+              text: row.name,
+              attributes: index === 0 && pages > 1
+                ? { id: "floodScenarioFirstResult", tabindex: "-1" }
+                : {},
+            }),
             statusBadge(`D判定：${row.statusCode}`, "unknown"),
           ],
         }),
@@ -618,12 +631,15 @@ function renderFloodScenario(scenario) {
         element("details", {
           className: "scenario-trace",
           children: [
-            element("summary", { text: "公式記録と出典を確認" }),
+            element("summary", {
+              text: traceLabel,
+              attributes: { "aria-label": `${traceLabel}（${row.name}）` },
+            }),
             element("dl", {
               className: "scenario-facts",
               children: [
                 ...definitionRow("災害列の原文", row.hazardScopeRaw),
-                ...definitionRow("公式セルの値", row.rawValue),
+                ...definitionRow(isSynthetic ? "合成セルの値" : "公式セルの値", row.rawValue),
                 ...definitionRow("利用階の原文", row.floorRaw),
                 ...definitionRow("施設行の照合", row.joinStatus),
                 ...definitionRow("元データの行", row.sourceTrace),
@@ -645,7 +661,7 @@ function renderFloodScenario(scenario) {
   previous.disabled = scenarioPageIndex === 0;
   previous.addEventListener("click", () => {
     scenarioPageIndex -= 1;
-    renderFloodScenario(scenario);
+    renderFloodScenario(scenario, { pagingAction: "previous", isSynthetic });
   });
   const next = element("button", {
     className: "source-button",
@@ -655,7 +671,11 @@ function renderFloodScenario(scenario) {
   next.disabled = scenarioPageIndex >= pages - 1;
   next.addEventListener("click", () => {
     scenarioPageIndex += 1;
-    renderFloodScenario(scenario);
+    renderFloodScenario(scenario, { pagingAction: "next", isSynthetic });
+  });
+  const pageCount = element("span", {
+    text: `${scenario.total}件中 ${start + 1}〜${Math.min(start + SCENARIO_PAGE_SIZE, scenario.total)}件（${scenarioPageIndex + 1}/${pages}ページ）`,
+    attributes: { tabindex: "-1" },
   });
 
   floodScenarioRoot.append(note, summary);
@@ -684,13 +704,24 @@ function renderFloodScenario(scenario) {
       attributes: { "aria-label": "Scenario施設一覧のページ" },
       children: [
         previous,
-        element("span", {
-          text: `${scenario.total}件中 ${start + 1}〜${Math.min(start + SCENARIO_PAGE_SIZE, scenario.total)}件（${scenarioPageIndex + 1}/${pages}ページ）`,
-        }),
+        pageCount,
         next,
       ],
     }),
   );
+  if (pages > 1) {
+    floodScenarioRoot.append(element("a", {
+      className: "source-button scenario-first-result-link",
+      text: "このページの施設一覧の先頭へ",
+      attributes: { href: "#floodScenarioFirstResult" },
+    }));
+  }
+  if (pagingAction) {
+    const button = pagingAction === "previous" ? previous : next;
+    // Recreated controls lose focus. At a disabled boundary, focus the count
+    // instead of silently changing the action to the opposite direction.
+    (button.disabled ? pageCount : button).focus({ preventScroll: true });
+  }
 }
 
 function renderOverview(viewModel) {
@@ -726,7 +757,7 @@ function renderPage(viewModel) {
   renderAnalysisSummary(viewModel);
   renderOverview(viewModel);
   scenarioPageIndex = 0;
-  renderFloodScenario(viewModel.floodScenario);
+  renderFloodScenario(viewModel.floodScenario, { isSynthetic: viewModel.isSynthetic });
   renderCollection(
     capabilityRoot,
     viewModel.capabilities,
@@ -800,16 +831,28 @@ function renderLoading(source) {
   );
 }
 
-function renderError(error, source = null) {
+function renderError(error, source = null, { isSynthetic = false } = {}) {
   clearRegionContent();
   renderFloodScenario({
     uiState: "error",
-    message: "地域データを読み込めなかったため、施設の評価結果も表示できません。詳細設定から再読込または手動JSON読込を行ってください。",
-  });
+    message: isSynthetic
+      ? "合成デモを読み込めませんでした。詳細設定から合成デモを再度選んでください。"
+      : "地域データを読み込めなかったため、施設の評価結果も表示できません。詳細設定から再読込または手動JSON読込を行ってください。",
+  }, { isSynthetic });
   regionName.textContent = source?.label ?? "RegionExport読込失敗";
   generatedAt.textContent = "読込失敗";
   schemaVersion.textContent = "—";
   demoNotice.hidden = true;
+  const openSettings = element("button", {
+    className: "source-button",
+    text: "読み込み設定を開く",
+    attributes: { type: "button", "aria-controls": "developerSettings" },
+  });
+  openSettings.addEventListener("click", () => {
+    const settings = document.querySelector("#developerSettings");
+    settings.open = true;
+    settings.querySelector("summary").focus();
+  });
   summaryRoot.append(
     element("div", {
       className: "error-card",
@@ -820,6 +863,7 @@ function renderError(error, source = null) {
             : "RegionExportを表示できませんでした。",
         }),
         element("span", { text: error.message }),
+        openSettings,
       ],
     }),
   );
@@ -873,14 +917,14 @@ function selectRegion(regionCode) {
 async function loadDemoRegionExport() {
   regionController.cancel();
   clearRegionContent();
-  renderFloodScenario({ uiState: "loading", message: "UI検証用の合成データを確認しています。" });
+  renderFloodScenario({ uiState: "loading", message: "UI検証用の合成データを確認しています。" }, { isSynthetic: true });
   setSourceStatus("UI検証用の合成データを読み込んでいます…", "loading");
   try {
     const payload = await fetchRegionExport("./mock/region-export.json");
     renderPage(buildRegionExportViewModel(payload));
     setSourceStatus("mock/region-export.json｜合成デモを表示中", "demo");
   } catch (error) {
-    renderError(error instanceof Error ? error : new Error("不明なエラーです。"));
+    renderError(error instanceof Error ? error : new Error("不明なエラーです。"), null, { isSynthetic: true });
   }
 }
 
