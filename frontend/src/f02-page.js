@@ -10,6 +10,7 @@ const status = document.getElementById("load-state");
 const count = document.getElementById("record-count");
 const detailTitle = document.getElementById("detail-title");
 const returnToRecord = document.getElementById("return-to-record");
+const returnToDetail = document.getElementById("return-to-detail");
 let reference = null;
 let selectedId = null;
 
@@ -28,6 +29,7 @@ function paragraph(parent, text, className) {
 function clearDetail() {
   returnToRecord.hidden = true;
   returnToRecord.removeAttribute("aria-label");
+  returnToDetail.hidden = true;
   detail.replaceChildren();
   paragraph(detail, "施設を選択してください。出典はDataset単位で、施設単位の承認とは区別します。");
 }
@@ -36,6 +38,7 @@ function addDetailField(table, label, value) {
 }
 function renderDetail(record) {
   returnToRecord.hidden = false;
+  returnToDetail.hidden = false;
   returnToRecord.setAttribute("aria-label", "選択した施設へ戻る（" + record.name + "）");
   detail.replaceChildren();
   detail.append(create("h3", record.name));
