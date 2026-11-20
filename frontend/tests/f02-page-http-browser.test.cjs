@@ -283,6 +283,7 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       assert.ok(await evaluate("document.body.innerText.includes('安全性・災害適合性・開設・経路')"));
       assert.equal(await evaluate("document.querySelectorAll('#results .record').length"), 2);
       assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true);
+      assert.equal(await evaluate("document.querySelector('#return-to-detail').hidden"), true);
       assert.equal(await evaluate("document.querySelector('#sources a')?.href"),
         "https://example.invalid/synthetic-f02");
       assert.equal(await evaluate("document.querySelectorAll('#results script').length"), 0);
@@ -467,13 +468,21 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
         assert.equal(await evaluate("document.activeElement.textContent"), "データセット全体の出典へ移動");
         await pressKey("Enter");
         assert.equal(await evaluate("document.activeElement.id"), "source-title");
+        await pressKey("Tab");
+        assert.equal(await evaluate("document.activeElement.id"), "return-to-detail");
+        assert.ok(await evaluate("document.activeElement.getBoundingClientRect().height>=44"));
+        await pressKey("Enter");
+        assert.equal(await evaluate("document.activeElement.id"), "detail-title");
+        assert.ok(await evaluate("document.querySelector('#detail h3').textContent==='架空の検証施設40'"));
         assert.equal(await evaluate("document.querySelector('#search').value"), "架空");
         assert.equal(await evaluate("document.querySelector('#results [aria-pressed=true]').dataset.recordId"),
           await evaluate("window.__f02ReturnButton.dataset.recordId"));
+        await pressKey("Tab");
+        assert.equal(await evaluate("document.activeElement.id"), "return-to-record");
       }
       await command("Emulation.clearDeviceMetricsOverride");
       console.log("F02_RETURN_HTTP: native Tab/Enter returns to latest selected record, visible at 320/390/1440px, query and details unchanged PASS");
-      console.log("F02_SOURCE_NAV_HTTP: native Tab/Enter focuses dataset source heading and preserves query and selection PASS");
+      console.log("F02_SOURCE_NAV_HTTP: native Tab/Enter moves between dataset source and record headings while preserving query and selection PASS");
 
       await navigate("over-limit", "document.querySelector('#record-count').textContent.includes('D記録 60件')");
       await evaluate("(()=>{const q=document.querySelector('#search');q.value='施設55';q.dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#results .record').click()})()");
@@ -482,6 +491,7 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       assert.equal(await evaluate("document.querySelectorAll('#results .record').length"), 50);
       assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true,
         "Selection beyond the displayed 50 must not retain an unreachable return target");
+      assert.equal(await evaluate("document.querySelector('#return-to-detail').hidden"), true);
       assert.ok(await evaluate("document.querySelector('#detail').textContent.includes('施設を選択してください')"));
       await evaluate("(()=>{const q=document.querySelector('#search');q.value='施設55';q.dispatchEvent(new Event('input',{bubbles:true}))})()");
       assert.equal(await evaluate("document.querySelector('#results .record').getAttribute('aria-pressed')"), "false");
@@ -503,6 +513,7 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       await navigate("http-error", "document.querySelector('#load-state')?.innerText.includes('HTTP 503')");
       assert.ok(await evaluate("document.querySelector('#clear-search').hidden"));
       assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true);
+      assert.equal(await evaluate("document.querySelector('#return-to-detail').hidden"), true);
       if (realOutput !== null) {
         assert.ok(Number.isInteger(expectedRealRecords) && expectedRealRecords > 0,
           "Real D export must contain at least one shelter_location record");
