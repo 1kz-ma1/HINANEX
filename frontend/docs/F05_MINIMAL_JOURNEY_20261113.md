@@ -56,3 +56,16 @@
 - **テスト履歴:** 旧HEAD `ab6c60b56ce689184442c2156320332f2627287f` では[required test #43812754659](https://github.com/1kz-ma1/HINANEX/actions/runs/43812754659) SUCCESS、Frontend 118/118、GIS 24/24、Scope Guard PASS。**本書類を更新した新HEADのrequired testは再実行して記録する**。以前の「追加受入が必要」という節は更新前の履歴であり、F05-01〜14のユーザー報告は[#372](https://github.com/1kz-ma1/HINANEX/issues/372#issuecomment-6906107953)に記録済み（独立HAR、最新checkout SHA照合、物理端末はNOT_RUN）。
 - **非公開:** [Deploy #377](https://github.com/1kz-ma1/HINANEX/pull/377)は `prototypes/f05-flood-journey/**` とB1モデル・テスト・本書類を公開バンドルから除外。実B1ソースのmain統合後Render HTTP 404は **NOT_VERIFIED**。B2ソース統合後のRender LIVE SHA＋対象5ファイルの404も[Issue #373](https://github.com/1kz-ma1/HINANEX/issues/373#issuecomment-6933981069)で未確認。
 - **最終判断:** 本文中の過去main・HEAD・検証予定は当時の履歴。最新の`main`追従・CI・GitHubレビューはPR #371の末尾とCI runに記録する。コードmain統合と実施設の公式安全認定・CSV利用許諾・一般公開を区別する。
+
+## 2026-11-20 Owner採用・統合前残余QAの追補（現行判断）
+
+> 本節は2026-11-20時点の**最新判断**です。上記の「Owner採用未決定」「追加受入が必要」等は当時の監査履歴として残しており、現在の承認状態を表しません。
+
+- **Owner仕様採用：ADOPTED_FOR_B1_SCOPE。** [Issue #362の2026-11-20採用記録（@1kz-ma1）](https://github.com/1kz-ma1/HINANEX/issues/362#issuecomment-7030901882)。B担当の江戸川区 `13123` 本人選択＋HTTP loopback時のみF02 read-onlyへの手動リンク、F01独立入口、F07「参考経路は未提供」を承認。これは**PR #371のmainマージ・Render公開・実データ安全承認ではない**。
+- **スライス間境界：** B2の合成Fixture比較・本人一時選択は別スライス。B1→B2の新規導線、F02 RegionExport実データのB2連携、F01ハザード/施設ID自動join、GIS側入口変更、GPS・保存・外部API・開設/安全/災害適合推定・実経路は引き続き対象外。今回のB1ローカル仕様を**2027-02-09学内MVP全体の最終公開方式**に一般化しない。
+- **固定ソース受入基点：** PR #371 HEAD `da5f0b4f4a2bf294462efbe6fc4d34bfd173dfaf`。実ページ `index.html` Git blob `fb32b71d5ce457ccbdb34d8281c2babdbcab677d`、モデル `4673c0491b580a71a43cbebc13b5b146fd702256`、Nodeテスト `b4cd8095804c4d2338cd63e7d0ac4cdaf19fbfa6` を隔離取得し、それぞれのGit blob再計算で一致。
+- **この固定ソースの独立実行：** `node --test frontend/tests/f05-journey.test.js` **5/5 PASS**。隔離Python HTTPサーバーで実HTMLとモデルJSのHTTP 200・応答バイトの原本一致を確認（2件PASS）。
+- **独立実HTTP Chrome B1 E2E：NOT_RUN（環境制約）。** Chromium 144を起動したが、管理ポリシー `URLBlocklist=["*"]` により最初の `http://127.0.0.1:<port>/frontend/prototypes/f05-flood-journey/index.html` への移動が `net::ERR_BLOCKED_BY_ADMINISTRATOR` で失敗。試験のために管理ポリシーを解除・回避せず停止。地域変更/解除、Tab/Enter、320/390/1440pxのChrome実画面、F01/F02クリック遷移、非loopbackのChrome実挙動、ブラウザNetwork/Storage/HAR/スクリーンショットは**今回の独立ChromeでPASS未取得**。既存の[#372 DQA-004 14/14人間申告PASS](https://github.com/1kz-ma1/HINANEX/issues/372#issuecomment-6906107953)・F02/B2の別HTTP Chrome CI PASS・B1 Node PASSを代替証拠と偽らない。
+- **前回HEADのCI（履歴）：** [`da5f0b4...` required test SUCCESS #44678596404](https://github.com/1kz-ma1/HINANEX/actions/runs/44678596404)：Frontend 133/133、GIS Node 39/39、Deploy 21/21、F02/B2 Chrome CI・Scope Guard等PASS。**本追補コミットの最終HEADでrequired testを改めて照合**すること。
+- **非公開：** `deploy/build_staging.py` のF05/B1モデル・ページ・テスト・文書、および `prototypes/f05-flood-journey/**`（B2含む）の除外は維持。コード統合後の実Render LIVE非配信（Issue #373）、iOS/Android/Safari・読上げ（Issue #372）、CSV権利/実施設承認（Issue #366）は別ゲート、**NOT_VERIFIED / NO-GO**。
+- **現在の統合準備判定：** `CAPTAIN_REVIEW_CANDIDATE_WITH_OPEN_EVIDENCE / MERGE_HOLD`。人間Merge Captain本人が、独立B1 Chrome未実施の残余リスクをHOLD/DEFERRED/必要追加証拠として明示決定するまで`MERGE`の代理承認はしない。PRはDraft・`merge: blocked`を維持。
