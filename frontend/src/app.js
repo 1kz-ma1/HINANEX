@@ -710,11 +710,17 @@ function renderFloodScenario(scenario, { pagingAction = null, isSynthetic = fals
     }),
   );
   if (pages > 1) {
-    floodScenarioRoot.append(element("a", {
-      className: "source-button scenario-first-result-link",
+    const firstResult = cards[0].querySelector("h3");
+    const jumpToFirst = element("button", {
+      className: "source-button scenario-first-result-jump",
       text: "このページの施設一覧の先頭へ",
-      attributes: { href: "#floodScenarioFirstResult" },
-    }));
+      attributes: { type: "button" },
+    });
+    jumpToFirst.addEventListener("click", () => {
+      firstResult.focus({ preventScroll: true });
+      firstResult.scrollIntoView({ block: "start", inline: "nearest", behavior: "instant" });
+    });
+    floodScenarioRoot.append(jumpToFirst);
   }
   if (pagingAction) {
     const button = pagingAction === "previous" ? previous : next;
