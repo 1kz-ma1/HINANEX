@@ -32,6 +32,7 @@ button:disabled{opacity:.53;cursor:not-allowed}
 .facility dt{color:var(--muted)}
 .facility dd{margin:0;overflow-wrap:anywhere}
 .facility button{width:100%}
+#openComparison{display:inline-flex;align-items:center;min-height:44px;color:var(--cyan)}
 .tag{display:inline-block;background:#1b4553;border:1px solid #457888;border-radius:8px;padding:2px 9px;font-size:.9rem}
 #recordList:empty,#compareArea:empty,#choiceArea:empty{display:none}
 #clearMessage{min-height:1.65em}
@@ -73,11 +74,12 @@ button:disabled{opacity:.53;cursor:not-allowed}
     <div id="recordList" class="grid"></div>
     <p id="emptyMessage" role="status"></p>
     <button id="resetCriteria" type="button" hidden>検索と区分をリセット</button>
+    <p id="compareMessage" role="status"></p>
+    <a id="openComparison" href="#compareTitle" hidden>2件の比較へ移動</a>
   </section>
   <section class="panel" aria-labelledby="compareTitle">
-    <h2 id="compareTitle">2件の根拠を並べて確認</h2>
+    <h2 id="compareTitle" tabindex="-1">2件の根拠を並べて確認</h2>
     <div id="compareArea" class="columns"></div>
-    <p id="compareMessage" role="status"></p>
     <button id="clearSelection" type="button">比較と本人選択をすべて解除</button>
     <p id="clearMessage" role="status" aria-live="polite"></p>
   </section>
@@ -99,6 +101,7 @@ if (isB2Loopback(window.location.origin)) {
   const list=el("recordList"),compare=el("compareArea"),choice=el("choiceArea");
   const clearSelection=el("clearSelection"),clearMessage=el("clearMessage");
   const resetCriteria=el("resetCriteria");
+  const openComparison=el("openComparison");
   let session=null;
   const focusRow=(container,id)=>{
     // render() recreates buttons: restore focus to the matching new control.
@@ -137,6 +140,7 @@ if (isB2Loopback(window.location.origin)) {
     filter.disabled=!usable;query.disabled=!usable;
     clearSelection.disabled=!usable;
     resetCriteria.hidden=true;
+    openComparison.hidden=true;
     el("state").textContent=session.message;
     el("stats").textContent=usable||session.state==="EMPTY_DATASET"?
       "合成総数 "+session.total+"件｜CANDIDATE "+session.counts.CANDIDATE+
@@ -168,11 +172,14 @@ if (isB2Loopback(window.location.origin)) {
     }
     const selected=session.selected();
     if(selected.length!==2){
-      el("compareMessage").textContent="異なる2件を選ぶと、出典・理由・未確認事項を比較できます。";
+      el("compareMessage").textContent=selected.length===1
+        ?"比較対象は1件です。もう1件選ぶと、出典・理由・未確認事項を比較できます。"
+        :"異なる2件を選ぶと、出典・理由・未確認事項を比較できます。";
       el("choiceMessage").textContent="本人の確認対象：なし";
       return;
     }
     el("compareMessage").textContent="2件を比較中。順位付け・安全性の判定はしません。";
+    openComparison.hidden=false;
     selected.forEach((r,i)=>compare.append(card(r,i?"B":"A")));
     const chosenRow=session.choice();
     for(const row of selected){
