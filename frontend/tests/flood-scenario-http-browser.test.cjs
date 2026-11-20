@@ -119,6 +119,9 @@ test("F01 real HTTP Chrome: explicit error recovery and synthetic Scenario pagin
         await command("Emulation.setDeviceMetricsOverride", {width,height,deviceScaleFactor:1,mobile:false});
         await load("ready", ready);
         assert.equal(await evaluate("document.querySelector('#demoNotice').hidden"), false);
+        assert.equal(await evaluate("document.querySelector('#floodScenarioTitle').textContent"), "洪水シナリオ（合成デモ）");
+        assert.equal(await evaluate("document.querySelector('#floodScenarioNav').textContent"), "洪水Scenario（合成デモ）");
+        assert.ok(await evaluate("document.querySelector('.scenario-metrics').textContent.includes('合成raw値の件数') && document.querySelector('.scenario-alert small').textContent.includes('合成データ上の取得状態') && !document.querySelector('.scenario-alert').textContent.includes('新潟市ODS')"));
         // This button is below the viewport. Restoring focus must not scroll to it.
         const baseline = await evaluate("(()=>{scrollTo({top:72,behavior:'instant'});const b=document.querySelector('.scenario-pagination button:last-child');b.focus({preventScroll:true});return {y:scrollY,top:b.getBoundingClientRect().top,height:innerHeight}})()");
         assert.ok(baseline.y>60 && baseline.top>baseline.height, "Nonzero scroll and offscreen paging control required: " + JSON.stringify(baseline));
@@ -128,6 +131,7 @@ test("F01 real HTTP Chrome: explicit error recovery and synthetic Scenario pagin
           "Next page must retain focus on the recreated next control at " + width);
         assert.equal(await evaluate("scrollY"), baseline.y, "Focus restoration must prevent a scroll jump");
         assert.equal(await evaluate("document.querySelector('.scenario-facility h3').textContent"), "架空の洪水確認施設20");
+        assert.equal(await evaluate("document.querySelector('#floodScenarioTitle').textContent"), "洪水シナリオ（合成デモ）");
         assert.equal(await evaluate("document.querySelector('.scenario-trace > summary').textContent"), "合成記録と出典を確認");
         await enter();
         await waitUntil(evaluate, "document.querySelector('.scenario-pagination')?.textContent.includes('3/3ページ')", "last page");
@@ -176,9 +180,18 @@ test("F01 real HTTP Chrome: explicit error recovery and synthetic Scenario pagin
         await load(mode, condition);
         assert.equal(await evaluate("document.querySelector('.scenario-pagination')"), null, mode);
         assert.equal(await evaluate("document.querySelectorAll('.scenario-facility').length"), 0, mode);
+        if (mode === "error") {
+          assert.equal(await evaluate("document.querySelector('#floodScenarioTitle').textContent"), "洪水シナリオ（合成デモ）");
+          assert.ok(await evaluate("document.querySelector('.scenario-feedback--error').textContent.includes('合成デモを読み込めませんでした')"));
+        }
       }
       await load("ready", ready);
       assert.ok(await evaluate("document.querySelector('#sourceStatus').dataset.tone==='demo'"));
+      await evaluate("document.querySelector('#reloadRegionExport').click()");
+      await waitUntil(evaluate, "document.querySelector('#sourceStatus').dataset.tone==='error'", "explicit regional retry after demo");
+      assert.equal(await evaluate("document.querySelector('#floodScenarioTitle').textContent"), "洪水に関する公式情報");
+      assert.ok(await evaluate("document.querySelector('#demoNotice').hidden && document.querySelectorAll('.scenario-facility').length===0"));
+      console.log("F01_SYNTHETIC_SUMMARY_HTTP: labels across demo, paging and failures with no stale rows PASS");
       assert.equal(await evaluate("localStorage.length+sessionStorage.length"), 0);
       assert.deepEqual(browser.exceptions, []);
       assert.ok(browser.outbound.every(url=>url.startsWith(base + "/") || url==="about:blank" || url.startsWith("data:")), "Unexpected outbound request");

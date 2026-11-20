@@ -14,6 +14,8 @@ const capabilityRoot = document.querySelector("#capabilityRoot");
 const floodScenarioRoot = document.querySelector("#floodScenarioRoot");
 const floodScenarioSection = document.querySelector("#floodScenario");
 const floodScenarioNav = document.querySelector("#floodScenarioNav");
+const floodScenarioTitle = document.querySelector("#floodScenarioTitle");
+const floodScenarioDescription = document.querySelector("#floodScenarioDescription");
 let scenarioPageIndex = 0;
 const assessmentRoot = document.querySelector("#assessmentRoot");
 const gapRoot = document.querySelector("#gapRoot");
@@ -543,6 +545,11 @@ function renderFloodScenario(scenario, { pagingAction = null, isSynthetic = fals
   const hasScenario = Boolean(scenario);
   floodScenarioSection.hidden = !hasScenario;
   floodScenarioNav.hidden = !hasScenario;
+  floodScenarioNav.textContent = isSynthetic ? "洪水Scenario（合成デモ）" : "洪水Scenario";
+  floodScenarioTitle.textContent = isSynthetic ? "洪水シナリオ（合成デモ）" : "洪水に関する公式情報";
+  floodScenarioDescription.textContent = isSynthetic
+    ? "操作確認用の合成データです。実際の災害、施設、安全性、開設状況を示しません。"
+    : "公式のraw値をそのまま表示し、施設の安全性や開設状況を推測しません。";
   floodScenarioRoot.replaceChildren();
   floodScenarioRoot.setAttribute("aria-busy", String(scenario?.uiState === "loading"));
   if (!hasScenario) return;
@@ -576,8 +583,8 @@ function renderFloodScenario(scenario, { pagingAction = null, isSynthetic = fals
   const summary = element("div", {
     className: "scenario-metrics",
     children: [
-      summaryMetric("Scenario評価範囲（D原値）", `${scenario.statusDescription}（${scenario.statusCode}）`),
-      summaryMetric("公式raw値の件数（D提供）", scenario.rawValueCount === null ? "未確認" : `${scenario.rawValueCount}件`),
+      summaryMetric(isSynthetic ? "合成シナリオの評価範囲" : "Scenario評価範囲（D原値）", `${scenario.statusDescription}（${scenario.statusCode}）`),
+      summaryMetric(isSynthetic ? "合成raw値の件数" : "公式raw値の件数（D提供）", scenario.rawValueCount === null ? "未確認" : `${scenario.rawValueCount}件`),
       summaryMetric("施設の判定がUNKNOWN", `${scenario.unknownCount} / ${scenario.total}件`),
       summaryMetric("利用階の原文を保持", `${scenario.rawFloorCount}件`),
     ],
@@ -588,10 +595,10 @@ function renderFloodScenario(scenario, { pagingAction = null, isSynthetic = fals
     attributes: { role: "note" },
     children: [
       element("strong", { text: "洪水時の安全・開設を保証する情報ではありません" }),
-      element("p", { text: scenario.caveat }),
-      element("p", { text: scenario.interpretationNotice }),
+      element("p", { text: isSynthetic ? "UNKNOWNは危険・利用不可を意味しません。合成の区分や記号は操作確認用です。" : scenario.caveat }),
+      ...(isSynthetic ? [] : [element("p", { text: scenario.interpretationNotice })]),
       element("small", {
-        text: `公式Sourceの取得状態（D原値）：${scenario.discoveryDescription}（${scenario.discoveryStatus}）`,
+        text: `${isSynthetic ? "合成データ上の取得状態" : "公式Sourceの取得状態（D原値）"}：${scenario.discoveryDescription}（${scenario.discoveryStatus}）`,
       }),
     ],
   });
@@ -812,12 +819,14 @@ function renderLoading(source) {
   );
 }
 
-function renderError(error, source = null) {
+function renderError(error, source = null, { isSynthetic = false } = {}) {
   clearRegionContent();
   renderFloodScenario({
     uiState: "error",
-    message: "地域データを読み込めなかったため、施設の評価結果も表示できません。詳細設定から再読込または手動JSON読込を行ってください。",
-  });
+    message: isSynthetic
+      ? "合成デモを読み込めませんでした。詳細設定から合成デモを再度選んでください。"
+      : "地域データを読み込めなかったため、施設の評価結果も表示できません。詳細設定から再読込または手動JSON読込を行ってください。",
+  }, { isSynthetic });
   regionName.textContent = source?.label ?? "RegionExport読込失敗";
   generatedAt.textContent = "読込失敗";
   schemaVersion.textContent = "—";
@@ -896,14 +905,14 @@ function selectRegion(regionCode) {
 async function loadDemoRegionExport() {
   regionController.cancel();
   clearRegionContent();
-  renderFloodScenario({ uiState: "loading", message: "UI検証用の合成データを確認しています。" });
+  renderFloodScenario({ uiState: "loading", message: "UI検証用の合成データを確認しています。" }, { isSynthetic: true });
   setSourceStatus("UI検証用の合成データを読み込んでいます…", "loading");
   try {
     const payload = await fetchRegionExport("./mock/region-export.json");
     renderPage(buildRegionExportViewModel(payload));
     setSourceStatus("mock/region-export.json｜合成デモを表示中", "demo");
   } catch (error) {
-    renderError(error instanceof Error ? error : new Error("不明なエラーです。"));
+    renderError(error instanceof Error ? error : new Error("不明なエラーです。"), null, { isSynthetic: true });
   }
 }
 
