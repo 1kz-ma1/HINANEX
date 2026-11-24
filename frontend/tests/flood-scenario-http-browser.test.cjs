@@ -183,17 +183,28 @@ test("F01 real HTTP Chrome: explicit error recovery and synthetic Scenario pagin
         const lastText = await evaluate("document.querySelector('.scenario-pagination').textContent");
         assert.ok(lastText.includes("3/3ページ"));
         const beforeJump = dataRequests();
+        const hashBeforeJump = await evaluate("location.hash");
         await tab();
         assert.equal(await evaluate("document.activeElement.textContent"), "このページの施設一覧の先頭へ");
         assert.ok(await evaluate("document.activeElement.getBoundingClientRect().height>=44"));
+        const firstResultPosition = `(() => {
+          const result = document.querySelector('#floodScenarioFirstResult').getBoundingClientRect();
+          const header = document.querySelector('.site-header').getBoundingClientRect();
+          return {top:result.top, bottom:result.bottom, headerBottom:header.bottom, viewportHeight:innerHeight};
+        })()`;
+        await evaluate("document.activeElement.scrollIntoView({block:'start',behavior:'instant'})");
+        const before = await evaluate(firstResultPosition);
+        if (width < 600) assert.ok(before.bottom < before.headerBottom, "First result must start above the visible area at " + width);
         await enter();
         assert.deepEqual(await evaluate("({active:document.activeElement.id, name:document.activeElement.textContent})"),
           {active:"floodScenarioFirstResult", name:"架空の洪水確認施設40"});
-        await waitUntil(evaluate, "(()=>{const box=document.activeElement.getBoundingClientRect();return box.top>=document.querySelector('.site-header').getBoundingClientRect().bottom&&box.bottom<=innerHeight})()",
-          "first result in view below the sticky header at " + width);
+        const after = await evaluate(firstResultPosition);
+        assert.ok(after.top >= after.headerBottom && after.bottom <= after.viewportHeight,
+          "First result must be immediately visible below the sticky header at " + width + ": " + JSON.stringify(after));
         await tab();
         assert.ok(await evaluate("document.activeElement===document.querySelector('.scenario-trace > summary')"));
         assert.equal(await evaluate("document.querySelector('.scenario-pagination').textContent"), lastText);
+        assert.equal(await evaluate("location.hash"), hashBeforeJump);
         assert.equal(dataRequests(), beforeJump, "In-page jump must not load data again");
       }
       await command("Emulation.clearDeviceMetricsOverride");
@@ -209,7 +220,7 @@ test("F01 real HTTP Chrome: explicit error recovery and synthetic Scenario pagin
       ]) {
         await load(mode, condition);
         assert.equal(await evaluate("document.querySelector('.scenario-pagination')"), null, mode);
-        assert.equal(await evaluate("document.querySelector('.scenario-first-result-link')"), null, mode);
+        assert.equal(await evaluate("document.querySelector('.scenario-first-result-jump')"), null, mode);
         assert.equal(await evaluate("document.querySelectorAll('.scenario-facility').length"), 0, mode);
         if (mode === "error") {
           assert.equal(await evaluate("document.querySelector('#floodScenarioTitle').textContent"), "洪水シナリオ（合成デモ）");
@@ -217,7 +228,7 @@ test("F01 real HTTP Chrome: explicit error recovery and synthetic Scenario pagin
         }
       }
       await load("single", "document.querySelectorAll('.scenario-facility').length===5 && document.querySelector('.scenario-pagination').textContent.includes('1/1ページ')");
-      assert.equal(await evaluate("document.querySelector('.scenario-first-result-link')"), null);
+      assert.equal(await evaluate("document.querySelector('.scenario-first-result-jump')"), null);
       await load("ready", ready);
       assert.ok(await evaluate("document.querySelector('#sourceStatus').dataset.tone==='demo'"));
       await evaluate("document.querySelector('#reloadRegionExport').click()");
