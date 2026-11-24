@@ -109,3 +109,24 @@ AIによるおすすめは「決定」ではない。本人の採用操作・明
 ## 7. この文書で完了しないこと
 
 F02人間レビューのオーナー受領、CSV個別の権利許諾、施設・経路安全性、災害別指定、端末実機QA、公開範囲・部署の正式承認、Draft PRのマージ、Render等の一般公開。本書は**判断の取りこぼし防止のための文書**である。
+
+
+## 8. 2026-11-24 Owner決裁追補（現行判断の索引）
+
+2026-11-24 JST、Owner本人のチャットでの明示採用を司令塔AIが関連Issue/PRへ代理記録。元の11-20スナップショットを履歴として保持し、以下の限定範囲については本追補を現行判断とする。本PR自体はDraft・未統合であり、公開や正式Contract採用の証拠ではない。
+
+| 決裁ID | 台帳IDとの対応 | 採用範囲 | 残るHOLD・未決 | 個別決裁記録 |
+| --- | --- | --- | --- | --- |
+| DECISION-20261124-001 | OWN-F09-01 / CAPTAIN_REVIEW | #428非公開ガードのみ、Owner条件付き正式マージ許可 | 実効保護詳細・Render自動配信影響の確認、正式操作、#429別審査、F09公開/展示/出典受入 | [#428](https://github.com/1kz-ma1/HINANEX/pull/428#issuecomment-7120365938) |
+| DECISION-20261124-002 | OWN-F05-01 / OWN-F07-01 | MJ-D01〜07限定方針、MJ-01固定架空表示Fixtureの非公開UI実装 | 提供方式、S1正式表示/操作契約、D/B接続、実施設結合、実経路、main統合、公開 | [#362](https://github.com/1kz-ma1/HINANEX/issues/362#issuecomment-7120366611) |
+| DECISION-20261124-003 | OWN-S0-01 | D03-03案Bを合成訓練限定の設計第一候補、保証詳細設計のみ | D/B/C個別承認、Lease/時計/処理遅延/信頼確立/N-11、正式Contract、製品実装・公開 | [#386](https://github.com/1kz-ma1/HINANEX/pull/386#issuecomment-7120367201) |
+| DECISION-20261124-004 | OWN-QA-01 | 11/27想定QA-0の隔離環境Preflight準備 | 日時・参加者・端末・実機操作・通信許可、実機受入、12/6候補QA-1 | [#372](https://github.com/1kz-ma1/HINANEX/issues/372#issuecomment-7120367909) |
+
+### 決裁の適用境界
+- 001: #428固定HEAD `c74c21b1152d429ef41dbc21a05cf7c3869fc05b`、main `f13ab2035c51cde0084d1463036f3148ff1b8ecc`、[exact-HEAD CI #45313165095](https://github.com/1kz-ma1/HINANEX/actions/runs/45313165095) SUCCESS。技術GOを維持するが、保護API 403・Render Workspace未選択のため実行HOLD。#371公開ガード是正と#429再準備は#428 main統合の独立確認後。#371の[再監査HOLD](https://github.com/1kz-ma1/HINANEX/pull/371#issuecomment-7119963653)を維持。
+- 002: 本人選択でMVP完了、J02〜05単一画面、公式/合成の完全分離、既存B1/B2/S0/S1再利用、S1表示と操作契約分離、S1選択正本は設計候補、参考経路を必須外とする。MJ-01だけ別Draft PRで実装・検証可能。新規資材の非公開保証を統合前に独立Shared PRで確認。MJ-D08と実接続、MJ-02以降の実装は未承認。
+- 003: 制御可能な変更の論理失効バリア、制御不能障害に対する条件付きShort Lease、復帰時全面再検証。停止中の物理画面消去や有限残存時間は保証不能。14キーSchema・既存#386/#387を維持し、正式採用は合同承認後の別決裁。
+- 004: 11/27は想定日であり確定日ではない。固定候補・合成Fixture・全35項目操作票・loopback接続成立性・F13隔離キット・証拠収集の準備。実機試験はNOT_RUN、実行権限HOLD。
+
+### 司令塔の運用
+Ownerは技術統合判断を司令塔に委任した。司令塔のGO/HOLDと人間Captainの正式決裁・GitHub操作を区別し、現行AGENTS.md/MERGE_CAPTAINS.mdを維持する。原本・権利・安全・公開の人間承認を代行しない。今回の4件以外の未決項目は従来の状態を維持する。
