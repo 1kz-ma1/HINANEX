@@ -292,6 +292,7 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       assert.equal(await evaluate("document.querySelectorAll('#results .record').length"), 2);
       assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true);
       assert.equal(await evaluate("document.querySelector('#return-to-detail').hidden"), true);
+      assert.equal(await evaluate("document.querySelector('#clear-record').hidden"), true);
       assert.equal(await evaluate("document.querySelector('#sources a')?.href"),
         "https://example.invalid/synthetic-f02");
       assert.equal(await evaluate("document.querySelectorAll('#results script').length"), 0);
@@ -487,10 +488,21 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
           await evaluate("window.__f02ReturnButton.dataset.recordId"));
         await pressKey("Tab");
         assert.equal(await evaluate("document.activeElement.id"), "return-to-record");
+        await pressKey("Tab");
+        await pressKey("Tab");
+        assert.equal(await evaluate("document.activeElement.id"), "clear-record");
+        assert.ok(await evaluate("document.activeElement.getBoundingClientRect().height>=44"));
+        await pressKey("Enter");
+        assert.ok(await evaluate("document.activeElement===window.__f02ReturnButton"));
+        assert.equal(await evaluate("document.querySelector('#results [aria-pressed=true]')"), null);
+        assert.equal(await evaluate("document.querySelector('#search').value"), "架空");
+        assert.equal(await evaluate("document.querySelectorAll('#results .record').length"), 50);
+        assert.ok(await evaluate("document.querySelector('#clear-record').hidden && document.querySelector('#return-to-detail').hidden && !document.querySelector('#detail h3')"));
       }
       await command("Emulation.clearDeviceMetricsOverride");
       console.log("F02_RETURN_HTTP: native Tab/Enter returns to latest selected record, visible at 320/390/1440px, query and details unchanged PASS");
       console.log("F02_SOURCE_NAV_HTTP: native Tab/Enter moves between dataset source and record headings while preserving query and selection PASS");
+      console.log("F02_CLEAR_RECORD_HTTP: native Enter clears only the record selection and restores focus to the same list button PASS");
 
       await navigate("over-limit", "document.querySelector('#record-count').textContent.includes('D記録 60件')");
       await evaluate("(()=>{const q=document.querySelector('#search');q.value='施設55';q.dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#results .record').click()})()");
