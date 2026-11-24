@@ -237,11 +237,37 @@ async function launchChrome(bin) {
 }
 async function waitUntil(evaluate, expression, description) {
   for (let i = 0; i < 100; i++) {
-    try { if (await evaluate(expression)) return; } catch { /* navigating */ }
+    try {
+      if (await evaluate(expression)) return;
+    } catch (error) {
+      // A navigation can replace the execution context between CDP calls.
+      if (!/^(Execution context was destroyed|Cannot find context with specified id)\b/.test(error?.message)) {
+        throw error;
+      }
+    }
     await wait(100);
   }
   throw Error("Timed out waiting for " + description);
 }
+test("F02 browser polling retries a replaced document context", async () => {
+  let attempts = 0;
+  await waitUntil(async () => {
+    attempts += 1;
+    if (attempts === 1) throw Error("Execution context was destroyed.");
+    return true;
+  }, "true", "new page");
+  assert.equal(attempts, 2);
+});
+test("F02 browser polling retains the original CDP command error", async () => {
+  const commandError = Error("CDP command timed out: Runtime.evaluate");
+  let attempts = 0;
+  await assert.rejects(waitUntil(async () => {
+    attempts += 1;
+    if (attempts === 1) throw commandError;
+    return true;
+  }, "true", "new page"), error => error === commandError);
+  assert.equal(attempts, 1);
+});
 test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic data",
   { timeout: 120000 }, async t => {
     const bin = browserBinary();
