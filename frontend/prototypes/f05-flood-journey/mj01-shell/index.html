@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'">
+<link rel="icon" href="data:,">
+<title>HINANEX | MJ-01 合成訓練</title>
+<style>
+*{box-sizing:border-box} [hidden]{display:none!important}
+body{margin:0;background:#f1f5f7;color:#172d39;font:16px/1.6 system-ui,sans-serif;overflow-wrap:anywhere}
+main{max-width:1000px;margin:auto;padding:16px}
+h1{font-size:clamp(1.45rem,4vw,2rem);line-height:1.35}h2{font-size:1.3rem}h3{margin-top:0;font-size:1.1rem}
+.notice{border:2px solid #a56621;background:#fff5e5;border-radius:12px;padding:12px;color:#593607}
+nav ol{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0}nav li{padding:5px 10px;border:1px solid #8797a3;border-radius:8px}
+nav li[aria-current=step]{background:#184b60;color:white}
+.panel,article{background:white;border:1px solid #a6b6c1;border-radius:12px;padding:14px;min-width:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+button{font:inherit;min-height:44px;max-width:100%;white-space:normal;border:1px solid #184b60;border-radius:8px;padding:8px 12px;background:white;color:#183f52;cursor:pointer}
+button[aria-pressed=true],button.primary{background:#184b60;color:white}
+button:disabled{opacity:.55;cursor:default}
+:focus-visible{outline:3px solid #a14a00;outline-offset:3px}
+dt{font-weight:650}dd{margin:0 0 8px}ul{padding-inline-start:24px}
+#status{min-height:1.6em} .muted{color:#3f5965}
+</style>
+</head>
+<body><main>
+<h1>HINANEX｜模擬ジャーニー</h1>
+<p id="onlyLocal" role="status">非公開の合成訓練専用です。許可されたローカルHTTPでのみ表示します。</p>
+<section id="prototype" hidden>
+<p class="notice" id="notice">【合成訓練専用】固定表示Fixtureです。実S1出力・現実の災害・避難施設の安全性や開設状況を示しません。</p>
+<nav aria-label="訓練の進行"><ol id="steps"></ol></nav>
+<section class="panel" aria-labelledby="heading">
+<h2 id="heading" tabindex="-1"></h2>
+<p id="status" role="status" aria-live="polite"></p>
+<div id="content"></div>
+<div class="controls" id="actions"></div>
+</section>
+<p class="muted">参考経路：未提供。実際の避難先の決定・安全認定は行いません。</p>
+</section>
+</main><script type="module" src="./app.js"></script></body>
+</html>
