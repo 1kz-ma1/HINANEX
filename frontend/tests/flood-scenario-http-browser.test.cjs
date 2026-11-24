@@ -220,6 +220,7 @@ test("F01 real HTTP Chrome: explicit error recovery and synthetic Scenario pagin
       ]) {
         await load(mode, condition);
         assert.equal(await evaluate("document.querySelector('.scenario-pagination')"), null, mode);
+        assert.equal(await evaluate("document.querySelector('.scenario-result-count')"), null, mode);
         assert.equal(await evaluate("document.querySelector('.scenario-first-result-jump')"), null, mode);
         assert.equal(await evaluate("document.querySelectorAll('.scenario-facility').length"), 0, mode);
         if (mode === "error") {
@@ -227,9 +228,11 @@ test("F01 real HTTP Chrome: explicit error recovery and synthetic Scenario pagin
           assert.ok(await evaluate("document.querySelector('.scenario-feedback--error').textContent.includes('合成デモを読み込めませんでした')"));
         }
       }
-      await load("single", "document.querySelectorAll('.scenario-facility').length===5 && document.querySelector('.scenario-pagination').textContent.includes('1/1ページ')");
+      await load("single", "document.querySelectorAll('.scenario-facility').length===5 && document.querySelector('.scenario-result-count')?.textContent==='全5件を表示'");
+      assert.equal(await evaluate("document.querySelector('.scenario-pagination')"), null);
       assert.equal(await evaluate("document.querySelector('.scenario-first-result-jump')"), null);
       await load("ready", ready);
+      assert.equal(await evaluate("document.querySelector('.scenario-result-count')"), null);
       assert.ok(await evaluate("document.querySelector('#sourceStatus').dataset.tone==='demo'"));
       await evaluate("document.querySelector('#reloadRegionExport').click()");
       await waitUntil(evaluate, "document.querySelector('#sourceStatus').dataset.tone==='error'", "explicit regional retry after demo");
