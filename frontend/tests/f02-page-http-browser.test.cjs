@@ -152,6 +152,7 @@ async function serve(realOutput = null) {
         res.writeHead(503); res.end("not available"); return;
       }
       res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+      if (scenario === "bad-json") { res.end("{"); return; }
       res.end(scenario === "real-data" && realOutput !== null ? realOutput : JSON.stringify(fixtureFor(scenario)));
       return;
     }
@@ -521,6 +522,29 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       assert.equal(await evaluate("document.querySelector('#retry-load').hidden"), true);
       assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true);
       const exportRequests = () => requests.filter(path => path === "/pipeline/data/output/edogawa.json").length;
+      await navigate("bad-json", "document.querySelector('#load-state').classList.contains('error')");
+      assert.equal(await evaluate("document.querySelector('#retry-load').hidden"), true);
+      const beforeTransportError = exportRequests();
+      // Block only the data request, so the page and its modules still load.
+      await command("Network.setBlockedURLs", {urls: [base + "/pipeline/data/output/edogawa.json"]});
+      try {
+        await navigate("network-error", "document.querySelector('#load-state').textContent.includes('取得先に接続できませんでした')");
+        assert.equal(exportRequests(), beforeTransportError, "Blocked requests must not reach the fixture server");
+        assert.equal(await evaluate("document.querySelectorAll('#results .record').length"), 0);
+        assert.equal(await evaluate("document.querySelector('#retry-load').hidden"), false);
+      } finally {
+        await command("Network.setBlockedURLs", {urls: []});
+      }
+      await evaluate("document.querySelector('#load-state').focus()");
+      await pressKey("Tab");
+      assert.equal(await evaluate("document.activeElement.id"), "retry-load");
+      await pressKey("Enter");
+      await waitUntil(evaluate, "document.querySelectorAll('#results .record').length===2", "transport retry restores records");
+      assert.equal(exportRequests(), beforeTransportError + 1);
+      assert.equal(await evaluate("document.querySelector('#retry-load').hidden"), true);
+      assert.equal(await evaluate("document.activeElement.id"), "search");
+      assert.equal(await evaluate("document.querySelector('#results [aria-pressed=true]')"), null);
+      console.log("F02_TRANSPORT_RETRY_HTTP: a blocked data request and malformed JSON are distinct, explicit retry restores records PASS");
       const beforeError = exportRequests();
       await navigate("http-error", "document.querySelector('#load-state')?.innerText.includes('HTTP 503')");
       assert.ok(await evaluate("document.querySelector('#clear-search').hidden"));
