@@ -1,0 +1,764 @@
+{
+  "schema_id": "hinanex.c.s0_real_reducer_replay.v0.1",
+  "synthetic_only": true,
+  "fixtures": {
+    "flood_a": {
+      "fixture_id": "synth:c-flood-a",
+      "region_code": "13123",
+      "hazard": "flood",
+      "observed_at": "2026-11-13T00:00:00Z",
+      "expires_at": "2026-11-13T00:30:00Z",
+      "source_authorization": "SYNTHETIC_TEST_ONLY"
+    },
+    "landslide_b": {
+      "fixture_id": "synth:c-landslide-b",
+      "region_code": "15100",
+      "hazard": "landslide",
+      "observed_at": "2026-11-13T00:00:00Z",
+      "expires_at": "2026-11-13T00:30:00Z",
+      "source_authorization": "SYNTHETIC_TEST_ONLY"
+    },
+    "future_flood": {
+      "fixture_id": "synth:c-future",
+      "region_code": "13123",
+      "hazard": "flood",
+      "observed_at": "2026-11-13T00:10:00Z",
+      "expires_at": "2026-11-13T00:40:00Z",
+      "source_authorization": "SYNTHETIC_TEST_ONLY"
+    }
+  },
+  "cases": [
+    {
+      "id": "initial_normal_is_not_live",
+      "expected": {
+        "status": "PASS",
+        "code": "MATCHED"
+      },
+      "steps": [
+        {
+          "kind": "VIEW",
+          "now": "2026-11-13T00:00:00Z",
+          "expect": {
+            "transition": "VIEW",
+            "view": {
+              "mode": "NORMAL",
+              "fixture_id": null,
+              "hazard": null,
+              "source_authorization": null,
+              "generation": 0,
+              "reason": "INITIAL",
+              "notice_kind": "NORMAL",
+              "live_data_verified": false,
+              "selected_region": null,
+              "preferred_region": null
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "start_and_stop",
+      "expected": {
+        "status": "PASS",
+        "code": "MATCHED"
+      },
+      "steps": [
+        {
+          "kind": "EVENT",
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "now": "2026-11-13T00:00:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "DRILL",
+              "selected_region": "13123",
+              "fixture_id": "synth:c-flood-a",
+              "hazard": "flood",
+              "source_authorization": "SYNTHETIC_TEST_ONLY",
+              "generation": 1,
+              "reason": "DRILL_STARTED",
+              "notice_kind": "DRILL",
+              "live_data_verified": false
+            }
+          },
+          "region_code": "13123",
+          "fixture": "flood_a"
+        },
+        {
+          "kind": "EVENT",
+          "action": "STOP_DRILL",
+          "expected_generation": 1,
+          "now": "2026-11-13T00:05:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "NORMAL",
+              "fixture_id": null,
+              "hazard": null,
+              "source_authorization": null,
+              "generation": 2,
+              "reason": "DRILL_STOPPED",
+              "notice_kind": "NORMAL",
+              "live_data_verified": false,
+              "selected_region": "13123"
+            }
+          }
+        },
+        {
+          "kind": "VIEW",
+          "now": "2026-11-13T00:05:00Z",
+          "expect": {
+            "transition": "VIEW",
+            "view": {
+              "mode": "NORMAL",
+              "fixture_id": null,
+              "hazard": null,
+              "source_authorization": null,
+              "generation": 2,
+              "reason": "DRILL_STOPPED",
+              "notice_kind": "NORMAL",
+              "live_data_verified": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "region_switch_clears_fixture",
+      "expected": {
+        "status": "PASS",
+        "code": "MATCHED"
+      },
+      "steps": [
+        {
+          "kind": "EVENT",
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "now": "2026-11-13T00:00:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "DRILL",
+              "selected_region": "13123",
+              "fixture_id": "synth:c-flood-a",
+              "hazard": "flood",
+              "source_authorization": "SYNTHETIC_TEST_ONLY",
+              "generation": 1,
+              "reason": "DRILL_STARTED",
+              "notice_kind": "DRILL",
+              "live_data_verified": false
+            }
+          },
+          "region_code": "13123",
+          "fixture": "flood_a"
+        },
+        {
+          "kind": "EVENT",
+          "action": "SELECT_REGION",
+          "expected_generation": 1,
+          "now": "2026-11-13T00:05:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "NORMAL",
+              "fixture_id": null,
+              "hazard": null,
+              "source_authorization": null,
+              "generation": 2,
+              "reason": "REGION_SELECTED_DRILL_CLEARED",
+              "notice_kind": "NORMAL",
+              "live_data_verified": false,
+              "selected_region": "15100"
+            }
+          },
+          "region_code": "15100"
+        },
+        {
+          "kind": "VIEW",
+          "now": "2026-11-13T00:05:00Z",
+          "expect": {
+            "transition": "VIEW",
+            "view": {
+              "mode": "NORMAL",
+              "fixture_id": null,
+              "hazard": null,
+              "source_authorization": null,
+              "generation": 2,
+              "reason": "REGION_SELECTED_DRILL_CLEARED",
+              "notice_kind": "NORMAL",
+              "live_data_verified": false,
+              "selected_region": "15100"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "source_failure_clears_fixture",
+      "expected": {
+        "status": "PASS",
+        "code": "MATCHED"
+      },
+      "steps": [
+        {
+          "kind": "EVENT",
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "now": "2026-11-13T00:00:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "DRILL",
+              "selected_region": "13123",
+              "fixture_id": "synth:c-flood-a",
+              "hazard": "flood",
+              "source_authorization": "SYNTHETIC_TEST_ONLY",
+              "generation": 1,
+              "reason": "DRILL_STARTED",
+              "notice_kind": "DRILL",
+              "live_data_verified": false
+            }
+          },
+          "region_code": "13123",
+          "fixture": "flood_a"
+        },
+        {
+          "kind": "EVENT",
+          "action": "SOURCE_FAILED",
+          "expected_generation": 1,
+          "now": "2026-11-13T00:05:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "NORMAL",
+              "fixture_id": null,
+              "hazard": null,
+              "source_authorization": null,
+              "generation": 2,
+              "reason": "SOURCE_FAILED_DRILL_CLEARED",
+              "notice_kind": "NORMAL",
+              "live_data_verified": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "old_async_event_cannot_restore",
+      "expected": {
+        "status": "PASS",
+        "code": "MATCHED"
+      },
+      "steps": [
+        {
+          "kind": "EVENT",
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "now": "2026-11-13T00:00:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "DRILL",
+              "selected_region": "13123",
+              "fixture_id": "synth:c-flood-a",
+              "hazard": "flood",
+              "source_authorization": "SYNTHETIC_TEST_ONLY",
+              "generation": 1,
+              "reason": "DRILL_STARTED",
+              "notice_kind": "DRILL",
+              "live_data_verified": false
+            }
+          },
+          "region_code": "13123",
+          "fixture": "flood_a"
+        },
+        {
+          "kind": "EVENT",
+          "action": "SELECT_REGION",
+          "expected_generation": 1,
+          "now": "2026-11-13T00:05:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "NORMAL",
+              "fixture_id": null,
+              "hazard": null,
+              "source_authorization": null,
+              "generation": 2,
+              "reason": "REGION_SELECTED_DRILL_CLEARED",
+              "notice_kind": "NORMAL",
+              "live_data_verified": false,
+              "selected_region": "15100"
+            }
+          },
+          "region_code": "15100"
+        },
+        {
+          "kind": "EVENT",
+          "action": "START_DRILL",
+          "expected_generation": 1,
+          "now": "2026-11-13T00:05:00Z",
+          "expect": {
+            "transition": "STALE_REJECTED",
+            "view": {
+              "mode": "NORMAL",
+              "fixture_id": null,
+              "hazard": null,
+              "source_authorization": null,
+              "generation": 2,
+              "reason": "REGION_SELECTED_DRILL_CLEARED",
+              "notice_kind": "NORMAL",
+              "live_data_verified": false,
+              "selected_region": "15100"
+            }
+          },
+          "region_code": "13123",
+          "fixture": "flood_a"
+        }
+      ]
+    },
+    {
+      "id": "expires_without_reducer_tick",
+      "expected": {
+        "status": "PASS",
+        "code": "MATCHED"
+      },
+      "steps": [
+        {
+          "kind": "EVENT",
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "now": "2026-11-13T00:00:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "DRILL",
+              "selected_region": "13123",
+              "fixture_id": "synth:c-flood-a",
+              "hazard": "flood",
+              "source_authorization": "SYNTHETIC_TEST_ONLY",
+              "generation": 1,
+              "reason": "DRILL_STARTED",
+              "notice_kind": "DRILL",
+              "live_data_verified": false
+            }
+          },
+          "region_code": "13123",
+          "fixture": "flood_a"
+        },
+        {
+          "kind": "VIEW",
+          "now": "2026-11-13T00:30:00Z",
+          "expect": {
+            "transition": "VIEW",
+            "view": {
+              "mode": "NORMAL",
+              "fixture_id": null,
+              "hazard": null,
+              "source_authorization": null,
+              "generation": 1,
+              "reason": "DRILL_EXPIRED_OR_NOT_YET_VALID",
+              "notice_kind": "NORMAL",
+              "live_data_verified": false,
+              "selected_region": "13123"
+            }
+          }
+        },
+        {
+          "kind": "EVENT",
+          "action": "CLEAR_PREFERRED_REGION",
+          "expected_generation": 1,
+          "now": "2026-11-13T00:30:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "NORMAL",
+              "fixture_id": null,
+              "hazard": null,
+              "source_authorization": null,
+              "generation": 2,
+              "reason": "PREFERRED_REGION_CLEARED",
+              "notice_kind": "NORMAL",
+              "live_data_verified": false,
+              "preferred_region": null
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "future_fixture_is_not_present_event",
+      "expected": {
+        "status": "PASS",
+        "code": "MATCHED"
+      },
+      "steps": [
+        {
+          "kind": "EVENT",
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "now": "2026-11-13T00:00:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "NORMAL",
+              "fixture_id": null,
+              "hazard": null,
+              "source_authorization": null,
+              "generation": 1,
+              "reason": "DRILL_INPUT_INVALID_OR_EXPIRED",
+              "notice_kind": "NORMAL",
+              "live_data_verified": false,
+              "selected_region": null
+            }
+          },
+          "region_code": "13123",
+          "fixture": "future_flood"
+        },
+        {
+          "kind": "EVENT",
+          "action": "START_DRILL",
+          "expected_generation": 1,
+          "now": "2026-11-13T00:10:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "DRILL",
+              "selected_region": "13123",
+              "fixture_id": "synth:c-future",
+              "hazard": "flood",
+              "source_authorization": "SYNTHETIC_TEST_ONLY",
+              "generation": 2,
+              "reason": "DRILL_STARTED",
+              "notice_kind": "DRILL",
+              "live_data_verified": false
+            }
+          },
+          "region_code": "13123",
+          "fixture": "future_flood"
+        }
+      ]
+    },
+    {
+      "id": "mismatched_region_rejected",
+      "expected": {
+        "status": "PASS",
+        "code": "MATCHED"
+      },
+      "steps": [
+        {
+          "kind": "EVENT",
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "now": "2026-11-13T00:00:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "NORMAL",
+              "fixture_id": null,
+              "hazard": null,
+              "source_authorization": null,
+              "generation": 1,
+              "reason": "DRILL_INPUT_INVALID_OR_EXPIRED",
+              "notice_kind": "NORMAL",
+              "live_data_verified": false,
+              "selected_region": null
+            }
+          },
+          "region_code": "15100",
+          "fixture": "flood_a"
+        }
+      ]
+    },
+    {
+      "id": "consent_memory_only_and_clear",
+      "expected": {
+        "status": "PASS",
+        "code": "MATCHED"
+      },
+      "steps": [
+        {
+          "kind": "EVENT",
+          "action": "SET_PREFERRED_REGION",
+          "expected_generation": 0,
+          "now": "2026-11-13T00:00:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "NORMAL",
+              "fixture_id": null,
+              "hazard": null,
+              "source_authorization": null,
+              "generation": 1,
+              "reason": "PREPARATION_NOT_CONSENTED",
+              "notice_kind": "NORMAL",
+              "live_data_verified": false,
+              "preferred_region": null
+            }
+          },
+          "region_code": "13123"
+        },
+        {
+          "kind": "EVENT",
+          "action": "SET_PREFERRED_REGION",
+          "expected_generation": 1,
+          "now": "2026-11-13T00:00:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "NORMAL",
+              "fixture_id": null,
+              "hazard": null,
+              "source_authorization": null,
+              "generation": 2,
+              "reason": "PREFERRED_REGION_IN_MEMORY_ONLY",
+              "notice_kind": "NORMAL",
+              "live_data_verified": false,
+              "preferred_region": "13123"
+            }
+          },
+          "region_code": "13123",
+          "explicit_consent": true
+        },
+        {
+          "kind": "EVENT",
+          "action": "START_DRILL",
+          "expected_generation": 2,
+          "now": "2026-11-13T00:00:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "DRILL",
+              "selected_region": "13123",
+              "fixture_id": "synth:c-flood-a",
+              "hazard": "flood",
+              "source_authorization": "SYNTHETIC_TEST_ONLY",
+              "generation": 3,
+              "reason": "DRILL_STARTED",
+              "notice_kind": "DRILL",
+              "live_data_verified": false,
+              "preferred_region": "13123"
+            }
+          },
+          "region_code": "13123",
+          "fixture": "flood_a"
+        },
+        {
+          "kind": "EVENT",
+          "action": "CLEAR_PREFERRED_REGION",
+          "expected_generation": 3,
+          "now": "2026-11-13T00:05:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "DRILL",
+              "selected_region": "13123",
+              "fixture_id": "synth:c-flood-a",
+              "hazard": "flood",
+              "source_authorization": "SYNTHETIC_TEST_ONLY",
+              "generation": 4,
+              "reason": "PREFERRED_REGION_CLEARED",
+              "notice_kind": "DRILL",
+              "live_data_verified": false,
+              "preferred_region": null
+            }
+          }
+        },
+        {
+          "kind": "EVENT",
+          "action": "STOP_DRILL",
+          "expected_generation": 4,
+          "now": "2026-11-13T00:05:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "NORMAL",
+              "fixture_id": null,
+              "hazard": null,
+              "source_authorization": null,
+              "generation": 5,
+              "reason": "DRILL_STOPPED",
+              "notice_kind": "NORMAL",
+              "live_data_verified": false,
+              "preferred_region": null
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "same_region_switch_and_reset",
+      "expected": {
+        "status": "PASS",
+        "code": "MATCHED"
+      },
+      "steps": [
+        {
+          "kind": "EVENT",
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "now": "2026-11-13T00:00:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "DRILL",
+              "selected_region": "13123",
+              "fixture_id": "synth:c-flood-a",
+              "hazard": "flood",
+              "source_authorization": "SYNTHETIC_TEST_ONLY",
+              "generation": 1,
+              "reason": "DRILL_STARTED",
+              "notice_kind": "DRILL",
+              "live_data_verified": false
+            }
+          },
+          "region_code": "13123",
+          "fixture": "flood_a"
+        },
+        {
+          "kind": "EVENT",
+          "action": "SELECT_REGION",
+          "expected_generation": 1,
+          "now": "2026-11-13T00:05:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "NORMAL",
+              "fixture_id": null,
+              "hazard": null,
+              "source_authorization": null,
+              "generation": 2,
+              "reason": "REGION_SELECTED_DRILL_CLEARED",
+              "notice_kind": "NORMAL",
+              "live_data_verified": false,
+              "selected_region": "13123"
+            }
+          },
+          "region_code": "13123"
+        },
+        {
+          "kind": "EVENT",
+          "action": "RESET",
+          "expected_generation": 2,
+          "now": "2026-11-13T00:05:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "NORMAL",
+              "fixture_id": null,
+              "hazard": null,
+              "source_authorization": null,
+              "generation": 3,
+              "reason": "SESSION_RESET",
+              "notice_kind": "NORMAL",
+              "live_data_verified": false,
+              "selected_region": null,
+              "preferred_region": null
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "switch_hazard_and_region_requires_new_fixture",
+      "expected": {
+        "status": "PASS",
+        "code": "MATCHED"
+      },
+      "steps": [
+        {
+          "kind": "EVENT",
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "now": "2026-11-13T00:00:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "DRILL",
+              "selected_region": "13123",
+              "fixture_id": "synth:c-flood-a",
+              "hazard": "flood",
+              "source_authorization": "SYNTHETIC_TEST_ONLY",
+              "generation": 1,
+              "reason": "DRILL_STARTED",
+              "notice_kind": "DRILL",
+              "live_data_verified": false
+            }
+          },
+          "region_code": "13123",
+          "fixture": "flood_a"
+        },
+        {
+          "kind": "EVENT",
+          "action": "START_DRILL",
+          "expected_generation": 1,
+          "now": "2026-11-13T00:05:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "DRILL",
+              "selected_region": "15100",
+              "fixture_id": "synth:c-landslide-b",
+              "hazard": "landslide",
+              "source_authorization": "SYNTHETIC_TEST_ONLY",
+              "generation": 2,
+              "reason": "DRILL_STARTED",
+              "notice_kind": "DRILL",
+              "live_data_verified": false
+            }
+          },
+          "region_code": "15100",
+          "fixture": "landslide_b"
+        }
+      ]
+    },
+    {
+      "id": "missing_fixture_start_fails_closed",
+      "expected": {
+        "status": "PASS",
+        "code": "MATCHED"
+      },
+      "steps": [
+        {
+          "kind": "EVENT",
+          "action": "START_DRILL",
+          "expected_generation": 0,
+          "now": "2026-11-13T00:00:00Z",
+          "expect": {
+            "transition": "APPLIED",
+            "view": {
+              "mode": "NORMAL",
+              "fixture_id": null,
+              "hazard": null,
+              "source_authorization": null,
+              "generation": 1,
+              "reason": "DRILL_INPUT_MISSING",
+              "notice_kind": "NORMAL",
+              "live_data_verified": false,
+              "selected_region": null
+            }
+          },
+          "region_code": "13123"
+        }
+      ]
+    },
+    {
+      "id": "insufficient_steps_are_blocked",
+      "expected": {
+        "status": "BLOCKED",
+        "code": "NO_STEPS"
+      },
+      "steps": []
+    },
+    {
+      "id": "device_integration_not_executed",
+      "expected": {
+        "status": "NOT_RUN",
+        "code": "EXPLICITLY_DISABLED"
+      },
+      "run": false,
+      "steps": []
+    }
+  ]
+}

@@ -3,6 +3,12 @@
 
   const SHELTER_REQUIREMENT_CODE = "shelter_location";
   const SUPPORTED_SCHEMA_VERSION = "0.9";
+  // This additive flag is only consumed by the new research explorer; the
+  // legacy map/presenter still display partial synthetic D source records.
+  const SOURCE_FACILITY_STATUSES = new Set(["CANDIDATE", "EXCLUDED", "UNKNOWN"]);
+  const SOURCE_SCENARIO_STATUSES = new Set(["FULL", "DEGRADED", "BLOCKED", "UNKNOWN", "NOT_APPLICABLE"]);
+  const SOURCE_DISCOVERY_STATUSES = new Set(["AVAILABLE", "PARTIAL", "NOT_MACHINE_READABLE",
+    "ACCESS_RESTRICTED", "NOT_FOUND", "UNKNOWN", "NOT_APPLICABLE"]);
 
   function isFiniteCoordinate(value) {
     return typeof value === "number" && Number.isFinite(value);
@@ -108,10 +114,17 @@
     // Scenario is optional, and is a separate D-owned assessment. E only
     // attaches exact facility IDs; it NEVER decides flood eligibility or
     // uses the GSI raster to classify facility locations.
-    const source = Array.isArray(payload.scenarios)
-      ? payload.scenarios.find(item => item?.scenario_id === "flood_shelter_selection")
-      : null;
+    const matches = Array.isArray(payload.scenarios)
+      ? payload.scenarios.filter(item => item?.scenario_id === "flood_shelter_selection")
+      : [];
+    const source = matches[0];
     if (!source) return null;
+    // Never make the *new* pair-explorer treat duplicated/invalid/partial
+    // scenarios as a source-consistent interpretation. Other legacy views
+    // retain their existing presentation behavior.
+    let sourceContractConsistent = matches.length === 1 &&
+      SOURCE_SCENARIO_STATUSES.has(source.status) &&
+      SOURCE_DISCOVERY_STATUSES.has(source.requirement_assessment?.discovery_status);
     if (source.region_code !== payload.region.code ||
         !Array.isArray(source.facility_results)) {
       throw new Error("Flood Scenario region/records contract mismatch");
@@ -126,6 +139,11 @@
         throw new Error("Flood Scenario facility ID exact join mismatch");
       }
       const fact = item.fact;
+      sourceContractConsistent &&= SOURCE_FACILITY_STATUSES.has(item.status) &&
+        typeof item.reason === "string" && item.reason.trim().length > 0 &&
+        typeof fact.hazard_scope_raw === "string" && fact.hazard_scope_raw.trim().length > 0 &&
+        ["DIRECT_SAME_SOURCE", "UNVERIFIED"].includes(fact.join_status) &&
+        typeof fact.source_url === "string" && fact.source_url.trim().length > 0;
       byId.set(facilityId, {
         status: typeof item.status === "string" ? item.status : "UNKNOWN",
         reason: typeof item.reason === "string" ? item.reason : "",
@@ -141,6 +159,7 @@
       throw new Error("Flood Scenario does not exactly cover shelter_location IDs");
     }
     return {
+      sourceContractConsistent,
       status: typeof source.status === "string" ? source.status : "UNKNOWN",
       discoveryStatus: source.requirement_assessment?.discovery_status ?? null,
       recordCount: byId.size,

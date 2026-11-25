@@ -48,3 +48,8 @@ fi
 - Bの自動回帰は `frontend/tests/team-review.test.js`。既存データと座標を一切使わず、架空9施設に付いた公式PDF URL・差分を作って検証。
 - 正本となるPDF差分レポートはDの #296（#297が合成PDF変更検知のテスト）。BのDraft #298は独立したHTML（Bの#292依存）だけを変更し、`pipeline/**` やRegionExport/共有契約は変更しない。
 - Scope/merge: #283→#293→#295→#296→#297（Dの積上げ）、B側 #292→#298。**最新main追従・Windows/Mac実機確認・人のMerge Captain判断前にmainへマージしない。**
+
+## 2026-11-25 再審査・親同期
+
+- 厳密UTC暦・固定5 PDF URL→区対応・URL集計・遅延読込時の旧状態保持を追加した。旧親baseでのCI成功は新baseの成功と区別する。
+- 親#292の未保存本人確認と公開導線なしを継承。実機・D依存・配布許可・Deploy非公開候補bundle検証は未了。

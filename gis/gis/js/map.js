@@ -1303,6 +1303,7 @@ let selectedRegionCode = regionSelect.value;
 let boundaryBounds = null;
 let shelterBounds = null;
 let currentShelterSummary = null;
+window.HINANEX_FACILITY_EXPLORE_GET_SUMMARY = () => currentShelterSummary;
 let autoLoadSequence = 0;
 let autoLoadAbortController = null;
 let facilityListQuery = "";
@@ -2194,6 +2195,7 @@ function clearShelters() {
   shelterGroup.clearLayers();
   shelterBounds = null;
   currentShelterSummary = null;
+  window.HINANEX_FACILITY_EXPLORE_UI?.setSummary(null);
   facilityListQuery = "";
   facilityListPage = 0;
   document.getElementById("facilityListSearch").value = "";
@@ -3218,6 +3220,7 @@ window.HINANEX_PRESENTATION_TOUR = Object.freeze({
 
 function renderShelterSummary(summary, sourceLabel) {
   currentShelterSummary = summary;
+  window.HINANEX_FACILITY_EXPLORE_UI?.setSummary(summary);
   rememberViewportD(selectedRegionCode, summary);
   updateCoverage(summary);
   applyDisplayMode(); // if D arrives after GSI, update comparison availability
@@ -3265,6 +3268,7 @@ function parseRegionExport(payload, sourceLabel) {
   if (!summary.dataset) {
     clearShelters();
     currentShelterSummary = summary;
+    window.HINANEX_FACILITY_EXPLORE_UI?.setSummary(summary);
     updateCoverage(summary);
     updateDatasetChip("施設データ未確認", "warning");
     setDatasetStatus(`${sourceLabel}｜避難施設データが見つかりません`, "warning");

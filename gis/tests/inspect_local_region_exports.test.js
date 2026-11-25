@@ -28,7 +28,7 @@ function fixture(region, coords, includeScenario = false) {
       status:"UNKNOWN", requirement_assessment:{ discovery_status:"AVAILABLE" },
       facility_results: records.map(rec=>({
         facility_id:rec.id, status:"UNKNOWN", reason:"uninterpreted TEST",
-        fact:{ facility_id:rec.id, official_status_raw:null, hazard_scope_raw:null,
+        fact:{ facility_id:rec.id, official_status_raw:null, hazard_scope_raw:"災害種別_洪水",
           usable_floor_raw:null, join_status:"DIRECT_SAME_SOURCE",
           source_record_trace:"synthetic-row-1", source_url:"https://example.test/fixture" }
       }))

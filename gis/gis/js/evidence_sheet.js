@@ -36,7 +36,7 @@
     const rasterError = id("mapRasterBanner");
     id("mapEvidenceFlood").textContent = !flood.checked
       ? "非表示（危険なしという意味ではありません）"
-      : rasterError?.hidden === false
+      : rasterError?.dataset?.partial === "true"
         ? "表示中／一部のタイルが未取得（空白＝浸水なしではありません）"
         : "表示中（タイル全域の取得・精度・安全性は保証しません）";
     const viewport = id("mapViewportDStatus");
@@ -91,7 +91,7 @@
       if (node) observer.observe(node, {
         childList: true, characterData: true, subtree: true,
         ...(key === "mapRasterBanner"
-          ? { attributes: true, attributeFilter: ["hidden"] } : {})
+          ? { attributes: true, attributeFilter: ["data-partial"] } : {})
       });
     }
   }
