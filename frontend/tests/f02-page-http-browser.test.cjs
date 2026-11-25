@@ -8,8 +8,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const http = require("node:http");
-const { spawn, spawnSync, execFile } = require("node:child_process");
-const { promisify } = require("node:util");
+const { spawn, spawnSync } = require("node:child_process");
 const {waitForDevToolsPort} = require("./helpers/chrome-active-port.cjs");
 const root = path.resolve(__dirname, "../..");
 const assets = new Set([
@@ -21,6 +20,40 @@ const assets = new Set([
   "/frontend/src/region-export-source.js",
 ]);
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+// Supervised stress children own all resources, including resources created
+// before browser launch finishes. Share the same idempotent cleanup with
+// normal finally blocks and cooperative deadline cancellation.
+const activeClosers = new Set();
+function notifyParent(message) {
+  if (process.connected && process.send) process.send(message);
+}
+function managedCleanup(fn) {
+  let pending;
+  const close = () => {
+    if (!pending) pending = Promise.resolve().then(fn).finally(() => activeClosers.delete(close));
+    return pending;
+  };
+  activeClosers.add(close);
+  return close;
+}
+if (process.env.F02_WP002_REPEAT_CHILD && process.send) {
+  let cancelling = false;
+  const cancel = async () => {
+    if (cancelling) return;
+    cancelling = true;
+    const results = await Promise.allSettled([...activeClosers].map(close => close()));
+    const errors = results.filter(result => result.status === "rejected").map(result => String(result.reason));
+    if (process.connected) process.send({type:"cancelled", errors}, () => process.exit(errors.length ? 2 : 1));
+    else process.exit(errors.length ? 2 : 1);
+  };
+  process.on("message", message => { if (message?.type === "cancel") void cancel(); });
+  process.on("disconnect", () => { void cancel(); });
+  // Keep a normal child from waiting forever for its parent's IPC channel.
+  process.channel?.unref();
+}
+function assertNoPageExceptions(exceptions) {
+  assert.equal(exceptions.length, 0, "Unexpected page exceptions: " + exceptions.join(" | "));
+}
 function waitForProcessExit(child, timeoutMs) {
   return new Promise(resolve => {
     if (child.exitCode !== null || child.signalCode !== null) { resolve(true); return; }
@@ -214,7 +247,13 @@ async function serve(realOutput = null) {
     server.once("error", reject);
     server.listen(0, "127.0.0.1", resolve);
   });
-  return { server, requests, held, release, base: "http://127.0.0.1:" + server.address().port };
+  const base = "http://127.0.0.1:" + server.address().port;
+  const close = managedCleanup(() => new Promise((resolve,reject) => {
+    server.close(error => error ? reject(error) : resolve());
+    server.closeAllConnections();
+  }));
+  notifyParent({type:"server", base});
+  return { server, requests, held, release, base, close };
 }
 async function launchChrome(bin) {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), "f02-consumer-chrome-"));
@@ -224,6 +263,8 @@ async function launchChrome(bin) {
   let diagnostics = "";
   child.stderr.on("data", x => { diagnostics = (diagnostics + x.toString()).slice(-1000); });
   let ws = null;
+  const close = managedCleanup(() => stopChrome(child, profile, ws));
+  notifyParent({type:"chrome", pid:child.pid, profile});
   try {
     const port = await waitForDevToolsPort(profile, child, () => diagnostics);
     const targets = await (await fetch("http://127.0.0.1:" + port + "/json/list", { signal: AbortSignal.timeout(10000) })).json();
@@ -268,18 +309,18 @@ async function launchChrome(bin) {
       try { ws.send(JSON.stringify({ id, method, params })); }
       catch (error) { pending.delete(id); clearTimeout(timer); reject(error); }
     });
-    const evaluate = async expression => {
+    const evaluate = async (expression, {silent = false} = {}) => {
       const result = await command("Runtime.evaluate",
-        { expression, returnByValue: true, awaitPromise: true });
+        { expression, returnByValue: true, awaitPromise: true, silent });
       if (result.exceptionDetails) {
         throw Error("Browser JavaScript: " +
           (result.exceptionDetails.exception?.description || result.exceptionDetails.text));
       }
       return result.result.value;
     };
-    return { profile, child, ws, command, evaluate, exceptions, outbound };
+    return { profile, child, ws, command, evaluate, exceptions, outbound, close };
   } catch (error) {
-    await stopChrome(child, profile, ws);
+    await close();
     throw error;
   }
 }
@@ -316,6 +357,10 @@ async function createNavigator(browser, base) {
   });
   let visit = 0;
   async function start(scenario, sameUrl = false) {
+    // Referrer-only routing cannot distinguish repeated visits to an identical
+    // stateful URL. Only the stateless custom-license fixture may reuse it.
+    assert.ok(!sameUrl || scenario === "custom-license",
+      "sameUrl is restricted to stateless custom-license");
     const previousId = await evaluate("window.__f02TestDocumentId ?? null");
     const url = base + "/frontend/f02.html?scenario=" + encodeURIComponent(scenario)
       + (sameUrl ? "" : "&visit=" + (++visit));
@@ -357,7 +402,7 @@ test("WP-002 F02 HTTP Chrome: document and fixture readiness reject false positi
       if (process.env.CI || process.env.F02_REAL_EXPORT_PATH) throw Error("Actual Chrome required for WP-002");
       t.skip("Chrome not installed locally"); return;
     }
-    const {server, base, held, release} = await serve();
+    const {base, held, release, close:closeServer} = await serve();
     let browser;
     try {
       browser = await launchChrome(bin);
@@ -366,6 +411,16 @@ test("WP-002 F02 HTTP Chrome: document and fixture readiness reject false positi
       await command("Runtime.enable");
       await command("Network.enable");
       const {start, navigate} = await createNavigator(browser, base);
+      if (process.env.F02_WP002_TIMEOUT_PROBE === "1") {
+        // Actual HTTP and Chrome are live; leave a CDP command pending until
+        // the supervising deadline cancels this child. Never count as PASS.
+        await navigate("normal", "document.querySelector('#record-count').textContent.includes('D記録 2件')");
+        notifyParent({type:"probe-ready"});
+        await command("Runtime.evaluate", {expression:"new Promise(()=>{})", awaitPromise:true});
+        assert.fail("Timeout probe unexpectedly completed");
+      }
+      await assert.rejects(start("http-error-once", true), /sameUrl is restricted/);
+      console.log("WP002_SAME_URL_SCOPE_HTTP: stateful same-URL navigation rejected PASS");
       const licensed = "document.querySelector('#sources a.license-link')?.href==='https://creativecommons.org/licenses/by/2.1/jp/'";
       const custom = "document.querySelector('#sources').innerText.includes('利用ライセンス（D記録）: other')";
       await navigate("licensed", licensed);
@@ -377,7 +432,11 @@ test("WP-002 F02 HTTP Chrome: document and fixture readiness reject false positi
         assert.ok(held.has("dom"));
         // Reproduce the original unguarded L427 failure on deliberately
         // incomplete real HTTP HTML. This is not a natural fixed-main rerun.
-        await assert.rejects(waitUntil(evaluate, custom, "original unsafe condition"), /Browser JavaScript:.*null.*innerText/s);
+        assertNoPageExceptions(browser.exceptions);
+        // Silent applies only to this intentional evaluation, not page errors
+        // or the normal readiness predicate. exceptionDetails still rejects.
+        await assert.rejects(waitUntil(expression => evaluate(expression, {silent:true}), custom, "original unsafe condition"), /Browser JavaScript:.*null.*innerText/s);
+        assertNoPageExceptions(browser.exceptions);
         assert.equal(await evaluate(delay.ready(custom)), false);
         assert.equal(await evaluate(delay.ready("true")), false);
       } finally {
@@ -436,7 +495,7 @@ test("WP-002 F02 HTTP Chrome: document and fixture readiness reject false positi
       await assert.rejects(waitUntil(evaluate, missing.ready("true"), "required DOM missing", 3),
         /Timed out waiting for required DOM missing/);
       let jsAttempts = 0;
-      await assert.rejects(waitUntil(async expression => {jsAttempts++; return evaluate(expression);},
+      await assert.rejects(waitUntil(async expression => {jsAttempts++; return evaluate(expression, {silent:true});},
         "(()=>{throw new Error('WP002 deliberate JavaScript error')})()", "real JavaScript negative"),
         /Browser JavaScript:.*WP002 deliberate JavaScript error/s);
       assert.equal(jsAttempts, 1);
@@ -444,8 +503,18 @@ test("WP-002 F02 HTTP Chrome: document and fixture readiness reject false positi
       await assert.rejects(waitUntil(async () => {cdpAttempts++; return command("WP002.invalidMethod");},
         "true", "real CDP negative"), /WP002\.invalidMethod.*(found|method)/i);
       assert.equal(cdpAttempts, 1);
-      assert.ok(browser.exceptions.every(error => /null.*innerText|WP002 deliberate JavaScript error/s.test(error)),
-        "Unexpected page exceptions: " + browser.exceptions.join(" | "));
+      // No page exception is allowed during the entire ordinary flow, even
+      // if its message resembles the deliberately evaluated TypeError.
+      assertNoPageExceptions(browser.exceptions);
+      // Separate explicit negative: an uncaught page callback throws the
+      // same null.innerText error. It must be rejected by the zero-error gate.
+      await evaluate("setTimeout(()=>document.querySelector('#sources').innerText,0); void 0;\n//# sourceURL=wp002-unexpected-page-negative.js");
+      await waitUntil(async () => browser.exceptions.length > 0, "", "uncaught page TypeError");
+      assert.equal(browser.exceptions.length, 1);
+      assert.match(browser.exceptions[0], /null.*innerText/s);
+      assert.match(browser.exceptions[0], /wp002-unexpected-page-negative\.js/);
+      assert.throws(() => assertNoPageExceptions(browser.exceptions), /Unexpected page exceptions/);
+      console.log("WP002_PAGE_EXCEPTION_HTTP: zero ordinary page exceptions; same-type uncaught page exception rejected PASS");
       assert.ok(browser.outbound.every(url => url.startsWith(base + "/") || url === "about:blank" || url.startsWith("data:")),
         "Unexpected browser outbound request");
       // A protocol rejection is not a transport disconnect. Exercise both:
@@ -465,13 +534,8 @@ test("WP-002 F02 HTTP Chrome: document and fixture readiness reject false positi
       console.log("WP002_CDP_DISCONNECT_HTTP: pending command rejects on actual WebSocket close without retry PASS");
       console.log("WP002_NEGATIVE_HTTP: missing DOM times out, genuine JS and CDP errors fail immediately PASS");
     } finally {
-      try { if (browser) await stopChrome(browser.child, browser.profile, browser.ws); }
-      finally {
-        await new Promise((resolve,reject) => {
-          server.close(error => error ? reject(error) : resolve());
-          server.closeAllConnections();
-        });
-      }
+      try { if (browser) await browser.close(); }
+      finally { await closeServer(); }
     }
   });
 
@@ -487,7 +551,7 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       fs.readFileSync(path.resolve(process.env.F02_REAL_EXPORT_PATH), "utf8") : null;
     const expectedRealRecords = realOutput === null ? null :
       JSON.parse(realOutput).datasets.find(item => item?.requirement_code === "shelter_location")?.records.length;
-    const { server, requests, base } = await serve(realOutput);
+    const { requests, base, close:closeServer } = await serve(realOutput);
     let browser;
     try {
       browser = await launchChrome(bin);
@@ -821,39 +885,111 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       console.log("F02_CONSUMER_HTTP: empty/missing/invalid/HTTP-error states, responsive widths and no external requests PASS");
     } finally {
       try {
-        if (browser) await stopChrome(browser.child, browser.profile, browser.ws);
+        if (browser) await browser.close();
       } finally {
-        await new Promise((resolve, reject) => {
-          server.close(error => error ? reject(error) : resolve());
-          server.closeAllConnections();
-        });
+        await closeServer();
       }
     }
   });
 
-// CI-11: a fresh Node process, HTTP server, Chrome profile and browser for
-// every run of the complete F02 test file. Do not retry a failed child or
-// count a missing browser/skip as success. Local runs can opt in explicitly.
-// The child flag prevents recursive invocation; the ordinary four tests are
-// still registered in every child. No change to production or shared CI.
+// A deadline is enforced by the supervisor before the outer node:test
+// timeout. Cooperatively close actual HTTP/Chrome resources, then fail the
+// child. If it becomes unresponsive, terminate its reported Chrome groups
+// and process, and do not treat the result as a successful cleanup.
+async function runStressChild(env, timeoutMs, probe = false) {
+  const child = spawn(process.execPath, [__filename], {
+    env, cwd:root, stdio:["ignore","pipe","pipe","ipc"]
+  });
+  let output = "", stderr = "", timedOut = false, acknowledgement = null, fallback = false;
+  const resources = {profiles:new Set(), pids:new Set(), bases:new Set()};
+  let deadline, escalation;
+  const cancel = () => {
+    if (timedOut) return;
+    timedOut = true;
+    if (child.connected) child.send({type:"cancel"}, () => {});
+    escalation = setTimeout(() => {
+      fallback = true;
+      for (const pid of resources.pids) {
+        if (process.platform === "win32") spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], {timeout:5000});
+        else {
+          try { process.kill(-pid, "SIGKILL"); }
+          catch(error) { if (error.code !== "ESRCH") stderr += String(error); }
+        }
+      }
+      if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
+    }, 12000);
+  };
+  child.stdout.on("data", chunk => { output += chunk; if (output.length > 2*1024*1024) cancel(); });
+  child.stderr.on("data", chunk => { stderr = (stderr + chunk).slice(-65536); });
+  child.on("message", message => {
+    if (message.type === "chrome") {
+      resources.profiles.add(message.profile);
+      if (Number.isInteger(message.pid)) resources.pids.add(message.pid);
+    } else if (message.type === "server") resources.bases.add(message.base);
+    else if (message.type === "cancelled") acknowledgement = message;
+    else if (message.type === "probe-ready" && probe && !timedOut) {
+      clearTimeout(deadline);
+      // A short deadline is intentional only in the controlled negative test.
+      deadline = setTimeout(cancel, 100);
+    }
+  });
+  const ended = new Promise((resolve,reject) => {
+    child.once("error", reject);
+    child.once("close", (code,signal) => resolve({code,signal}));
+  });
+  deadline = setTimeout(cancel, timeoutMs);
+  let status;
+  try { status = await ended; }
+  finally { clearTimeout(deadline); clearTimeout(escalation); }
+  if (fallback) {
+    for (const profile of resources.profiles) await removeProfileAfterChromeExit(profile);
+    throw Error("F02 stress child required forced termination; cleanup not certified: " + stderr);
+  }
+  if (timedOut) {
+    assert.ok(acknowledgement, "Timed-out child did not acknowledge cleanup: " + stderr);
+    assert.deepEqual(acknowledgement.errors, []);
+    assert.equal(status.code, 1, "Timed-out child must fail");
+    for (const profile of resources.profiles) assert.equal(fs.existsSync(profile), false);
+    for (const base of resources.bases) {
+      await assert.rejects(fetch(base + "/frontend/f02.html", {signal:AbortSignal.timeout(1000)}),
+        error => error.cause?.code === "ECONNREFUSED");
+    }
+    if (probe) {
+      assert.ok(resources.pids.size > 0 && resources.profiles.size > 0 && resources.bases.size > 0,
+        "Timeout probe must start real Chrome and HTTP");
+      console.log("WP002_TIMEOUT_CLEANUP_HTTP: deadline cancelled live child; Chrome profile removed, HTTP closed, exit failure PASS");
+      return {stdout:output};
+    }
+    throw Error("F02 stress child exceeded deadline; cooperative cleanup completed");
+  }
+  assert.equal(probe, false, "Timeout probe must hit a deadline");
+  assert.equal(status.code, 0, "F02 child failed: " + output + stderr);
+  return {stdout:output};
+}
+
+// CI-11: independent process per run, no retry, no missing-browser PASS.
+// The total supervisor budget leaves cleanup headroom below the existing
+// outer test limit. No change to production or shared workflow timeout.
 if (!process.env.F02_WP002_REPEAT_CHILD &&
     (process.env.CI || process.env.F02_WP002_REPEAT === "1")) {
   test("WP-002 CI-11 ten consecutive independent F02 test processes",
     {timeout:300000}, async () => {
       const env = {...process.env, CI:"1", F02_WP002_REPEAT_CHILD:"1"};
       delete env.NODE_TEST_CONTEXT;
-      // Stress runs are intentionally synthetic even when the outer local
-      // invocation also tests an explicitly supplied real-data export.
       delete env.F02_REAL_EXPORT_PATH;
+      delete env.F02_WP002_TIMEOUT_PROBE;
+      const end = Date.now() + 240000;
+      await runStressChild({...env,F02_WP002_TIMEOUT_PROBE:"1"}, 30000, true);
       for (let run=1; run<=10; run++) {
-        const {stdout} = await promisify(execFile)(process.execPath, [__filename], {
-          env, cwd:root, timeout:130000, maxBuffer:2*1024*1024
-        });
+        const remaining = end - Date.now();
+        assert.ok(remaining > 0, "F02 stress supervisor budget exhausted");
+        const {stdout} = await runStressChild(env, Math.min(remaining, 130000));
         for (const [label,count] of [["tests",4],["pass",4],["fail",0],["skipped",0]]) {
           assert.match(stdout, new RegExp("^# "+label+" "+count+"\\s*$","m"),
             "F02 child "+run+" unexpected TAP summary: "+stdout);
         }
         for (const marker of ["WP002_DOM_HTTP:", "WP002_FIXTURE_HTTP:",
+          "WP002_SAME_URL_SCOPE_HTTP:", "WP002_PAGE_EXCEPTION_HTTP:",
           "WP002_CDP_DISCONNECT_HTTP:", "WP002_NEGATIVE_HTTP:",
           "WP002_REPEAT_HTTP: cycle 10/10 PASS", "F02_CREDIT_HTTP:", "F02_RETRY_HTTP:"]) {
           assert.ok(stdout.includes(marker), "F02 child "+run+" missing "+marker);
