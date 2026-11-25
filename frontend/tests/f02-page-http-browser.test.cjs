@@ -20,6 +20,40 @@ const assets = new Set([
   "/frontend/src/region-export-source.js",
 ]);
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+// Supervised stress children own all resources, including resources created
+// before browser launch finishes. Share the same idempotent cleanup with
+// normal finally blocks and cooperative deadline cancellation.
+const activeClosers = new Set();
+let stressCancelling = false;
+function notifyParent(message) {
+  if (process.connected && process.send) process.send(message);
+}
+function managedCleanup(fn) {
+  let pending;
+  const close = () => {
+    if (!pending) pending = Promise.resolve().then(fn).finally(() => activeClosers.delete(close));
+    return pending;
+  };
+  activeClosers.add(close);
+  return close;
+}
+if (process.env.F02_WP002_REPEAT_CHILD && process.send) {
+  const cancel = async () => {
+    if (stressCancelling) return;
+    stressCancelling = true;
+    const results = await Promise.allSettled([...activeClosers].map(close => close()));
+    const errors = results.filter(result => result.status === "rejected").map(result => String(result.reason));
+    if (process.connected) process.send({type:"cancelled", errors}, () => process.exit(errors.length ? 2 : 1));
+    else process.exit(errors.length ? 2 : 1);
+  };
+  process.on("message", message => { if (message?.type === "cancel") void cancel(); });
+  process.on("disconnect", () => { void cancel(); });
+  // Keep a normal child from waiting forever for its parent's IPC channel.
+  process.channel?.unref();
+}
+function assertNoPageExceptions(exceptions) {
+  assert.equal(exceptions.length, 0, "Unexpected page exceptions: " + exceptions.join(" | "));
+}
 function waitForProcessExit(child, timeoutMs) {
   return new Promise(resolve => {
     if (child.exitCode !== null || child.signalCode !== null) { resolve(true); return; }
@@ -120,11 +154,11 @@ function fixtureFor(name) {
       latitude: null, longitude: null
     }));
   }
-  if (name === "licensed") {
+  if (name === "licensed" || name === "wp002-old") {
     body.datasets[0].evidence[0].publisher = "東京都江戸川区（合成検証値）";
     body.datasets[0].evidence[0].license = "CC BY 2.1 JP";
   }
-  if (name === "custom-license") body.datasets[0].evidence[0].license = "other";
+  if (name === "custom-license" || name === "wp002-dom-delay") body.datasets[0].evidence[0].license = "other";
   if (name === "multiple-sources") {
     body.datasets[0].evidence.push(
       {source_name: "別の合成資料", source_url: "https://example.invalid/second-f02"},
@@ -134,41 +168,96 @@ function fixtureFor(name) {
   return body;
 }
 async function serve(realOutput = null) {
+  assert.ok(!stressCancelling, "Cannot start HTTP during stress cancellation");
   const requests = [];
-  let scenario = "normal";
-  let exportRequestsForScenario = 0;
+  // Associate each data request with its own HTTP document, never the
+  // last document that happened to arrive at the server.
+  const visits = new Map();
+  const held = new Map();
+  const heldOnce = new Set();
+  function hold(key, res, body) {
+    heldOnce.add(key);
+    held.set(key, {res, body});
+  }
+  function release(key) {
+    const pending = held.get(key);
+    assert.ok(pending, "Missing controlled HTTP response: " + key);
+    held.delete(key);
+    // Chromium can cancel an old document's pending fetch on navigation.
+    if (!pending.res.destroyed) pending.res.end(pending.body);
+    return pending.body;
+  }
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, "http://localhost");
     const name = url.pathname;
     requests.push(name);
     if (req.method !== "GET") { res.writeHead(405); res.end(); return; }
     if (name === "/frontend/f02.html") {
-      scenario = url.searchParams.get("scenario") || "normal";
-      exportRequestsForScenario = 0;
+      const scenario = url.searchParams.get("scenario") || "normal";
+      const key = url.pathname + url.search;
+      visits.set(key, {scenario, requests: 0});
+      if (scenario === "wp002-dom-delay") {
+        // Stream the real HTML up to (but not including) the sources DOM.
+        // The test releases the tail only after observing the incomplete DOM.
+        const html = fs.readFileSync(path.join(root, "frontend/f02.html"), "utf8");
+        const split = html.indexOf('<div id="sources">');
+        assert.ok(split > 0, "F02 source DOM split point must exist");
+        res.writeHead(200, {"Content-Type":"text/html; charset=utf-8",
+          "Cache-Control":"no-store", "Referrer-Policy":"same-origin"});
+        res.write(html.slice(0, split) + "<!--" + " ".repeat(4096) + "-->");
+        hold("dom", res, html.slice(split));
+        return;
+      }
+      if (scenario === "wp002-missing-dom") {
+        res.writeHead(200, {"Content-Type":"text/html; charset=utf-8", "Cache-Control":"no-store"});
+        res.end("<!doctype html><title>F02 negative DOM fixture</title><p id='search'>incomplete</p>");
+        return;
+      }
     }
     if (name === "/pipeline/data/output/edogawa.json") {
-      exportRequestsForScenario += 1;
-      if (scenario === "http-error" || (scenario === "http-error-once" && exportRequestsForScenario === 1)) {
+      // Chrome sends the complete same-origin referrer (including visit).
+      // Do not fall back to the most recently requested fixture.
+      const referrer = new URL(req.headers.referer || "/", "http://localhost");
+      const visit = referrer.origin === "http://127.0.0.1:" + server.address().port
+        && referrer.pathname === "/frontend/f02.html"
+        ? visits.get(referrer.pathname + referrer.search) : null;
+      if (!visit) { res.writeHead(400); res.end("fixture document required"); return; }
+      const {scenario} = visit;
+      visit.requests += 1;
+      if (scenario === "http-error" || (scenario === "http-error-once" && visit.requests === 1)) {
         res.writeHead(503); res.end("not available"); return;
       }
       res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
       if (scenario === "bad-json") { res.end("{"); return; }
-      res.end(scenario === "real-data" && realOutput !== null ? realOutput : JSON.stringify(fixtureFor(scenario)));
+      const body = scenario === "real-data" && realOutput !== null ? realOutput : JSON.stringify(fixtureFor(scenario));
+      if (scenario === "wp002-old" && !heldOnce.has("old-export")) {
+        res.flushHeaders();
+        hold("old-export", res, body);
+        return;
+      }
+      res.end(body);
       return;
     }
     if (!assets.has(name)) { res.writeHead(404); res.end(); return; }
     const file = path.join(root, name.slice(1));
     const mime = name.endsWith(".css") ? "text/css" : name.endsWith(".js") ? "text/javascript" : "text/html";
-    res.writeHead(200, { "Content-Type": mime + "; charset=utf-8", "Cache-Control": "no-store" });
+    res.writeHead(200, { "Content-Type": mime + "; charset=utf-8", "Cache-Control": "no-store", "Referrer-Policy": "same-origin" });
     fs.createReadStream(file).pipe(res);
   });
   await new Promise((resolve, reject) => {
     server.once("error", reject);
     server.listen(0, "127.0.0.1", resolve);
   });
-  return { server, requests, base: "http://127.0.0.1:" + server.address().port };
+  const base = "http://127.0.0.1:" + server.address().port;
+  const close = managedCleanup(() => new Promise((resolve,reject) => {
+    server.close(error => error ? reject(error) : resolve());
+    server.closeAllConnections();
+  }));
+  notifyParent({type:"server", base});
+  return { server, requests, held, release, base, close };
 }
 async function launchChrome(bin) {
+  assert.ok(!stressCancelling, "Cannot launch Chrome during stress cancellation");
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), "f02-consumer-chrome-"));
   const child = spawn(bin, ["--headless=new", "--no-sandbox", "--disable-dev-shm-usage",
     "--disable-background-networking", "--no-first-run", "--remote-debugging-port=0",
@@ -176,6 +265,8 @@ async function launchChrome(bin) {
   let diagnostics = "";
   child.stderr.on("data", x => { diagnostics = (diagnostics + x.toString()).slice(-1000); });
   let ws = null;
+  const close = managedCleanup(() => stopChrome(child, profile, ws));
+  notifyParent({type:"chrome", pid:child.pid, profile});
   try {
     const port = await waitForDevToolsPort(profile, child, () => diagnostics);
     const targets = await (await fetch("http://127.0.0.1:" + port + "/json/list", { signal: AbortSignal.timeout(10000) })).json();
@@ -220,23 +311,23 @@ async function launchChrome(bin) {
       try { ws.send(JSON.stringify({ id, method, params })); }
       catch (error) { pending.delete(id); clearTimeout(timer); reject(error); }
     });
-    const evaluate = async expression => {
+    const evaluate = async (expression, {silent = false} = {}) => {
       const result = await command("Runtime.evaluate",
-        { expression, returnByValue: true, awaitPromise: true });
+        { expression, returnByValue: true, awaitPromise: true, silent });
       if (result.exceptionDetails) {
         throw Error("Browser JavaScript: " +
           (result.exceptionDetails.exception?.description || result.exceptionDetails.text));
       }
       return result.result.value;
     };
-    return { profile, child, ws, command, evaluate, exceptions, outbound };
+    return { profile, child, ws, command, evaluate, exceptions, outbound, close };
   } catch (error) {
-    await stopChrome(child, profile, ws);
+    await close();
     throw error;
   }
 }
-async function waitUntil(evaluate, expression, description) {
-  for (let i = 0; i < 100; i++) {
+async function waitUntil(evaluate, expression, description, attempts = 100) {
+  for (let i = 0; i < attempts; i++) {
     try {
       if (await evaluate(expression)) return;
     } catch (error) {
@@ -249,6 +340,44 @@ async function waitUntil(evaluate, expression, description) {
   }
   throw Error("Timed out waiting for " + description);
 }
+// Evaluate document identity, DOM readiness and the original assertion in
+// one browser execution context. No optional catch around the assertion.
+function navigationCondition(url, previousId, condition) {
+  return `location.href===${JSON.stringify(url)} &&
+    typeof window.__f02TestDocumentId==='string' &&
+    window.__f02TestDocumentId!==${JSON.stringify(previousId)} &&
+    document.readyState==='complete' &&
+    ['search','record-count','load-state','sources','results','retry-load'].every(id=>document.getElementById(id)) &&
+    (${condition})`;
+}
+async function createNavigator(browser, base) {
+  const {command, evaluate} = browser;
+  // CDP injects this in each new document, even for repeated identical URLs.
+  // The marker exists only in this isolated test browser, never product code.
+  await command("Page.addScriptToEvaluateOnNewDocument", {
+    source: "Object.defineProperty(window,'__f02TestDocumentId',{value:crypto.randomUUID()})"
+  });
+  let visit = 0;
+  async function start(scenario, sameUrl = false) {
+    // Referrer-only routing cannot distinguish repeated visits to an identical
+    // stateful URL. Only the stateless custom-license fixture may reuse it.
+    assert.ok(!sameUrl || scenario === "custom-license",
+      "sameUrl is restricted to stateless custom-license");
+    const previousId = await evaluate("window.__f02TestDocumentId ?? null");
+    const url = base + "/frontend/f02.html?scenario=" + encodeURIComponent(scenario)
+      + (sameUrl ? "" : "&visit=" + (++visit));
+    const result = await command("Page.navigate", {url});
+    assert.ok(!result.errorText, "HTTP document navigation failure: " + result.errorText);
+    return {url, previousId, ready: condition => navigationCondition(url, previousId, condition)};
+  }
+  async function navigate(scenario, condition, sameUrl = false) {
+    const next = await start(scenario, sameUrl);
+    await waitUntil(evaluate, next.ready(condition), "F02 fresh document " + scenario);
+    return next;
+  }
+  return {start, navigate};
+}
+
 test("F02 browser polling retries a replaced document context", async () => {
   let attempts = 0;
   await waitUntil(async () => {
@@ -268,6 +397,150 @@ test("F02 browser polling retains the original CDP command error", async () => {
   }, "true", "new page"), error => error === commandError);
   assert.equal(attempts, 1);
 });
+test("WP-002 F02 HTTP Chrome: document and fixture readiness reject false positives",
+  { timeout: 120000 }, async t => {
+    const bin = browserBinary();
+    if (!bin) {
+      if (process.env.CI || process.env.F02_REAL_EXPORT_PATH) throw Error("Actual Chrome required for WP-002");
+      t.skip("Chrome not installed locally"); return;
+    }
+    const {base, held, release, close:closeServer} = await serve();
+    let browser;
+    try {
+      browser = await launchChrome(bin);
+      const {command, evaluate} = browser;
+      await command("Page.enable");
+      await command("Runtime.enable");
+      await command("Network.enable");
+      const {start, navigate} = await createNavigator(browser, base);
+      if (process.env.F02_WP002_TIMEOUT_PROBE === "1") {
+        // Actual HTTP and Chrome are live; leave a CDP command pending until
+        // the supervising deadline cancels this child. Never count as PASS.
+        await navigate("normal", "document.querySelector('#record-count').textContent.includes('D記録 2件')");
+        notifyParent({type:"probe-ready"});
+        await command("Runtime.evaluate", {expression:"new Promise(()=>{})", awaitPromise:true});
+        assert.fail("Timeout probe unexpectedly completed");
+      }
+      await assert.rejects(start("http-error-once", true), /sameUrl is restricted/);
+      console.log("WP002_SAME_URL_SCOPE_HTTP: stateful same-URL navigation rejected PASS");
+      const licensed = "document.querySelector('#sources a.license-link')?.href==='https://creativecommons.org/licenses/by/2.1/jp/'";
+      const custom = "document.querySelector('#sources').innerText.includes('利用ライセンス（D記録）: other')";
+      await navigate("licensed", licensed);
+      const delay = await start("wp002-dom-delay");
+      try {
+        await waitUntil(evaluate, `location.href===${JSON.stringify(delay.url)} &&
+          !!window.__f02TestDocumentId && window.__f02TestDocumentId!==${JSON.stringify(delay.previousId)} &&
+          !!document.querySelector('#search') && !document.querySelector('#sources')`, "controlled incomplete real F02 HTML");
+        assert.ok(held.has("dom"));
+        // Reproduce the original unguarded L427 failure on deliberately
+        // incomplete real HTTP HTML. This is not a natural fixed-main rerun.
+        assertNoPageExceptions(browser.exceptions);
+        // Silent applies only to this intentional evaluation, not page errors
+        // or the normal readiness predicate. exceptionDetails still rejects.
+        await assert.rejects(waitUntil(expression => evaluate(expression, {silent:true}), custom, "original unsafe condition"), /Browser JavaScript:.*null.*innerText/s);
+        assertNoPageExceptions(browser.exceptions);
+        assert.equal(await evaluate(delay.ready(custom)), false);
+        assert.equal(await evaluate(delay.ready("true")), false);
+      } finally {
+        if (held.has("dom")) release("dom");
+      }
+      await waitUntil(evaluate, delay.ready(custom), "released real F02 HTML with original custom-license condition");
+      assert.equal(await evaluate("document.querySelectorAll('#results .record').length"), 2);
+      assert.equal(await evaluate("document.querySelector('#sources a.license-link')"), null);
+      assert.ok(await evaluate("document.querySelector('#sources').innerText.includes('ライセンスURL: 未確認')"));
+      console.log("WP002_DOM_HTTP: unsafe null.innerText reproduced; incomplete DOM cannot pass; released real HTML satisfies original custom-license condition PASS");
+
+      const old = await start("wp002-old");
+      await waitUntil(async () => held.has("old-export"), "", "old fixture fetch held at server");
+      await navigate("custom-license", custom);
+      assert.equal(await evaluate("document.querySelector('#sources a.license-link')"), null);
+      const oldBody = JSON.parse(release("old-export"));
+      assert.equal(oldBody.datasets[0].evidence[0].license, "CC BY 2.1 JP");
+      // Probe a late request with the old document's exact referrer after the
+      // new document has loaded; it must never receive the new fixture.
+      const late = await fetch(base + "/pipeline/data/output/edogawa.json", {
+        headers:{referer:old.url}, signal:AbortSignal.timeout(5000)
+      });
+      assert.equal(late.status, 200);
+      assert.equal((await late.json()).datasets[0].evidence[0].license, "CC BY 2.1 JP");
+      const unbound = await fetch(base + "/pipeline/data/output/edogawa.json", {signal:AbortSignal.timeout(5000)});
+      assert.equal(unbound.status, 400);
+      assert.ok(await evaluate(custom));
+      assert.equal(await evaluate("document.querySelector('#sources a.license-link')"), null);
+      console.log("WP002_FIXTURE_HTTP: held old browser response and late old-referrer request retain old fixture; new document retains custom license PASS");
+
+      // Ten consecutive real HTTP navigation cycles, no retries of a failed
+      // cycle. Explicit same-URL navigation must replace the document marker.
+      const markers = new Set();
+      for (let i = 0; i < 10; i++) {
+        await navigate("licensed", licensed);
+        const first = await navigate("custom-license", custom, true);
+        const id = await evaluate("window.__f02TestDocumentId");
+        assert.equal(await evaluate(navigationCondition(first.url, id, "true")), false,
+          "Old document must not satisfy readiness even with matching URL and DOM");
+        assert.equal(markers.has(id), false); markers.add(id);
+        const second = await navigate("custom-license", custom, true);
+        const nextId = await evaluate("window.__f02TestDocumentId");
+        assert.equal(second.url, first.url);
+        assert.notEqual(nextId, id);
+        assert.equal(markers.has(nextId), false); markers.add(nextId);
+        assert.equal(await evaluate("document.querySelector('#sources a.license-link')"), null);
+        assert.ok(await evaluate("document.querySelector('#sources').innerText.includes('ライセンスURL: 未確認')"));
+        console.log("WP002_REPEAT_HTTP: cycle " + (i+1) + "/10 PASS");
+      }
+      assert.equal(markers.size, 20);
+
+      const missing = await start("wp002-missing-dom");
+      await waitUntil(evaluate, `location.href===${JSON.stringify(missing.url)} && document.readyState==='complete'`, "missing DOM negative fixture");
+      assert.notEqual(await evaluate("window.__f02TestDocumentId"), missing.previousId);
+      assert.equal(await evaluate("document.querySelector('#sources')"), null);
+      await assert.rejects(waitUntil(evaluate, missing.ready("true"), "required DOM missing", 3),
+        /Timed out waiting for required DOM missing/);
+      let jsAttempts = 0;
+      await assert.rejects(waitUntil(async expression => {jsAttempts++; return evaluate(expression, {silent:true});},
+        "(()=>{throw new Error('WP002 deliberate JavaScript error')})()", "real JavaScript negative"),
+        /Browser JavaScript:.*WP002 deliberate JavaScript error/s);
+      assert.equal(jsAttempts, 1);
+      let cdpAttempts = 0;
+      await assert.rejects(waitUntil(async () => {cdpAttempts++; return command("WP002.invalidMethod");},
+        "true", "real CDP negative"), /WP002\.invalidMethod.*(found|method)/i);
+      assert.equal(cdpAttempts, 1);
+      // No page exception is allowed during the entire ordinary flow, even
+      // if its message resembles the deliberately evaluated TypeError.
+      assertNoPageExceptions(browser.exceptions);
+      // Separate explicit negative: an uncaught page callback throws the
+      // same null.innerText error. It must be rejected by the zero-error gate.
+      await evaluate("setTimeout(()=>document.querySelector('#sources').innerText,0); void 0;\n//# sourceURL=wp002-unexpected-page-negative.js");
+      await waitUntil(async () => browser.exceptions.length > 0, "", "uncaught page TypeError");
+      assert.equal(browser.exceptions.length, 1);
+      assert.match(browser.exceptions[0], /null.*innerText/s);
+      assert.match(browser.exceptions[0], /wp002-unexpected-page-negative\.js/);
+      assert.throws(() => assertNoPageExceptions(browser.exceptions), /Unexpected page exceptions/);
+      console.log("WP002_PAGE_EXCEPTION_HTTP: zero ordinary page exceptions; same-type uncaught page exception rejected PASS");
+      assert.ok(browser.outbound.every(url => url.startsWith(base + "/") || url === "about:blank" || url.startsWith("data:")),
+        "Unexpected browser outbound request");
+      // A protocol rejection is not a transport disconnect. Exercise both:
+      // close the actual socket while a CDP command is pending, and ensure
+      // waitUntil propagates the close error without another polling attempt.
+      let disconnectAttempts = 0;
+      const disconnected = waitUntil(async () => {
+        disconnectAttempts++;
+        return command("Runtime.evaluate", {
+          expression:"new Promise(()=>{})", awaitPromise:true, returnByValue:true
+        });
+      }, "true", "actual CDP disconnect");
+      const rejected = assert.rejects(disconnected, /^Error: CDP WebSocket closed$/);
+      browser.ws.close();
+      await rejected;
+      assert.equal(disconnectAttempts, 1);
+      console.log("WP002_CDP_DISCONNECT_HTTP: pending command rejects on actual WebSocket close without retry PASS");
+      console.log("WP002_NEGATIVE_HTTP: missing DOM times out, genuine JS and CDP errors fail immediately PASS");
+    } finally {
+      try { if (browser) await browser.close(); }
+      finally { await closeServer(); }
+    }
+  });
+
 test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic data",
   { timeout: 120000 }, async t => {
     const bin = browserBinary();
@@ -280,7 +553,7 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       fs.readFileSync(path.resolve(process.env.F02_REAL_EXPORT_PATH), "utf8") : null;
     const expectedRealRecords = realOutput === null ? null :
       JSON.parse(realOutput).datasets.find(item => item?.requirement_code === "shelter_location")?.records.length;
-    const { server, requests, base } = await serve(realOutput);
+    const { requests, base, close:closeServer } = await serve(realOutput);
     let browser;
     try {
       browser = await launchChrome(bin);
@@ -288,13 +561,7 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       await command("Page.enable");
       await command("Runtime.enable");
       await command("Network.enable");
-      async function navigate(scenario, condition) {
-        const result = await command("Page.navigate", {
-          url: base + "/frontend/f02.html?scenario=" + encodeURIComponent(scenario)
-        });
-        assert.ok(!result.errorText, "HTTP document navigation failure: " + result.errorText);
-        await waitUntil(evaluate, condition, "F02 " + scenario);
-      }
+      const {navigate} = await createNavigator(browser, base);
       async function pressKey(key) {
         const code = key === "Tab" ? 9 : 13;
         await command("Input.dispatchKeyEvent", {
@@ -318,6 +585,7 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       assert.equal(await evaluate("document.querySelectorAll('#results .record').length"), 2);
       assert.equal(await evaluate("document.querySelector('#return-to-record').hidden"), true);
       assert.equal(await evaluate("document.querySelector('#return-to-detail').hidden"), true);
+      assert.equal(await evaluate("document.querySelector('#clear-record').hidden"), true);
       assert.equal(await evaluate("document.querySelector('#sources a')?.href"),
         "https://example.invalid/synthetic-f02");
       assert.equal(await evaluate("document.querySelectorAll('#results script').length"), 0);
@@ -513,10 +781,21 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
           await evaluate("window.__f02ReturnButton.dataset.recordId"));
         await pressKey("Tab");
         assert.equal(await evaluate("document.activeElement.id"), "return-to-record");
+        await pressKey("Tab");
+        await pressKey("Tab");
+        assert.equal(await evaluate("document.activeElement.id"), "clear-record");
+        assert.ok(await evaluate("document.activeElement.getBoundingClientRect().height>=44"));
+        await pressKey("Enter");
+        assert.ok(await evaluate("document.activeElement===window.__f02ReturnButton"));
+        assert.equal(await evaluate("document.querySelector('#results [aria-pressed=true]')"), null);
+        assert.equal(await evaluate("document.querySelector('#search').value"), "架空");
+        assert.equal(await evaluate("document.querySelectorAll('#results .record').length"), 50);
+        assert.ok(await evaluate("document.querySelector('#clear-record').hidden && document.querySelector('#return-to-detail').hidden && !document.querySelector('#detail h3')"));
       }
       await command("Emulation.clearDeviceMetricsOverride");
       console.log("F02_RETURN_HTTP: native Tab/Enter returns to latest selected record, visible at 320/390/1440px, query and details unchanged PASS");
       console.log("F02_SOURCE_NAV_HTTP: native Tab/Enter moves between dataset source and record headings while preserving query and selection PASS");
+      console.log("F02_CLEAR_RECORD_HTTP: native Enter clears only the record selection and restores focus to the same list button PASS");
 
       await navigate("over-limit", "document.querySelector('#record-count').textContent.includes('D記録 60件')");
       await evaluate("(()=>{const q=document.querySelector('#search');q.value='施設55';q.dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#results .record').click()})()");
@@ -620,12 +899,120 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       console.log("F02_CONSUMER_HTTP: empty/missing/invalid/HTTP-error states, responsive widths and no external requests PASS");
     } finally {
       try {
-        if (browser) await stopChrome(browser.child, browser.profile, browser.ws);
+        if (browser) await browser.close();
       } finally {
-        await new Promise((resolve, reject) => {
-          server.close(error => error ? reject(error) : resolve());
-          server.closeAllConnections();
-        });
+        await closeServer();
       }
     }
   });
+
+// A deadline is enforced by the supervisor before the outer node:test
+// timeout. Cooperatively close actual HTTP/Chrome resources, then fail the
+// child. If it becomes unresponsive, terminate its reported Chrome groups
+// and process, and do not treat the result as a successful cleanup.
+async function runStressChild(env, timeoutMs, probe = false) {
+  const child = spawn(process.execPath, [__filename], {
+    env, cwd:root, stdio:["ignore","pipe","pipe","ipc"]
+  });
+  let output = "", stderr = "", timedOut = false, acknowledgement = null, fallback = false, probeReady = false;
+  const resources = {profiles:new Set(), pids:new Set(), bases:new Set()};
+  let deadline, escalation;
+  const cancel = () => {
+    if (timedOut) return;
+    timedOut = true;
+    if (child.connected) child.send({type:"cancel"}, () => {});
+    escalation = setTimeout(() => {
+      fallback = true;
+      for (const pid of resources.pids) {
+        if (process.platform === "win32") spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], {timeout:5000});
+        else {
+          try { process.kill(-pid, "SIGKILL"); }
+          catch(error) { if (error.code !== "ESRCH") stderr += String(error); }
+        }
+      }
+      if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
+    }, 12000);
+  };
+  child.stdout.on("data", chunk => { output += chunk; if (output.length > 2*1024*1024) cancel(); });
+  child.stderr.on("data", chunk => { stderr = (stderr + chunk).slice(-65536); });
+  child.on("message", message => {
+    if (message.type === "chrome") {
+      resources.profiles.add(message.profile);
+      if (Number.isInteger(message.pid)) resources.pids.add(message.pid);
+    } else if (message.type === "server") resources.bases.add(message.base);
+    else if (message.type === "cancelled") acknowledgement = message;
+    else if (message.type === "probe-ready" && probe && !timedOut) {
+      probeReady = true;
+      clearTimeout(deadline);
+      // A short deadline is intentional only in the controlled negative test.
+      deadline = setTimeout(cancel, 100);
+    }
+  });
+  const ended = new Promise((resolve,reject) => {
+    child.once("error", reject);
+    child.once("close", (code,signal) => resolve({code,signal}));
+  });
+  deadline = setTimeout(cancel, timeoutMs);
+  let status;
+  try { status = await ended; }
+  finally { clearTimeout(deadline); clearTimeout(escalation); }
+  if (fallback) {
+    for (const profile of resources.profiles) await removeProfileAfterChromeExit(profile);
+    throw Error("F02 stress child required forced termination; cleanup not certified: " + stderr);
+  }
+  if (timedOut) {
+    assert.ok(acknowledgement, "Timed-out child did not acknowledge cleanup: " + stderr);
+    assert.deepEqual(acknowledgement.errors, []);
+    assert.equal(status.code, 1, "Timed-out child must fail");
+    for (const profile of resources.profiles) assert.equal(fs.existsSync(profile), false);
+    for (const pid of resources.pids) {
+      assert.throws(() => process.kill(pid, 0), error => error.code === "ESRCH", "Chrome launcher still exists: " + pid);
+    }
+    for (const base of resources.bases) {
+      await assert.rejects(fetch(base + "/frontend/f02.html", {signal:AbortSignal.timeout(1000)}),
+        error => error.cause?.code === "ECONNREFUSED");
+    }
+    if (probe) {
+      assert.ok(probeReady && resources.pids.size > 0 && resources.profiles.size > 0 && resources.bases.size > 0,
+        "Timeout probe must start real Chrome and HTTP");
+      console.log("WP002_TIMEOUT_CLEANUP_HTTP: deadline cancelled live child; Chrome launcher exited, profile removed, HTTP closed, exit failure PASS");
+      return {stdout:output};
+    }
+    throw Error("F02 stress child exceeded deadline; cooperative cleanup completed");
+  }
+  assert.equal(probe, false, "Timeout probe must hit a deadline");
+  assert.equal(status.code, 0, "F02 child failed: " + output + stderr);
+  return {stdout:output};
+}
+
+// CI-11: independent process per run, no retry, no missing-browser PASS.
+// The total supervisor budget leaves cleanup headroom below the existing
+// outer test limit. No change to production or shared workflow timeout.
+if (!process.env.F02_WP002_REPEAT_CHILD &&
+    (process.env.CI || process.env.F02_WP002_REPEAT === "1")) {
+  test("WP-002 CI-11 ten consecutive independent F02 test processes",
+    {timeout:300000}, async () => {
+      const env = {...process.env, CI:"1", F02_WP002_REPEAT_CHILD:"1"};
+      delete env.NODE_TEST_CONTEXT;
+      delete env.F02_REAL_EXPORT_PATH;
+      delete env.F02_WP002_TIMEOUT_PROBE;
+      const end = Date.now() + 240000;
+      await runStressChild({...env,F02_WP002_TIMEOUT_PROBE:"1"}, 30000, true);
+      for (let run=1; run<=10; run++) {
+        const remaining = end - Date.now();
+        assert.ok(remaining > 0, "F02 stress supervisor budget exhausted");
+        const {stdout} = await runStressChild(env, Math.min(remaining, 130000));
+        for (const [label,count] of [["tests",4],["pass",4],["fail",0],["skipped",0]]) {
+          assert.match(stdout, new RegExp("^# "+label+" "+count+"\\s*$","m"),
+            "F02 child "+run+" unexpected TAP summary: "+stdout);
+        }
+        for (const marker of ["WP002_DOM_HTTP:", "WP002_FIXTURE_HTTP:",
+          "WP002_SAME_URL_SCOPE_HTTP:", "WP002_PAGE_EXCEPTION_HTTP:",
+          "WP002_CDP_DISCONNECT_HTTP:", "WP002_NEGATIVE_HTTP:",
+          "WP002_REPEAT_HTTP: cycle 10/10 PASS", "F02_CREDIT_HTTP:", "F02_RETRY_HTTP:"]) {
+          assert.ok(stdout.includes(marker), "F02 child "+run+" missing "+marker);
+        }
+        console.log("WP002_CI11_PROCESS: "+run+"/10 PASS (4/4 tests, 0 fail, 0 skip)");
+      }
+    });
+}
