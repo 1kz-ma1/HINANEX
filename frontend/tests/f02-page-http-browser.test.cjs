@@ -124,7 +124,7 @@ function fixtureFor(name) {
     body.datasets[0].evidence[0].publisher = "東京都江戸川区（合成検証値）";
     body.datasets[0].evidence[0].license = "CC BY 2.1 JP";
   }
-  if (name === "custom-license") body.datasets[0].evidence[0].license = "other";
+  if (name === "custom-license" || name === "wp002-dom-delay") body.datasets[0].evidence[0].license = "other";
   if (name === "multiple-sources") {
     body.datasets[0].evidence.push(
       {source_name: "別の合成資料", source_url: "https://example.invalid/second-f02"},
@@ -367,7 +367,6 @@ test("WP-002 F02 HTTP Chrome: document and fixture readiness reject false positi
       const {start, navigate} = await createNavigator(browser, base);
       const licensed = "document.querySelector('#sources a.license-link')?.href==='https://creativecommons.org/licenses/by/2.1/jp/'";
       const custom = "document.querySelector('#sources').innerText.includes('利用ライセンス（D記録）: other')";
-      const normal = "document.querySelector('#record-count').textContent.includes('D記録 2件')";
       await navigate("licensed", licensed);
       const delay = await start("wp002-dom-delay");
       try {
@@ -383,10 +382,11 @@ test("WP-002 F02 HTTP Chrome: document and fixture readiness reject false positi
       } finally {
         if (held.has("dom")) release("dom");
       }
-      await waitUntil(evaluate, delay.ready(normal), "released real F02 HTML");
+      await waitUntil(evaluate, delay.ready(custom), "released real F02 HTML with original custom-license condition");
       assert.equal(await evaluate("document.querySelectorAll('#results .record').length"), 2);
       assert.equal(await evaluate("document.querySelector('#sources a.license-link')"), null);
-      console.log("WP002_DOM_HTTP: unsafe null.innerText reproduced; incomplete DOM cannot pass; released real HTML renders PASS");
+      assert.ok(await evaluate("document.querySelector('#sources').innerText.includes('ライセンスURL: 未確認')"));
+      console.log("WP002_DOM_HTTP: unsafe null.innerText reproduced; incomplete DOM cannot pass; released real HTML satisfies original custom-license condition PASS");
 
       const old = await start("wp002-old");
       await waitUntil(async () => held.has("old-export"), "", "old fixture fetch held at server");
@@ -430,6 +430,8 @@ test("WP-002 F02 HTTP Chrome: document and fixture readiness reject false positi
 
       const missing = await start("wp002-missing-dom");
       await waitUntil(evaluate, `location.href===${JSON.stringify(missing.url)} && document.readyState==='complete'`, "missing DOM negative fixture");
+      assert.notEqual(await evaluate("window.__f02TestDocumentId"), missing.previousId);
+      assert.equal(await evaluate("document.querySelector('#sources')"), null);
       await assert.rejects(waitUntil(evaluate, missing.ready("true"), "required DOM missing", 3),
         /Timed out waiting for required DOM missing/);
       let jsAttempts = 0;
