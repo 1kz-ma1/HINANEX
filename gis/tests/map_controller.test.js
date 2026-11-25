@@ -3493,3 +3493,10 @@ require("./gsi_flood_demo.test.js");
   assert.match(html,/id="mapSettingsToggle"/);
   assert.doesNotMatch(css,/(?:#map|\.leaflet-tile)[^\{]*\{[^}]*\bfilter\s*:/);
 }
+
+// Mobile static gates participate in the required GitHub Actions `test` job.
+require("./mobile_ui_acceptance.test.js");
+
+// Register the F07 synthetic-only state/safety tests in the existing required E GIS Node gate.
+// No F07 prototype code is imported into the public GIS application.
+require("../prototypes/f07-reference-route/test-node.cjs");

@@ -1,6 +1,6 @@
 # F02 / Issue #348 班員提出物レビュー・受入管理記録
 
-- 記録日: 2026-11-04
+- 記録日: 2026-11-04（当時の受領・検収記録。現在の状態は末尾の追記を参照）
 - 対象: 班員提出 `frontend.zip`、F02「避難施設の独立した一覧・詳細UI」
 - Issue: https://github.com/1kz-ma1/HINANEX/issues/348
 - 位置付け: **REVIEWED / PROTOTYPE-ONLY / NOT INTEGRATION READY**
@@ -78,3 +78,13 @@ ZIP の `__MACOSX/` および `._*` は macOS 由来のメタデータで、取�
 - Issue #348 は元の Done 条件（提出物の検収・オーナー確認）に従って扱い、いきなり本番機能を Done としない。
 - 本レビューだけでは `merge: ready` を付与しない。mainは変更しない。
 - 作業の進捗表現は `SUBMISSION_REVIEWED`（提出物点検済み）とし、`INTEGRATION_READY` と区別する。
+
+## 2026-11-11 の受入結果（2026-11-25 追記）
+
+上記の未了・未実施の記載は **2026-11-04 時点の履歴** として維持する。以降の状態は次のとおり。
+
+- [PR #351](https://github.com/1kz-ma1/HINANEX/pull/351) は独立した合成F02試作のソース保管としてmainへSquash統合済み。確定PR HEAD `1dfe92cdc526666deb49eaefd9d7c2530d2dda44`、統合SHA `e0d6f7a01644948acc8be787b727b22c926b2442`。
+- [PR必須CI #42936157773](https://github.com/1kz-ma1/HINANEX/actions/runs/42936157773) と [統合後main CI #42937034740](https://github.com/1kz-ma1/HINANEX/actions/runs/42937034740) はいずれも SUCCESS。2026-11-25 にrunのHEAD SHAと終了状態を再照合した。PR #351の受入記録では実HTTP Chrome/CDPで独立HTML/CSS/JS読み込み・操作、異常系、320/390/1440pxを検証。11/04の提出者による `page.set_content` 報告とは別の証拠である。
+- [Issue #348 の11/11完了記録](https://github.com/1kz-ma1/HINANEX/issues/348#issuecomment-6784041620) に従い、この独立合成試作タスクだけ CLOSED。元ZIPの検収履歴と原本SHAの記録は本書に残す。今回の追記で原本ZIPを再展開・再検査したわけではない。
+- 未承認・未実施を区別：実施設データ/D RegionExport接続、GIS/F01/F05正式接続、公式指定・位置・安全性・開設状態の承認、一般公開はこの受入の対象外。物理端末Safari/Android/Windows、支援技術の独立実機受入は本記録では NOT_RUN。別Issue/PRで管理する。
+- 本PR #350 自体は検収文書1件のみ。#351の統合済み実装を再度取り込むものではない。通常ソース統合HOLD・公開判断は別ゲートとして維持する。

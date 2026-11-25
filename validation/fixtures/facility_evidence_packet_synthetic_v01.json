@@ -1,0 +1,131 @@
+{
+  "schema_id": "hinanex.c.facility_evidence_packet_preflight.v0.1",
+  "records": [
+    {
+      "case_id": "synthetic:packet-complete",
+      "hazard": "flood",
+      "requested_asof": "2026-11-13T00:00:00Z",
+      "asof_evidence_ref": "synthetic:asof-context",
+      "source": {
+        "url": "https://example.invalid/fictional-source.csv",
+        "publisher": "synthetic-test-only-publisher",
+        "raw_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "c_raw_audit_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "captured_at_utc": "2026-11-12T09:00:00Z",
+        "source_revision": "synthetic-v1",
+        "source_record_locator": "synthetic-row:0001"
+      },
+      "identity": {
+        "target_source_url": "https://example.invalid/fictional-secondary.html",
+        "target_raw_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "target_c_raw_audit_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "target_captured_at_utc": "2026-11-12T10:00:00Z",
+        "target_source_revision": "synthetic-v7",
+        "target_record_locator": "synthetic-target:99",
+        "bound_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "independent_pair_review_ref": "synthetic:pair-review-reference",
+        "disposition": "DOCUMENTED_PENDING_AUTHENTICATION"
+      },
+      "hazard_meaning": {
+        "raw_marker": "FICTIONAL_FLOOD_MARKER",
+        "official_meaning_ref": "synthetic:original-meaning-reference",
+        "reviewed_hazard": "flood",
+        "bound_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "independent_review_ref": "synthetic:hazard-review-reference",
+        "disposition": "DOCUMENTED_PENDING_AUTHENTICATION"
+      },
+      "reuse": {
+        "terms_url": "https://example.invalid/fictional-terms",
+        "attribution_text": "Synthetic sample source (not an official license)",
+        "exception_check_ref": "synthetic:exception-check-reference",
+        "bound_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "independent_review_ref": "synthetic:reuse-review-reference",
+        "disposition": "DOCUMENTED_PENDING_AUTHENTICATION"
+      }
+    },
+    {
+      "case_id": "synthetic:packet-incomplete",
+      "hazard": "flood",
+      "requested_asof": "2026-11-13T00:00:00Z",
+      "asof_evidence_ref": "synthetic:asof-context",
+      "source": {
+        "url": "https://example.invalid/fictional-source.csv",
+        "publisher": null,
+        "raw_sha256": null,
+        "c_raw_audit_sha256": null,
+        "captured_at_utc": "2026-11-12T09:00:00Z",
+        "source_revision": null,
+        "source_record_locator": "synthetic-row:0001"
+      },
+      "identity": {
+        "target_source_url": "https://example.invalid/fictional-secondary.html",
+        "target_raw_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "target_c_raw_audit_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "target_captured_at_utc": "2026-11-12T10:00:00Z",
+        "target_source_revision": "synthetic-v7",
+        "target_record_locator": "synthetic-target:99",
+        "bound_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "independent_pair_review_ref": null,
+        "disposition": "UNREVIEWED"
+      },
+      "hazard_meaning": {
+        "raw_marker": null,
+        "official_meaning_ref": "synthetic:original-meaning-reference",
+        "reviewed_hazard": "flood",
+        "bound_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "independent_review_ref": "synthetic:hazard-review-reference",
+        "disposition": "UNREVIEWED"
+      },
+      "reuse": {
+        "terms_url": null,
+        "attribution_text": "Synthetic sample source (not an official license)",
+        "exception_check_ref": null,
+        "bound_source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "independent_review_ref": "synthetic:reuse-review-reference",
+        "disposition": "UNREVIEWED"
+      }
+    },
+    {
+      "case_id": "synthetic:packet-conflict",
+      "hazard": "flood",
+      "requested_asof": "2026-11-13T00:00:00Z",
+      "asof_evidence_ref": "synthetic:asof-context",
+      "source": {
+        "url": "https://example.invalid/fictional-source.csv",
+        "publisher": "synthetic-test-only-publisher",
+        "raw_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "c_raw_audit_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "captured_at_utc": "2026-11-12T09:00:00Z",
+        "source_revision": "synthetic-v1",
+        "source_record_locator": "synthetic-row:0001"
+      },
+      "identity": {
+        "target_source_url": "https://example.invalid/fictional-secondary.html",
+        "target_raw_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "target_c_raw_audit_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "target_captured_at_utc": "2026-11-12T10:00:00Z",
+        "target_source_revision": "synthetic-v7",
+        "target_record_locator": "synthetic-target:99",
+        "bound_source_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "independent_pair_review_ref": "synthetic:pair-review-reference",
+        "disposition": "CONFLICTING"
+      },
+      "hazard_meaning": {
+        "raw_marker": "FICTIONAL_FLOOD_MARKER",
+        "official_meaning_ref": "synthetic:original-meaning-reference",
+        "reviewed_hazard": "landslide",
+        "bound_source_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "independent_review_ref": "synthetic:hazard-review-reference",
+        "disposition": "DOCUMENTED_PENDING_AUTHENTICATION"
+      },
+      "reuse": {
+        "terms_url": "https://example.invalid/fictional-terms",
+        "attribution_text": "Synthetic sample source (not an official license)",
+        "exception_check_ref": "synthetic:exception-check-reference",
+        "bound_source_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "independent_review_ref": "synthetic:reuse-review-reference",
+        "disposition": "DOCUMENTED_PENDING_AUTHENTICATION"
+      }
+    }
+  ]
+}

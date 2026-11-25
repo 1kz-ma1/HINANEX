@@ -8,7 +8,7 @@ AI を利用する開発では、最初に root の `AGENTS.md` を読み、対�
 
 - `main` は常に動作確認済み・統合可能な状態を保つ。
 - `main` へ直接 push しない。
-- `main` への最終 merge は Merge Captain が行う。
+- `main` への最終 merge は、**同格の共同Merge Captain [`@1kz-ma1`](https://github.com/1kz-ma1) または [`@kouta1029`](https://github.com/kouta1029)** のいずれかが行う。他方の都度承認なしに通常PRを統合判断できる（[権限・監査ログ](.github/MERGE_CAPTAINS.md)）
 - Approve と Merge は別物として扱う。
 - 変更は担当ブランチ / feature branch から Pull Request で統合する。
 - 前提 PR がある場合は PR 本文に `Depends on: #<番号>` を明記する。
