@@ -119,16 +119,26 @@ UNPUBLISHED_F17_PREVIEW_PATHS = frozenset({
 })
 
 
+UNPUBLISHED_F09_PREVIEW_PATHS = frozenset({
+    # Issue #423: entire private F09 prototype, its QA, and its specification.
+    "prototypes/f09-preparedness",
+    "docs/F09_PREPAREDNESS_CHECKLIST_PROTOTYPE_20261117.md",
+    "tests/f09-preparedness.test.js",
+    "tests/f09-preparedness-browser.cjs",
+})
+
+
 UNPUBLISHED_PREVIEW_PATHS = (
     UNPUBLISHED_F03_PREVIEW_PATHS
     | UNPUBLISHED_F02_PREVIEW_PATHS
     | UNPUBLISHED_F05_PREVIEW_PATHS
     | UNPUBLISHED_F17_PREVIEW_PATHS
+    | UNPUBLISHED_F09_PREVIEW_PATHS
 )
 
 
 def _copy_public_frontend(source: Path, destination: Path) -> None:
-    """Copy Frontend without exposing unapproved F02/F03/F05/F17 preview assets."""
+    """Copy Frontend without exposing unapproved F02/F03/F05/F17/F09 preview assets."""
     if not source.is_dir():
         raise StagingBuildError(f"Required static directory is missing: {source}")
 
