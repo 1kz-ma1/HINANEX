@@ -196,6 +196,7 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
       assert.ok(await evaluate("document.querySelector('#recordList').textContent.includes('UNKNOWN')"));
       assert.ok(await evaluate("document.querySelector('#openComparison').hidden"));
       assert.ok(await evaluate("document.querySelector('#returnToList').hidden"));
+      assert.ok(await evaluate("document.querySelector('#openChoice').hidden"));
 
       // Two distinct records, unpromoted UNKNOWN, evidence trace and explicit choice.
       await evaluate("document.querySelectorAll('#recordList button')[0].click()");
@@ -203,6 +204,7 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
         {id:"fake-a",pressed:"true",name:"架空施設Aを比較から外す"}, "Focus and accessible action name after adding A");
       assert.ok(await evaluate("document.querySelector('#openComparison').hidden && document.querySelector('#compareMessage').textContent.includes('もう1件')"));
       assert.ok(await evaluate("document.querySelector('#returnToList').hidden"));
+      assert.ok(await evaluate("document.querySelector('#openChoice').hidden"));
       await evaluate("document.querySelectorAll('#recordList button')[1].click()");
       assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,pressed:document.activeElement?.getAttribute('aria-pressed'),name:document.activeElement?.getAttribute('aria-label')})"),
         {id:"fake-b",pressed:"true",name:"架空施設Bを比較から外す"}, "Focus stays on B after adding second record");
@@ -242,7 +244,29 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
         "The unknown evidence must be exposed as six individual list items");
       console.log("F05_B2_UNKNOWN_ITEMS_HTTP: original unverified items stay grouped by facility and exposed as list items PASS");
       assert.ok(await evaluate("document.querySelector('#compareArea').textContent.includes('安全性') && document.querySelector('#compareArea').textContent.includes('未認定')"));
-      await evaluate("document.querySelectorAll('#choiceArea button')[1].click()");
+      async function tabToNextControl() {
+        await command("Input.dispatchKeyEvent", {type:"keyDown",key:"Tab",code:"Tab",windowsVirtualKeyCode:9});
+        await command("Input.dispatchKeyEvent", {type:"keyUp",key:"Tab",code:"Tab",windowsVirtualKeyCode:9});
+      }
+      async function activateWithEnter() {
+        await command("Input.dispatchKeyEvent", {type:"rawKeyDown",key:"Enter",code:"Enter",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
+        await command("Input.dispatchKeyEvent", {type:"char",text:"\r",unmodifiedText:"\r",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
+        await command("Input.dispatchKeyEvent", {type:"keyUp",key:"Enter",code:"Enter",windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});
+      }
+      await tabToNextControl();
+      await tabToNextControl();
+      assert.equal(await evaluate("document.activeElement.id"), "openChoice");
+      assert.ok(await evaluate("document.activeElement.getBoundingClientRect().height>=44"));
+      await activateWithEnter();
+      assert.equal(await evaluate("document.activeElement.id"), "choiceTitle");
+      assert.equal(await evaluate("document.querySelector('#choiceArea button[aria-pressed=true]')"), null);
+      assert.equal(await evaluate("document.querySelectorAll('#compareArea article').length"), 2);
+      await tabToNextControl();
+      assert.equal(await evaluate("document.activeElement.dataset.recordId"), "fake-a");
+      await tabToNextControl();
+      assert.equal(await evaluate("document.activeElement.dataset.recordId"), "fake-b");
+      await activateWithEnter();
+      console.log("F05_B2_CHOICE_NAV_HTTP: native keyboard navigation reaches the choice without selecting a facility until explicitly activated PASS");
       assert.deepEqual(await evaluate("({id:document.activeElement?.dataset.recordId,area:document.activeElement?.parentElement?.id,pressed:document.activeElement?.getAttribute('aria-pressed')})"),
         {id:"fake-b",area:"choiceArea",pressed:"true"}, "Focus stays on chosen facility action after rerender");
       assert.ok(await evaluate("document.querySelector('#choiceMessage').textContent.includes('架空施設B')"));
@@ -274,6 +298,7 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
       assert.equal(await evaluate("document.querySelector('#choiceArea').childElementCount"),0);
       assert.ok(await evaluate("document.querySelector('#openComparison').hidden"));
       assert.ok(await evaluate("document.querySelector('#returnToList').hidden"));
+      assert.ok(await evaluate("document.querySelector('#openChoice').hidden"));
       assert.ok(await evaluate("document.querySelector('#choiceMessage').textContent.includes('なし')"));
       assert.ok(await evaluate("document.querySelector('#clearMessage').textContent.includes('すべて解除しました')"));
       assert.equal(await evaluate("document.querySelector('#filter').value"),"ALL");
@@ -288,6 +313,30 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
       assert.ok(await evaluate("document.querySelector('#choiceMessage').textContent.includes('架空施設B')"));
       assert.equal(await evaluate("document.querySelector('#clearMessage').textContent"),"",
         "New manual action clears the previous clear notification");
+
+      // Losing one compared record must hide the choice link, clear the
+      // explicit choice, and never silently restore it when comparison resumes.
+      await evaluate("document.querySelector('#recordList button[data-record-id=fake-b]').focus({preventScroll:true})");
+      await activateWithEnter();
+      assert.equal(await evaluate("document.activeElement.dataset.recordId"), "fake-b");
+      assert.equal(await evaluate("document.querySelectorAll('#recordList button[aria-pressed=true]').length"), 1);
+      assert.equal(await evaluate("document.querySelectorAll('#compareArea article').length"), 0);
+      assert.equal(await evaluate("document.querySelectorAll('#choiceArea button').length"), 0);
+      assert.ok(await evaluate("document.querySelector('#openChoice').hidden && document.querySelector('#choiceMessage').textContent.includes('なし')"));
+      await activateWithEnter();
+      assert.equal(await evaluate("document.querySelectorAll('#compareArea article').length"), 2);
+      assert.equal(await evaluate("document.querySelector('#openChoice').hidden"), false);
+      assert.equal(await evaluate("document.querySelector('#choiceArea button[aria-pressed=true]')"), null);
+      await evaluate("document.querySelector('#openChoice').focus({preventScroll:true})");
+      await activateWithEnter();
+      assert.equal(await evaluate("document.activeElement.id"), "choiceTitle");
+      assert.equal(await evaluate("document.querySelector('#choiceArea button[aria-pressed=true]')"), null);
+      await tabToNextControl();
+      await tabToNextControl();
+      assert.equal(await evaluate("document.activeElement.dataset.recordId"), "fake-b");
+      await activateWithEnter();
+      assert.equal(await evaluate("document.querySelector('#choiceArea button[aria-pressed=true]')?.dataset.recordId"), "fake-b");
+      console.log("F05_B2_CHOICE_INVALIDATION_HTTP: removal hides navigation and clears choice; re-comparison and navigation never restore it implicitly PASS");
 
       // Changing filter, search, or fixture must erase prior personal selection.
       await evaluate("(()=>{const x=document.querySelector('#filter');x.value='UNKNOWN';x.dispatchEvent(new Event('change',{bubbles:true}))})()");
@@ -323,6 +372,7 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
         assert.equal(await evaluate("document.querySelector('#resetCriteria').hidden"), true, mode);
         assert.equal(await evaluate("document.querySelector('#openComparison').hidden"), true, mode);
         assert.equal(await evaluate("document.querySelector('#returnToList').hidden"), true, mode);
+        assert.equal(await evaluate("document.querySelector('#openChoice').hidden"), true, mode);
       }
       console.log("F05_B2_COMPARE_NAV_HTTP: native Tab/Enter moves between comparison and list while preserving selections PASS");
       console.log("F05_B2_ZERO_MATCH_HTTP: native Tab/Enter restores criteria, list and query focus only for filtered zero matches PASS");
