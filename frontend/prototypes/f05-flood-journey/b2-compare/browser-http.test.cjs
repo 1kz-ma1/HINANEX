@@ -314,6 +314,30 @@ test("F05/B2 real HTTP Chrome: synthetic comparison, reset, errors, keyboard, pr
       assert.equal(await evaluate("document.querySelector('#clearMessage').textContent"),"",
         "New manual action clears the previous clear notification");
 
+      // Losing one compared record must hide the choice link, clear the
+      // explicit choice, and never silently restore it when comparison resumes.
+      await evaluate("document.querySelector('#recordList button[data-record-id=fake-b]').focus({preventScroll:true})");
+      await activateWithEnter();
+      assert.equal(await evaluate("document.activeElement.dataset.recordId"), "fake-b");
+      assert.equal(await evaluate("document.querySelectorAll('#recordList button[aria-pressed=true]').length"), 1);
+      assert.equal(await evaluate("document.querySelectorAll('#compareArea article').length"), 0);
+      assert.equal(await evaluate("document.querySelectorAll('#choiceArea button').length"), 0);
+      assert.ok(await evaluate("document.querySelector('#openChoice').hidden && document.querySelector('#choiceMessage').textContent.includes('なし')"));
+      await activateWithEnter();
+      assert.equal(await evaluate("document.querySelectorAll('#compareArea article').length"), 2);
+      assert.equal(await evaluate("document.querySelector('#openChoice').hidden"), false);
+      assert.equal(await evaluate("document.querySelector('#choiceArea button[aria-pressed=true]')"), null);
+      await evaluate("document.querySelector('#openChoice').focus({preventScroll:true})");
+      await activateWithEnter();
+      assert.equal(await evaluate("document.activeElement.id"), "choiceTitle");
+      assert.equal(await evaluate("document.querySelector('#choiceArea button[aria-pressed=true]')"), null);
+      await tabToNextControl();
+      await tabToNextControl();
+      assert.equal(await evaluate("document.activeElement.dataset.recordId"), "fake-b");
+      await activateWithEnter();
+      assert.equal(await evaluate("document.querySelector('#choiceArea button[aria-pressed=true]')?.dataset.recordId"), "fake-b");
+      console.log("F05_B2_CHOICE_INVALIDATION_HTTP: removal hides navigation and clears choice; re-comparison and navigation never restore it implicitly PASS");
+
       // Changing filter, search, or fixture must erase prior personal selection.
       await evaluate("(()=>{const x=document.querySelector('#filter');x.value='UNKNOWN';x.dispatchEvent(new Event('change',{bubbles:true}))})()");
       assert.equal(await evaluate("document.querySelectorAll('#recordList button').length"), 1);
