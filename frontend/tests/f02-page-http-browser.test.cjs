@@ -24,6 +24,7 @@ const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 // before browser launch finishes. Share the same idempotent cleanup with
 // normal finally blocks and cooperative deadline cancellation.
 const activeClosers = new Set();
+let stressCancelling = false;
 function notifyParent(message) {
   if (process.connected && process.send) process.send(message);
 }
@@ -37,10 +38,9 @@ function managedCleanup(fn) {
   return close;
 }
 if (process.env.F02_WP002_REPEAT_CHILD && process.send) {
-  let cancelling = false;
   const cancel = async () => {
-    if (cancelling) return;
-    cancelling = true;
+    if (stressCancelling) return;
+    stressCancelling = true;
     const results = await Promise.allSettled([...activeClosers].map(close => close()));
     const errors = results.filter(result => result.status === "rejected").map(result => String(result.reason));
     if (process.connected) process.send({type:"cancelled", errors}, () => process.exit(errors.length ? 2 : 1));
@@ -168,6 +168,7 @@ function fixtureFor(name) {
   return body;
 }
 async function serve(realOutput = null) {
+  assert.ok(!stressCancelling, "Cannot start HTTP during stress cancellation");
   const requests = [];
   // Associate each data request with its own HTTP document, never the
   // last document that happened to arrive at the server.
@@ -256,6 +257,7 @@ async function serve(realOutput = null) {
   return { server, requests, held, release, base, close };
 }
 async function launchChrome(bin) {
+  assert.ok(!stressCancelling, "Cannot launch Chrome during stress cancellation");
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), "f02-consumer-chrome-"));
   const child = spawn(bin, ["--headless=new", "--no-sandbox", "--disable-dev-shm-usage",
     "--disable-background-networking", "--no-first-run", "--remote-debugging-port=0",
@@ -900,7 +902,7 @@ async function runStressChild(env, timeoutMs, probe = false) {
   const child = spawn(process.execPath, [__filename], {
     env, cwd:root, stdio:["ignore","pipe","pipe","ipc"]
   });
-  let output = "", stderr = "", timedOut = false, acknowledgement = null, fallback = false;
+  let output = "", stderr = "", timedOut = false, acknowledgement = null, fallback = false, probeReady = false;
   const resources = {profiles:new Set(), pids:new Set(), bases:new Set()};
   let deadline, escalation;
   const cancel = () => {
@@ -928,6 +930,7 @@ async function runStressChild(env, timeoutMs, probe = false) {
     } else if (message.type === "server") resources.bases.add(message.base);
     else if (message.type === "cancelled") acknowledgement = message;
     else if (message.type === "probe-ready" && probe && !timedOut) {
+      probeReady = true;
       clearTimeout(deadline);
       // A short deadline is intentional only in the controlled negative test.
       deadline = setTimeout(cancel, 100);
@@ -950,14 +953,17 @@ async function runStressChild(env, timeoutMs, probe = false) {
     assert.deepEqual(acknowledgement.errors, []);
     assert.equal(status.code, 1, "Timed-out child must fail");
     for (const profile of resources.profiles) assert.equal(fs.existsSync(profile), false);
+    for (const pid of resources.pids) {
+      assert.throws(() => process.kill(pid, 0), error => error.code === "ESRCH", "Chrome launcher still exists: " + pid);
+    }
     for (const base of resources.bases) {
       await assert.rejects(fetch(base + "/frontend/f02.html", {signal:AbortSignal.timeout(1000)}),
         error => error.cause?.code === "ECONNREFUSED");
     }
     if (probe) {
-      assert.ok(resources.pids.size > 0 && resources.profiles.size > 0 && resources.bases.size > 0,
+      assert.ok(probeReady && resources.pids.size > 0 && resources.profiles.size > 0 && resources.bases.size > 0,
         "Timeout probe must start real Chrome and HTTP");
-      console.log("WP002_TIMEOUT_CLEANUP_HTTP: deadline cancelled live child; Chrome profile removed, HTTP closed, exit failure PASS");
+      console.log("WP002_TIMEOUT_CLEANUP_HTTP: deadline cancelled live child; Chrome launcher exited, profile removed, HTTP closed, exit failure PASS");
       return {stdout:output};
     }
     throw Error("F02 stress child exceeded deadline; cooperative cleanup completed");
