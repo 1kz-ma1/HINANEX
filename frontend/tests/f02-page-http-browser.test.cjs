@@ -120,7 +120,7 @@ function fixtureFor(name) {
       latitude: null, longitude: null
     }));
   }
-  if (name === "licensed") {
+  if (name === "licensed" || name === "wp002-old") {
     body.datasets[0].evidence[0].publisher = "東京都江戸川区（合成検証値）";
     body.datasets[0].evidence[0].license = "CC BY 2.1 JP";
   }
@@ -135,38 +135,85 @@ function fixtureFor(name) {
 }
 async function serve(realOutput = null) {
   const requests = [];
-  let scenario = "normal";
-  let exportRequestsForScenario = 0;
+  // Associate each data request with its own HTTP document, never the
+  // last document that happened to arrive at the server.
+  const visits = new Map();
+  const held = new Map();
+  const heldOnce = new Set();
+  function hold(key, res, body) {
+    heldOnce.add(key);
+    held.set(key, {res, body});
+  }
+  function release(key) {
+    const pending = held.get(key);
+    assert.ok(pending, "Missing controlled HTTP response: " + key);
+    held.delete(key);
+    // Chromium can cancel an old document's pending fetch on navigation.
+    if (!pending.res.destroyed) pending.res.end(pending.body);
+    return pending.body;
+  }
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, "http://localhost");
     const name = url.pathname;
     requests.push(name);
     if (req.method !== "GET") { res.writeHead(405); res.end(); return; }
     if (name === "/frontend/f02.html") {
-      scenario = url.searchParams.get("scenario") || "normal";
-      exportRequestsForScenario = 0;
+      const scenario = url.searchParams.get("scenario") || "normal";
+      const key = url.pathname + url.search;
+      visits.set(key, {scenario, requests: 0});
+      if (scenario === "wp002-dom-delay") {
+        // Stream the real HTML up to (but not including) the sources DOM.
+        // The test releases the tail only after observing the incomplete DOM.
+        const html = fs.readFileSync(path.join(root, "frontend/f02.html"), "utf8");
+        const split = html.indexOf('<div id="sources">');
+        assert.ok(split > 0, "F02 source DOM split point must exist");
+        res.writeHead(200, {"Content-Type":"text/html; charset=utf-8",
+          "Cache-Control":"no-store", "Referrer-Policy":"same-origin"});
+        res.write(html.slice(0, split) + "<!--" + " ".repeat(4096) + "-->");
+        hold("dom", res, html.slice(split));
+        return;
+      }
+      if (scenario === "wp002-missing-dom") {
+        res.writeHead(200, {"Content-Type":"text/html; charset=utf-8", "Cache-Control":"no-store"});
+        res.end("<!doctype html><title>F02 negative DOM fixture</title><p id='search'>incomplete</p>");
+        return;
+      }
     }
     if (name === "/pipeline/data/output/edogawa.json") {
-      exportRequestsForScenario += 1;
-      if (scenario === "http-error" || (scenario === "http-error-once" && exportRequestsForScenario === 1)) {
+      // Chrome sends the complete same-origin referrer (including visit).
+      // Do not fall back to the most recently requested fixture.
+      const referrer = new URL(req.headers.referer || "/", "http://localhost");
+      const visit = referrer.origin === "http://127.0.0.1:" + server.address().port
+        && referrer.pathname === "/frontend/f02.html"
+        ? visits.get(referrer.pathname + referrer.search) : null;
+      if (!visit) { res.writeHead(400); res.end("fixture document required"); return; }
+      const {scenario} = visit;
+      visit.requests += 1;
+      if (scenario === "http-error" || (scenario === "http-error-once" && visit.requests === 1)) {
         res.writeHead(503); res.end("not available"); return;
       }
       res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
       if (scenario === "bad-json") { res.end("{"); return; }
-      res.end(scenario === "real-data" && realOutput !== null ? realOutput : JSON.stringify(fixtureFor(scenario)));
+      const body = scenario === "real-data" && realOutput !== null ? realOutput : JSON.stringify(fixtureFor(scenario));
+      if (scenario === "wp002-old" && !heldOnce.has("old-export")) {
+        res.flushHeaders();
+        hold("old-export", res, body);
+        return;
+      }
+      res.end(body);
       return;
     }
     if (!assets.has(name)) { res.writeHead(404); res.end(); return; }
     const file = path.join(root, name.slice(1));
     const mime = name.endsWith(".css") ? "text/css" : name.endsWith(".js") ? "text/javascript" : "text/html";
-    res.writeHead(200, { "Content-Type": mime + "; charset=utf-8", "Cache-Control": "no-store" });
+    res.writeHead(200, { "Content-Type": mime + "; charset=utf-8", "Cache-Control": "no-store", "Referrer-Policy": "same-origin" });
     fs.createReadStream(file).pipe(res);
   });
   await new Promise((resolve, reject) => {
     server.once("error", reject);
     server.listen(0, "127.0.0.1", resolve);
   });
-  return { server, requests, base: "http://127.0.0.1:" + server.address().port };
+  return { server, requests, held, release, base: "http://127.0.0.1:" + server.address().port };
 }
 async function launchChrome(bin) {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), "f02-consumer-chrome-"));
@@ -235,8 +282,8 @@ async function launchChrome(bin) {
     throw error;
   }
 }
-async function waitUntil(evaluate, expression, description) {
-  for (let i = 0; i < 100; i++) {
+async function waitUntil(evaluate, expression, description, attempts = 100) {
+  for (let i = 0; i < attempts; i++) {
     try {
       if (await evaluate(expression)) return;
     } catch (error) {
@@ -249,6 +296,40 @@ async function waitUntil(evaluate, expression, description) {
   }
   throw Error("Timed out waiting for " + description);
 }
+// Evaluate document identity, DOM readiness and the original assertion in
+// one browser execution context. No optional catch around the assertion.
+function navigationCondition(url, previousId, condition) {
+  return `location.href===${JSON.stringify(url)} &&
+    typeof window.__f02TestDocumentId==='string' &&
+    window.__f02TestDocumentId!==${JSON.stringify(previousId)} &&
+    document.readyState==='complete' &&
+    ['search','record-count','load-state','sources','results','retry-load'].every(id=>document.getElementById(id)) &&
+    (${condition})`;
+}
+async function createNavigator(browser, base) {
+  const {command, evaluate} = browser;
+  // CDP injects this in each new document, even for repeated identical URLs.
+  // The marker exists only in this isolated test browser, never product code.
+  await command("Page.addScriptToEvaluateOnNewDocument", {
+    source: "Object.defineProperty(window,'__f02TestDocumentId',{value:crypto.randomUUID()})"
+  });
+  let visit = 0;
+  async function start(scenario, sameUrl = false) {
+    const previousId = await evaluate("window.__f02TestDocumentId ?? null");
+    const url = base + "/frontend/f02.html?scenario=" + encodeURIComponent(scenario)
+      + (sameUrl ? "" : "&visit=" + (++visit));
+    const result = await command("Page.navigate", {url});
+    assert.ok(!result.errorText, "HTTP document navigation failure: " + result.errorText);
+    return {url, previousId, ready: condition => navigationCondition(url, previousId, condition)};
+  }
+  async function navigate(scenario, condition, sameUrl = false) {
+    const next = await start(scenario, sameUrl);
+    await waitUntil(evaluate, next.ready(condition), "F02 fresh document " + scenario);
+    return next;
+  }
+  return {start, navigate};
+}
+
 test("F02 browser polling retries a replaced document context", async () => {
   let attempts = 0;
   await waitUntil(async () => {
@@ -268,6 +349,114 @@ test("F02 browser polling retains the original CDP command error", async () => {
   }, "true", "new page"), error => error === commandError);
   assert.equal(attempts, 1);
 });
+test("WP-002 F02 HTTP Chrome: document and fixture readiness reject false positives",
+  { timeout: 120000 }, async t => {
+    const bin = browserBinary();
+    if (!bin) {
+      if (process.env.CI || process.env.F02_REAL_EXPORT_PATH) throw Error("Actual Chrome required for WP-002");
+      t.skip("Chrome not installed locally"); return;
+    }
+    const {server, base, held, release} = await serve();
+    let browser;
+    try {
+      browser = await launchChrome(bin);
+      const {command, evaluate} = browser;
+      await command("Page.enable");
+      await command("Runtime.enable");
+      await command("Network.enable");
+      const {start, navigate} = await createNavigator(browser, base);
+      const licensed = "document.querySelector('#sources a.license-link')?.href==='https://creativecommons.org/licenses/by/2.1/jp/'";
+      const custom = "document.querySelector('#sources').innerText.includes('利用ライセンス（D記録）: other')";
+      const normal = "document.querySelector('#record-count').textContent.includes('D記録 2件')";
+      await navigate("licensed", licensed);
+      const delay = await start("wp002-dom-delay");
+      try {
+        await waitUntil(evaluate, `location.href===${JSON.stringify(delay.url)} &&
+          !!window.__f02TestDocumentId && window.__f02TestDocumentId!==${JSON.stringify(delay.previousId)} &&
+          !!document.querySelector('#search') && !document.querySelector('#sources')`, "controlled incomplete real F02 HTML");
+        assert.ok(held.has("dom"));
+        // Reproduce the original unguarded L427 failure on deliberately
+        // incomplete real HTTP HTML. This is not a natural fixed-main rerun.
+        await assert.rejects(waitUntil(evaluate, custom, "original unsafe condition"), /Browser JavaScript:.*null.*innerText/s);
+        assert.equal(await evaluate(delay.ready(custom)), false);
+        assert.equal(await evaluate(delay.ready("true")), false);
+      } finally {
+        if (held.has("dom")) release("dom");
+      }
+      await waitUntil(evaluate, delay.ready(normal), "released real F02 HTML");
+      assert.equal(await evaluate("document.querySelectorAll('#results .record').length"), 2);
+      assert.equal(await evaluate("document.querySelector('#sources a.license-link')"), null);
+      console.log("WP002_DOM_HTTP: unsafe null.innerText reproduced; incomplete DOM cannot pass; released real HTML renders PASS");
+
+      const old = await start("wp002-old");
+      await waitUntil(async () => held.has("old-export"), "", "old fixture fetch held at server");
+      await navigate("custom-license", custom);
+      assert.equal(await evaluate("document.querySelector('#sources a.license-link')"), null);
+      const oldBody = JSON.parse(release("old-export"));
+      assert.equal(oldBody.datasets[0].evidence[0].license, "CC BY 2.1 JP");
+      // Probe a late request with the old document's exact referrer after the
+      // new document has loaded; it must never receive the new fixture.
+      const late = await fetch(base + "/pipeline/data/output/edogawa.json", {
+        headers:{referer:old.url}, signal:AbortSignal.timeout(5000)
+      });
+      assert.equal(late.status, 200);
+      assert.equal((await late.json()).datasets[0].evidence[0].license, "CC BY 2.1 JP");
+      const unbound = await fetch(base + "/pipeline/data/output/edogawa.json", {signal:AbortSignal.timeout(5000)});
+      assert.equal(unbound.status, 400);
+      assert.ok(await evaluate(custom));
+      assert.equal(await evaluate("document.querySelector('#sources a.license-link')"), null);
+      console.log("WP002_FIXTURE_HTTP: held old browser response and late old-referrer request retain old fixture; new document retains custom license PASS");
+
+      // Ten consecutive real HTTP navigation cycles, no retries of a failed
+      // cycle. Explicit same-URL navigation must replace the document marker.
+      const markers = new Set();
+      for (let i = 0; i < 10; i++) {
+        await navigate("licensed", licensed);
+        const first = await navigate("custom-license", custom, true);
+        const id = await evaluate("window.__f02TestDocumentId");
+        assert.equal(await evaluate(navigationCondition(first.url, id, "true")), false,
+          "Old document must not satisfy readiness even with matching URL and DOM");
+        assert.equal(markers.has(id), false); markers.add(id);
+        const second = await navigate("custom-license", custom, true);
+        const nextId = await evaluate("window.__f02TestDocumentId");
+        assert.equal(second.url, first.url);
+        assert.notEqual(nextId, id);
+        assert.equal(markers.has(nextId), false); markers.add(nextId);
+        assert.equal(await evaluate("document.querySelector('#sources a.license-link')"), null);
+        assert.ok(await evaluate("document.querySelector('#sources').innerText.includes('ライセンスURL: 未確認')"));
+        console.log("WP002_REPEAT_HTTP: cycle " + (i+1) + "/10 PASS");
+      }
+      assert.equal(markers.size, 20);
+
+      const missing = await start("wp002-missing-dom");
+      await waitUntil(evaluate, `location.href===${JSON.stringify(missing.url)} && document.readyState==='complete'`, "missing DOM negative fixture");
+      await assert.rejects(waitUntil(evaluate, missing.ready("true"), "required DOM missing", 3),
+        /Timed out waiting for required DOM missing/);
+      let jsAttempts = 0;
+      await assert.rejects(waitUntil(async expression => {jsAttempts++; return evaluate(expression);},
+        "(()=>{throw new Error('WP002 deliberate JavaScript error')})()", "real JavaScript negative"),
+        /Browser JavaScript:.*WP002 deliberate JavaScript error/s);
+      assert.equal(jsAttempts, 1);
+      let cdpAttempts = 0;
+      await assert.rejects(waitUntil(async () => {cdpAttempts++; return command("WP002.invalidMethod");},
+        "true", "real CDP negative"), /WP002\.invalidMethod.*(found|method)/i);
+      assert.equal(cdpAttempts, 1);
+      assert.ok(browser.exceptions.every(error => /null.*innerText|WP002 deliberate JavaScript error/s.test(error)),
+        "Unexpected page exceptions: " + browser.exceptions.join(" | "));
+      assert.ok(browser.outbound.every(url => url.startsWith(base + "/") || url === "about:blank" || url.startsWith("data:")),
+        "Unexpected browser outbound request");
+      console.log("WP002_NEGATIVE_HTTP: missing DOM times out, genuine JS and CDP errors fail immediately PASS");
+    } finally {
+      try { if (browser) await stopChrome(browser.child, browser.profile, browser.ws); }
+      finally {
+        await new Promise((resolve,reject) => {
+          server.close(error => error ? reject(error) : resolve());
+          server.closeAllConnections();
+        });
+      }
+    }
+  });
+
 test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic data",
   { timeout: 120000 }, async t => {
     const bin = browserBinary();
@@ -288,13 +477,7 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       await command("Page.enable");
       await command("Runtime.enable");
       await command("Network.enable");
-      async function navigate(scenario, condition) {
-        const result = await command("Page.navigate", {
-          url: base + "/frontend/f02.html?scenario=" + encodeURIComponent(scenario)
-        });
-        assert.ok(!result.errorText, "HTTP document navigation failure: " + result.errorText);
-        await waitUntil(evaluate, condition, "F02 " + scenario);
-      }
+      const {navigate} = await createNavigator(browser, base);
       async function pressKey(key) {
         const code = key === "Tab" ? 9 : 13;
         await command("Input.dispatchKeyEvent", {
