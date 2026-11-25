@@ -54,6 +54,7 @@
       <label class="upload" for="fileInput">JSONファイルを選択</label>
       <input id="fileInput" type="file" accept=".json,application/json" aria-label="レビューJSONファイル" style="max-width:240px">
       <button id="exportButton" type="button" class="primary" disabled>結果JSONを書き出す</button>
+      <button id="confirmExportButton" type="button" disabled>保存したファイルを確認済み</button>
     </div>
     <div class="toolbar" style="margin-top:12px">
       <label class="upload" for="mergeInput">班員の結果JSONをまとめて取り込む</label>
@@ -61,7 +62,7 @@
     </div>
     <p class="muted">同じ調査データから書き出された結果だけ統合します。<strong>同じ施設への異なる変更があれば統合全体を中止</strong>し、既存データを保持します。</p>
     <p id="feedback" role="status" aria-live="polite">まだJSONは読み込まれていません。</p>
-    <small>5MBを超えるファイルは受け付けません。入力中の施設は「作業内容を反映」後に切り替えてください。ブラウザー内の変更は、JSON書き出しが完了するまでファイルに保存されません。</small>
+    <small>5MBを超えるファイルは受け付けません。入力中の施設は「作業内容を反映」後に切り替えてください。ブラウザーはダウンロードの完了・取消を判定できません。書き出したファイルを実際に確認してから「保存したファイルを確認済み」を押してください。</small>
   </section>
   <section id="workArea" hidden>
     <div class="panel">
@@ -154,6 +155,8 @@ const issueExplanations = {
 let documentData = null;
 let selectedId = null;
 let lastExportedOrImportedJson = null;
+let pendingExportJson = null;
+let activeFileRead = null;
 const el = (id) => document.getElementById(id);
 const own = (obj,key) => Object.prototype.hasOwnProperty.call(obj,key);
 const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
@@ -287,12 +290,51 @@ function setSourceGroups(data) {
     option.value=url;option.textContent=item.title+"（"+item.count+"件）";select.append(option);
   }
 }
+// Single read operation at a time. Allow editing while reading, but reject
+// the entire result if the baseline or editor has changed before commit.
+function beginFileRead() {
+  if (activeFileRead) throw new Error("別のJSON読込・統合が進行中です。");
+  if (rejectUnappliedEditorChanges()) throw new Error("未反映の編集を先に反映してください。");
+  const token={data:documentData, json:JSON.stringify(documentData), selectedId};
+  activeFileRead=token;
+  return token;
+}
+function requireUnchangedFileRead(token) {
+  if (activeFileRead !== token || documentData !== token.data
+    || JSON.stringify(documentData) !== token.json || selectedId !== token.selectedId
+    || hasUnappliedEditorChanges()) {
+    throw new Error("読込中に作業内容または選択が変わりました。現在の作業を保持して中止します。");
+  }
+}
+function endFileRead(token) {
+  if (activeFileRead === token) activeFileRead=null;
+}
+function clearPendingExport() {
+  pendingExportJson=null;
+  el("confirmExportButton").disabled=true;
+}
+async function loadFile(file) {
+  let token;
+  try {
+    if (file.size>5*1024*1024) throw new Error("ファイルサイズが5MBを超えています。");
+    if (hasUnexportedReviewChanges()) throw new Error("未書き出しまたは保存未確認の作業があります。");
+    token=beginFileRead();
+    const payload=await file.text();
+    requireUnchangedFileRead(token);
+    importJson(payload);
+  } catch(error) {
+    showMessage("読込を中止しました："+error.message,true);
+  } finally {
+    if (token) endFileRead(token);
+  }
+}
 function importJson(payload) {
   // Validate before changing any displayed/edited data.
   if (rejectUnappliedEditorChanges()) throw new Error("未反映の編集を先に反映してください。");
-  if (hasUnexportedReviewChanges()) throw new Error("前のJSONを読み込んだ後に未書き出しの作業があります。先に結果JSONを書き出してください。");
+  if (hasUnexportedReviewChanges()) throw new Error("前のJSONを読み込んだ後に未書き出しの作業があります。先に結果JSONを書き出し、実際の保存を確認してください。");
   const parsed=validatePayload(JSON.parse(payload));
   documentData=parsed;selectedId=null;lastExportedOrImportedJson=JSON.stringify(parsed);
+  clearPendingExport();
   el("workArea").hidden=false;el("exportButton").disabled=false;el("mergeInput").disabled=false;
   el("datasetLabel").textContent=parsed.dataset.region+" / "+parsed.dataset.id;
   setSourceGroups(parsed);
@@ -308,6 +350,7 @@ function saveSelected() {
   r.review.reviewer=reviewer;r.review.notes=notes;r.review.evidence_url=url;
   r.review.reviewed_at=new Date().toISOString();
   try{validatePayload(documentData);}catch(e){showMessage(e.message,true);return;}
+  clearPendingExport();
   showMessage("この施設の作業内容を反映しました。JSON書き出しで保存してください。");renderList();fillEditor();
 }
 function baselineReview(review) {
@@ -369,34 +412,60 @@ function planReviewMerge(current, additions) {
 }
 async function mergeFiles(files) {
   if (!documentData)return;
-  if (rejectUnappliedEditorChanges()) return;
+  let token;
   if (files.length > 20) {showMessage("統合は20ファイルまでです。",true);return;}
   try {
+    token=beginFileRead();
     const payloads=[];
     for (const file of files) {
       if (file.size > 5 * 1024 * 1024) throw new Error("5MBを超えるJSONは統合できません。");
       payloads.push(JSON.parse(await file.text()));
     }
-    const result=planReviewMerge(documentData,payloads);
+    requireUnchangedFileRead(token);
+    const result=planReviewMerge(token.data,payloads);
     documentData=result.merged;
+    clearPendingExport();
     showMessage("班員のレビュー "+result.applied+" 件を反映しました。結果JSONを書き出して保存してください。");
     renderList();fillEditor();
   } catch(error) {
     showMessage("統合を中止しました："+error.message,true);
+  } finally {
+    if (token) endFileRead(token);
   }
 }
 function exportJson() {
   if(!documentData)return;
   if (rejectUnappliedEditorChanges()) return;
   try {validatePayload(documentData);} catch(e){showMessage(e.message,true);return;}
+  clearPendingExport();
+  const snapshot=JSON.stringify(documentData);
   const json=JSON.stringify(documentData,null,2)+"\n";
-  const blob=new Blob([json],{type:"application/json;charset=utf-8"});
-  const u=URL.createObjectURL(blob),a=document.createElement("a");
-  a.href=u;a.download="hinanex-team-review-"+new Date().toISOString().slice(0,10)+".json";
-  document.body.append(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(u),10000);
-  lastExportedOrImportedJson=JSON.stringify(documentData);
-  showMessage("結果JSONの保存操作を開始しました。統合済みの結果も別の名前で保存し、実際に保存されたファイルを確認してください。");
+  let u,a;
+  try {
+    const blob=new Blob([json],{type:"application/json;charset=utf-8"});
+    u=URL.createObjectURL(blob);a=document.createElement("a");
+    a.href=u;a.download="hinanex-team-review-"+new Date().toISOString().slice(0,10)+".json";
+    document.body.append(a);a.click();
+    pendingExportJson=snapshot;
+    el("confirmExportButton").disabled=false;
+    showMessage("保存操作を開始しました。保存完了は未確認です。実際に保存したファイルを確認してから確認済みボタンを押してください。");
+  } catch(error) {
+    showMessage("書き出しを開始できませんでした："+error.message,true);
+  } finally {
+    if(a)a.remove();
+    if(u)setTimeout(()=>URL.revokeObjectURL(u),10000);
+  }
+}
+function confirmExport() {
+  if (!documentData || rejectUnappliedEditorChanges()) return;
+  if (activeFileRead) {showMessage("読込・統合の完了後に保存を確認してください。",true);return;}
+  if (pendingExportJson === null || pendingExportJson !== JSON.stringify(documentData)) {
+    showMessage("現在の作業内容の書き出しと保存確認が必要です。",true);return;
+  }
+  if (!window.confirm("書き出したJSONが実際に保存され、現在の作業内容に対応するファイルであることを確認しましたか？")) return;
+  lastExportedOrImportedJson=pendingExportJson;
+  clearPendingExport();
+  showMessage("本人による保存確認を記録しました。ブラウザーはファイルの保存完了を自動検証していません。");
 }
 window.addEventListener("beforeunload",(event)=>{
   if (hasUnappliedEditorChanges() || hasUnexportedReviewChanges()) {
@@ -407,9 +476,7 @@ window.addEventListener("beforeunload",(event)=>{
 window.addEventListener("DOMContentLoaded",()=>{
   el("fileInput").addEventListener("change",async(e)=>{
     const file=e.target.files?.[0];if(!file)return;
-    if(file.size>5*1024*1024){showMessage("ファイルサイズが5MBを超えています。",true);return;}
-    try{importJson(await file.text());}catch(error){showMessage("読込を中止しました："+error.message,true);}
-    e.target.value="";
+    try{await loadFile(file);}finally{e.target.value="";}
   });
   el("mergeInput").addEventListener("change",async(e)=>{
     await mergeFiles(Array.from(e.target.files||[]));
@@ -417,6 +484,7 @@ window.addEventListener("DOMContentLoaded",()=>{
   });
   el("saveRecord").addEventListener("click",saveSelected);
   el("exportButton").addEventListener("click",exportJson);
+  el("confirmExportButton").addEventListener("click",confirmExport);
   for(const id of ["priorityFilter","statusFilter","sourceGroupFilter","needsActionOnly"])el(id).addEventListener("change",renderList);
 });
 </script>

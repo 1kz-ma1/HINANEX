@@ -266,3 +266,99 @@ test("offline UI has unload protection and no misleading legacy merge language",
   assert.doesNotMatch(page, /班員間の結果は自動統合されない/);
   assert.doesNotMatch(page, /\*\*同じ施設への異なる変更/);
 });
+
+
+// Run the actual inline handlers in an isolated mock DOM. Delayed file.text
+// is manually released; no sleeps or browser claims.
+function operationHarness(data) {
+  const ui=new Map();
+  const get=id=>{
+    if(!ui.has(id)) ui.set(id,{value:"",hidden:false,disabled:false,dataset:{},
+      querySelectorAll(){return [];},replaceChildren(){},append(){}});
+    return ui.get(id);
+  };
+  let allowConfirm=false, clickFailure=false;
+  const ctx=vm.createContext({URL:class extends URL{
+    static createObjectURL(){return "blob:synthetic";}
+    static revokeObjectURL(){}
+  },Date,Set,Blob,console,setTimeout(){},
+    window:{addEventListener(){},confirm(){return allowConfirm;}},
+    document:{getElementById:get,body:{append(){}},
+      createElement(){return {click(){if(clickFailure)throw Error("synthetic download failure");},remove(){}};}}
+  });
+  vm.runInContext(match[1],ctx);
+  ctx.seed=data;
+  vm.runInContext("documentData=seed;selectedId=seed.records[0].id;lastExportedOrImportedJson=JSON.stringify(seed);renderList=()=>{};fillEditor=()=>{};setSourceGroups=()=>{}",ctx);
+  const rec=data.records[0];
+  for(const [id,value] of [["reviewStatus",rec.review.status],["reviewer",rec.review.reviewer],["reviewNote",rec.review.notes],["evidenceUrl",rec.review.evidence_url]])get(id).value=value;
+  get("checklist").querySelectorAll=()=>Object.entries(rec.review.checks).map(([check,checked])=>({dataset:{check},checked}));
+  return {ctx,get,run:code=>vm.runInContext(code,ctx),confirm:()=>{allowConfirm=true;},failClick:()=>{clickFailure=true;}};
+}
+function delayedFile(data) {
+  let release;
+  const promise=new Promise(resolve=>{release=()=>resolve(JSON.stringify(data));});
+  return {file:{size:100,text:()=>promise},release};
+}
+test("delayed merge refuses later editor input and retains both document and note",async()=>{
+  const h=operationHarness(clone(example)), incoming=clone(example);
+  incoming.records[1].review=reviewed("incoming");
+  const delayed=delayedFile(incoming);h.ctx.files=[delayed.file];
+  const before=h.run("JSON.stringify(documentData)");
+  const merging=h.run("mergeFiles(files)");
+  h.get("reviewNote").value="読込中の未反映メモ";
+  delayed.release();await merging;
+  assert.equal(h.run("JSON.stringify(documentData)"),before);
+  assert.equal(h.get("reviewNote").value,"読込中の未反映メモ");
+  assert.match(h.get("feedback").textContent,/現在の作業を保持/);
+  assert.equal(h.run("activeFileRead"),null);
+});
+test("delayed merge rejects a second merge and new baseline read; later applied edits abort first merge",async()=>{
+  const h=operationHarness(clone(example)), incoming=clone(example);
+  incoming.records[1].review=reviewed("incoming");
+  const delayed=delayedFile(incoming);h.ctx.files=[delayed.file];
+  const merging=h.run("mergeFiles(files)");
+  let reads=0;h.ctx.other={size:100,text:async()=>{reads++;return JSON.stringify(example);}};
+  await h.run("mergeFiles([other])");
+  assert.match(h.get("feedback").textContent,/進行中/);
+  await h.run("loadFile(other)");
+  assert.match(h.get("feedback").textContent,/進行中/);
+  assert.equal(reads,0);
+  h.get("reviewNote").value="読込中に反映";
+  h.run("saveSelected()");
+  const after=h.run("JSON.stringify(documentData)");
+  delayed.release();await merging;
+  assert.equal(h.run("JSON.stringify(documentData)"),after);
+  assert.equal(h.run("documentData.records[0].review.notes"),"読込中に反映");
+  assert.equal(h.run("documentData.records[1].review.notes"),"");
+});
+test("delayed baseline read cannot erase edits and untouched merge commits",async()=>{
+  const h=operationHarness(clone(example)), incoming=clone(example);
+  incoming.records[1].review=reviewed("incoming");
+  const delayed=delayedFile(incoming);h.ctx.file=delayed.file;
+  const reading=h.run("loadFile(file)");
+  h.get("reviewNote").value="新メモ";
+  delayed.release();await reading;
+  assert.equal(h.run("documentData.records[1].review.notes"),"");
+  assert.equal(h.get("reviewNote").value,"新メモ");
+  h.get("reviewNote").value="";
+  h.ctx.files=[{size:100,text:async()=>JSON.stringify(incoming)}];
+  await h.run("mergeFiles(files)");
+  assert.equal(h.run("documentData.records[1].review.notes"),"incoming");
+  assert.equal(h.run("activeFileRead"),null);
+});
+test("download initiation or cancelled confirmation never clears dirty state; explicit current snapshot confirmation does",()=>{
+  const h=operationHarness(clone(example));
+  h.get("reviewNote").value="未保存";h.run("saveSelected()");
+  h.run("exportJson()");
+  assert.equal(h.run("hasUnexportedReviewChanges()"),true);
+  h.run("confirmExport()");
+  assert.equal(h.run("hasUnexportedReviewChanges()"),true);
+  h.confirm();h.run("confirmExport()");
+  assert.equal(h.run("hasUnexportedReviewChanges()"),false);
+  h.get("reviewNote").value="追加";h.run("saveSelected()");h.run("exportJson()");
+  h.get("reviewNote").value="さらに追加";h.run("saveSelected()");h.run("confirmExport()");
+  assert.equal(h.run("hasUnexportedReviewChanges()"),true);
+  h.failClick();h.run("exportJson()");h.run("confirmExport()");
+  assert.equal(h.run("hasUnexportedReviewChanges()"),true);
+  assert.equal(h.run("pendingExportJson"),null);
+});
