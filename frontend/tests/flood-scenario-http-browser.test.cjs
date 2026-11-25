@@ -19,7 +19,7 @@ async function serveDemo() {
   function fixture() {
     const payload = regionExport();
     if (state.mode === "legacy") return payload;
-    const rowCount = {empty:0, single:5}[state.mode] ?? 45;
+    const rowCount = {empty:0, single:5, singleBoundary:20, multiBoundary:21}[state.mode] ?? 45;
     const rows = Array.from({length:rowCount}, (_, i) => ({
       facility_id:"synthetic-page-" + i, status:"UNKNOWN", reason:"合成記号の意味は判定しません",
       fact:{facility_id:"synthetic-page-" + i, facility_name:"架空の洪水確認施設" + i,
@@ -231,6 +231,40 @@ test("F01 real HTTP Chrome: explicit error recovery and synthetic Scenario pagin
       await load("single", "document.querySelectorAll('.scenario-facility').length===5 && document.querySelector('.scenario-result-count')?.textContent==='全5件を表示'");
       assert.equal(await evaluate("document.querySelector('.scenario-pagination')"), null);
       assert.equal(await evaluate("document.querySelector('.scenario-first-result-jump')"), null);
+      // Verify the exact 20-row page-size boundary, including reloading while
+      // the second page is selected. Keep the existing 5/45/0/error cases.
+      for (const [width, height] of [[320,700], [390,844], [1440,900]]) {
+        await command("Emulation.setDeviceMetricsOverride", {width,height,deviceScaleFactor:1,mobile:false});
+        const onePage = "document.querySelectorAll('.scenario-facility').length===20 && document.querySelector('.scenario-result-count')?.textContent==='全20件を表示'";
+        const twoPages = "document.querySelectorAll('.scenario-facility').length===20 && document.querySelector('.scenario-pagination')?.textContent.includes('21件中 1〜20件（1/2ページ）')";
+        await load("singleBoundary", onePage);
+        assert.equal(await evaluate("document.querySelector('.scenario-pagination')"), null);
+        assert.equal(await evaluate("document.querySelector('.scenario-first-result-jump')"), null);
+        await load("multiBoundary", twoPages);
+        assert.equal(await evaluate("document.querySelector('.scenario-result-count')"), null);
+        assert.ok(await evaluate("document.querySelector('.scenario-pagination button:first-child').disabled && !document.querySelector('.scenario-pagination button:last-child').disabled"));
+        assert.ok(await evaluate("document.querySelector('.scenario-first-result-jump') !== null"));
+        await evaluate("document.querySelector('.scenario-pagination button:last-child').focus({preventScroll:true})");
+        await enter();
+        await waitUntil(evaluate, "document.querySelector('.scenario-pagination')?.textContent.includes('21件中 21〜21件（2/2ページ）')", "21-row last page at " + width);
+        assert.equal(await evaluate("document.querySelectorAll('.scenario-facility').length"), 1);
+        assert.equal(await evaluate("document.querySelector('.scenario-facility h3').textContent"), "架空の洪水確認施設20");
+        assert.ok(await evaluate("document.activeElement===document.querySelector('.scenario-pagination > span')"));
+        await evaluate("document.querySelector('.scenario-pagination button:first-child').focus({preventScroll:true})");
+        await enter();
+        await waitUntil(evaluate, twoPages, "21-row first page at " + width);
+        assert.ok(await evaluate("document.activeElement===document.querySelector('.scenario-pagination > span')"));
+        await evaluate("document.querySelector('.scenario-pagination button:last-child').focus({preventScroll:true})");
+        await enter();
+        await waitUntil(evaluate, "document.querySelector('.scenario-pagination')?.textContent.includes('2/2ページ')", "21-row second page before reload");
+        await load("singleBoundary", onePage);
+        assert.equal(await evaluate("document.querySelector('.scenario-facility h3').textContent"), "架空の洪水確認施設0");
+        assert.equal(await evaluate("document.querySelector('.scenario-pagination')"), null);
+        assert.equal(await evaluate("document.querySelector('.scenario-first-result-jump')"), null);
+        assert.ok(await evaluate("document.querySelector('#floodScenario').scrollWidth-document.querySelector('#floodScenario').clientWidth<=2"));
+      }
+      await command("Emulation.clearDeviceMetricsOverride");
+      console.log("F01_PAGE_SIZE_BOUNDARY_HTTP: 20/21 rows, native Enter, last-page reload, 320/390/1440px PASS");
       await load("ready", ready);
       assert.equal(await evaluate("document.querySelector('.scenario-result-count')"), null);
       assert.ok(await evaluate("document.querySelector('#sourceStatus').dataset.tone==='demo'"));
