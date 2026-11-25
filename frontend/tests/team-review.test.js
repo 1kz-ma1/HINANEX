@@ -277,7 +277,8 @@ const pdfUrls=[
   "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/013/492/okunai02higashi0809.pdf",
   "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/013/492/okunai05nakamura0804.pdf"
 ];
-const fakeWards=["架空一","架空一","架空一","架空二","架空二","架空二","架空三","架空四","架空五"];
+// Actual provider ward labels/URLs only; facilities/addresses stay fictional.
+const fakeWards=["天白区","天白区","天白区","守山区","守山区","守山区","緑区","東区","中村区"];
 const pdfByFacility=[0,0,0,1,1,1,2,3,4];
 function makeTriageFixture() {
   const review=clone(example);
@@ -396,4 +397,151 @@ test("triage is optional, offline and not part of reviewer JSON export",()=>{
   assert.match(page,/triageReport=null;triageByFacility=new Map/);
   assert.match(page,/const json=JSON\.stringify\(documentData,null,2\)/);
   assert.doesNotMatch(page, /fetch\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
+});
+
+// Run the actual inline handlers in an isolated mock DOM. Delayed file.text
+// is manually released; no sleeps or browser claims.
+function operationHarness(data) {
+  const ui=new Map();
+  const get=id=>{
+    if(!ui.has(id)) ui.set(id,{value:"",hidden:false,disabled:false,dataset:{},
+      querySelectorAll(){return [];},replaceChildren(){},append(){}});
+    return ui.get(id);
+  };
+  let allowConfirm=false, clickFailure=false;
+  const ctx=vm.createContext({URL:class extends URL{
+    static createObjectURL(){return "blob:synthetic";}
+    static revokeObjectURL(){}
+  },Date,Set,Blob,console,setTimeout(){},
+    window:{addEventListener(){},confirm(){return allowConfirm;}},
+    document:{getElementById:get,body:{append(){}},
+      createElement(){return {click(){if(clickFailure)throw Error("synthetic download failure");},remove(){}};}}
+  });
+  vm.runInContext(match[1],ctx);
+  ctx.seed=data;
+  vm.runInContext("documentData=seed;selectedId=seed.records[0].id;lastExportedOrImportedJson=JSON.stringify(seed);renderList=()=>{};fillEditor=()=>{};setSourceGroups=()=>{}",ctx);
+  const rec=data.records[0];
+  for(const [id,value] of [["reviewStatus",rec.review.status],["reviewer",rec.review.reviewer],["reviewNote",rec.review.notes],["evidenceUrl",rec.review.evidence_url]])get(id).value=value;
+  get("checklist").querySelectorAll=()=>Object.entries(rec.review.checks).map(([check,checked])=>({dataset:{check},checked}));
+  return {ctx,get,run:code=>vm.runInContext(code,ctx),confirm:()=>{allowConfirm=true;},failClick:()=>{clickFailure=true;}};
+}
+function delayedFile(data) {
+  let release;
+  const promise=new Promise(resolve=>{release=()=>resolve(JSON.stringify(data));});
+  return {file:{size:100,text:()=>promise},release};
+}
+test("delayed merge refuses later editor input and retains both document and note",async()=>{
+  const h=operationHarness(clone(example)), incoming=clone(example);
+  incoming.records[1].review=reviewed("incoming");
+  const delayed=delayedFile(incoming);h.ctx.files=[delayed.file];
+  const before=h.run("JSON.stringify(documentData)");
+  const merging=h.run("mergeFiles(files)");
+  h.get("reviewNote").value="読込中の未反映メモ";
+  delayed.release();await merging;
+  assert.equal(h.run("JSON.stringify(documentData)"),before);
+  assert.equal(h.get("reviewNote").value,"読込中の未反映メモ");
+  assert.match(h.get("feedback").textContent,/現在の作業を保持/);
+  assert.equal(h.run("activeFileRead"),null);
+});
+test("delayed merge rejects a second merge and new baseline read; later applied edits abort first merge",async()=>{
+  const h=operationHarness(clone(example)), incoming=clone(example);
+  incoming.records[1].review=reviewed("incoming");
+  const delayed=delayedFile(incoming);h.ctx.files=[delayed.file];
+  const merging=h.run("mergeFiles(files)");
+  let reads=0;h.ctx.other={size:100,text:async()=>{reads++;return JSON.stringify(example);}};
+  await h.run("mergeFiles([other])");
+  assert.match(h.get("feedback").textContent,/進行中/);
+  await h.run("loadFile(other)");
+  assert.match(h.get("feedback").textContent,/進行中/);
+  assert.equal(reads,0);
+  h.get("reviewNote").value="読込中に反映";
+  h.run("saveSelected()");
+  const after=h.run("JSON.stringify(documentData)");
+  delayed.release();await merging;
+  assert.equal(h.run("JSON.stringify(documentData)"),after);
+  assert.equal(h.run("documentData.records[0].review.notes"),"読込中に反映");
+  assert.equal(h.run("documentData.records[1].review.notes"),"");
+});
+test("delayed baseline read cannot erase edits and untouched merge commits",async()=>{
+  const h=operationHarness(clone(example)), incoming=clone(example);
+  incoming.records[1].review=reviewed("incoming");
+  const delayed=delayedFile(incoming);h.ctx.file=delayed.file;
+  const reading=h.run("loadFile(file)");
+  h.get("reviewNote").value="新メモ";
+  delayed.release();await reading;
+  assert.equal(h.run("documentData.records[1].review.notes"),"");
+  assert.equal(h.get("reviewNote").value,"新メモ");
+  h.get("reviewNote").value="";
+  h.ctx.files=[{size:100,text:async()=>JSON.stringify(incoming)}];
+  await h.run("mergeFiles(files)");
+  assert.equal(h.run("documentData.records[1].review.notes"),"incoming");
+  assert.equal(h.run("activeFileRead"),null);
+});
+test("download initiation or cancelled confirmation never clears dirty state; explicit current snapshot confirmation does",()=>{
+  const h=operationHarness(clone(example));
+  h.get("reviewNote").value="未保存";h.run("saveSelected()");
+  h.run("exportJson()");
+  assert.equal(h.run("hasUnexportedReviewChanges()"),true);
+  h.run("confirmExport()");
+  assert.equal(h.run("hasUnexportedReviewChanges()"),true);
+  h.confirm();h.run("confirmExport()");
+  assert.equal(h.run("hasUnexportedReviewChanges()"),false);
+  h.get("reviewNote").value="追加";h.run("saveSelected()");h.run("exportJson()");
+  h.get("reviewNote").value="さらに追加";h.run("saveSelected()");h.run("confirmExport()");
+  assert.equal(h.run("hasUnexportedReviewChanges()"),true);
+  h.failClick();h.run("exportJson()");h.run("confirmExport()");
+  assert.equal(h.run("hasUnexportedReviewChanges()"),true);
+  assert.equal(h.run("pendingExportJson"),null);
+});
+
+test("triage accepts real calendar UTC boundaries and rejects impossible or normalized dates",()=>{
+  for(const date of ["2024-02-29T00:00:00Z","2026-12-31T23:59:59Z","2026-01-01T00:00:00Z"]){
+    const {review,report}=makeTriageFixture();
+    report.previous_captured_at_utc=date;report.current_captured_at_utc=date;
+    assert.equal(checkTriage(report,review).size,9);
+  }
+  for(const date of ["2026-02-29T00:00:00Z","2026-02-30T00:00:00Z","2026-04-31T00:00:00Z","2026-13-01T00:00:00Z","2026-00-01T00:00:00Z","2026-01-00T00:00:00Z","2026-01-01T24:00:00Z","2026-01-01T23:60:00Z","2026-01-01T23:59:60Z","0000-01-01T00:00:00Z"]){
+    for(const key of ["previous_captured_at_utc","current_captured_at_utc"]){
+      const {review,report}=makeTriageFixture();
+      report[key]=date;
+      assert.throws(()=>checkTriage(report,review),/日時/,date);
+    }
+  }
+});
+test("triage rejects same PDF split into forged wards, swapped provider ward labels, and source count tampering",()=>{
+  const {review,report}=makeTriageFixture();
+  const split=clone(report);
+  split.facilities[1].ward="架空の区";
+  split.source_changed_count=2;
+  assert.throws(()=>checkTriage(split,review),/区の対応/);
+  const swapped=clone(report);
+  swapped.facilities.forEach(row=>{if(row.ward==="天白区")row.ward="守山区";else if(row.ward==="守山区")row.ward="天白区";});
+  assert.throws(()=>checkTriage(swapped,review),/区の対応/);
+  const count=clone(report);count.source_changed_count=2;
+  assert.throws(()=>checkTriage(count,review),/集計値/);
+});
+test("invalid or stale PDF import preserves previous triage, baseline and review data",async()=>{
+  const {review,report}=makeTriageFixture(), h=operationHarness(review);
+  h.ctx.payload=JSON.stringify(report);
+  h.run("importTriageJson(payload)");
+  const previous=h.run("triageReport"), priorIndex=h.run("triageByFacility");
+  const before=h.run("JSON.stringify(documentData)");
+  const bad=clone(report);bad.facilities[1].ward="架空の区";bad.source_changed_count=2;
+  h.ctx.invalid=JSON.stringify(bad);
+  assert.throws(()=>h.run("importTriageJson(invalid)"),/区の対応/);
+  assert.equal(h.run("triageReport"),previous);
+  assert.equal(h.run("triageByFacility"),priorIndex);
+  const invalidDate=clone(report);invalidDate.current_captured_at_utc="2026-02-30T00:00:00Z";
+  h.ctx.invalid=JSON.stringify(invalidDate);
+  assert.throws(()=>h.run("importTriageJson(invalid)"),/日時/);
+  assert.equal(h.run("triageReport"),previous);
+  assert.equal(h.run("triageByFacility"),priorIndex);
+  const delayed=delayedFile(report);h.ctx.file=delayed.file;
+  const reading=h.run("loadTriageFile(file)");
+  h.get("reviewNote").value="遅延中の新しいメモ";
+  delayed.release();await reading;
+  assert.equal(h.run("triageReport"),previous);
+  assert.equal(h.run("triageByFacility"),priorIndex);
+  assert.equal(h.run("JSON.stringify(documentData)"),before);
+  assert.equal(h.get("reviewNote").value,"遅延中の新しいメモ");
 });
