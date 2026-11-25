@@ -184,17 +184,8 @@ footer{display:none}
 /* Keep Leaflet zoom buttons clear of the four top tools and the left rail. */
 .map-wrap .leaflet-top.leaflet-left{left:auto;right:12px;top:70px}
 .map-wrap .leaflet-top.leaflet-left .leaflet-control{margin-left:0;margin-right:0}
-.map-raster-banner{
-  position:absolute;z-index:1390;left:70px;top:78px;
-  max-width:min(380px,calc(100% - 140px));box-sizing:border-box;
-  margin:0;padding:9px 12px;background:#34291a;color:#f7d5a7;
-  border:1px solid #ab8151;border-radius:9px;font-size:11px;line-height:1.55;
-  box-shadow:0 6px 18px rgba(0,0,0,.3);
-}
-.map-raster-banner[hidden]{display:none}
 @media(max-width:680px){
   .map-wrap .leaflet-top.leaflet-left{top:65px;right:8px}
-  .map-raster-banner{left:62px;top:66px;max-width:calc(100% - 119px);font-size:10px}
 }
 
 /* Leave the locate control accessible above an open details bottom sheet. */
@@ -234,16 +225,10 @@ footer{display:none}
   overflow:auto;overscroll-behavior:contain;box-sizing:border-box;
   padding:11px 12px;max-height:min(37dvh,320px);
 }
-.map-raster-banner{
-  top:79px;left:13px;right:auto;
-  max-width:min(320px,calc(100% - 100px));
-  padding:7px 10px;font-size:10px;border-radius:10px;
-}
 /* The footer/nav remains available while a transient sheet is open. */
 @media(max-width:680px){
   .reference-map-summary{width:min(265px,calc(100% - 96px))}
   .reference-map-disclosure-body{max-height:min(30dvh,240px)}
-  .map-raster-banner{left:8px;top:68px;max-width:calc(100% - 102px)}
 }
 
 /* Map-first v3: keep expert evidence as a standalone B frontend route.
@@ -544,4 +529,107 @@ footer{display:none}
   .map-audience-intro-body{padding:0 12px 5px}
   .map-audience-intro-footer{padding:8px 12px 10px}
   .map-audience-intro-footer .map-audience-intro-start{min-height:48px}
+}
+
+/* 2026-10-23: phone-first readability and clear action hierarchy.
+   Keep the data/safety warnings; move verbose scope notes to existing
+   evidence/analysis surfaces instead of adding new map overlays. */
+.map-evidence-technical{
+  margin-top:12px;padding:12px;
+  border:1px solid var(--line-strong);border-radius:10px;
+  background:var(--surface-raised);
+}
+.map-evidence-technical summary{
+  cursor:pointer;min-height:44px;display:flex;align-items:center;
+  font-size:13px;font-weight:750;color:var(--text);
+}
+.map-evidence-technical p{font-size:12px;line-height:1.65;color:var(--text);margin:8px 0}
+.map-evidence-technical summary:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+.bottom-nav-entry.is-planned{opacity:1;color:#b9cbd4}
+.bottom-nav-entry.is-planned small{color:#b9cbd4}
+@media(max-width:680px){
+  /* Brand and essential actions take precedence over a tiny tagline. */
+  .header .brand span:not(.brand-mark){display:none}
+  .header .brand{gap:8px;min-width:0;flex-shrink:1}
+  .header-actions{gap:5px;flex-shrink:0}
+  .header-share-button{min-height:44px;font-size:13px;padding:10px 11px}
+  .header-evidence-link{min-height:44px;font-size:12px;padding:10px 9px}
+  /* Four full-width touch targets, without an extra noninteractive chevron. */
+  .map-tool>summary{min-height:48px;font-size:12px;gap:3px;padding:9px 3px}
+  .map-tool-symbol{font-size:18px}
+  .map-tool-arrow{display:none}
+  .map-tool-panel .gis-view-tab{min-height:44px;font-size:12px}
+  .map-tool-panel button:not(.gis-view-tab){min-height:44px;font-size:12px}
+  .map-tool-check{min-height:44px}
+  .map-tool-panel :is(.map-tool-note,.gis-view-caption,.map-tool-field){
+    font-size:12px;line-height:1.5
+  }
+  .bottom-nav-entry{min-height:48px;font-size:12px}
+  .bottom-nav-entry small{font-size:10px}
+  .map-share-close,.map-audience-intro-head button{min-width:44px;min-height:44px}
+}
+@media(max-width:350px){
+  .header .brand strong{font-size:14px;letter-spacing:.04em}
+  .header-evidence-link{font-size:11px;padding:10px 7px}
+  .header-share-button{font-size:12px;padding:10px 8px}
+}
+
+
+/* F01 hazard-only information entry: read-only view over existing flood raster.
+   No facility selection, map position inference or new raster interpretation. */
+.hazard-guide-panel{left:14px;right:auto;width:min(380px,calc(100% - 28px))}
+.hazard-guide-panel[hidden]{display:none}
+.hazard-guide-field{display:block;margin:11px 0 6px;font-size:12px;font-weight:750}
+.hazard-guide-panel select{
+  display:block;width:100%;min-height:44px;box-sizing:border-box;
+  padding:9px 10px;border:1px solid var(--line-strong);
+  border-radius:9px;background:var(--surface-raised);color:var(--text)
+}
+.hazard-guide-switch{display:flex;gap:9px;align-items:center;min-height:44px;font-size:12px}
+.hazard-guide-switch input{width:19px;height:19px;accent-color:var(--cyan)}
+.hazard-guide-status{margin:8px 0;padding:9px 10px;border-radius:9px;
+  border:1px solid var(--line-strong);font-size:12px;line-height:1.6}
+.hazard-guide-legend{margin:10px 0;border-top:1px solid var(--line-strong);padding-top:9px}
+.hazard-guide-legend summary{cursor:pointer;font-size:12px;font-weight:750;min-height:44px}
+.hazard-guide-legend ul{margin:4px 0 0;padding-left:20px;columns:2;font-size:11px;line-height:1.8}
+.hazard-guide-panel :is(select,input,summary):focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+@media(max-width:680px){
+  .hazard-guide-panel{left:8px;right:8px;bottom:70px;width:calc(100% - 16px);
+    max-height:min(69%,510px)}
+  .hazard-guide-legend ul{columns:2}
+}
+
+
+/* F01 H-02: scope/version/coverage must be visible independently of facilities. */
+.hazard-guide-scope{margin:14px 0;padding:10px 12px;border:1px solid var(--line-strong);
+  border-radius:10px;background:var(--surface-raised)}
+.hazard-guide-scope>div{display:grid;grid-template-columns:minmax(85px,33%) minmax(0,1fr);
+  gap:8px;padding:8px 0;border-bottom:1px solid var(--line-strong);font-size:11px;line-height:1.65}
+.hazard-guide-scope>div:last-child{border:0}
+.hazard-guide-scope dt{font-weight:700;color:var(--muted)}
+.hazard-guide-scope dd{margin:0;overflow-wrap:anywhere}
+
+/* F06: region-scoped links to official publishers, not live alert state. */
+.official-alerts-panel{left:14px;right:auto;width:min(380px,calc(100% - 28px))}
+.official-alerts-panel[hidden]{display:none}
+.official-alerts-source{padding:11px 0;border-bottom:1px solid var(--line-strong)}
+.official-alerts-source strong{display:block;font-size:13px;margin-bottom:8px}
+.official-alerts-source p{margin:0 0 9px;font-size:12px;line-height:1.65}
+.official-alerts-source a{display:block;margin:6px 0;padding:10px 9px;
+  border:1px solid var(--line-strong);border-radius:9px;
+  background:var(--surface-raised);font-size:12px;line-height:1.5}
+.official-alerts-source a[hidden]{display:none}
+.official-alerts-source a:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+@media(max-width:680px){
+  .official-alerts-panel{left:8px;right:8px;bottom:70px;width:calc(100% - 16px);
+    max-height:min(69%,510px)}
+}
+
+/* Issue #299: Leaflet defaults to 30px; phone zoom controls need 44px hit boxes.
+   Presentation-only. Does not affect zoom levels, map tiles or hazard colors. */
+@media(max-width:680px){
+  .map-wrap .leaflet-control-zoom a{
+    box-sizing:border-box;
+    width:44px;height:44px;line-height:44px;
+  }
 }

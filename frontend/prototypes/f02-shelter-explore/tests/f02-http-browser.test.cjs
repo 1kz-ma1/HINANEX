@@ -1,0 +1,200 @@
+"use strict";
+/* F02 standalone fixture: actual Chrome opens HTTP-loaded HTML/CSS/JS.
+ * No third-party APIs, geolocation, real facilities, or URL-less DOM mocks.
+ * CI fails when browser/HTTP navigation is blocked.
+ */
+const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs");
+const os=require("node:os"),path=require("node:path"),http=require("node:http");
+const {spawn,spawnSync}=require("node:child_process");
+const {waitForDevToolsPort}=require("../../../tests/helpers/chrome-active-port.cjs");
+const dir=path.resolve(__dirname,"..");
+const files=["index.html","styles.css","fixtures.js","model.js","app.js"];
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
+function waitForProcessExit(child,timeoutMs){
+  return new Promise(resolve=>{
+    if(child.exitCode!==null||child.signalCode!==null){resolve(true);return;}
+    let timer;
+    const onExit=()=>{clearTimeout(timer);resolve(true);};
+    timer=setTimeout(()=>{child.off("exit",onExit);resolve(false);},timeoutMs);
+    child.once("exit",onExit);
+  });
+}
+function signalChromeTree(child,signal){
+  // Chrome's Linux helper processes must be stopped with their isolated group.
+  // Windows retains the normal process termination path.
+  if(process.platform!=="win32"&&Number.isInteger(child.pid)){
+    try{process.kill(-child.pid,signal);return;}
+    catch(error){if(error.code!=="ESRCH")throw error;}
+  }
+  if(child.exitCode===null&&child.signalCode===null)child.kill(signal);
+}
+async function removeProfileAfterChromeExit(profile){
+  // Chrome's helper processes can still flush files after the launcher exits.
+  // A failed removal is a test failure, never a reason to claim browser PASS.
+  const transient=new Set(["ENOTEMPTY","EBUSY","EPERM","EACCES"]);
+  for(let attempt=0;attempt<15;attempt++){
+    try{
+      await fs.promises.rm(profile,{recursive:true,force:true,maxRetries:3,retryDelay:200});
+      if(!fs.existsSync(profile))return;
+    }catch(error){
+      if(!transient.has(error.code)||attempt===14)throw error;
+    }
+    await wait(300);
+  }
+  throw Error("Chrome profile remains after bounded cleanup retries: "+profile);
+}
+async function stopChrome(child,profile,ws=null){
+  if(ws){try{ws.close();}catch{/* Chrome may already be terminating. */}}
+  if(child.exitCode===null&&child.signalCode===null){
+    signalChromeTree(child,"SIGTERM");
+    if(!await waitForProcessExit(child,4000)){
+      signalChromeTree(child,"SIGKILL");
+      if(!await waitForProcessExit(child,4000)){
+        throw Error("Chrome did not exit; refusing to remove an active browser profile");
+      }
+    }
+  }
+  // The launcher can exit while Chrome helpers still hold the profile/pipe.
+  if(process.platform!=="win32")signalChromeTree(child,"SIGTERM");
+  if(ws&&ws.readyState!==WebSocket.CLOSED){
+    await Promise.race([
+      new Promise(resolve=>ws.addEventListener("close",resolve,{once:true})),
+      wait(1500),
+    ]);
+  }
+  await removeProfileAfterChromeExit(profile);
+}
+
+function chromeBinary(){
+  for(const candidate of [process.env.F02_BROWSER_BIN,process.env.CHROME_BIN,
+    "/usr/bin/google-chrome","/usr/bin/chromium","google-chrome","chromium"].filter(Boolean)){
+    const filePath=path.isAbsolute(candidate)||candidate.includes("/")||candidate.includes("\\");
+    if(filePath&&fs.existsSync(candidate))return candidate;
+    if(!filePath&&spawnSync(process.platform==="win32"?"where":"which",[candidate]).status===0)return candidate;
+  }
+  return null;
+}
+async function serve(){
+  const requests=new Map();
+  const server=http.createServer((req,res)=>{
+    const name=decodeURIComponent(new URL(req.url,"http://localhost").pathname).replace(/^\/+/,"")||"index.html";
+    requests.set(name,(requests.get(name)||0)+1);
+    if(req.method!=="GET"||!files.includes(name)){res.writeHead(404);res.end();return;}
+    const mime=name.endsWith(".css")?"text/css":name.endsWith(".js")?"text/javascript":"text/html";
+    res.writeHead(200,{"Content-Type":mime+"; charset=utf-8","Cache-Control":"no-store"});
+    fs.createReadStream(path.join(dir,name)).pipe(res);
+  });
+  await new Promise((ok,fail)=>{server.once("error",fail);server.listen(0,"127.0.0.1",ok);});
+  return {requests,server,url:"http://127.0.0.1:"+server.address().port+"/"};
+}
+async function launch(bin){
+  const profile=fs.mkdtempSync(path.join(os.tmpdir(),"f02-chrome-"));
+  const child=spawn(bin,["--headless=new","--no-sandbox","--disable-dev-shm-usage",
+    "--disable-background-networking","--no-first-run","--remote-debugging-port=0",
+    "--user-data-dir="+profile,"about:blank"],{stdio:["ignore","ignore","pipe"],detached:process.platform!=="win32"});
+  let stderr="";child.stderr.on("data",x=>{stderr=(stderr+x.toString()).slice(-1500);});
+  let ws=null;
+  try{
+    // CI has observed slow startup here before DevToolsActivePort is readable.
+    const port=await waitForDevToolsPort(profile,child,()=>stderr,{maxAttempts:450});
+    const targets=await(await fetch("http://127.0.0.1:"+port+"/json/list",{signal:AbortSignal.timeout(10000)})).json();
+    const page=targets.find(x=>x.type==="page"&&x.webSocketDebuggerUrl);
+    if(!page)throw Error("CDP page target missing");
+    ws=new WebSocket(page.webSocketDebuggerUrl);
+    await new Promise((ok,fail)=>{
+      const timer=setTimeout(()=>fail(Error("CDP WebSocket open timed out")),12000);
+      ws.addEventListener("open",()=>{clearTimeout(timer);ok();},{once:true});
+      ws.addEventListener("error",()=>{clearTimeout(timer);fail(Error("CDP WebSocket failed"));},{once:true});
+    });
+    let nextId=0;const pending=new Map(),exceptions=[],requests=[];
+    ws.addEventListener("message",event=>{
+      const data=JSON.parse(event.data);
+      if(data.method==="Runtime.exceptionThrown")exceptions.push(data.params.exceptionDetails.exception?.description||data.params.exceptionDetails.text);
+      if(data.method==="Network.requestWillBeSent")requests.push(data.params.request.url);
+      if(!pending.has(data.id))return;
+      const p=pending.get(data.id);pending.delete(data.id);
+      data.error?p.reject(Error(data.error.message)):p.resolve(data.result);
+    });
+    ws.addEventListener("close",()=>{
+      for(const task of pending.values())task.reject(Error("CDP WebSocket closed"));
+      pending.clear();
+    });
+    const command=(method,params={})=>new Promise((resolve,reject)=>{
+      const id=++nextId;
+      const timer=setTimeout(()=>{
+        pending.delete(id);
+        reject(Error("CDP command timed out: "+method));
+      },15000);
+      pending.set(id,{
+        resolve:value=>{clearTimeout(timer);resolve(value);},
+        reject:error=>{clearTimeout(timer);reject(error);},
+      });
+      try{ws.send(JSON.stringify({id,method,params}));}
+      catch(error){pending.delete(id);clearTimeout(timer);reject(error);}
+    });
+    const evalJs=async expression=>{
+      const result=await command("Runtime.evaluate",{expression,returnByValue:true,awaitPromise:true});
+      if(result.exceptionDetails)throw Error("Browser JavaScript: "+(result.exceptionDetails.exception?.description||result.exceptionDetails.text));
+      return result.result.value;
+    };
+    return {profile,child,ws,command,evalJs,exceptions,requests};
+  }catch(e){await stopChrome(child,profile,ws);throw e;}
+}
+test("F02 HTTP-served Chrome functional and error-state acceptance",{timeout:90000},async t=>{
+  const bin=chromeBinary();
+  if(!bin){if(process.env.CI)throw Error("Real Chrome required in CI; cannot pass with mocks");t.skip("Chrome unavailable locally");return;}
+  const {server,requests,url}=await serve();
+  let browser;
+  try{
+    browser=await launch(bin);
+    const {command,evalJs}=browser;
+    await command("Page.enable");await command("Runtime.enable");await command("Network.enable");
+    const nav=await command("Page.navigate",{url});
+    assert.ok(!nav.errorText,"HTTP navigation blocked/failed: "+nav.errorText);
+    let ready=false;
+    for(let i=0;i<80;i++){
+      ready=await evalJs("document.readyState==='complete'&&!!window.F02Model&&!!window.F02Fixtures&&document.querySelectorAll('.facility-card').length===4");
+      if(ready)break;
+      await wait(100);
+    }
+    assert.ok(ready,"F02 scripts failed to render when fetched by browser HTTP");
+    for(const name of files)assert.ok(requests.has(name),"HTTP asset not fetched: "+name);
+    assert.equal(await evalJs("getComputedStyle(document.querySelector('.safety-strip')).position"),"sticky");
+    assert.equal(await evalJs("document.querySelectorAll('a[href^=\"https://\"]').length"),0);
+    assert.equal(await evalJs("document.querySelectorAll('.facility-card').length"),4);
+    assert.ok(await evalJs("document.body.innerText.includes('合成データ')&&document.body.innerText.includes('安全な避難先・開設中の保証ではありません')"));
+    console.log("F02_REAL_HTTP: HTML/CSS/JS all fetched and synthetic warning visible");
+
+    assert.ok(await evalJs("(()=>{const c=[...document.querySelectorAll('.facility-card')].find(x=>x.dataset.facilityId==='FA-002');c.click();return document.activeElement?.id==='detailHeading'&&document.querySelector('#detailBody').innerText.includes('未確認')})()"));
+    assert.ok(await evalJs("(()=>{document.querySelector('.close-detail').click();return document.activeElement?.dataset.facilityId==='FA-002'})()"));
+    assert.equal(await evalJs("(()=>{const q=document.querySelector('#query');q.value='ｽｽﾞﾗﾝ';q.dispatchEvent(new Event('input',{bubbles:true}));return document.querySelectorAll('.facility-card').length})()"),1);
+    assert.ok(await evalJs("(()=>{const q=document.querySelector('#query');q.value='該当しない名前';q.dispatchEvent(new Event('input',{bubbles:true}));return document.querySelector('#statusMessage').innerText.includes('検索結果が0件')})()"));
+    assert.ok(await evalJs("(()=>{const q=document.querySelector('#query');q.value='';q.dispatchEvent(new Event('input',{bubbles:true}));const r=document.querySelector('#region');r.value='sample-empty';r.dispatchEvent(new Event('change',{bubbles:true}));return document.querySelector('#statusMessage').innerText.includes('fixture記録は0件')})()"));
+    assert.ok(await evalJs("(()=>{const c=document.querySelector('#scenario');c.value='error';c.dispatchEvent(new Event('change',{bubbles:true}));return document.querySelector('#statusMessage').innerText.includes('データ読込エラー')&&document.querySelector('#resultCount').textContent==='読込不可'})()"));
+    assert.ok(await evalJs("(()=>{const c=document.querySelector('#scenario');c.value='normal';c.dispatchEvent(new Event('change',{bubbles:true}));const r=document.querySelector('#region');r.value='sample-amber';r.dispatchEvent(new Event('change',{bubbles:true}));return document.querySelectorAll('.facility-card').length===1})()"));
+    console.log("F02_REAL_HTTP: detail, focus, normalized search, 0-record, 0-hit, load-error PASS");
+
+    for(const pair of [[320,700],[390,844],[1440,900]]){
+      const width=pair[0],height=pair[1];
+      await command("Emulation.setDeviceMetricsOverride",{width,height,deviceScaleFactor:1,mobile:false});
+      const metric=await evalJs("({width:innerWidth,overflow:document.documentElement.scrollWidth-innerWidth})");
+      assert.equal(metric.width,width);
+      assert.ok(metric.overflow<=2,"Horizontal overflow at "+width+"px: "+metric.overflow+"px");
+    }
+    assert.equal(browser.exceptions.length,0,"Page exceptions: "+browser.exceptions.join(" | "));
+    assert.ok(browser.requests.every(x=>x.startsWith(url)||x==="about:blank"||x.startsWith("data:")),
+      "Unexpected external request: "+browser.requests.join("; "));
+    console.log("F02_REAL_HTTP: 320/390/1440 responsive, no JS errors or outbound HTTP PASS");
+  }finally{
+    try{
+      if(browser){await stopChrome(browser.child,browser.profile,browser.ws);}
+    }finally{
+      // Always release HTTP sockets, including when Chrome profile cleanup fails.
+      await new Promise((resolve,reject)=>{
+        server.close(error=>error?reject(error):resolve());
+        server.closeAllConnections();
+      });
+    }
+  }
+});

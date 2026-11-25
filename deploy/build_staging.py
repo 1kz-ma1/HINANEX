@@ -79,6 +79,83 @@ def _copy_tree(source: Path, destination: Path) -> None:
     shutil.copytree(source, destination)
 
 
+# Paths present in repository QA branches but not approved for public staging.
+# Match exact relative paths (or directory roots), not broad substrings: other
+# supported Frontend pages and existing synthetic prototypes remain unchanged.
+UNPUBLISHED_F03_PREVIEW_PATHS = frozenset({
+    "prototypes/f03-storage-contract-qa",
+    "docs/F03_P02_STORAGE_CONTRACT_QA_20261111.md",
+    "docs/evidence/f03-p02-20261111",
+    "tests/f03-storage-contract.test.js",
+    "tests/f03-storage-http-chrome.test.js",
+})
+
+
+UNPUBLISHED_F02_PREVIEW_PATHS = frozenset({
+    "f02.html",
+    "f02.css",
+    "src/f02-page.js",
+    "src/f02-shelter-reference.js",
+    "scripts/check-f02-real-export.js",
+    "scripts/serve-f02-preview.cjs",
+    "docs/F02_REGION_EXPORT_CONSUMER_20261111.md",
+    "tests/f02-page-http-browser.test.cjs",
+    "tests/f02-preview-http.test.cjs",
+    "tests/f02-real-export-check.test.js",
+    "tests/f02-shelter-reference.test.js",
+})
+UNPUBLISHED_F05_PREVIEW_PATHS = frozenset({
+    # Issue #373: never ship the local-only F05 journey from PR #371.
+    # A directory root covers all future assets nested under the prototype.
+    "prototypes/f05-flood-journey",
+    "src/f05-journey-model.js",
+    "tests/f05-journey.test.js",
+    "docs/F05_MINIMAL_JOURNEY_20261113.md",
+})
+UNPUBLISHED_F17_PREVIEW_PATHS = frozenset({
+    # F17 remains a local-only, entirely fictional training prototype.
+    # Directory-root exclusion includes all future nested frontend assets and QA.
+    "prototypes/f17-training",
+})
+
+
+UNPUBLISHED_F09_PREVIEW_PATHS = frozenset({
+    # Issue #423: entire private F09 prototype, its QA, and its specification.
+    "prototypes/f09-preparedness",
+    "docs/F09_PREPAREDNESS_CHECKLIST_PROTOTYPE_20261117.md",
+    "tests/f09-preparedness.test.js",
+    "tests/f09-preparedness-browser.cjs",
+})
+
+
+UNPUBLISHED_PREVIEW_PATHS = (
+    UNPUBLISHED_F03_PREVIEW_PATHS
+    | UNPUBLISHED_F02_PREVIEW_PATHS
+    | UNPUBLISHED_F05_PREVIEW_PATHS
+    | UNPUBLISHED_F17_PREVIEW_PATHS
+    | UNPUBLISHED_F09_PREVIEW_PATHS
+)
+
+
+def _copy_public_frontend(source: Path, destination: Path) -> None:
+    """Copy Frontend without exposing unapproved F02/F03/F05/F17/F09 preview assets."""
+    if not source.is_dir():
+        raise StagingBuildError(f"Required static directory is missing: {source}")
+
+    def unpublished_preview_only(directory: str, names: list[str]) -> set[str]:
+        relative = Path(directory).relative_to(source)
+        return {
+            name for name in names
+            if (relative / name).as_posix() in UNPUBLISHED_PREVIEW_PATHS
+        }
+
+    shutil.copytree(source, destination, ignore=unpublished_preview_only)
+    # Fail closed if a future copy implementation accidentally leaks QA assets.
+    for relative in UNPUBLISHED_PREVIEW_PATHS:
+        if (destination / relative).exists():
+            raise StagingBuildError(f"Unpublished preview in staging bundle: {relative}")
+
+
 def build_bundle(
     root: Path,
     output_dir: Path,
@@ -119,7 +196,7 @@ def build_bundle(
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True)
 
-    _copy_tree(root / "frontend", output_dir / "frontend")
+    _copy_public_frontend(root / "frontend", output_dir / "frontend")
     _copy_tree(root / "gis" / "gis", output_dir / "gis" / "gis")
 
     published_output = output_dir / "pipeline" / "data" / "output"
