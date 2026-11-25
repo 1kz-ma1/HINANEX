@@ -653,6 +653,31 @@ function renderFloodScenario(scenario, { pagingAction = null, isSynthetic = fals
     });
   });
 
+  floodScenarioRoot.append(note, summary);
+  if (scenario.total === 0) {
+    floodScenarioRoot.append(
+      element("div", {
+        className: "scenario-feedback scenario-feedback--empty",
+        attributes: { role: "status" },
+        children: [
+          element("strong", { text: "今回の施設別結果は0件です" }),
+          element("p", {
+            text: "このScenarioには表示できる施設行がありません。施設が存在しないことや、安全・危険を意味しません。",
+          }),
+        ],
+      }),
+    );
+    return;
+  }
+  floodScenarioRoot.append(element("div", { className: "scenario-list", children: cards }));
+  if (pages === 1) {
+    floodScenarioRoot.append(element("p", {
+      className: "scenario-result-count",
+      text: `全${scenario.total}件を表示`,
+    }));
+    return;
+  }
+
   const previous = element("button", {
     className: "source-button",
     text: "前の20件",
@@ -678,27 +703,17 @@ function renderFloodScenario(scenario, { pagingAction = null, isSynthetic = fals
     attributes: { tabindex: "-1" },
   });
 
-  floodScenarioRoot.append(note, summary);
-  if (scenario.total === 0) {
-    floodScenarioRoot.append(
-      element("div", {
-        className: "scenario-feedback scenario-feedback--empty",
-        attributes: { role: "status" },
-        children: [
-          element("strong", { text: "今回の施設別結果は0件です" }),
-          element("p", {
-            text: "このScenarioには表示できる施設行がありません。施設が存在しないことや、安全・危険を意味しません。",
-          }),
-        ],
-      }),
-    );
-    return;
-  }
+  const firstResult = cards[0].querySelector("h3");
+  const jumpToFirst = element("button", {
+    className: "source-button scenario-first-result-jump",
+    text: "このページの施設一覧の先頭へ",
+    attributes: { type: "button" },
+  });
+  jumpToFirst.addEventListener("click", () => {
+    firstResult.focus({ preventScroll: true });
+    firstResult.scrollIntoView({ block: "start", inline: "nearest", behavior: "instant" });
+  });
   floodScenarioRoot.append(
-    element("div", {
-      className: "scenario-list",
-      children: cards,
-    }),
     element("nav", {
       className: "scenario-pagination",
       attributes: { "aria-label": "Scenario施設一覧のページ" },
@@ -708,20 +723,8 @@ function renderFloodScenario(scenario, { pagingAction = null, isSynthetic = fals
         next,
       ],
     }),
+    jumpToFirst,
   );
-  if (pages > 1) {
-    const firstResult = cards[0].querySelector("h3");
-    const jumpToFirst = element("button", {
-      className: "source-button scenario-first-result-jump",
-      text: "このページの施設一覧の先頭へ",
-      attributes: { type: "button" },
-    });
-    jumpToFirst.addEventListener("click", () => {
-      firstResult.focus({ preventScroll: true });
-      firstResult.scrollIntoView({ block: "start", inline: "nearest", behavior: "instant" });
-    });
-    floodScenarioRoot.append(jumpToFirst);
-  }
   if (pagingAction) {
     const button = pagingAction === "previous" ? previous : next;
     // Recreated controls lose focus. At a disabled boundary, focus the count
