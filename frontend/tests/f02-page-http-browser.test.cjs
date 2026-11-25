@@ -8,7 +8,8 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const http = require("node:http");
-const { spawn, spawnSync } = require("node:child_process");
+const { spawn, spawnSync, execFile } = require("node:child_process");
+const { promisify } = require("node:util");
 const {waitForDevToolsPort} = require("./helpers/chrome-active-port.cjs");
 const root = path.resolve(__dirname, "../..");
 const assets = new Set([
@@ -447,6 +448,21 @@ test("WP-002 F02 HTTP Chrome: document and fixture readiness reject false positi
         "Unexpected page exceptions: " + browser.exceptions.join(" | "));
       assert.ok(browser.outbound.every(url => url.startsWith(base + "/") || url === "about:blank" || url.startsWith("data:")),
         "Unexpected browser outbound request");
+      // A protocol rejection is not a transport disconnect. Exercise both:
+      // close the actual socket while a CDP command is pending, and ensure
+      // waitUntil propagates the close error without another polling attempt.
+      let disconnectAttempts = 0;
+      const disconnected = waitUntil(async () => {
+        disconnectAttempts++;
+        return command("Runtime.evaluate", {
+          expression:"new Promise(()=>{})", awaitPromise:true, returnByValue:true
+        });
+      }, "true", "actual CDP disconnect");
+      const rejected = assert.rejects(disconnected, /^Error: CDP WebSocket closed$/);
+      browser.ws.close();
+      await rejected;
+      assert.equal(disconnectAttempts, 1);
+      console.log("WP002_CDP_DISCONNECT_HTTP: pending command rejects on actual WebSocket close without retry PASS");
       console.log("WP002_NEGATIVE_HTTP: missing DOM times out, genuine JS and CDP errors fail immediately PASS");
     } finally {
       try { if (browser) await stopChrome(browser.child, browser.profile, browser.ws); }
@@ -814,3 +830,35 @@ test("F02 RegionExport consumer works over real HTTP in Chrome with synthetic da
       }
     }
   });
+
+// CI-11: a fresh Node process, HTTP server, Chrome profile and browser for
+// every run of the complete F02 test file. Do not retry a failed child or
+// count a missing browser/skip as success. Local runs can opt in explicitly.
+// The child flag prevents recursive invocation; the ordinary four tests are
+// still registered in every child. No change to production or shared CI.
+if (!process.env.F02_WP002_REPEAT_CHILD &&
+    (process.env.CI || process.env.F02_WP002_REPEAT === "1")) {
+  test("WP-002 CI-11 ten consecutive independent F02 test processes",
+    {timeout:300000}, async () => {
+      const env = {...process.env, CI:"1", F02_WP002_REPEAT_CHILD:"1"};
+      delete env.NODE_TEST_CONTEXT;
+      // Stress runs are intentionally synthetic even when the outer local
+      // invocation also tests an explicitly supplied real-data export.
+      delete env.F02_REAL_EXPORT_PATH;
+      for (let run=1; run<=10; run++) {
+        const {stdout} = await promisify(execFile)(process.execPath, [__filename], {
+          env, cwd:root, timeout:130000, maxBuffer:2*1024*1024
+        });
+        for (const [label,count] of [["tests",4],["pass",4],["fail",0],["skipped",0]]) {
+          assert.match(stdout, new RegExp("^# "+label+" "+count+"\\s*$","m"),
+            "F02 child "+run+" unexpected TAP summary: "+stdout);
+        }
+        for (const marker of ["WP002_DOM_HTTP:", "WP002_FIXTURE_HTTP:",
+          "WP002_CDP_DISCONNECT_HTTP:", "WP002_NEGATIVE_HTTP:",
+          "WP002_REPEAT_HTTP: cycle 10/10 PASS", "F02_CREDIT_HTTP:", "F02_RETRY_HTTP:"]) {
+          assert.ok(stdout.includes(marker), "F02 child "+run+" missing "+marker);
+        }
+        console.log("WP002_CI11_PROCESS: "+run+"/10 PASS (4/4 tests, 0 fail, 0 skip)");
+      }
+    });
+}
