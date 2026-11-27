@@ -33,3 +33,9 @@
 司令塔への文書提案。#361と#282は旧案として棚卸しし、現行の作業導線への参照追加が必要になった時点で、別の指示の下でAGENTS.md / CONTRIBUTING.mdとの重複を点検する。現行規範の改訂判断は司令塔・Ownerに留保する。
 
 [WP-001 資産棚卸し](HINANEX_WP001_ASSET_INVENTORY_20261124.md)
+
+## 2026-11-27 JST 追補｜WP-003
+
+WP-001の運用は限定受入済み。WP-002のmain CI復旧ゲートは閉じ、通常PRの一律HOLDを解除した。個々のPRは上記の統合条件と既存の非公開・公開ゲートに従う。WP-003の権限は、既存の文書PR #492 / #465 の非force同期、文書整合、固定HEAD検証まで。正式統合は司令塔審査と人間Merge Captainの判断を待つ。[WP-001限定受入](https://github.com/1kz-ma1/HINANEX/pull/492#issuecomment-7123676455) · [WP-002受入とWP-003発行](https://github.com/1kz-ma1/HINANEX/pull/492#issuecomment-7207125369)
+
+運用手順と資産・技術証拠の時点差分は#492、Ownerの決裁履歴と未決事項の索引は#465に置く。採用範囲の確認には各台帳から個別決裁へ戻る。人間Captainのソース統合決裁、ソースの統合結果、Ownerの採用・公開決裁は、それぞれ根拠を記録する。[資産棚卸しの11月27日追補](HINANEX_WP001_ASSET_INVENTORY_20261124.md) · [Owner判断台帳 #465](https://github.com/1kz-ma1/HINANEX/pull/465)

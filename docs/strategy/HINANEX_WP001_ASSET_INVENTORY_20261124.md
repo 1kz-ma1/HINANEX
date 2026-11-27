@@ -206,3 +206,37 @@ flowchart LR
 ## 作業終了
 
 このパッケージは文書限定Draft PRでレビューに供する。作成したPRの確定HEADとCIの結果は司令塔への提出報告で参照する。個別是正・正式統合には次の作業パッケージが必要。
+
+## 2026-11-27 JST 追補｜WP-003
+
+上記と[全OPEN PR明細](HINANEX_WP001_OPEN_PRS_20261124.md)は11月24日の史料。45 PR（Draft 44）、50 Issue、暫定分類と当時のHOLDを保持する。司令塔記録時のmainは `7686effe611c6b79023afd8bb7789c3219ca61a2`。WP-003の照合時点では#498統合後の `c3356c9a021a77a263f848c9a41958313d96e714` がmainで、両SHAのpush必須 `test` はSUCCESS。[司令塔記録](https://github.com/1kz-ma1/HINANEX/pull/492#issuecomment-7207125369) · [#371統合後CI](https://github.com/1kz-ma1/HINANEX/actions/runs/45920690727/job/140250460567) · [#498統合後CI](https://github.com/1kz-ma1/HINANEX/actions/runs/45921498213/job/140253037273)
+
+| 対象 | 11月27日時点の差分と残件 | 証拠 |
+| --- | --- | --- |
+| #493 / WP-002 | `b02b7628f0f250a568ed5b36a42ef1c9dbb06cbb` に統合。F02の実HTTP Chromeテスト1ファイルで、遷移後の新document、DOM準備、Fixtureと元の期待条件を検証。#487の限定例外処理を維持。司令塔は限定受入し、main CI復旧ゲートを閉じた。初回の自然発生タイミングは未確定。 | [Captain決裁](https://github.com/1kz-ma1/HINANEX/pull/493#issuecomment-7151102251) · [統合後CI](https://github.com/1kz-ma1/HINANEX/actions/runs/45535021081/job/138939397082) · [限定受入](https://github.com/1kz-ma1/HINANEX/pull/492#issuecomment-7207125369) |
+| #494 / #482 | `dea5107abcdd53ab683ae708db4d16f525ade79f` に統合。B1 QAパスの非公開ガードとDeploy回帰を追加。#497は検証専用で未マージ・Close済み。固定候補ではB1/B2/MJ-01の19/19パスを除外し、公開107/107ファイルのSHA-256が一致。実LIVEの配布境界は未検証。 | [Captain決裁](https://github.com/1kz-ma1/HINANEX/pull/494#issuecomment-7206922853) · [候補検証 #497](https://github.com/1kz-ma1/HINANEX/pull/497#issuecomment-7178994093) · [統合後CI](https://github.com/1kz-ma1/HINANEX/actions/runs/45919990158/job/140248191626) |
+| #371 / B1 | `7686effe611c6b79023afd8bb7789c3219ca61a2` に統合。Ownerが採用した江戸川区の本人選択・loopback限定の手動導線を、共同Captain @kouta1029 の委任に基づく個別決裁でソース統合。元のBrowser CIの遷移先はQA_STUB。DQA-004はDEFERRED。司令塔記録のRender deploy `dep-dc4dfc8ae00c73divpv0` は同SHAでLIVE。 | [Owner採用](https://github.com/1kz-ma1/HINANEX/issues/362#issuecomment-7030901882) · [Captain決裁](https://github.com/1kz-ma1/HINANEX/pull/371#issuecomment-7207020553) · [統合後CIと残件](https://github.com/1kz-ma1/HINANEX/pull/371#issuecomment-7207122222) |
+| #498 / B1追加回帰 | 司令塔記録時のDraftから進み、`c3356c9a021a77a263f848c9a41958313d96e714` に統合。既存の非公開テスト1ファイルで、B1から実F02 HTML/CSS/ESMへの手動遷移と、合成JSONによる503からの本人再取得・検索・出典等を追加検証。F01の実GIS、実データ、実機、実LIVEは未検証。 | [Captain決裁](https://github.com/1kz-ma1/HINANEX/pull/498#issuecomment-7207135627) · [統合記録](https://github.com/1kz-ma1/HINANEX/pull/498#issuecomment-7207141689) · [統合後CI](https://github.com/1kz-ma1/HINANEX/actions/runs/45921498213/job/140253037273) |
+| #483 / MJ-01 | `03d8f92a1c776664765dc898acdefa94730cc040`、Draft・未統合。独立モデルQAの限定受入を保持。独立PC HTTP Browserの負例・実Lifecycle/BFCache、A-P2-01〜03の是正範囲、最新候補7実パスの非配信証拠が残る。#498のB1回帰の対象外。 | [独立QA限定受入](https://github.com/1kz-ma1/HINANEX/pull/483#issuecomment-7120927222) · [11月27日の是正候補](https://github.com/1kz-ma1/HINANEX/pull/483#issuecomment-7207128913) |
+
+11月24日時点で補助UX候補だった #491（F02選択解除）・#489（F01件数表示）・#485（B2確認対象欄への導線）もmainへ統合済み。[main履歴](https://github.com/1kz-ma1/HINANEX/compare/62557a665f59254755a696e2e89292035ea4f6c2...c3356c9a021a77a263f848c9a41958313d96e714)
+
+### WP-002独立証拠の保管
+
+独立比較は旧main `62557a665f59254755a696e2e89292035ea4f6c2` と修正後比較時main `56c340f98578ab5ee4ccffee5fd81c057593e4d1`。旧版9/10、新版10/10の全試行と、旧式の `null.innerText` の制御再現を保管。元のpush runは初回FAIL、同SHAの第2・3試行SUCCESS。追補時にZIPのCRC、全48メンバーと原本ファイルのバイト一致、SHA-256 manifestの49行（ZIP＋48メンバー）を照合した。[元のpush run](https://github.com/1kz-ma1/HINANEX/actions/runs/45335357917) · [WP-002の受入記録](https://github.com/1kz-ma1/HINANEX/pull/492#issuecomment-7207125369)
+
+保管先は作業ワークスペースの `/workspace/scratch/hinanex-wp002/`。別環境からのアクセスと長期保存は未確認。GitHub Actionsで参照できるCI証拠は上表の固定runに紐づく。
+
+| 保管ファイル | SHA-256 |
+| --- | --- |
+| `evidence.zip`（98,019 bytes） | `2b2fbcb956e4ae2328cf8101cad147b5a7880c9d5c16bca8c37b255a8a098542` |
+| `manifest.sha256` | `d306096bf862de9426898ac41492f6d7b44803500cf72b8cc0dc7af9a1a676a9` |
+| `trials.tsv`（20試行と結果） | `5472c76024e8c8c362b5d5d2b13704a140d1e420ca2311ce72fd1c62feecb52c` |
+| `independent-probe.log`（制御再現と負例） | `f261aeed88f987800043d2b56a8d7a1b7de731a826836c71c67a7eced851c9bf` |
+| `frontend.tap`（Frontend全体） | `ac0479bfd47e49a0c3e12f3ea192dab44e05436c632bb931834787b4bd000f4e` |
+| `ci-excerpts.txt`（固定GitHub runの実ログ抜粋） | `8a0fba6d68b409c0018f10b54bfb563527f19fc67d069f4fbb2389a983bd4b8b` |
+
+### 次に必要な確認
+
+- #428・#494・#371の実配布パス別manifest・配布バイト・CDN応答は `NOT_VERIFIED`。LIVE記録、ビルドガード、固定候補の非配信証拠は個別に参照する。実配布確認の対象と通信許可は別途確定する。[#428統合後記録](https://github.com/1kz-ma1/HINANEX/pull/428#issuecomment-7123229517) · [11月27日の司令塔記録](https://github.com/1kz-ma1/HINANEX/pull/492#issuecomment-7207125369)
+- #483は次工程の独立Browserと最新候補の配布証拠を優先する。新規公開はNO-GO、正式S0/S1接続はHOLD。MJ-D08提供方式などのOwner判断と原決裁は[#465](https://github.com/1kz-ma1/HINANEX/pull/465)に索引する。
