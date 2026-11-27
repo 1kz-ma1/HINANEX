@@ -140,34 +140,51 @@ async function appLoads() {
   return {api,requests,state,status,snapshot,regionName};
 }
 
-for(const older of ["demo","region","file"]){
-  for(const newer of ["demo","region","file"]){
-    for(const oldSucceeds of [true,false]){
-      test("F01 latest intent wins: "+older+" -> "+newer+"; old "+(oldSucceeds?"success":"failure"),async()=>{
-        const h=await appLoads();
-        function start(kind,code){
-          if(kind==="file"){
-            const d=deferred();
-            const target={value:"selected.json",files:[{name:code+".json",text:()=>d.promise}]};
-            const done=h.api.loadManualRegionExport({target});
-            assert.equal(target.value,"","file picker released synchronously");
-            return {done,finish:ok=>d.resolve(ok?JSON.stringify(payloadFor(code,code)):"invalid JSON")};
-          }
-          const done=kind==="demo"?h.api.loadDemoRegionExport():h.api.selectRegion(code);
-          const req=h.requests.at(-1);
-          return {done,finish:ok=>req.resolve(response(payloadFor(code,code),{ok,status:ok?200:503}))};
+// Cross product of source type, old/new outcome, and completion order.
+// A stale completion must not alter either a pending or a settled latest load.
+for (const older of ["demo", "region", "file"]) {
+  for (const newer of ["demo", "region", "file"]) {
+    for (const oldSucceeds of [true, false]) {
+      for (const newSucceeds of [true, false]) {
+        for (const oldFirst of [true, false]) {
+          test("F01 latest intent wins: " + older + " -> " + newer +
+            "; old " + (oldSucceeds ? "success" : "failure") +
+            "; new " + (newSucceeds ? "success" : "failure") +
+            "; " + (oldFirst ? "old completes first" : "new completes first"), async () => {
+            const h = await appLoads();
+            function start(kind, code) {
+              if (kind === "file") {
+                const d = deferred();
+                const target = {value:"selected.json", files:[{name:code+".json", text:()=>d.promise}]};
+                const done = h.api.loadManualRegionExport({target});
+                assert.equal(target.value, "", "file picker released synchronously");
+                return {done, finish:ok=>d.resolve(ok?JSON.stringify(payloadFor(code,code)):"invalid JSON")};
+              }
+              const done = kind==="demo" ? h.api.loadDemoRegionExport() : h.api.selectRegion(code);
+              const req = h.requests.at(-1);
+              return {done, finish:ok=>req.resolve(response(payloadFor(code,code),{ok,status:ok?200:503}))};
+            }
+            const old = start(older, "13123"), current = start(newer, "15100");
+            assert.equal(h.state.display, null);
+            assert.equal(h.status.dataset.tone, "loading");
+            if (oldFirst) {
+              const pending = h.snapshot();
+              old.finish(oldSucceeds); await old.done;
+              assert.equal(h.snapshot(), pending, "stale completion must preserve latest pending state");
+            }
+            current.finish(newSucceeds); await current.done;
+            assert.equal(h.status.dataset.tone, newSucceeds ? (newer==="demo"?"demo":"success") : "error");
+            assert.equal(h.state.display, newSucceeds ? "15100" : null);
+            const before = h.snapshot();
+            if (!oldFirst) {
+              old.finish(oldSucceeds); await old.done;
+              assert.equal(h.snapshot(), before, "stale completion must preserve latest settled state");
+            }
+            assert.equal(h.requests.filter(r=>r.url.includes("/mock/")).length,
+              Number(older==="demo")+Number(newer==="demo"), "no automatic demo fallback");
+          });
         }
-        const old=start(older,"13123"),current=start(newer,"15100");
-        assert.equal(h.state.display,null);
-        current.finish(!oldSucceeds);await current.done;
-        assert.equal(h.status.dataset.tone,oldSucceeds?"error":newer==="demo"?"demo":"success");
-        assert.equal(h.state.display,oldSucceeds?null:"15100");
-        const before=h.snapshot();
-        old.finish(oldSucceeds);await old.done;
-        assert.equal(h.snapshot(),before,"stale response must not alter any recorded state");
-        assert.equal(h.requests.filter(r=>r.url.includes("/mock/")).length,
-          Number(older==="demo")+Number(newer==="demo"),"no automatic demo fallback");
-      });
+      }
     }
   }
 }
@@ -196,4 +213,25 @@ test("F01 cancelled picker keeps demo; current file failure clears previous disp
   assert.equal(h.regionName.textContent,"JSONを読み込み中");
   await file;assert.equal(h.status.dataset.tone,"error");
   assert.equal(h.state.display,null);
+});
+
+test("F01 same file can be reselected while its old read is pending; stale rejection cannot clear the picker", async () => {
+  const h = await appLoads();
+  let rejectOld;
+  const pending = new Promise((resolve, reject) => { rejectOld = reject; });
+  const target = {value:"same.json", files:[{name:"same.json",text:()=>pending}]};
+  const old = h.api.loadManualRegionExport({target});
+  assert.equal(target.value, "");
+  target.value = "same.json";
+  target.files = [{name:"same.json",text:async()=>JSON.stringify(payloadFor("15100","new read"))}];
+  await h.api.loadManualRegionExport({target});
+  assert.equal(target.value, "");
+  assert.equal(h.state.display,"15100");
+  assert.equal(h.status.dataset.tone,"success");
+  const before = h.snapshot();
+  // Model a later picker selection whose change event has not yet been handled.
+  target.value = "next.json";
+  rejectOld(new Error("old file read failed")); await old;
+  assert.equal(h.snapshot(), before);
+  assert.equal(target.value, "next.json");
 });
