@@ -130,3 +130,26 @@ F02人間レビューのオーナー受領、CSV個別の権利許諾、施設�
 
 ### 司令塔の運用
 Ownerは技術統合判断を司令塔に委任した。司令塔のGO/HOLDと人間Captainの正式決裁・GitHub操作を区別し、現行AGENTS.md/MERGE_CAPTAINS.mdを維持する。原本・権利・安全・公開の人間承認を代行しない。今回の4件以外の未決項目は従来の状態を維持する。
+
+## 9. 2026-11-27 JST 追補｜既決の範囲と残る判断
+
+§2〜8は各時点の判断履歴。11月27日の状態は下記の差分を参照する。Ownerの採否と未決事項は本台帳に索引し、個別決裁を正本とする。作業手順、統合・CI・配布の技術証拠と棚卸しは[#492](https://github.com/1kz-ma1/HINANEX/pull/492)で追う。WP-003の照合基準mainは `c3356c9a021a77a263f848c9a41958313d96e714`。[司令塔のWP-003発行](https://github.com/1kz-ma1/HINANEX/pull/492#issuecomment-7207125369)
+
+### 既決の適用範囲
+
+| 台帳ID | 11月27日時点の適用と決裁根拠 |
+| --- | --- |
+| GOV-002（運用） | WP-001の司令塔・Codexへの作業配分と受入導線を限定採用済み。2トラックの判断履歴、A–E責務、人間Captainの権限は引き続き参照する。WP-002のCI復旧は司令塔の技術限定受入。通常PR一律HOLDの解除後も個別ゲートを適用する。[WP-001採用](https://github.com/1kz-ma1/HINANEX/pull/492#issuecomment-7123676455) · [WP-002受入](https://github.com/1kz-ma1/HINANEX/pull/492#issuecomment-7207125369) |
+| OWN-F09-01／DECISION-20261124-001 | 既決の許可は#428の非公開ガード限定。#428は統合済み。#429本体、F09の出典受入・展示・公開は別審査で、実LIVE配布境界は未検証。[原決裁](https://github.com/1kz-ma1/HINANEX/pull/428#issuecomment-7120365938) · [統合後確認](https://github.com/1kz-ma1/HINANEX/pull/428#issuecomment-7123229517) |
+| OWN-F05-01／B1 | Owner採用は江戸川区の本人選択・loopback限定のF01→F02手動導線。共同Captain @kouta1029 による#494のガードと#371のソース統合の決裁を別記録として参照する。#498は同Captainの個別決裁による非公開の追加回帰。DQA-004はDEFERRED。[B1原決裁](https://github.com/1kz-ma1/HINANEX/issues/362#issuecomment-7030901882) · [#494決裁](https://github.com/1kz-ma1/HINANEX/pull/494#issuecomment-7206922853) · [#371決裁](https://github.com/1kz-ma1/HINANEX/pull/371#issuecomment-7207020553) · [#498決裁](https://github.com/1kz-ma1/HINANEX/pull/498#issuecomment-7207135627) |
+| OWN-F05-01・OWN-F07-01／DECISION-20261124-002 | MJ-D01〜07とMJ-01固定架空Fixtureの非公開実装は限定採用済み。参考経路はMVP必須外。MJ-D08提供方式、実経路、実施設結合、MJ-02以降の正式接続・公開は保留。[原決裁](https://github.com/1kz-ma1/HINANEX/issues/362#issuecomment-7120366611) |
+| OWN-S0-01／DECISION-20261124-003 | Option Bは合成訓練限定の設計第一候補。v1.0独立設計監査とv1.0.1限定追補の権限までを参照し、正式採用はD/B/Cの合同確認・個別承認と別決裁を待つ。表示契約・操作契約、S0/S1正式接続はHOLD。[原決裁](https://github.com/1kz-ma1/HINANEX/pull/386#issuecomment-7120367201) · [監査・追補判断](https://github.com/1kz-ma1/HINANEX/pull/386#issuecomment-7120927778) |
+| OWN-QA-01／DECISION-20261124-004 | QA-0の既決は隔離環境Preflight準備。PC実行許可、実候補・実機受入は保留。12月6日のQA-1は候補で、確定対象・参加者・端末・実行許可は#372で判断する。[原決裁](https://github.com/1kz-ma1/HINANEX/issues/372#issuecomment-7120367909) · [QA-0準備受入](https://github.com/1kz-ma1/HINANEX/issues/372#issuecomment-7120928579) · [QA-1候補](https://github.com/1kz-ma1/HINANEX/issues/372#issuecomment-7206812036) |
+
+### 現在も必要な判断と証拠
+
+- **MJ-01の次工程。** #483の固定HEADを前提に、A-P2-01〜03の是正範囲と隔離PCでの独立Browser実行の許可を確認する。その後のソース統合には最新候補の7実パス非配信、独立QAとCaptain決裁が必要。[#483独立監査受入](https://github.com/1kz-ma1/HINANEX/pull/483#issuecomment-7120927222) · [是正候補と許可待ち](https://github.com/1kz-ma1/HINANEX/pull/483#issuecomment-7207128913)
+- **MVP提供方式。** MJ-D08の学内提供・展示方式は別途Owner判断。S0/S1正式接続は表示・操作のContract承認後に別判断し、実経路採用と新規公開の個別ゲートを維持する。[#362の限定採用](https://github.com/1kz-ma1/HINANEX/issues/362#issuecomment-7120366611) · [#386](https://github.com/1kz-ma1/HINANEX/pull/386)
+- **実機・人間受入と公開。** #372でQA対象・端末・参加者・実行範囲を確定する。OWN-F02-01の人間報告の受領範囲、実データを使う際の出典・権利・表示、実配布・公開の個別証拠と決裁は各正本で追跡する。上記以外の保留には§3の条件を適用する。[#372](https://github.com/1kz-ma1/HINANEX/issues/372) · [F02人間報告](https://github.com/1kz-ma1/HINANEX/issues/366#issuecomment-7027657052) · [人間レビュー台帳](https://github.com/1kz-ma1/HINANEX/issues/388)
+
+文書の受入・正式統合と、上記の製品・公開・実行判断は個別に決裁する。WP-003発行記録は文書整合の作業権限を示す。[司令塔記録](https://github.com/1kz-ma1/HINANEX/pull/492#issuecomment-7207125369)
