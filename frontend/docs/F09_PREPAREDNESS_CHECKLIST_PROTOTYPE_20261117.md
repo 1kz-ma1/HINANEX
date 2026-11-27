@@ -71,3 +71,13 @@ npm run build
 - 手動保存・明示復元・削除（F03のキーやSchemaを流用せず、独立の同意/保存設計）
 - 公的一次資料の版固定とC独立原本受入後の出典表示強化
 - 多言語・読み上げ/支援技術による実機受入
+
+## 2026-11-27 レビュー指摘への是正（#429）
+
+- #428はmainへ統合済み。今回最新mainを取り込んでbaseをmainへ変更。F09の8 frontendパスだけを維持し、deploy/契約・F05には変更なし。
+- フィルタ名「未準備だけ表示」は固定、aria-pressedと「表示：…」で状態を表示。解除でボタンが無効になる場合はフィルタへフォーカスを移す。全件チェック時の未準備フィルタ空表示、解除後の復帰を実HTTPテストに追加。
+- メモリのみの契約：新document/再読込で0件。BFCacheのpersisted pageshowでもチェックとフィルタを初期化し、通常pageshowではブラウザフォーム復元をモデル状態に再同期する。チェックボックスのautocompleteはoff。実BFCache成立時のみPASSとし、新documentになった履歴移動は別のPASS、BFCache自体はNOT_RUN。
+- ブラウザQAはHTTPのみ（DOM注入fallbackを撤去）。listen・起動・CDP HTTP/open/send/closeの有限期限、pending拒否、全資源のfinally、cleanup失敗を非0終了にする。共有http-chromeの停止/プロファイル削除を再利用。欠落binary・spawn error・早期起動終了・cleanupエラーの負例を追加。
+- 再読込は実URL、readyState、pageshow、旧document sentinel消滅、loaderId変更と0件/無保存を確認。実履歴復帰とBFCacheを区別する。
+- 実候補checkoutのfrontendコピーを既存Deploy builderで検査するテストを追加。7個の非公開実ファイルが存在すること、コピー先で全件不在、既存除外維持、公開対照5個のSHA-256一致を確認する。package.jsonは現行配布方針でコピーされ、F09 test/lintの文字列参照が残る（製品/QA/仕様本体ではない）。厳密な参照ゼロは未承認、Shared/Owner判断を要する。全体Render LIVE・公式データ生成とは別試験。
+- DQA-009は#372に繰越。出典C独立受入、一般公開許可、Render LIVEは未確認。新HEADのCI/実HTTP結果はPRに追記し、旧CIを流用しない。P2維持、Draft/HOLD。

@@ -10,7 +10,8 @@ export function mountChecklist(doc = document) {
   const reset = doc.querySelector('#reset-button');
   const filter = doc.querySelector('#filter-button');
   const empty = doc.querySelector('#empty-message');
-  if (![root, count, total, percent, bar, remaining, reset, filter, empty].every(Boolean)) {
+  const filterState = doc.querySelector('#filter-state');
+  if (![root, count, total, percent, bar, remaining, reset, filter, empty, filterState].every(Boolean)) {
     throw new Error('F09 checklist markup is incomplete');
   }
   const checklist = createChecklist();
@@ -39,6 +40,7 @@ export function mountChecklist(doc = document) {
       label.className = 'item-label';
       const input = doc.createElement('input');
       input.type = 'checkbox';
+      input.autocomplete = 'off';
       input.name = 'prepared';
       input.value = item.id;
       input.dataset.itemId = item.id;
@@ -73,7 +75,7 @@ export function mountChecklist(doc = document) {
     bar.setAttribute('aria-label', `チェックした項目 ${state.checkedCount} / ${state.totalCount}`);
     reset.disabled = state.checkedCount === 0;
     filter.setAttribute('aria-pressed', String(onlyUnchecked));
-    filter.textContent = onlyUnchecked ? 'すべて表示' : '未準備だけ表示';
+    filterState.textContent = onlyUnchecked ? '表示：未準備の項目のみ' : '表示：すべての項目';
     let visible = 0;
     for (const [id, node] of itemNodes) {
       const checked = checklist.isChecked(id);
@@ -101,8 +103,21 @@ export function mountChecklist(doc = document) {
       (root.querySelector('.item:not([hidden]) input') || filter).focus();
     }
   });
-  reset.addEventListener('click', () => { checklist.reset(); render(); });
+  reset.addEventListener('click', () => {
+    if (doc.activeElement === reset) filter.focus();
+    checklist.reset(); render();
+  });
   filter.addEventListener('click', () => { onlyUnchecked = !onlyUnchecked; render(); });
+  // A BFCache-restored document is still the old JS instance. Explicitly
+  // reset it; normal pageshow also reconciles any native form restoration.
+  doc.defaultView.addEventListener('pageshow', event => {
+    if (event.persisted) {
+      if (doc.activeElement === reset) filter.focus();
+      checklist.reset();
+      onlyUnchecked = false;
+    }
+    render();
+  });
   render();
   return Object.freeze({ snapshot: () => checklist.snapshot() });
 }
