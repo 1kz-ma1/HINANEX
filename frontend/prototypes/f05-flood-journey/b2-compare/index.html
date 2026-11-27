@@ -31,8 +31,9 @@ button:disabled{opacity:.53;cursor:not-allowed}
 .facility dl{display:grid;grid-template-columns:minmax(90px,1fr) 2fr;gap:5px 8px;margin:8px 0}
 .facility dt{color:var(--muted)}
 .facility dd{margin:0;overflow-wrap:anywhere}
+.unknown-items{margin:0;padding-inline-start:1.25em}
 .facility button{width:100%}
-#openComparison{display:inline-flex;align-items:center;min-height:44px;color:var(--cyan)}
+#openComparison,#returnToList,#openChoice{display:inline-flex;align-items:center;min-height:44px;color:var(--cyan)}
 .tag{display:inline-block;background:#1b4553;border:1px solid #457888;border-radius:8px;padding:2px 9px;font-size:.9rem}
 #recordList:empty,#compareArea:empty,#choiceArea:empty{display:none}
 #clearMessage{min-height:1.65em}
@@ -41,7 +42,7 @@ button:disabled{opacity:.53;cursor:not-allowed}
 [hidden]{display:none!important}
 #onlyLocal{padding:24px;margin:18px auto;max-width:800px}
 @media(max-width:700px){.controls,.grid,.columns{grid-template-columns:1fr}main{padding:14px 10px 46px}.panel{padding:13px}.facility{padding:12px}}
-@media(max-width:340px){.facility dl{grid-template-columns:1fr}.facility dt{font-size:.88rem}.facility dd{margin-bottom:6px}}
+@media(max-width:420px){.facility dl{grid-template-columns:minmax(0,1fr);row-gap:2px}.facility dt{font-size:.88rem}.facility dd:not(:last-child){margin-bottom:8px}}
 </style>
 </head>
 <body>
@@ -70,7 +71,7 @@ button:disabled{opacity:.53;cursor:not-allowed}
     <p class="muted">UNKNOWNは危険・安全のどちらの意味でもありません。EXCLUDEDも危険認定ではありません。比較は最大2件で、選択はこのページ内だけに保持されます。</p>
   </section>
   <section class="panel" aria-labelledby="listTitle">
-    <h2 id="listTitle">掲載記録（合成のみ）</h2>
+    <h2 id="listTitle" tabindex="-1">掲載記録（合成のみ）</h2>
     <div id="recordList" class="grid"></div>
     <p id="emptyMessage" role="status"></p>
     <button id="resetCriteria" type="button" hidden>検索と区分をリセット</button>
@@ -80,11 +81,13 @@ button:disabled{opacity:.53;cursor:not-allowed}
   <section class="panel" aria-labelledby="compareTitle">
     <h2 id="compareTitle" tabindex="-1">2件の根拠を並べて確認</h2>
     <div id="compareArea" class="columns"></div>
+    <div><a id="returnToList" href="#listTitle" hidden>掲載記録の一覧へ戻る</a></div>
+    <div><a id="openChoice" href="#choiceTitle" hidden>本人の確認対象を選ぶ欄へ進む</a></div>
     <button id="clearSelection" type="button">比較と本人選択をすべて解除</button>
     <p id="clearMessage" role="status" aria-live="polite"></p>
   </section>
   <section class="panel" aria-labelledby="choiceTitle">
-    <h2 id="choiceTitle">本人が確認対象を選ぶ</h2>
+    <h2 id="choiceTitle" tabindex="-1">本人が確認対象を選ぶ</h2>
     <div id="choiceArea" class="actions"></div>
     <p id="choiceMessage" role="status" aria-live="polite"></p>
     <p class="muted">ここでの選択は安全な避難先の推薦・決定・開設確認ではありません。GPS・経路・外部通信・端末保存は利用しません。</p>
@@ -102,6 +105,7 @@ if (isB2Loopback(window.location.origin)) {
   const clearSelection=el("clearSelection"),clearMessage=el("clearMessage");
   const resetCriteria=el("resetCriteria");
   const openComparison=el("openComparison");
+  const returnToList=el("returnToList"),openChoice=el("openChoice");
   let session=null;
   const focusRow=(container,id)=>{
     // render() recreates buttons: restore focus to the matching new control.
@@ -128,7 +132,13 @@ if (isB2Loopback(window.location.origin)) {
     detail(dl,"出典ID（合成）",row.sourceId);
     detail(dl,"原文トレース（合成）",row.sourceTrace);
     detail(dl,"元値（合成）",row.rawValue ?? "合成データに値なし");
-    detail(dl,"未確認事項",row.unknowns.join("／"));
+    const unknownValue=node("dd",row.unknowns.length ? null : "未確認");
+    if(row.unknowns.length){
+      const items=node("ul",null,"unknown-items");
+      items.append(...row.unknowns.map(value=>node("li",value)));
+      unknownValue.append(items);
+    }
+    dl.append(node("dt","未確認事項"),unknownValue);
     detail(dl,"現在の開設",row.openStatus);
     detail(dl,"安全性","未認定");
     article.append(dl);
@@ -140,7 +150,7 @@ if (isB2Loopback(window.location.origin)) {
     filter.disabled=!usable;query.disabled=!usable;
     clearSelection.disabled=!usable;
     resetCriteria.hidden=true;
-    openComparison.hidden=true;
+    openComparison.hidden=returnToList.hidden=openChoice.hidden=true;
     el("state").textContent=session.message;
     el("stats").textContent=usable||session.state==="EMPTY_DATASET"?
       "合成総数 "+session.total+"件｜CANDIDATE "+session.counts.CANDIDATE+
@@ -179,7 +189,7 @@ if (isB2Loopback(window.location.origin)) {
       return;
     }
     el("compareMessage").textContent="2件を比較中。順位付け・安全性の判定はしません。";
-    openComparison.hidden=false;
+    openComparison.hidden=returnToList.hidden=openChoice.hidden=false;
     selected.forEach((r,i)=>compare.append(card(r,i?"B":"A")));
     const chosenRow=session.choice();
     for(const row of selected){

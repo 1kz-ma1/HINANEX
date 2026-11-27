@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>F05 安全な画面導線（ローカル試作） | HINANEX</title>
+  <style>
+    :root{font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,system-ui,sans-serif;color:#233944;background:#f4f7f7}
+    *{box-sizing:border-box}
+    body{margin:0;min-width:280px}
+    a:focus-visible,select:focus-visible{outline:3px solid #bc6011;outline-offset:3px}
+    .skip{position:absolute;top:-120px;left:12px;padding:12px;background:#fff;z-index:2}
+    .skip:focus{top:12px}
+    header{background:#143c51;color:#fff;padding:15px max(20px,calc((100vw - 1060px)/2))}
+    header strong{letter-spacing:.04em}
+    header small{margin-left:15px;font-size:.76rem;font-weight:400}
+    main{max-width:1060px;margin:0 auto;padding:45px 22px 60px}
+    .eyebrow{font-size:.72rem;letter-spacing:.16em;color:#1c6382;font-weight:700}
+    h1{font-size:clamp(1.85rem,4vw,2.8rem);line-height:1.5;letter-spacing:-.03em}
+    h2{font-size:1.23rem}
+    p{line-height:1.85}
+    .intro{max-width:810px}
+    .notice{margin:22px 0 30px;padding:16px 19px;border-left:5px solid #b26910;background:#fff8e8;line-height:1.85}
+    .notice strong{display:block;color:#684009}
+    .choose{background:white;border:1px solid #d4e0e3;border-radius:15px;padding:24px;display:grid;grid-template-columns:1fr minmax(220px,360px);gap:24px;align-items:center}
+    label{display:block;font-weight:700;margin-bottom:9px}
+    select{font:inherit;background:#fff;color:#233944;width:100%;min-height:48px;padding:10px;border:1px solid #8398a2;border-radius:8px}
+    .hint{font-size:.88rem;color:#435b68}
+    .cards{margin-top:23px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+    article{background:#fff;border:1px solid #d4e0e3;padding:24px;border-radius:15px;min-width:0}
+    .number{display:inline-block;background:#e0f0f5;color:#15506b;border-radius:50%;width:42px;height:42px;text-align:center;line-height:42px;font-weight:800}
+    article h2{line-height:1.5;margin:12px 0}
+    article p{color:#465a65}
+    .button{display:flex;align-items:center;justify-content:center;min-height:48px;text-align:center;padding:10px 14px;background:#095773;color:#fff;text-decoration:none;font-weight:700;border-radius:9px}
+    .button:hover{background:#073e55}
+    .button[hidden]{display:none}
+    .muted{background:#ecf1f2}
+    .status{font-size:.88rem;color:#455967}
+    .more{border-top:1px solid #ccdade;margin-top:35px;padding-top:20px}
+    footer{text-align:center;color:#58707b;padding:24px;border-top:1px solid #d4e0e3;font-size:.84rem}
+    @media(max-width:820px){.cards,.choose{grid-template-columns:1fr}}
+    @media(max-width:360px){main{padding:25px 14px}.choose,article{padding:18px}h1 br{display:none}}
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">本文へ移動</a>
+  <header><strong>HINANEX</strong><small>F05 / LOCAL PROTOTYPE / 未公開</small></header>
+  <main id="main">
+    <section class="intro">
+      <p class="eyebrow">FLOOD JOURNEY / SAFE HANDOFF</p>
+      <h1>洪水情報と施設記録を、<br>ひとつずつ確かめる。</h1>
+      <p>地図の洪水情報と施設の掲載記録は別々の根拠に基づいています。自動で対応付けず、本人が必要な情報を確認する導線だけを試作します。</p>
+      <div class="notice" role="note">
+        <strong>災害時の避難判断には使用できません。</strong>
+        施設の正式指定、災害適合性、開設、入口、経路の安全性は未確認です。F02の実施設表示は一般公開が未承認です。
+      </div>
+    </section>
+    <section class="choose" aria-labelledby="regionTitle">
+      <div>
+        <p class="eyebrow">MANUAL CONTEXT / 地域の本人選択</p>
+        <h2 id="regionTitle">地域を選んで確認する</h2>
+        <p>F01の地図上の位置やリスク区分、施設IDはF02に自動転送しません。</p>
+      </div>
+      <div>
+        <label for="regionSelect">確認する地域</label>
+        <select id="regionSelect" aria-describedby="regionStatus">
+          <option value="">地域を選択してください</option>
+          <option value="13123">東京都 江戸川区（試作対象）</option>
+        </select>
+        <p id="regionStatus" class="hint" role="status" aria-live="polite">未選択です。</p>
+      </div>
+    </section>
+    <div class="cards" aria-label="確認する順序">
+      <article>
+        <span class="number" aria-hidden="true">01</span>
+        <h2>F01 洪水・地図情報</h2>
+        <p>地図側で出典・想定条件・取得状態を確認します。地域は地図画面で改めて選んでください。</p>
+        <a id="f01Link" class="button" href="/gis/gis/">地図を開く</a>
+      </article>
+      <article>
+        <span class="number" aria-hidden="true">02</span>
+        <h2>F02 施設の掲載記録</h2>
+        <p>Dが記録した施設名や出典を閲覧します。掲載は安全・開設中・災害適合の証明ではありません。</p>
+        <a id="f02Link" class="button" hidden>ローカルで施設記録を開く</a>
+        <p id="f02Status" class="status" role="status" aria-live="polite">ローカルで地域を選んだときだけ導線が表示されます。</p>
+      </article>
+      <article class="muted">
+        <span class="number" aria-hidden="true">03</span>
+        <h2>F05 本人による確認</h2>
+        <p>自動比較・推薦・施設の安全判定・保存は未実装です。参照情報を見比べても避難先の認定とはなりません。</p>
+        <p class="status">参考経路は未提供です。</p>
+      </article>
+    </div>
+    <section class="more">
+      <h2>情報が確認できないとき</h2>
+      <p>F01とF02は独立して動作します。取得失敗時に合成データや過去の結果を自動表示しません。現在の避難情報は<a href="https://www.city.edogawa.tokyo.jp/e007/bosaianzen/bosai/oshirase/bousaiapuri.html" target="_blank" rel="noopener noreferrer">江戸川区の公式防災情報</a>を本人が確認してください。</p>
+    </section>
+  </main>
+  <footer>F05 P0 / GPS・施設自動結合・localStorage・自動外部通信なし</footer>
+  <script type="module">
+    import { buildF05Journey } from "../../src/f05-journey-model.js";
+    const selectedRegion = document.getElementById("regionSelect");
+    const f01 = document.getElementById("f01Link");
+    const f02 = document.getElementById("f02Link");
+    const regionStatus = document.getElementById("regionStatus");
+    const f02Status = document.getElementById("f02Status");
+    function render() {
+      // Only the user's select value is used. No URL search/GPS/storage read.
+      const state = buildF05Journey({regionCode:selectedRegion.value, origin:window.location.origin});
+      f01.href = state.f01Href;
+      f02.hidden = state.f02Href === null;
+      if (state.f02Href) f02.href = state.f02Href;
+      else f02.removeAttribute("href");
+      if (state.status === "REGION_UNSELECTED") {
+        regionStatus.textContent = "地域は未選択です。";
+        f02Status.textContent = "本人が地域を選択した場合だけローカルで施設記録を確認できます。";
+      } else if (state.status === "LOCAL_F02_LINK") {
+        regionStatus.textContent = "江戸川区を本人が選択しました。地図側の選択とは連動しません。";
+        f02Status.textContent = "ローカル限定です。データ取得可否はF02画面で別途確認します。";
+      } else {
+        regionStatus.textContent = "江戸川区を選択しました。";
+        f02Status.textContent = "F02は一般公開されていないため、ここでは開けません。";
+      }
+    }
+    selectedRegion.addEventListener("change",render);
+    render();
+  </script>
+</body>
+</html>

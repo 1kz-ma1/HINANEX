@@ -13,9 +13,12 @@ label{display:block;font-weight:700;font-size:.84rem;margin:8px 0}input{display:
 #load-state{font-size:.88rem;color:#4d6770}#load-state.error{color:#a13b32;font-weight:650}.count{font-size:.78rem;color:#536e77}.results{display:grid;gap:9px}
 .record{display:block;text-align:left;width:100%;border:1px solid #d9e5e6;border-radius:11px;background:#fff;padding:13px 14px;cursor:pointer;font:inherit;color:inherit}
 .record:hover,.record[aria-pressed=true]{background:#ebf7f4;border-color:#54aba9}.record strong{display:block;font-size:.92rem}.record small{color:#63777d}
-.return-record,.clear-search{min-height:44px;max-width:100%;padding:9px 12px;border:1px solid #54aba9;border-radius:9px;background:#ebf7f4;color:#203b46;font:inherit;cursor:pointer;overflow-wrap:anywhere}.return-record[hidden],.clear-search[hidden]{display:none}
+.return-record,.clear-search,.retry-load,.clear-record{min-height:44px;max-width:100%;padding:9px 12px;border:1px solid #54aba9;border-radius:9px;background:#ebf7f4;color:#203b46;font:inherit;cursor:pointer;overflow-wrap:anywhere}.return-record[hidden],.clear-search[hidden],.retry-load[hidden],.clear-record[hidden]{display:none}
+.clear-record{display:block;margin-top:8px}
+.retry-load[aria-disabled=true]{opacity:.6;cursor:wait}#load-state:focus-visible{outline:3px solid #d08913;outline-offset:3px}
 .detail dl{display:grid;grid-template-columns:minmax(7rem,.65fr) 1fr;margin:0}.detail dt,.detail dd{padding:10px;border-bottom:1px solid #ecf0f0;overflow-wrap:anywhere}.detail dt{font-size:.77rem;color:#607982}.detail dd{font-weight:600;font-size:.88rem;margin:0}
 .notice{padding:12px;border-radius:10px;background:#f9f4e8;color:#60461d;font-size:.82rem}.source-panel{margin-top:16px}.source-panel>p{color:#5e747b;font-size:.87rem}
+.return-detail:not([hidden]){display:inline-flex;align-items:center;min-height:44px}
 .source{border-top:1px solid #e6eeee;padding:13px 0}.source h3{font-size:.9rem;margin:0 0 3px}.source p{margin:3px 0;font-size:.82rem;overflow-wrap:anywhere}
 .footnote{color:#56717a;font-size:.82rem;max-width:900px;margin:20px auto}
 @media(min-width:781px){.columns>.panel:nth-child(2){position:sticky;top:12px;max-height:calc(100vh - 24px);overflow-y:auto}}

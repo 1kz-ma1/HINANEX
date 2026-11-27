@@ -1,4 +1,4 @@
-import { createRegionExportController } from "./region-export-loader.js";
+import { createRegionExportController, RegionExportLoadError } from "./region-export-loader.js";
 import { buildF02ShelterReference, searchF02Facilities } from "./f02-shelter-reference.js";
 
 const search = document.getElementById("search");
@@ -7,9 +7,13 @@ const results = document.getElementById("results");
 const detail = document.getElementById("detail");
 const sources = document.getElementById("sources");
 const status = document.getElementById("load-state");
+const retryLoad = document.getElementById("retry-load");
 const count = document.getElementById("record-count");
 const detailTitle = document.getElementById("detail-title");
 const returnToRecord = document.getElementById("return-to-record");
+const returnToDetail = document.getElementById("return-to-detail");
+const clearRecord = document.getElementById("clear-record");
+const regionCode = "13123";
 let reference = null;
 let selectedId = null;
 
@@ -28,6 +32,8 @@ function paragraph(parent, text, className) {
 function clearDetail() {
   returnToRecord.hidden = true;
   returnToRecord.removeAttribute("aria-label");
+  returnToDetail.hidden = true;
+  clearRecord.hidden = true;
   detail.replaceChildren();
   paragraph(detail, "施設を選択してください。出典はDataset単位で、施設単位の承認とは区別します。");
 }
@@ -36,6 +42,8 @@ function addDetailField(table, label, value) {
 }
 function renderDetail(record) {
   returnToRecord.hidden = false;
+  returnToDetail.hidden = false;
+  clearRecord.hidden = false;
   returnToRecord.setAttribute("aria-label", "選択した施設へ戻る（" + record.name + "）");
   detail.replaceChildren();
   detail.append(create("h3", record.name));
@@ -136,12 +144,7 @@ function renderList() {
     button.append(create("small", item.hasCoordinates ? "座標値あり（指定範囲は未確認）" : "座標なし・位置未確認"));
     button.addEventListener("click", () => {
       selectedId = item.id;
-      // Avoid replacing the selected button: it destroys keyboard focus and
-      // can trigger scroll anchoring or a page jump in Safari.
-      for (const recordButton of results.querySelectorAll(".record")) {
-        recordButton.setAttribute("aria-pressed",
-          String(recordButton.dataset.recordId === selectedId));
-      }
+      updateRecordSelection();
       renderDetail(item);
       // Keep the accessible destination without scrolling the user's list.
       detailTitle.focus({ preventScroll: true });
@@ -149,7 +152,18 @@ function renderList() {
     results.append(button);
   });
 }
-function setFailure(message) {
+function updateRecordSelection() {
+  // Keep the existing buttons so focus and scroll anchoring remain stable.
+  for (const button of results.querySelectorAll(".record")) {
+    button.setAttribute("aria-pressed", String(button.dataset.recordId === selectedId));
+  }
+}
+function hideRetry(focusTarget) {
+  const wasFocused = document.activeElement === retryLoad;
+  retryLoad.hidden = true;
+  if (wasFocused) focusTarget.focus();
+}
+function setFailure(message, canRetry = false) {
   reference = null;
   selectedId = null;
   search.disabled = true;
@@ -162,14 +176,29 @@ function setFailure(message) {
   status.textContent = "RegionExportを表示できません: " + message +
     "。施設0件と同一視せず、取得または契約を確認してください。";
   clearDetail();
+  if (canRetry) {
+    retryLoad.hidden = false;
+    retryLoad.removeAttribute("aria-disabled");
+  } else {
+    hideRetry(status);
+  }
 }
 const controller = createRegionExportController({
+  async fetchImpl(url, options) {
+    try {
+      return await fetch(url, options);
+    } catch (error) {
+      if (error?.name === "AbortError") throw error;
+      throw new RegionExportLoadError("RegionExportの取得先に接続できませんでした", { cause: error });
+    }
+  },
   onLoading() {
+    if (!retryLoad.hidden) retryLoad.setAttribute("aria-disabled", "true");
     status.classList.remove("error");
     status.textContent = "RegionExportを読み込み中です。";
   },
   onSuccess(payload) {
-    reference = buildF02ShelterReference(payload, "13123");
+    reference = buildF02ShelterReference(payload, regionCode);
     selectedId = null;
     if (reference.state === "NO_DATASET") {
       setFailure("shelter_location Datasetが収録されていません");
@@ -180,10 +209,15 @@ const controller = createRegionExportController({
     clearDetail();
     renderSources();
     renderList();
+    hideRetry(search);
   },
   onError(error) {
-    setFailure(error.message);
+    setFailure(error.message, error instanceof RegionExportLoadError);
   },
+});
+retryLoad.addEventListener("click", () => {
+  if (retryLoad.hidden || retryLoad.getAttribute("aria-disabled") === "true") return;
+  controller.selectRegion(regionCode);
 });
 search.addEventListener("input", renderList);
 clearSearch.addEventListener("click", () => {
@@ -192,12 +226,19 @@ clearSearch.addEventListener("click", () => {
   renderList();
   search.focus();
 });
-returnToRecord.addEventListener("click", () => {
+function focusRecord(id) {
   const target = [...results.querySelectorAll(".record")]
-    .find(button => button.dataset.recordId === selectedId);
+    .find(button => button.dataset.recordId === id);
   if (!target) return;
   target.focus({ preventScroll: true });
-  // Only this explicit return action scrolls to the selected list item.
   target.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+}
+returnToRecord.addEventListener("click", () => focusRecord(selectedId));
+clearRecord.addEventListener("click", () => {
+  const clearedId = selectedId;
+  selectedId = null;
+  updateRecordSelection();
+  clearDetail();
+  focusRecord(clearedId);
 });
-controller.selectRegion("13123");
+controller.selectRegion(regionCode);
