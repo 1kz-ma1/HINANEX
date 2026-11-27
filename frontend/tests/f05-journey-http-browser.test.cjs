@@ -104,3 +104,98 @@ test("F05 B1 real HTTP Chrome: manual region, F01/F02 links, reset, keyboard, wi
       await new Promise((resolve,reject)=>srv.server.close(err=>err?reject(err):resolve()));
     }
   });
+
+// Test the already-approved manual B1 -> F02 link with real F02 assets,
+// not a replacement page. Only generated synthetic JSON is served.
+// F01 GIS, B2/S1 connections, official data, physical devices and LIVE
+// are outside this test. Keep this test in the existing private path.
+test("F05 B1 to actual F02 HTTP Chrome: explicit navigation, failed fetch, retry and read-only record",
+  {timeout:120000},async t=>{
+    const bin=browserBinary();
+    if(!bin){
+      if(process.env.CI||process.env.B1_REQUIRE_CHROME==="1")throw Error("Chrome is required for B1 integration in CI");
+      t.skip("Chrome binary unavailable");return;
+    }
+    const exportPath="/pipeline/data/output/edogawa.json";
+    const allowed=new Set([hub,model,f02,"/frontend/f02.css",
+      "/frontend/src/f02-page.js","/frontend/src/f02-shelter-reference.js",
+      "/frontend/src/region-export-loader.js","/frontend/src/region-export-source.js"]);
+    const fixture={meta:{schema_version:"0.9"},
+      region:{code:"13123",name:"東京都江戸川区（合成fixture）"},
+      datasets:[{region_code:"13123",region_name:"東京都江戸川区（合成fixture）",
+        requirement_code:"shelter_location",records:[
+          {id:"synthetic-handoff-1",name:"架空引継ぎ施設A",address:null,facility_type:null,
+            supported_disasters:null,latitude:null,longitude:null},
+          {id:"synthetic-handoff-2",name:"架空引継ぎ施設B",address:null,facility_type:null,
+            supported_disasters:null,latitude:null,longitude:null}],
+        evidence:[{source_name:"合成引継ぎ資料",source_url:"https://example.invalid/b1-f02-fixture"}]}]};
+    const requests=[];
+    let attempts=0,browser;
+    const server=http.createServer((req,res)=>{
+      requests.push(req.url);
+      if(req.method!=="GET"){res.writeHead(405);res.end();return;}
+      if(req.url==="/favicon.ico"){res.writeHead(204);res.end();return;}
+      if(req.url===exportPath){
+        if(req.headers.referer!=="http://127.0.0.1:"+server.address().port+f02){
+          res.writeHead(400);res.end("F02 document required");return;
+        }
+        attempts++;
+        res.writeHead(attempts===1?503:200,{"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store"});
+        res.end(attempts===1?"{}":JSON.stringify(fixture));return;
+      }
+      if(!allowed.has(req.url)){res.writeHead(404);res.end();return;}
+      res.writeHead(200,{"Content-Type":(req.url.endsWith(".js")?"text/javascript":req.url.endsWith(".css")?"text/css":"text/html")+"; charset=utf-8","Cache-Control":"no-store","Referrer-Policy":"same-origin"});
+      fs.createReadStream(path.join(root,req.url.slice(1))).pipe(res);
+    });
+    await new Promise((resolve,reject)=>{server.once("error",reject);server.listen(0,"127.0.0.1",resolve);});
+    const base="http://127.0.0.1:"+server.address().port;
+    try{
+      browser=await launchChrome(bin);
+      const {command,evaluate}=browser;
+      await command("Page.enable");await command("Runtime.enable");await command("Network.enable");
+      await command("Emulation.setDeviceMetricsOverride",{width:390,height:844,deviceScaleFactor:1,mobile:false});
+      const navigation=await command("Page.navigate",{url:base+hub});
+      assert.ok(!navigation.errorText,navigation.errorText);
+      await waitUntil(evaluate,"location.pathname==="+JSON.stringify(hub)+" && document.readyState==='complete' && !!document.querySelector('#regionSelect')","real B1");
+      assert.equal(await evaluate("document.querySelector('#regionSelect').value"),"");
+      assert.ok(await evaluate("document.querySelector('#f02Link').hidden && !document.querySelector('#f02Link').hasAttribute('href')"));
+      assert.equal(attempts,0);
+      await evaluate("document.querySelector('#regionSelect').focus()");
+      await press(command,"ArrowDown","ArrowDown",40);
+      await press(command,"Tab","Tab",9);await press(command,"Tab","Tab",9);
+      assert.equal(await evaluate("document.activeElement.id"),"f02Link");
+      assert.equal(await evaluate("document.querySelector('#f02Link').getAttribute('href')"),f02);
+      assert.equal(attempts,0,"no fetch before explicit navigation");
+      await press(command,"Enter","Enter",13,"\r");
+      await waitUntil(evaluate,"location.pathname==="+JSON.stringify(f02)+" && document.readyState==='complete' && document.querySelector('#load-state')?.classList.contains('error') && document.querySelector('#retry-load')?.hidden===false","real F02 first transport failure");
+      assert.equal(await evaluate("location.search"),"");
+      assert.equal(await evaluate("document.querySelector('#search').disabled"),true);
+      assert.equal(await evaluate("document.querySelectorAll('#results .record').length"),0);
+      assert.ok(await evaluate("document.querySelector('#load-state').textContent.includes('施設0件と同一視せず')"));
+      assert.equal(attempts,1);
+      await evaluate("document.querySelector('#retry-load').focus()");
+      await press(command,"Enter","Enter",13,"\r");
+      await waitUntil(evaluate,"document.querySelector('#search')?.disabled===false && document.querySelectorAll('#results .record').length===2 && document.querySelector('#sources')?.textContent.includes('合成引継ぎ資料')","actual F02 retry renders synthetic records and evidence");
+      assert.equal(attempts,2);
+      assert.equal(await evaluate("document.activeElement.id"),"search");
+      assert.ok(await evaluate("document.querySelector('#record-count').textContent.includes('座標なし 2件') && document.querySelector('#clear-record').hidden"));
+      await command("Input.insertText",{text:"施設A"});
+      await waitUntil(evaluate,"document.querySelectorAll('#results .record').length===1","search in actual F02");
+      await press(command,"Tab","Tab",9);
+      assert.equal(await evaluate("document.activeElement.dataset.recordId"),"synthetic-handoff-1");
+      await press(command,"Enter","Enter",13,"\r");
+      assert.ok(await evaluate("document.querySelector('#detail h3')?.textContent==='架空引継ぎ施設A' && document.querySelector('#detail').textContent.includes('座標なし・位置未確認') && document.querySelector('#detail').textContent.includes('安全性は未確認')"));
+      await evaluate("document.querySelector('#clear-record').focus()");
+      await press(command,"Enter","Enter",13,"\r");
+      assert.deepEqual(await evaluate("({query:document.querySelector('#search').value,id:document.activeElement.dataset.recordId,pressed:document.activeElement.getAttribute('aria-pressed'),hidden:document.querySelector('#clear-record').hidden})"),{query:"施設A",id:"synthetic-handoff-1",pressed:"false",hidden:true});
+      assert.equal(await evaluate("localStorage.length+sessionStorage.length"),0);
+      assert.deepEqual(browser.exceptions,[]);
+      assert.ok(browser.outbound.every(u=>u.startsWith(base+"/")&&[...allowed,exportPath,"/favicon.ico"].includes(u.slice(base.length))),JSON.stringify(browser.outbound));
+      assert.ok(requests.every(u=>allowed.has(u)||u===exportPath||u==="/favicon.ico"),JSON.stringify(requests));
+      for(const asset of allowed)assert.ok(requests.includes(asset),"missing real asset "+asset);
+      console.log("F05_B1_F02_REAL_HANDOFF_HTTP: explicit Enter, actual F02 assets, synthetic 503 then retry, search/detail/clear, unknown retained, no auto external requests PASS");
+    }finally{
+      try{if(browser)await stopChrome(browser.child,browser.profile,browser.ws);}
+      finally{await new Promise(resolve=>{server.close(resolve);server.closeAllConnections?.();});}
+    }
+  });
