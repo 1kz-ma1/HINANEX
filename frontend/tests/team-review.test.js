@@ -506,3 +506,18 @@ test("team review real HTTP Chrome preserves edits and round-trips an actual dow
       }
     }
   });
+
+test("team review stays out of public entrypoint and public build metadata", async () => {
+  const names = ["index.html", "README.md", "scripts/build-check.js"];
+  for (const name of names) {
+    const publicText = await readFile(new URL("../" + name, import.meta.url), "utf8");
+    assert.doesNotMatch(publicText, /team-review\.html|team-review-example\.json|hinanex\.team-review\.v1|TEAM_REVIEW_ACCEPTANCE_20261022|NAGOYA_PDF_DIFF_REVIEW_QUEUE_ACCEPTANCE_20261022|NAGOYA_P1_PDF_ROW_DIFF_CANDIDATES_NOT_OFFICIAL_APPROVAL/i, name);
+  }
+  // Former public build-check private checks: keep them in required npm test.
+  assert.ok(page.includes("hinanex.team-review.v1"));
+  assert.doesNotMatch(page, /<script[^>]+src\s*=/i);
+  assert.equal(example.schema_id, "hinanex.team-review.v1");
+  assert.equal(example.safety.approved_for_map, false);
+  assert.equal(example.safety.data_promotion_authorized, false);
+  assert.equal(example.safety.official_facility_positions_accepted, 0);
+});
