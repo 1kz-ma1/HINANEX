@@ -268,6 +268,175 @@ test("offline UI has unload protection and no misleading legacy merge language",
 });
 
 
+// Fully synthetic facility names and addresses. The municipality PDF URLs
+// are only used to simulate exact origin binding, not to claim source facts.
+const pdfUrls=[
+  "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/013/492/okunai16tenpaku0809.pdf",
+  "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/013/492/okunai13moriyama0809.pdf",
+  "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/013/492/okunai14midori0806.pdf",
+  "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/013/492/okunai02higashi0809.pdf",
+  "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/013/492/okunai05nakamura0804.pdf"
+];
+// Actual provider ward labels/URLs only; facilities/addresses stay fictional.
+const fakeWards=["天白区","天白区","天白区","守山区","守山区","守山区","緑区","東区","中村区"];
+const pdfByFacility=[0,0,0,1,1,1,2,3,4];
+function makeTriageFixture() {
+  const review=clone(example);
+  review.dataset.id="nagoya-stage7-P1";
+  review.records=fakeWards.map((ward,i)=>{
+    const r=clone(example.records[i%example.records.length]);
+    r.id="synthetic-"+i;
+    r.name="架空検証施設"+i;
+    r.address="架空町"+i+"-10";
+    r.priority="P1";
+    r.sources=[{title:"合成テスト用公式リンク紐付け",url:pdfUrls[pdfByFacility[i]]}];
+    return r;
+  });
+  const report={
+    report_kind:"NAGOYA_P1_PDF_ROW_DIFF_CANDIDATES_NOT_OFFICIAL_APPROVAL",
+    status:"HUMAN_REVIEW_REQUIRED",
+    previous_captured_at_utc:"2026-10-21T01:00:00Z",
+    current_captured_at_utc:"2026-10-22T01:00:00Z",
+    source_changed_count:1,
+    facility_count:9,
+    baseline_extract_matched_count:9,
+    current_extract_matched_count:9,
+    row_changed_candidate_count:0,
+    unresolved_extraction_count:0,
+    human_review_required_count:3,
+    facilities:review.records.map((r,i)=>({
+      ward:fakeWards[i], name:r.name,address:r.address,
+      source_url:pdfUrls[pdfByFacility[i]],
+      source_bytes_changed:i<3,
+      classification:i<3
+        ?"ROW_TEXT_UNCHANGED_SOURCE_CHANGED_REVIEW_REQUIRED"
+        :"SOURCE_BYTES_UNCHANGED_NOT_OFFICIAL_APPROVAL"
+    })),
+    safety:{approved_for_map:false,data_promotion_authorized:false,
+      official_facility_positions_accepted:0},
+    warning:"Synthetic PDF row diff report, no source meaning or site approved"
+  };
+  return {review, report};
+}
+const checkTriage=vm.runInContext("validateTriageReport",context);
+const filterTriage=vm.runInContext("triageMatches",context);
+test("real report schema overlays nine P1 records without mutating source reviews", () => {
+  const {review,report}=makeTriageFixture();
+  const before=JSON.stringify(review);
+  const matching=checkTriage(report,review);
+  assert.equal(matching.size,9);
+  assert.equal(JSON.stringify(review),before);
+  assert.equal(report.safety.official_facility_positions_accepted,0);
+  const first=matching.get(review.records[0].id);
+  const other=matching.get(review.records[3].id);
+  assert.equal(filterTriage(first,"review_required"),true);
+  assert.equal(filterTriage(first,"source_changed"),true);
+  assert.equal(filterTriage(first,"row_changed"),false);
+  assert.equal(filterTriage(other,"no_diff"),true);
+  assert.equal(filterTriage(other,"review_required"),false);
+});
+test("actual-style zero-change report keeps all reviews intact; no promotion",()=>{
+  const {review,report}=makeTriageFixture();
+  report.facilities.forEach(row=>{
+    row.source_bytes_changed=false;
+    row.classification="SOURCE_BYTES_UNCHANGED_NOT_OFFICIAL_APPROVAL";
+  });
+  report.status="EXTRACTED_ROW_TEXT_UNCHANGED_NOT_APPROVAL";
+  report.source_changed_count=0;
+  report.human_review_required_count=0;
+  review.records[0].review.status="evidence_found";
+  review.records[0].review.notes="架空レビュー：元の記録";
+  assert.equal(checkTriage(report,review).size,9);
+  assert.equal(review.records[0].review.status,"evidence_found");
+  assert.equal(review.records[0].review.notes,"架空レビュー：元の記録");
+  assert.equal(review.safety.approved_for_map,false);
+});
+test("triage rejects approval, extra coordinate, wrong source URL, identity and forged counts",()=>{
+  const scenarios=[
+    d=>{d.report.safety.approved_for_map=true;},
+    d=>{d.report.facilities[0].candidate_coordinates={lat:35,long:136};},
+    d=>{d.report.facilities[0].source_url="https://external.example/shelter.pdf";},
+    d=>{d.report.facilities[0].source_url="https://www.city.nagoya.jp.evil.example/a.pdf";},
+    d=>{d.report.facilities[0].name="異なる施設";},
+    d=>{d.report.facilities[1].name=d.report.facilities[0].name;
+        d.report.facilities[1].address=d.report.facilities[0].address;},
+    d=>{d.report.row_changed_candidate_count=1;},
+    d=>{d.report.human_review_required_count=0;},
+    d=>{d.report.source_changed_count=0;},
+    d=>{d.report.facilities.pop();},
+    d=>{d.report.is_safe_for_flood=true;},
+    d=>{d.report.current_captured_at_utc="not-a-date";},
+    d=>{d.review.dataset.id="edogawa-something";},
+    d=>{d.review.records[0].sources=[];},
+    d=>{d.report.facilities[0].classification="APPROVED";},
+    d=>{d.report.facilities[0].source_bytes_changed=false;},
+    d=>{d.report.status="EXTRACTED_ROW_TEXT_UNCHANGED_NOT_APPROVAL";},
+  ];
+  for(let i=0;i<scenarios.length;i++){
+    const d=makeTriageFixture();
+    scenarios[i](d);
+    assert.throws(()=>checkTriage(d.report,d.review),undefined, "case "+i);
+  }
+});
+test("all five PDF triage statuses retain distinct human review semantics",()=>{
+  const {review,report}=makeTriageFixture();
+  report.facilities[0].classification="ROW_TEXT_CHANGED_HUMAN_REVIEW_REQUIRED";
+  report.row_changed_candidate_count=1;
+  assert.equal(checkTriage(report,review).size,9);
+  assert.equal(filterTriage(report.facilities[0],"row_changed"),true);
+  report.facilities[0].classification="ROW_EXTRACTION_UNRESOLVED_REVIEW_REQUIRED";
+  report.row_changed_candidate_count=0;
+  report.unresolved_extraction_count=1;
+  report.current_extract_matched_count=8;
+  assert.equal(checkTriage(report,review).size,9);
+  assert.equal(filterTriage(report.facilities[0],"unresolved"),true);
+});
+test("PDF extraction counts distinguish unresolved rows from matched-but-inconsistent rows",()=>{
+  const {review,report}=makeTriageFixture();
+  // All PDFs unchanged; vary only the provider's per-row extraction classifications.
+  report.source_changed_count=0;
+  let cases=0, valid=0;
+  for(let u=0;u<=9;u++){
+    // Enumerate possible snapshot match-count pairs by assigning each unresolved
+    // row baseline-only, current-only, or both unmatched (provider semantics).
+    const possible=new Set();
+    for(let onlyBaseline=0;onlyBaseline<=u;onlyBaseline++){
+      for(let onlyCurrent=0;onlyCurrent<=u-onlyBaseline;onlyCurrent++){
+        const both=u-onlyBaseline-onlyCurrent;
+        possible.add((onlyBaseline+both)+":"+(onlyCurrent+both));
+      }
+    }
+    for(let i=0;i<=9-u;i++){
+      report.facilities.forEach((row,j)=>{
+        row.source_bytes_changed=false;
+        row.classification=j<u?"ROW_EXTRACTION_UNRESOLVED_REVIEW_REQUIRED":
+          j<u+i?"SAME_BYTES_DIFFERENT_EXTRACTION_HUMAN_REVIEW_REQUIRED":
+          "SOURCE_BYTES_UNCHANGED_NOT_OFFICIAL_APPROVAL";
+      });
+      report.unresolved_extraction_count=u+i;
+      report.human_review_required_count=u+i;
+      report.status=u+i?"HUMAN_REVIEW_REQUIRED":"EXTRACTED_ROW_TEXT_UNCHANGED_NOT_APPROVAL";
+      for(let a=0;a<=9;a++)for(let b=0;b<=9;b++){
+        report.baseline_extract_matched_count=9-a;
+        report.current_extract_matched_count=9-b;
+        const label="U="+u+" I="+i+" a="+a+" b="+b;
+        if(possible.has(a+":"+b)){assert.equal(checkTriage(report,review).size,9,label);valid++;}
+        else assert.throws(()=>checkTriage(report,review),/集計値/,label);
+        cases++;
+      }
+    }
+  }
+  assert.equal(cases,5500);
+  assert.equal(valid,715);
+});
+test("triage is optional, offline and not part of reviewer JSON export",()=>{
+  assert.match(page,/id="triageInput"/);
+  assert.match(page,/id="triageFilter" disabled/);
+  assert.match(page,/triageReport=null;triageByFacility=new Map/);
+  assert.match(page,/const json=JSON\.stringify\(documentData,null,2\)/);
+  assert.doesNotMatch(page, /fetch\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
+});
+
 // Run the actual inline handlers in an isolated mock DOM. Delayed file.text
 // is manually released; no sleeps or browser claims.
 function operationHarness(data) {
@@ -361,6 +530,66 @@ test("download initiation or cancelled confirmation never clears dirty state; ex
   h.failClick();h.run("exportJson()");h.run("confirmExport()");
   assert.equal(h.run("hasUnexportedReviewChanges()"),true);
   assert.equal(h.run("pendingExportJson"),null);
+});
+
+test("triage accepts real calendar UTC boundaries and rejects impossible or normalized dates",()=>{
+  for(const date of ["2024-02-29T00:00:00Z","2026-12-31T23:59:59Z","2026-01-01T00:00:00Z"]){
+    const {review,report}=makeTriageFixture();
+    report.previous_captured_at_utc=date;report.current_captured_at_utc=date;
+    assert.equal(checkTriage(report,review).size,9);
+  }
+  for(const date of ["2026-02-29T00:00:00Z","2026-02-30T00:00:00Z","2026-04-31T00:00:00Z","2026-13-01T00:00:00Z","2026-00-01T00:00:00Z","2026-01-00T00:00:00Z","2026-01-01T24:00:00Z","2026-01-01T23:60:00Z","2026-01-01T23:59:60Z","0000-01-01T00:00:00Z"]){
+    for(const key of ["previous_captured_at_utc","current_captured_at_utc"]){
+      const {review,report}=makeTriageFixture();
+      report[key]=date;
+      assert.throws(()=>checkTriage(report,review),/日時/,date);
+    }
+  }
+});
+test("triage rejects same PDF split into forged wards, swapped provider ward labels, and source count tampering",()=>{
+  const {review,report}=makeTriageFixture();
+  const split=clone(report);
+  split.facilities[1].ward="架空の区";
+  split.source_changed_count=2;
+  assert.throws(()=>checkTriage(split,review),/区の対応/);
+  const swapped=clone(report);
+  swapped.facilities.forEach(row=>{if(row.ward==="天白区")row.ward="守山区";else if(row.ward==="守山区")row.ward="天白区";});
+  assert.throws(()=>checkTriage(swapped,review),/区の対応/);
+  const count=clone(report);count.source_changed_count=2;
+  assert.throws(()=>checkTriage(count,review),/集計値/);
+});
+test("invalid or stale PDF import preserves previous triage, baseline and review data",async()=>{
+  const {review,report}=makeTriageFixture(), h=operationHarness(review);
+  h.ctx.payload=JSON.stringify(report);
+  h.run("importTriageJson(payload)");
+  const previous=h.run("triageReport"), priorIndex=h.run("triageByFacility");
+  const before=h.run("JSON.stringify(documentData)");
+  const bad=clone(report);bad.facilities[1].ward="架空の区";bad.source_changed_count=2;
+  h.ctx.invalid=JSON.stringify(bad);
+  assert.throws(()=>h.run("importTriageJson(invalid)"),/区の対応/);
+  assert.equal(h.run("triageReport"),previous);
+  assert.equal(h.run("triageByFacility"),priorIndex);
+  const invalidDate=clone(report);invalidDate.current_captured_at_utc="2026-02-30T00:00:00Z";
+  h.ctx.invalid=JSON.stringify(invalidDate);
+  assert.throws(()=>h.run("importTriageJson(invalid)"),/日時/);
+  assert.equal(h.run("triageReport"),previous);
+  assert.equal(h.run("triageByFacility"),priorIndex);
+  const invalidCounts=clone(report);
+  invalidCounts.facilities[0].classification="ROW_EXTRACTION_UNRESOLVED_REVIEW_REQUIRED";
+  invalidCounts.unresolved_extraction_count=1; // both snapshots incorrectly claim all matched
+  h.ctx.invalid=JSON.stringify(invalidCounts);
+  assert.throws(()=>h.run("importTriageJson(invalid)"),/集計値/);
+  assert.equal(h.run("triageReport"),previous);
+  assert.equal(h.run("triageByFacility"),priorIndex);
+  assert.equal(h.run("JSON.stringify(documentData)"),before);
+  const delayed=delayedFile(report);h.ctx.file=delayed.file;
+  const reading=h.run("loadTriageFile(file)");
+  h.get("reviewNote").value="遅延中の新しいメモ";
+  delayed.release();await reading;
+  assert.equal(h.run("triageReport"),previous);
+  assert.equal(h.run("triageByFacility"),priorIndex);
+  assert.equal(h.run("JSON.stringify(documentData)"),before);
+  assert.equal(h.get("reviewNote").value,"遅延中の新しいメモ");
 });
 
 
@@ -498,6 +727,114 @@ test("team review real HTTP Chrome preserves edits and round-trips an actual dow
       assert.ok(browser.outbound.every(u=>u===url||u===origin+"/favicon.ico"||u.startsWith("blob:"+origin+"/")),JSON.stringify(browser.outbound));
       assert.ok(requests.every(p=>p==="/team-review.html"||p==="/favicon.ico"),JSON.stringify(requests));
       console.log("TEAM_REVIEW_DOWNLOAD_HTTP: real file input, Blob download bytes, cancel/confirm, fresh document and reimport PASS");
+    }finally{
+      try{if(browser)await helper.stopChrome(browser.child,browser.profile,browser.ws);}
+      finally{
+        try{if(server?.listening)await new Promise(resolve=>{server.close(resolve);server.closeAllConnections?.();});}
+        finally{await fs.rm(temp,{recursive:true,force:true,maxRetries:3,retryDelay:200});}
+      }
+    }
+  });
+
+
+// Actual HTTP Chrome, synthetic nine-site review and separate PDF report.
+// No real PDF retrieval or facility approval. Keep this existing private path.
+test("PDF triage real HTTP Chrome imports separate files, filters, rejects tampering and exports only review",
+  {timeout:120000},async t=>{
+    const {default:fs}=await import("node:fs/promises");
+    const {default:os}=await import("node:os");
+    const {default:path}=await import("node:path");
+    const {default:http}=await import("node:http");
+    const {default:helper}=await import("./helpers/http-chrome.cjs");
+    const bin=helper.browserBinary();
+    if(!bin){
+      if(process.env.CI||process.env.TEAM_REVIEW_REQUIRE_CHROME==="1")throw Error("Chrome required for PDF triage");
+      t.skip("Chrome unavailable locally");return;
+    }
+    const {review,report}=makeTriageFixture();
+    review.records[0].review={...review.records[0].review,status:"evidence_found",
+      checks:{official_source:true,identity:true,address:true,position_evidence:true},
+      reviewer:"合成班員",notes:"架空の確認記録を維持",evidence_url:"https://example.invalid/evidence",
+      reviewed_at:"2026-10-22T02:30:00.000Z"};
+    check(review);checkTriage(report,review);
+    const temp=await fs.mkdtemp(path.join(os.tmpdir(),"pdf-triage-http-"));
+    let browser,server;
+    const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+    try{
+      const input=path.join(temp,"review.json"),diff=path.join(temp,"triage.json"),bad=path.join(temp,"tampered.json");
+      const downloads=path.join(temp,"downloads");
+      const tampered=clone(report);tampered.safety.approved_for_map=true;
+      await fs.mkdir(downloads);
+      await Promise.all([[input,review],[diff,report],[bad,tampered]].map(([file,obj])=>fs.writeFile(file,JSON.stringify(obj),"utf8")));
+      const requests=[];
+      server=http.createServer((req,res)=>{
+        requests.push(req.url);
+        if(req.method==="GET"&&req.url==="/team-review.html"){
+          res.writeHead(200,{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store"});res.end(page);
+        }else{res.writeHead(404);res.end();}
+      });
+      await new Promise((resolve,reject)=>{server.once("error",reject);server.listen(0,"127.0.0.1",resolve);});
+      const origin="http://127.0.0.1:"+server.address().port,url=origin+"/team-review.html";
+      browser=await helper.launchChrome(bin);
+      const {command,evaluate}=browser;
+      await command("Page.enable");await command("Runtime.enable");await command("Network.enable");await command("DOM.enable");
+      await command("Page.setDownloadBehavior",{behavior:"allow",downloadPath:downloads});
+      async function ready(expr,label){
+        for(let i=0;i<100;i++){if(await evaluate(expr))return;await pause(100);}
+        throw Error("Timed out: "+label);
+      }
+      async function choose(selector,file){
+        const {root}=await command("DOM.getDocument");
+        const {nodeId}=await command("DOM.querySelector",{nodeId:root.nodeId,selector});
+        assert.ok(nodeId,selector);
+        await command("DOM.setFileInputFiles",{nodeId,files:[file]});
+      }
+      const nav=await command("Page.navigate",{url});assert.ok(!nav.errorText);
+      await helper.waitUntil(evaluate,"location.href==="+JSON.stringify(url)+" && document.readyState==='complete' && document.querySelector('#triageInput')?.disabled","initial PDF triage");
+      await choose("#fileInput",input);
+      await ready("!document.querySelector('#workArea').hidden && !document.querySelector('#triageInput').disabled && document.querySelector('#fileInput').value===''","review import");
+      assert.equal(await evaluate("document.querySelector('#triageSummary').hidden"),true);
+      await choose("#triageInput",diff);
+      await ready("!document.querySelector('#triageSummary').hidden && document.querySelector('#triageInput').value==='' && document.querySelector('#feedback').dataset.error==='false'","valid PDF import");
+      const summary=await evaluate("document.querySelector('#triageSummary').textContent");
+      assert.match(summary,/再確認 3件/);assert.match(summary,/承認にはなりません/);
+      await evaluate("{const e=document.querySelector('#triageFilter');e.value='review_required';e.dispatchEvent(new Event('change',{bubbles:true}))}");
+      assert.deepEqual(await evaluate("[...document.querySelectorAll('#facilityList button strong')].map(x=>x.textContent)"),review.records.slice(0,3).map(r=>r.name));
+      await evaluate("document.querySelector('#facilityList button').click()");
+      assert.equal(await evaluate("document.querySelector('#reviewNote').value"),review.records[0].review.notes);
+      assert.equal(await evaluate("document.querySelector('#reviewStatus').value"),"evidence_found");
+      assert.match(await evaluate("document.querySelector('#triageCue').textContent"),/PDF更新：あり/);
+      // Invalid replacement must not erase the current filter, report or review.
+      await choose("#triageInput",bad);
+      await ready("document.querySelector('#triageInput').value==='' && document.querySelector('#feedback').dataset.error==='true'","tampered PDF rejection");
+      assert.equal(await evaluate("document.querySelector('#triageSummary').textContent"),summary);
+      assert.equal(await evaluate("document.querySelector('#triageFilter').value"),"review_required");
+      assert.equal(await evaluate("document.querySelectorAll('#facilityList button').length"),3);
+      assert.equal(await evaluate("document.querySelector('#reviewNote').value"),review.records[0].review.notes);
+      // Unapplied editor changes must survive attempted re-import.
+      await evaluate("document.querySelector('#reviewNote').value='未反映の合成メモ'");
+      await choose("#triageInput",diff);
+      await ready("document.querySelector('#triageInput').value==='' && document.querySelector('#feedback').dataset.error==='true'","unapplied edit rejection");
+      assert.equal(await evaluate("document.querySelector('#reviewNote').value"),"未反映の合成メモ");
+      assert.equal(await evaluate("document.querySelector('#triageSummary').textContent"),summary);
+      await evaluate("document.querySelector('#reviewNote').value="+JSON.stringify(review.records[0].review.notes));
+      await evaluate("{const e=document.querySelector('#triageFilter');e.value='no_diff';e.dispatchEvent(new Event('change',{bubbles:true}));document.querySelector('#needsActionOnly').checked=false;document.querySelector('#needsActionOnly').dispatchEvent(new Event('change',{bubbles:true}))}");
+      assert.deepEqual(await evaluate("[...document.querySelectorAll('#facilityList button strong')].map(x=>x.textContent)"),review.records.slice(3).map(r=>r.name));
+      const click=await command("Runtime.evaluate",{expression:"document.querySelector('#exportButton').click()",userGesture:true,returnByValue:true});
+      assert.ok(!click.exceptionDetails,"export invocation");
+      let saved;
+      for(let i=0;i<100;i++){
+        const names=await fs.readdir(downloads);
+        const json=names.filter(n=>n.endsWith(".json"));
+        if(json.length===1&&!names.some(n=>n.endsWith(".crdownload"))){saved=JSON.parse(await fs.readFile(path.join(downloads,json[0]),"utf8"));break;}
+        await pause(100);
+      }
+      assert.ok(saved,"actual saved file");
+      assert.deepEqual(saved,review,"PDF overlay must not change or join saved review");
+      assert.deepEqual(browser.exceptions,[]);
+      assert.ok(browser.outbound.every(u=>u===url||u===origin+"/favicon.ico"||u.startsWith("blob:"+origin+"/")),JSON.stringify(browser.outbound));
+      assert.ok(requests.every(p=>p==="/team-review.html"||p==="/favicon.ico"),JSON.stringify(requests));
+      console.log("TEAM_REVIEW_PDF_TRIAGE_HTTP: actual file imports, completed-review inclusion, filters, tamper/unapplied rejection, unchanged download PASS");
     }finally{
       try{if(browser)await helper.stopChrome(browser.child,browser.profile,browser.ws);}
       finally{
