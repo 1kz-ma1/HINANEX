@@ -12,6 +12,7 @@ const count = document.getElementById("record-count");
 const detailTitle = document.getElementById("detail-title");
 const returnToRecord = document.getElementById("return-to-record");
 const returnToDetail = document.getElementById("return-to-detail");
+const clearRecord = document.getElementById("clear-record");
 const regionCode = "13123";
 let reference = null;
 let selectedId = null;
@@ -32,6 +33,7 @@ function clearDetail() {
   returnToRecord.hidden = true;
   returnToRecord.removeAttribute("aria-label");
   returnToDetail.hidden = true;
+  clearRecord.hidden = true;
   detail.replaceChildren();
   paragraph(detail, "施設を選択してください。出典はDataset単位で、施設単位の承認とは区別します。");
 }
@@ -41,6 +43,7 @@ function addDetailField(table, label, value) {
 function renderDetail(record) {
   returnToRecord.hidden = false;
   returnToDetail.hidden = false;
+  clearRecord.hidden = false;
   returnToRecord.setAttribute("aria-label", "選択した施設へ戻る（" + record.name + "）");
   detail.replaceChildren();
   detail.append(create("h3", record.name));
@@ -141,18 +144,19 @@ function renderList() {
     button.append(create("small", item.hasCoordinates ? "座標値あり（指定範囲は未確認）" : "座標なし・位置未確認"));
     button.addEventListener("click", () => {
       selectedId = item.id;
-      // Avoid replacing the selected button: it destroys keyboard focus and
-      // can trigger scroll anchoring or a page jump in Safari.
-      for (const recordButton of results.querySelectorAll(".record")) {
-        recordButton.setAttribute("aria-pressed",
-          String(recordButton.dataset.recordId === selectedId));
-      }
+      updateRecordSelection();
       renderDetail(item);
       // Keep the accessible destination without scrolling the user's list.
       detailTitle.focus({ preventScroll: true });
     });
     results.append(button);
   });
+}
+function updateRecordSelection() {
+  // Keep the existing buttons so focus and scroll anchoring remain stable.
+  for (const button of results.querySelectorAll(".record")) {
+    button.setAttribute("aria-pressed", String(button.dataset.recordId === selectedId));
+  }
 }
 function hideRetry(focusTarget) {
   const wasFocused = document.activeElement === retryLoad;
@@ -222,12 +226,19 @@ clearSearch.addEventListener("click", () => {
   renderList();
   search.focus();
 });
-returnToRecord.addEventListener("click", () => {
+function focusRecord(id) {
   const target = [...results.querySelectorAll(".record")]
-    .find(button => button.dataset.recordId === selectedId);
+    .find(button => button.dataset.recordId === id);
   if (!target) return;
   target.focus({ preventScroll: true });
-  // Only this explicit return action scrolls to the selected list item.
   target.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+}
+returnToRecord.addEventListener("click", () => focusRecord(selectedId));
+clearRecord.addEventListener("click", () => {
+  const clearedId = selectedId;
+  selectedId = null;
+  updateRecordSelection();
+  clearDetail();
+  focusRecord(clearedId);
 });
 controller.selectRegion(regionCode);
