@@ -36,6 +36,28 @@ async function runHazardInformationBrowser({context,base,out,waitUntilLoaded}) {
       position.x+position.width<=392 &&
       position.y>=-2 && position.y+position.height<=846,
       "F01 guide must fit 390x844 viewport");
+    // F13: the *served page* must stay fully reachable at every QA width.
+    for (const [width,height] of [[320,844],[390,844],[1440,900]]) {
+      await browserPage.setViewportSize({width,height});
+      const box=await guide.boundingBox();
+      assert.ok(box && box.x >= -2 && box.x + box.width <= width + 2,
+        "F13 evidence panel horizontal bounds at " + width);
+      assert.ok(box.y >= -2 && box.y + box.height <= height + 2,
+        "F13 evidence panel vertical bounds at " + width);
+      const overflow=await guide.evaluate(el => el.scrollWidth - el.clientWidth);
+      assert.ok(overflow <= 2, "F13 evidence must not overflow horizontally at " + width);
+    }
+    await browserPage.setViewportSize({width:390,height:844});
+    assert.match(await guide.innerText(),/対象外の判定/);
+    assert.match(await guide.innerText(),/未取得・通信失敗・無着色を「対象外」や「安全」と解釈しません/);
+    assert.match(await guide.innerText(),/出典・根拠/);
+    assert.match(await guide.innerText(),/情報時点/);
+    assert.match(await guide.innerText(),/未確認事項/);
+    assert.equal(await browserPage.locator("#hazardGuideStatus").getAttribute("aria-atomic"),"true");
+    await browserPage.locator("#hazardGuideRegion").focus();
+    await browserPage.keyboard.press("Tab");
+    assert.equal(await browserPage.evaluate(() => document.activeElement?.id),"hazardGuideFlood",
+      "F13 native keyboard focus moves to existing flood toggle");
     assert.match(await guide.innerText(),/施設を選択せずに/);
     assert.match(await guide.innerText(),/想定最大規模/);
     assert.match(await guide.innerText(),/元図面の作成年・改訂日を特定できません/);
@@ -68,6 +90,8 @@ async function runHazardInformationBrowser({context,base,out,waitUntilLoaded}) {
     assert.equal(await browserPage.locator("#region").inputValue(),"15100");
     assert.equal(await browserPage.locator("#hazardGuideRegion").inputValue(),"15100");
     assert.equal(await guide.isVisible(),true);
+    assert.match(await browserPage.locator("#hazardGuideStatus").innerText(),/地域切替後/,
+      "F13 must not reuse the previous viewport's raster status after region switch");
     checks.push("F01_MANUAL_REGION_USES_EXISTING_D_CONTROLLER");
 
     // Keyboard navigation: Escape closes, restores focus and aria-expanded.
@@ -81,12 +105,12 @@ async function runHazardInformationBrowser({context,base,out,waitUntilLoaded}) {
     checks.push("F01_ESCAPE_FOCUS_AND_A11Y_STATE");
 
     // On desktop the entry still fits and remains separate from the source panel.
-    await browserPage.setViewportSize({width:1365,height:900});
+    await browserPage.setViewportSize({width:1440,height:900});
     await browserPage.locator("#mapToolHazards > summary").click();
     await browserPage.locator("#hazardGuideOpen").click();
     assert.equal(await guide.isVisible(),true);
     const desktop=await guide.boundingBox();
-    assert.ok(desktop && desktop.x>=-2 && desktop.x+desktop.width<=1367,
+    assert.ok(desktop && desktop.x>=-2 && desktop.x+desktop.width<=1442,
       "F01 desktop guide must remain on screen");
     await browserPage.screenshot({path:path.join(out,"f01-hazard-desktop-1365.png"),
       animations:"disabled",fullPage:false});

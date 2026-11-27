@@ -22,20 +22,39 @@
   const refresh = get("mapFloodRefreshStatus");
   const previousError = get("externalFloodTileNotice");
 
+  // Changing the region never certifies that the map viewport or new raster
+  // has changed. Do not carry an old area's tile-result label into the new one.
+  let lastRegion = region.value;
+  let regionStatusStale = false;
+  let previousFloodEnabled = !!flood.checked;
+
   function getStatus() {
-    if (!flood.checked) return "洪水浸水想定レイヤーは非表示です。非表示は「浸水なし」を意味しません。";
-    if (refresh?.dataset?.state === "partial" ||
-        warning?.dataset?.partial === "true" ||
-        previousError?.hidden === false) {
-      return "公的洪水画像の取得失敗を検知しました（過去の閲覧範囲を含みます）。現在の範囲を含め、空白は「浸水なし」と判断できません。";
+    if (!knownRegions.has(region.value)) {
+      return "地域未確認：選択した地域を確認できません。以前の取得結果は表示しません。";
+    }
+    if (!flood.checked) {
+      return "非表示：洪水浸水想定レイヤーは非表示です。取得を要求していない状態であり、非表示は「浸水なし」を意味しません。";
+    }
+    if (regionStatusStale) {
+      return "地域切替後：以前の表示範囲の画像取得結果は引き継ぎません。現在の地図タイルの全域取得・対応範囲・最新性は確認済みではありません。";
+    }
+    if (refresh?.dataset?.state === "partial") {
+      return "画像取得失敗を検知しました。通信失敗・配信対象外・ブラウザ制限など原因は未確認です。空白は「浸水なし」を意味しません。";
     }
     if (refresh?.dataset?.state === "loading") {
-      return "公的洪水画像を更新中です。地図の空白は「浸水なし」を意味しません。";
+      return "取得中：公的洪水画像を更新中です。まだ取得を確認できない部分があり、空白は「浸水なし」を意味しません。";
     }
-    return "洪水レイヤーを表示する設定です。地図タイルの全域取得・対応範囲・最新性は確認済みではありません。";
+    if (warning?.dataset?.partial === "true" || previousError?.hidden === false) {
+      return "過去の閲覧範囲で画像取得失敗を検知しました。現在の表示範囲での取得成功・対象外・通信状況は未確認です。空白は「浸水なし」を意味しません。";
+    }
+    return "取得状態未確認：洪水レイヤーを表示する設定です。地図タイルの全域取得・対応範囲・最新性は確認済みではありません。未取得と対象外を混同しないでください。";
   }
 
   function synchronize() {
+    if (region.value !== lastRegion) {
+      lastRegion = region.value;
+      regionStatusStale = true;
+    }
     regionInput.value = knownRegions.has(region.value) ? region.value : "";
     floodInput.checked = !!flood.checked;
     status.textContent = getStatus();
@@ -91,7 +110,14 @@
     synchronize();
   });
   region.addEventListener("change", synchronize);
-  flood.addEventListener("change", synchronize);
+  flood.addEventListener("change", () => {
+    // A *real OFF -> ON transition* reattaches the Leaflet layer and starts a
+    // new attempt. Repeated ON events do not authorize an old partial result.
+    const enabled = !!flood.checked;
+    if (enabled && !previousFloodEnabled) regionStatusStale = false;
+    previousFloodEnabled = enabled;
+    synchronize();
+  });
   document.addEventListener("keydown", event => {
     if (panel.hidden || event.key !== "Escape") return;
     event.preventDefault();
@@ -104,6 +130,9 @@
   }, true);
   if (typeof MutationObserver !== "undefined") {
     const observer = new MutationObserver(() => {
+      // Leaflet's async loading/tileerror notifications have no region/request
+      // identity. A delayed event from the previous view must never clear the
+      // guard after region selection. The OFF -> ON path above is explicit.
       if (!panel.hidden) synchronize();
     });
     if (refresh) observer.observe(refresh, {
