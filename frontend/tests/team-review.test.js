@@ -362,3 +362,147 @@ test("download initiation or cancelled confirmation never clears dirty state; ex
   assert.equal(h.run("hasUnexportedReviewChanges()"),true);
   assert.equal(h.run("pendingExportJson"),null);
 });
+
+
+// Actual HTTP + Chrome, actual OS temporary JSON files and Blob download.
+// Synthetic fixture only; no real facility, private data or external request.
+test("team review real HTTP Chrome preserves edits and round-trips an actual downloaded JSON",
+  {timeout:120000}, async t => {
+    const {default:fs} = await import("node:fs/promises");
+    const {default:os} = await import("node:os");
+    const {default:path} = await import("node:path");
+    const {default:http} = await import("node:http");
+    const {default:helper} = await import("./helpers/http-chrome.cjs");
+    const bin = helper.browserBinary();
+    if (!bin) {
+      if (process.env.CI || process.env.TEAM_REVIEW_REQUIRE_CHROME === "1")
+        throw Error("Real Chrome required for team review regression");
+      t.skip("Chrome unavailable locally; no browser PASS");return;
+    }
+    const temp=await fs.mkdtemp(path.join(os.tmpdir(),"team-review-http-"));
+    let browser,server;
+    const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+    try {
+      const input=path.join(temp,"baseline.json");
+      const downloads=path.join(temp,"downloads");
+      await fs.writeFile(input,JSON.stringify(example),"utf8");
+      await fs.mkdir(downloads);
+      const requests=[];
+      server=http.createServer((req,res)=>{
+        requests.push(req.url);
+        if(req.method==="GET"&&req.url==="/team-review.html"){
+          res.writeHead(200,{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store"});
+          res.end(page);
+        }else{res.writeHead(404);res.end();}
+      });
+      await new Promise((resolve,reject)=>{server.once("error",reject);server.listen(0,"127.0.0.1",resolve);});
+      const origin="http://127.0.0.1:"+server.address().port;
+      const url=origin+"/team-review.html";
+      browser=await helper.launchChrome(bin);
+      const {command,evaluate,ws}=browser;
+      await command("Page.enable");await command("Runtime.enable");await command("Network.enable");await command("DOM.enable");
+      await command("Page.setDownloadBehavior",{behavior:"allow",downloadPath:downloads});
+      async function ready(condition,label){
+        for(let i=0;i<100;i++){
+          if(await evaluate(condition))return;
+          await pause(100);
+        }
+        throw Error("Timed out waiting for "+label);
+      }
+      async function navigate(){
+        const result=await command("Page.navigate",{url});
+        assert.ok(!result.errorText,result.errorText);
+        // Only retry transient navigation execution-context errors.
+        const end=Date.now()+10000;
+        while(Date.now()<end){
+          try{
+            if(await evaluate("location.href==="+JSON.stringify(url)+" && document.readyState==='complete' && document.querySelector('#workArea')?.hidden===true"))return;
+          }catch(error){
+            if(!/Execution context was destroyed|Cannot find context with specified id|Inspected target navigated/i.test(error.message))throw error;
+          }
+          await pause(100);
+        }
+        throw Error("Fresh empty team review document not ready");
+      }
+      async function choose(file){
+        const {root}=await command("DOM.getDocument");
+        const {nodeId}=await command("DOM.querySelector",{nodeId:root.nodeId,selector:"#fileInput"});
+        assert.ok(nodeId,"real file input");
+        await command("DOM.setFileInputFiles",{nodeId,files:[file]});
+      }
+      async function click(selector){
+        const result=await command("Runtime.evaluate",{expression:"document.querySelector("+JSON.stringify(selector)+").click()",userGesture:true,returnByValue:true});
+        if(result.exceptionDetails)throw Error("Click failed: "+result.exceptionDetails.text);
+      }
+      async function confirm(accept){
+        let listener,timer;
+        const opened=new Promise((resolve,reject)=>{
+          listener=event=>{
+            const message=JSON.parse(event.data);
+            if(message.method==="Page.javascriptDialogOpening")resolve(message.params);
+          };
+          ws.addEventListener("message",listener);
+          timer=setTimeout(()=>reject(Error("Expected actual confirmation dialog")),8000);
+        });
+        const action=click("#confirmExportButton").then(()=>null,error=>error);
+        try{
+          const dialog=await opened;
+          assert.equal(dialog.type,"confirm");
+          await command("Page.handleJavaScriptDialog",{accept});
+          const error=await action;if(error)throw error;
+        }finally{clearTimeout(timer);ws.removeEventListener("message",listener);}
+      }
+      await navigate();
+      await choose(input);
+      await ready("!document.querySelector('#workArea').hidden && document.querySelector('#facilityList').querySelectorAll('button').length===3 && document.querySelector('#fileInput').value===''","baseline import");
+      await click("#facilityList button:first-child");
+      const note="合成ブラウザ回帰：保存確認前に失わない";
+      await evaluate("document.querySelector('#reviewNote').value="+JSON.stringify(note));
+      await click("#facilityList button:nth-child(2)");
+      assert.equal(await evaluate("document.querySelector('#reviewNote').value"),note);
+      assert.equal(await evaluate("document.querySelector('#facilityName').textContent"),example.records[0].name);
+      assert.equal(await evaluate("document.querySelector('#feedback').dataset.error"),"true");
+      await click("#saveRecord");
+      await click("#exportButton");
+      await ready("!document.querySelector('#confirmExportButton').disabled","download started");
+      // A real file in the configured download directory is required, not an
+      // intercepted Blob, a mocked a.click(), or a claimed browser save.
+      let downloaded;
+      for(let i=0;i<100;i++){
+        const names=await fs.readdir(downloads);
+        const completed=names.filter(name=>name.endsWith(".json"));
+        if(completed.length===1&&!names.some(name=>name.endsWith(".crdownload"))){downloaded=path.join(downloads,completed[0]);break;}
+        await pause(100);
+      }
+      assert.ok(downloaded,"actual completed JSON download");
+      const saved=JSON.parse(await fs.readFile(downloaded,"utf8"));
+      assert.equal(saved.records[0].review.notes,note);
+      assert.deepEqual(saved.safety,example.safety);
+      await confirm(false);
+      assert.equal(await evaluate("document.querySelector('#confirmExportButton').disabled"),false);
+      await choose(input);
+      await ready("document.querySelector('#feedback').dataset.error==='true' && document.querySelector('#fileInput').value===''","unconfirmed download prevents overwrite");
+      assert.equal(await evaluate("document.querySelector('#reviewNote').value"),note);
+      await confirm(true);
+      assert.equal(await evaluate("document.querySelector('#confirmExportButton').disabled"),true);
+      assert.match(await evaluate("document.querySelector('#feedback').textContent"),/本人による保存確認/);
+      await evaluate("window.__teamReviewOldDocument=true");
+      await navigate();
+      assert.equal(await evaluate("window.__teamReviewOldDocument===undefined"),true);
+      assert.equal(await evaluate("document.querySelector('#exportButton').disabled"),true);
+      await choose(downloaded);
+      await ready("!document.querySelector('#workArea').hidden && document.querySelector('#fileInput').value===''","actual downloaded file reimport");
+      await click("#facilityList button:first-child");
+      assert.equal(await evaluate("document.querySelector('#reviewNote').value"),note);
+      assert.deepEqual(browser.exceptions,[]);
+      assert.ok(browser.outbound.every(u=>u===url||u===origin+"/favicon.ico"||u.startsWith("blob:"+origin+"/")),JSON.stringify(browser.outbound));
+      assert.ok(requests.every(p=>p==="/team-review.html"||p==="/favicon.ico"),JSON.stringify(requests));
+      console.log("TEAM_REVIEW_DOWNLOAD_HTTP: real file input, Blob download bytes, cancel/confirm, fresh document and reimport PASS");
+    }finally{
+      try{if(browser)await helper.stopChrome(browser.child,browser.profile,browser.ws);}
+      finally{
+        try{if(server?.listening)await new Promise(resolve=>{server.close(resolve);server.closeAllConnections?.();});}
+        finally{await fs.rm(temp,{recursive:true,force:true,maxRetries:3,retryDelay:200});}
+      }
+    }
+  });
