@@ -27,5 +27,5 @@ const snapshots = {
 };
 export const conditions = Object.freeze({pet:"ペットへの配慮（架空）",step:"段差への配慮（架空）"});
 export function fixedSnapshot(key) {
-  return Object.hasOwn(snapshots,key) ? structuredClone(snapshots[key]) : null;
+  return typeof key === "string" && Object.hasOwn(snapshots,key) ? structuredClone(snapshots[key]) : null;
 }

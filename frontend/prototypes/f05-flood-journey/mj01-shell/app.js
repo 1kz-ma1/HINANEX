@@ -2,6 +2,7 @@ import {createJourney,isB2Loopback,conditions} from "./model.js";
 const $=id=>document.getElementById(id);
 if(isB2Loopback(location.origin)) {
   const journey=createJourney();
+  let restoreStartFocus=false;
   const el=(tag,text,attrs={})=>{
     const node=document.createElement(tag);
     if(text!==null)node.textContent=text;
@@ -57,7 +58,8 @@ if(isB2Loopback(location.origin)) {
         const a=card(record);
         if(v.step==="J04"){
           const selected=v.selected.some(x=>x.id===record.id);
-          button(a,"toggle-"+record.id,record.name+(selected?"を比較から外す":"を比較に追加"),{type:"TOGGLE",id:record.id},{pressed:selected,disabled:!selected&&v.selected.length===2,keep:true});
+          a.append(el("p",selected?"比較対象に選択済み":"比較対象に未選択"));
+          button(a,"toggle-"+record.id,record.name+"を比較対象にする",{type:"TOGGLE",id:record.id},{pressed:selected,disabled:!selected&&v.selected.length===2,keep:true});
         }
         if(v.step==="J05")button(a,"choose-"+record.id,record.name+"を確認対象にする",{type:"CHOOSE",id:record.id},{pressed:v.choice?.id===record.id,keep:true});
         grid.append(a);
@@ -75,10 +77,26 @@ if(isB2Loopback(location.origin)) {
     if(focusId)($(focusId)??$("heading")).focus({preventScroll:focusId!=="heading"});
   }
   function reset(){
-    if(journey.dispatch({type:"END"},journey.view().revision))render(null);
+    const active=document.activeElement;
+    if(!journey.dispatch({type:"END"},journey.view().revision))return;
+    restoreStartFocus=$("content").contains(active)||$("actions").contains(active);
+    render(null);
+  }
+  function restoreFocus(){
+    if(document.hidden||!restoreStartFocus)return;
+    restoreStartFocus=false;
+    const active=document.activeElement;
+    if(!active||active===document.body||!active.isConnected)$("start").focus({preventScroll:true});
   }
   window.addEventListener("pagehide",reset);
-  window.addEventListener("pageshow",e=>{if(e.persisted)reset();});
-  document.addEventListener("visibilitychange",()=>{if(document.hidden)reset();});
+  window.addEventListener("pageshow",e=>{
+    if(!e.persisted)return;
+    reset();
+    restoreFocus();
+  });
+  document.addEventListener("visibilitychange",()=>{
+    if(document.hidden)reset();
+    else restoreFocus();
+  });
   render(null);$("onlyLocal").hidden=true;$("prototype").hidden=false;
 }

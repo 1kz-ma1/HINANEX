@@ -55,3 +55,35 @@ test("loopback allowlist",()=>{
   for(const o of ["http://127.0.0.1:8000","http://localhost:8080","http://[::1]:8000"])assert.equal(isB2Loopback(o),true);
   for(const o of ["https://localhost","http://127.0.0.2","http://example.com","null","http://localhost:8000/path"])assert.equal(isB2Loopback(o),false);
 });
+
+const rejectedKeys = [
+  ["array", ["pet"]],
+  ["boxed string", new String("pet")],
+  ["coercible object", {toString: () => "pet"}],
+  ["throwing object", {toString() {throw Error("Unexpected key coercion");}}],
+  ["symbol", Symbol("pet")],
+  ["number", 0],
+  ["null", null],
+  ["unknown string", "unknown"],
+];
+for (const [name,key] of rejectedKeys) {
+  test("rejects "+name+" as a condition without changing state",()=>{
+    const j=createJourney();
+    assert.equal(act(j,"START"),true);
+    const before=j.view();
+    assert.equal(act(j,"CONDITION",{key}),false);
+    assert.deepEqual(j.view(),before);
+    assert.equal(act(j,"SHOW"),false);
+  });
+  test("rejects "+name+" as a fixed snapshot key",()=>{
+    assert.equal(fixedSnapshot(key),null);
+  });
+}
+test("both supported conditions remain selectable",()=>{
+  for(const key of ["pet","step"]){
+    const j=createJourney();
+    reach(j,key);
+    assert.equal(j.view().condition,key);
+    assert.equal(j.view().rows.length,fixedSnapshot(key).records.length);
+  }
+});

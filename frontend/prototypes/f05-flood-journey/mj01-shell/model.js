@@ -24,7 +24,7 @@ export function createJourney() {
         if(!["IDLE","LOAD_ERROR"].includes(step))return false;
         discard("J02");break;
       case "CONDITION":
-        if(step!=="J02"||!Object.hasOwn(conditions,action.key))return false;
+        if(step!=="J02"||typeof action.key!=="string"||!Object.hasOwn(conditions,action.key))return false;
         condition=action.key;break;
       case "SHOW":
         if(step!=="J02"||!condition)return false;
