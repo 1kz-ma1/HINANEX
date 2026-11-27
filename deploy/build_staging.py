@@ -110,6 +110,7 @@ UNPUBLISHED_F05_PREVIEW_PATHS = frozenset({
     "prototypes/f05-flood-journey",
     "src/f05-journey-model.js",
     "tests/f05-journey.test.js",
+    "tests/f05-journey-http-browser.test.cjs",
     "docs/F05_MINIMAL_JOURNEY_20261113.md",
 })
 UNPUBLISHED_F17_PREVIEW_PATHS = frozenset({
