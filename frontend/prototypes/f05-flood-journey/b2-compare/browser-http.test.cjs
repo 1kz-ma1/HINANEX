@@ -9,6 +9,7 @@ const os = require("node:os");
 const path = require("node:path");
 const http = require("node:http");
 const {spawn, spawnSync} = require("node:child_process");
+const {waitForDevToolsPort} = require("../../../tests/helpers/chrome-active-port.cjs");
 
 const prefix = "/frontend/prototypes/f05-flood-journey/b2-compare/";
 const paths = new Map([
@@ -97,17 +98,7 @@ async function launchChrome(bin) {
   child.stderr.on("data", data => {stderr = (stderr + data.toString()).slice(-1500);});
   const browser = {profile, child, ws:null, errors:[], requests:[]};
   try {
-    let port = 0;
-    for (let i = 0; i < 300; i++) {
-      const active = path.join(profile, "DevToolsActivePort");
-      if (fs.existsSync(active)) {
-        port = Number(fs.readFileSync(active, "utf8").split("\n")[0]);
-        break;
-      }
-      if (child.exitCode !== null) throw Error("Chrome exited: " + stderr);
-      await delay(100);
-    }
-    if (!port) throw Error("Chrome CDP startup timeout: " + stderr);
+    const port = await waitForDevToolsPort(profile, child, () => stderr);
     const targets = await (await fetch("http://127.0.0.1:" + port + "/json/list",
       {signal:AbortSignal.timeout(10000)})).json();
     const page = targets.find(item => item.type === "page" && item.webSocketDebuggerUrl);
