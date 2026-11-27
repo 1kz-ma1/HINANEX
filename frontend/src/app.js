@@ -914,26 +914,75 @@ const regionController = createRegionExportController({
   },
 });
 
+// Manual reads cannot rely on AbortController (File.text, response.json, or
+// a transport that ignores abort may still complete). Invalidate them on
+// every accepted load intent; the regional controller also guards its own callbacks.
+let activeLoadId = 0;
+
+function beginLoad() {
+  activeLoadId += 1;
+  regionController.cancel();
+  return activeLoadId;
+}
+
 function loadSelectedRegion() {
-  return regionController.selectRegion(regionSelect.value);
+  return selectRegion(regionSelect.value);
 }
 
 function selectRegion(regionCode) {
+  beginLoad();
   regionSelect.value = regionCode;
   return regionController.selectRegion(regionCode);
 }
 
-async function loadDemoRegionExport() {
-  regionController.cancel();
+function renderManualLoading(message, scenarioMessage, isSynthetic = false) {
   clearRegionContent();
-  renderFloodScenario({ uiState: "loading", message: "UI検証用の合成データを確認しています。" }, { isSynthetic: true });
-  setSourceStatus("UI検証用の合成データを読み込んでいます…", "loading");
+  regionName.textContent = isSynthetic ? "合成デモを読み込み中" : "JSONを読み込み中";
+  generatedAt.textContent = "取得中";
+  schemaVersion.textContent = "—";
+  demoNotice.hidden = true;
+  setActiveRegion(null);
+  renderFloodScenario({ uiState: "loading", message: scenarioMessage }, { isSynthetic });
+  setSourceStatus(message, "loading");
+}
+
+async function loadDemoRegionExport() {
+  const loadId = beginLoad();
+  renderManualLoading("UI検証用の合成データを読み込んでいます…",
+    "UI検証用の合成データを確認しています。", true);
   try {
     const payload = await fetchRegionExport("./mock/region-export.json");
+    if (loadId !== activeLoadId) return;
     renderPage(buildRegionExportViewModel(payload));
     setSourceStatus("mock/region-export.json｜合成デモを表示中", "demo");
   } catch (error) {
-    renderError(error instanceof Error ? error : new Error("不明なエラーです。"), null, { isSynthetic: true });
+    if (loadId !== activeLoadId) return;
+    const normalized = error instanceof Error ? error : new Error("不明なエラーです。");
+    renderError(normalized, null, { isSynthetic: true });
+    setSourceStatus(`合成デモ読込失敗: ${normalized.message}`, "error");
+  }
+}
+
+async function loadManualRegionExport(event) {
+  const [file] = event.target.files ?? [];
+  if (!file) return;
+
+  // Capture the File and release the picker immediately. An older operation
+  // must never clear a newer selection in a delayed finally callback.
+  event.target.value = "";
+  const loadId = beginLoad();
+  renderManualLoading(`${file.name} を読み込んでいます…`,
+    "選択したJSONのScenario構造を確認しています。");
+  try {
+    const text = await file.text();
+    if (loadId !== activeLoadId) return;
+    const payload = JSON.parse(text);
+    renderLoadedPayload(payload, file.name);
+  } catch (error) {
+    if (loadId !== activeLoadId) return;
+    const normalized = error instanceof Error ? error : new Error("不明なエラーです。");
+    renderError(normalized);
+    setSourceStatus(`JSON読込失敗: ${normalized.message}`, "error");
   }
 }
 
@@ -948,24 +997,6 @@ for (const button of regionButtons) {
 }
 reloadRegionExport.addEventListener("click", loadSelectedRegion);
 loadDemoData.addEventListener("click", loadDemoRegionExport);
-regionExportFile.addEventListener("change", async (event) => {
-  const [file] = event.target.files ?? [];
-  if (!file) return;
-
-  regionController.cancel();
-  clearRegionContent();
-  renderFloodScenario({ uiState: "loading", message: "選択したJSONのScenario構造を確認しています。" });
-  setSourceStatus(`${file.name} を読み込んでいます…`, "loading");
-  try {
-    const payload = JSON.parse(await file.text());
-    renderLoadedPayload(payload, file.name);
-  } catch (error) {
-    const normalized = error instanceof Error ? error : new Error("不明なエラーです。");
-    renderError(normalized);
-    setSourceStatus(`JSON読込失敗: ${normalized.message}`, "error");
-  } finally {
-    event.target.value = "";
-  }
-});
+regionExportFile.addEventListener("change", loadManualRegionExport);
 
 loadSelectedRegion();
