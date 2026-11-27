@@ -75,7 +75,8 @@ export function mountChecklist(doc = document) {
     bar.setAttribute('aria-label', `チェックした項目 ${state.checkedCount} / ${state.totalCount}`);
     reset.disabled = state.checkedCount === 0;
     filter.setAttribute('aria-pressed', String(onlyUnchecked));
-    filterState.textContent = onlyUnchecked ? '表示：未準備の項目のみ' : '表示：すべての項目';
+    const stateLabel = onlyUnchecked ? '表示：未準備の項目のみ' : '表示：すべての項目';
+    if (filterState.textContent !== stateLabel) filterState.textContent = stateLabel;
     let visible = 0;
     for (const [id, node] of itemNodes) {
       const checked = checklist.isChecked(id);
@@ -110,13 +111,16 @@ export function mountChecklist(doc = document) {
   filter.addEventListener('click', () => { onlyUnchecked = !onlyUnchecked; render(); });
   // A BFCache-restored document is still the old JS instance. Explicitly
   // reset it; normal pageshow also reconciles any native form restoration.
-  doc.defaultView.addEventListener('pageshow', event => {
-    if (event.persisted) {
-      if (doc.activeElement === reset) filter.focus();
-      checklist.reset();
-      onlyUnchecked = false;
-    }
+  const clearHistoryState = () => {
+    if (doc.activeElement === reset) filter.focus();
+    checklist.reset();
+    onlyUnchecked = false;
     render();
+  };
+  doc.defaultView.addEventListener('pagehide', clearHistoryState);
+  doc.defaultView.addEventListener('pageshow', event => {
+    if (event.persisted) clearHistoryState();
+    else render();
   });
   render();
   return Object.freeze({ snapshot: () => checklist.snapshot() });

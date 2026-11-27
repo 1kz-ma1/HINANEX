@@ -66,6 +66,7 @@ import {mkdtempSync, mkdirSync, readdirSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {createRequire} from 'node:module';
 const browserScript=fileURLToPath(new URL('./f09-preparedness-browser.cjs',import.meta.url));
 test('F09 missing binary, spawn failure and early startup exit finish nonzero and clean profiles',()=>{
   for(const mode of ['missing','spawn-error','early-exit']){
@@ -122,4 +123,20 @@ test('F09 exact candidate frontend copy excludes all seven private assets, retai
   assert.ifError(result.error);
   assert.equal(result.status,0,result.stderr);
   console.log(result.stdout.trim());
+});
+
+test('F09 CDP disconnect rejects all outstanding commands and prevents a new send',async()=>{
+  const {connectCdp}=createRequire(import.meta.url)(browserScript);
+  for(const type of ['close','error']){
+    const ws=new EventTarget();
+    ws.readyState=WebSocket.OPEN;
+    ws.send=()=>{};
+    const cdp=connectCdp(ws);
+    const pending=[cdp.send('Runtime.evaluate'),cdp.send('Page.reload')];
+    const rejected=Promise.all(pending.map(p=>assert.rejects(p,/CDP WebSocket/)));
+    ws.readyState=WebSocket.CLOSED;
+    ws.dispatchEvent(new Event(type));
+    await rejected;
+    await assert.rejects(cdp.send('Page.navigate'),/CDP not open/);
+  }
 });

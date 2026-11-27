@@ -217,7 +217,9 @@ async function main() {
     assert.ok(!away.errorText);
     await eventually('location.href==='+JSON.stringify(url+'away')+" && document.readyState==='complete'");
     await send('Page.navigateToHistoryEntry',{entryId:entry.id});
-    await eventually(ready);
+    // A restored document already had pageshow once before going away.
+    // Require the second pageshow for BFCache, or a genuinely new document.
+    await eventually(ready+' && (window.__f09OldDocument!=="history-old" || window.__f09PageShows.length>=2)');
     const persisted=await evaluate('window.__f09PageShows.at(-1)===true');
     const sameDocument=await evaluate('window.__f09OldDocument==="history-old"');
     assert.equal(persisted,sameDocument,'BFCache requires persisted pageshow and old document');

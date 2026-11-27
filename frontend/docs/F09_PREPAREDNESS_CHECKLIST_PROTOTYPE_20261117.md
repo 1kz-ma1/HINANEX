@@ -11,7 +11,7 @@
 1. `frontend/prototypes/f09-preparedness/index.html` で一般家庭の準備項目10個を3分類で閲覧。
 2. 各項目のチェックと解除、`準備済み/未準備`表示を切り替え。
 3. `チェックした件数/全数`、進捗率（四捨五入した操作項目割合）を確認。
-4. `未準備だけ表示`で残項目に絞り込み、`すべて表示`へ戻る。
+4. 固定名の`未準備だけ表示`トグルで残項目に絞り込み、同じボタンで全項目表示へ戻る。
 5. `すべて解除`でチェックを0へ戻す。チェック0の状態ではボタンを無効化。
 6. Tabによるフォーカス移動、Spaceでチェック、Enterで解除ボタン。画面幅320/390/1440pxを対象にスクロール可能なレスポンシブUI。
 
@@ -21,7 +21,7 @@
 
 - `model.js`の`createChecklist()`が各画面インスタンス専用`Set<string>`を所有。固定IDを受ける`setChecked(id, boolean)`は不明なID、不正な型を拒否（false）し、既存状態を保持。重複操作は冪等。
 - `snapshot()`はチェック件数、全10、未チェック件数、割合、チェック済みIDのコピーを返す。
-- ページの再読み込みや閉鎖で初期化。状態はCookie、localStorage、sessionStorage、IndexedDB、URL、サーバー、ログ、ネットワークに書き込まない。外部リンクは利用者が明示選択したときのみ遷移。
+- ページの再読み込みや閉鎖で初期化。履歴復帰の扱いは末尾のレビュー是正記録を参照。状態はCookie、localStorage、sessionStorage、IndexedDB、URL、サーバー、ログ、ネットワークに書き込まない。外部リンクは利用者が明示選択したときのみ遷移。
 - DOMの全描画更新はしない。既存チェックボックスの`checked`と表示を更新。未準備フィルタで操作対象が非表示になった場合は別の未準備項目、なければフィルタボタンへフォーカス移動。
 - `%=`はチェック項目数÷全項目数×100。**安全度、達成保証、災害準備十分性の指標ではない。** 項目のチェックは自己申告で検証しない。
 - 初期値: 0/10 (0%)。リセット: 0/10 (0%)。すべてチェック: 10/10 (100%) でも十分性を保証しない。
@@ -48,7 +48,7 @@
 cd frontend
 node --test tests/f09-preparedness.test.js
 node tests/f09-preparedness-browser.cjs
-# GitHub Actions CIでは真のHTTP読み込みを要求し、代替DOM注入で成功扱いしない。
+# 現行QAは真のHTTP読み込みのみ。代替DOM注入なし。
 npm test
 npm run lint
 npm run build
@@ -76,7 +76,7 @@ npm run build
 
 - #428はmainへ統合済み。今回最新mainを取り込んでbaseをmainへ変更。F09の8 frontendパスだけを維持し、deploy/契約・F05には変更なし。
 - フィルタ名「未準備だけ表示」は固定、aria-pressedと「表示：…」で状態を表示。解除でボタンが無効になる場合はフィルタへフォーカスを移す。全件チェック時の未準備フィルタ空表示、解除後の復帰を実HTTPテストに追加。
-- メモリのみの契約：新document/再読込で0件。BFCacheのpersisted pageshowでもチェックとフィルタを初期化し、通常pageshowではブラウザフォーム復元をモデル状態に再同期する。チェックボックスのautocompleteはoff。実BFCache成立時のみPASSとし、新documentになった履歴移動は別のPASS、BFCache自体はNOT_RUN。
+- メモリのみの契約：新document/再読込で0件。BFCacheのpersisted pageshowでもチェックとフィルタを初期化し、pagehideでも状態を初期化し、通常pageshowではブラウザフォーム復元をモデル状態に再同期する。チェックボックスのautocompleteはoff。実BFCache成立時のみPASSとし、新documentになった履歴移動は別のPASS、BFCache自体はNOT_RUN。
 - ブラウザQAはHTTPのみ（DOM注入fallbackを撤去）。listen・起動・CDP HTTP/open/send/closeの有限期限、pending拒否、全資源のfinally、cleanup失敗を非0終了にする。共有http-chromeの停止/プロファイル削除を再利用。欠落binary・spawn error・早期起動終了・cleanupエラーの負例を追加。
 - 再読込は実URL、readyState、pageshow、旧document sentinel消滅、loaderId変更と0件/無保存を確認。実履歴復帰とBFCacheを区別する。
 - 実候補checkoutのfrontendコピーを既存Deploy builderで検査するテストを追加。7個の非公開実ファイルが存在すること、コピー先で全件不在、既存除外維持、公開対照5個のSHA-256一致を確認する。package.jsonは現行配布方針でコピーされ、F09 test/lintの文字列参照が残る（製品/QA/仕様本体ではない）。厳密な参照ゼロは未承認、Shared/Owner判断を要する。全体Render LIVE・公式データ生成とは別試験。
