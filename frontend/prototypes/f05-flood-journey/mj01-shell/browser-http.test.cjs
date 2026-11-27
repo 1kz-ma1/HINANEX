@@ -207,7 +207,19 @@ test("MJ01 actual HTTP Chrome: steps, fixed evidence, max two, UNKNOWN, reset, k
       await click("show");await noOverflow();
       assert.equal(await evaluate("document.querySelectorAll('[data-record]').length"),3);
       assert.ok(await evaluate("document.querySelector('#content').textContent.includes('MJ01-PET-2') && document.querySelector('#content').textContent.includes('UNKNOWN')"));
-      await click("continue");await click("toggle-mj01-a");await click("toggle-mj01-b");await noOverflow();
+      await click("continue");
+      const toggleAX = async pressed => {
+        const {nodes}=await command("Accessibility.getFullAXTree");
+        const toggle=nodes.find(node=>!node.ignored&&node.name?.value==="架空施設Aを比較対象にする");
+        assert.ok(toggle,"stable compare control name in Chrome accessibility tree");
+        assert.equal(String(toggle.properties?.find(property=>property.name==="pressed")?.value.value),String(pressed));
+      };
+      await toggleAX(false);
+      await key("Tab",9);assert.equal(await evaluate("document.activeElement.id"),"toggle-mj01-a");
+      await key("Enter",13);
+      assert.equal(await evaluate("document.activeElement.id"),"toggle-mj01-a");
+      await toggleAX(true);
+      await click("toggle-mj01-b");await noOverflow();
       assert.equal(await evaluate("document.activeElement.id"),"toggle-mj01-b");
       assert.equal(await evaluate("document.querySelector('#toggle-mj01-c').disabled"),true);
       await click("compare");await noOverflow();
@@ -230,8 +242,16 @@ test("MJ01 actual HTTP Chrome: steps, fixed evidence, max two, UNKNOWN, reset, k
       assert.ok(await evaluate("document.querySelector('#status').textContent.includes('取得失敗')"));
       await click("start");await noRows();await click("end");await noRows();
       await click("start");await click("condition-pet");await click("show");
-      await evaluate("window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true}))");
+      // Synthetic lifecycle regression. Independent real navigation/tab QA
+      // supplies the evidence for visibility changes and BFCache.
+      await evaluate("document.querySelector('#end').focus();window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true}));window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true}))");
       await noRows();assert.ok(await evaluate("!!document.querySelector('#start')"));
+      await evaluate("window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}))");
+      assert.equal(await evaluate("document.activeElement.id"),"start");
+      await click("start");await click("condition-step");await click("show");
+      await evaluate("document.querySelector('#end').focus();window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true}));document.querySelector('#heading').focus();window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}))");
+      await noRows();
+      assert.equal(await evaluate("document.activeElement.id"),"heading");
       assert.deepEqual(await evaluate("({local:localStorage.length,session:sessionStorage.length,cookie:document.cookie})"),{local:0,session:0,cookie:""});
       assert.deepEqual(await evaluate("Promise.all([indexedDB.databases(),caches.keys()])"),[[],[]]);
       console.log("MJ01_HTTP_WIDTH "+width+" PASS");
