@@ -108,3 +108,92 @@ test("HTTP error時にerror callbackへ渡す", async () => {
   assert.equal(result.status, "error");
   assert.match(errorMessage, /HTTP 404/);
 });
+
+// Run the actual app coordinator and regional controller with controlled
+// promises, a transport that ignores abort, and rendering/DOM stubs.
+async function appLoads() {
+  const {readFile}=await import("node:fs/promises");
+  const {assertRegionMatches,getPayloadRegionCode}=await import("../src/region-export-source.js");
+  const app=await readFile(new URL("../src/app.js",import.meta.url),"utf8");
+  const start=app.indexOf("function setSourceStatus(");
+  const end=app.indexOf('closeEvidence.addEventListener("click"',start);
+  assert.ok(start>=0 && end>start);
+  const requests=[];
+  const fetchImpl=url=>{const d=deferred();requests.push({url,...d});return d.promise;};
+  const status={textContent:"",dataset:{}}, regionSelect={value:"13123"};
+  const regionName={},generatedAt={},schemaVersion={},demoNotice={};
+  const state={display:null,active:null,scenario:null};
+  const clearRegionContent=()=>{state.display=null;state.scenario=null;};
+  const bindings={
+    sourceStatus:status,regionSelect,regionName,generatedAt,schemaVersion,demoNotice,
+    fetch:fetchImpl,createRegionExportController:opts=>createRegionExportController({...opts,fetchImpl}),
+    assertRegionMatches,getPayloadRegionCode,buildRegionExportViewModel:p=>p,
+    renderPage:p=>{state.display=p.region.code;state.scenario="ready";},
+    renderLoading:source=>{clearRegionContent();state.active=source.code;status.dataset.tone="loading";},
+    renderError:(error,source,{isSynthetic=false}={})=>{clearRegionContent();state.scenario=isSynthetic?"demo-error":"error";},
+    clearRegionContent,setActiveRegion:code=>{state.active=code;},
+    renderFloodScenario:v=>{state.scenario=v.uiState;}
+  };
+  const api=new Function(...Object.keys(bindings),app.slice(start,end)+
+    "\nreturn {loadDemoRegionExport,selectRegion,loadSelectedRegion,loadManualRegionExport};")(...Object.values(bindings));
+  const snapshot=()=>JSON.stringify({state,status,regionName,generatedAt,schemaVersion,demoNotice,regionSelect});
+  return {api,requests,state,status,snapshot,regionName};
+}
+
+for(const older of ["demo","region","file"]){
+  for(const newer of ["demo","region","file"]){
+    for(const oldSucceeds of [true,false]){
+      test("F01 latest intent wins: "+older+" -> "+newer+"; old "+(oldSucceeds?"success":"failure"),async()=>{
+        const h=await appLoads();
+        function start(kind,code){
+          if(kind==="file"){
+            const d=deferred();
+            const target={value:"selected.json",files:[{name:code+".json",text:()=>d.promise}]};
+            const done=h.api.loadManualRegionExport({target});
+            assert.equal(target.value,"","file picker released synchronously");
+            return {done,finish:ok=>d.resolve(ok?JSON.stringify(payloadFor(code,code)):"invalid JSON")};
+          }
+          const done=kind==="demo"?h.api.loadDemoRegionExport():h.api.selectRegion(code);
+          const req=h.requests.at(-1);
+          return {done,finish:ok=>req.resolve(response(payloadFor(code,code),{ok,status:ok?200:503}))};
+        }
+        const old=start(older,"13123"),current=start(newer,"15100");
+        assert.equal(h.state.display,null);
+        current.finish(!oldSucceeds);await current.done;
+        assert.equal(h.status.dataset.tone,oldSucceeds?"error":newer==="demo"?"demo":"success");
+        assert.equal(h.state.display,oldSucceeds?null:"15100");
+        const before=h.snapshot();
+        old.finish(oldSucceeds);await old.done;
+        assert.equal(h.snapshot(),before,"stale response must not alter any recorded state");
+        assert.equal(h.requests.filter(r=>r.url.includes("/mock/")).length,
+          Number(older==="demo")+Number(newer==="demo"),"no automatic demo fallback");
+      });
+    }
+  }
+}
+
+test("F01 delayed demo response.json cannot supersede explicit region reload",async()=>{
+  const h=await appLoads(),body=deferred(),entered=deferred();
+  const old=h.api.loadDemoRegionExport();
+  h.requests[0].resolve({ok:true,json(){entered.resolve();return body.promise;}});
+  await entered.promise;
+  await h.api.loadManualRegionExport({target:{files:[],value:""}});
+  const current=h.api.loadSelectedRegion();
+  h.requests[1].resolve(response(payloadFor("13123","region")));await current;
+  assert.equal(h.status.dataset.tone,"success");
+  const before=h.snapshot();
+  body.resolve(payloadFor("15100","old demo"));await old;
+  assert.equal(h.snapshot(),before);
+});
+
+test("F01 cancelled picker keeps demo; current file failure clears previous display",async()=>{
+  const h=await appLoads(),demo=h.api.loadDemoRegionExport();
+  await h.api.loadManualRegionExport({target:{files:[],value:""}});
+  h.requests[0].resolve(response(payloadFor("13123","demo")));await demo;
+  assert.equal(h.status.dataset.tone,"demo");
+  const file=h.api.loadManualRegionExport({target:{files:[{name:"broken.json",text:async()=>"invalid"}],value:"broken.json"}});
+  assert.equal(h.state.display,null);
+  assert.equal(h.regionName.textContent,"JSONを読み込み中");
+  await file;assert.equal(h.status.dataset.tone,"error");
+  assert.equal(h.state.display,null);
+});

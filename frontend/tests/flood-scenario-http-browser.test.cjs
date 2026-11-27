@@ -40,7 +40,14 @@ async function serveDemo() {
     if (url.pathname === "/frontend/mock/region-export.json") {
       if (state.mode === "error") {res.writeHead(503);res.end("synthetic failure");return;}
       res.writeHead(200, {"Content-Type":"application/json; charset=utf-8", "Cache-Control":"no-store"});
-      res.end(JSON.stringify(fixture()));return;
+      const body = JSON.stringify(fixture());
+      if (state.holdDemo) {
+        const hold = state.holdDemo;
+        state.holdDemo = null;
+        hold(() => res.end(body));
+        return;
+      }
+      res.end(body);return;
     }
     // Initial real-region load deliberately fails; no automatic fixture fallback.
     if (url.pathname.startsWith("/pipeline/data/output/")) {res.writeHead(503);res.end();return;}
@@ -273,6 +280,34 @@ test("F01 real HTTP Chrome: explicit error recovery and synthetic Scenario pagin
       assert.equal(await evaluate("document.querySelector('#floodScenarioTitle').textContent"), "洪水に関する公式情報");
       assert.ok(await evaluate("document.querySelector('#demoNotice').hidden && document.querySelectorAll('.scenario-facility').length===0"));
       console.log("F01_SYNTHETIC_SUMMARY_HTTP: labels across demo, paging and failures with no stale rows PASS");
+      // Real HTTP: hold an old demo response until a newer regional failure
+      // is rendered. Observe completion of its actual response.json in Chrome.
+      state.mode = "ready";
+      await evaluate("(()=>{const original=window.fetch;window.__f01OldDemoBodyDone=false;window.fetch=async(...args)=>{const response=await original(...args);if(String(args[0]).includes('/mock/region-export.json')){const json=response.json.bind(response);response.json=async()=>{const body=await json();setTimeout(()=>{window.__f01OldDemoBodyDone=true},0);return body;}}return response;};})()");
+      let release;
+      let timer;
+      const held = new Promise((resolve,reject)=>{
+        timer=setTimeout(()=>reject(Error("held demo request not received")),5000);
+        state.holdDemo=send=>{clearTimeout(timer);release=send;resolve();};
+      });
+      try {
+        await evaluate("document.querySelector('#loadDemoData').click()");
+        await held;
+        assert.equal(await evaluate("document.querySelector('#sourceStatus').dataset.tone"),"loading");
+        await evaluate("(()=>{const button=document.querySelector('#reloadRegionExport');button.focus({preventScroll:true});button.click()})()");
+        await waitUntil(evaluate,"document.querySelector('#sourceStatus').dataset.tone==='error'","new regional failure");
+        const before=await evaluate("JSON.stringify({source:document.querySelector('#sourceStatus').textContent,title:document.querySelector('#floodScenarioTitle').textContent,region:document.querySelector('#regionName').textContent,focus:document.activeElement.id})");
+        release();release=null;
+        await waitUntil(evaluate,"window.__f01OldDemoBodyDone===true","old demo body actually consumed");
+        assert.equal(await evaluate("JSON.stringify({source:document.querySelector('#sourceStatus').textContent,title:document.querySelector('#floodScenarioTitle').textContent,region:document.querySelector('#regionName').textContent,focus:document.activeElement.id})"),before);
+        assert.ok(await evaluate("document.querySelector('#demoNotice').hidden && document.querySelectorAll('.scenario-facility').length===0"));
+        assert.equal(await evaluate("document.querySelector('#sourceStatus').dataset.tone"),"error");
+        console.log("F01_STALE_DEMO_HTTP: delayed real response cannot overwrite newer regional failure or focus PASS");
+      } finally {
+        clearTimeout(timer);
+        state.holdDemo=null;
+        if(release)release();
+      }
       assert.equal(await evaluate("localStorage.length+sessionStorage.length"), 0);
       assert.deepEqual(browser.exceptions, []);
       assert.ok(browser.outbound.every(url=>url.startsWith(base + "/") || url==="about:blank" || url.startsWith("data:")), "Unexpected outbound request");
