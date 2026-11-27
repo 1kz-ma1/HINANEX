@@ -3500,3 +3500,6 @@ require("./mobile_ui_acceptance.test.js");
 // Register the F07 synthetic-only state/safety tests in the existing required E GIS Node gate.
 // No F07 prototype code is imported into the public GIS application.
 require("../prototypes/f07-reference-route/test-node.cjs");
+
+// F04 is private and does not import into the public GIS UI.
+require("../prototypes/f04-synthetic-timeline/test-node.cjs");
