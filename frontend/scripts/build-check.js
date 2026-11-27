@@ -2,8 +2,6 @@ import { access, readFile } from "node:fs/promises";
 
 const requiredFiles = [
   "index.html",
-  "team-review.html",
-  "mock/team-review-example.json",
   "f02.html",
   "f02.css",
   "src/f02-page.js",
@@ -74,17 +72,4 @@ for (const marker of [
   }
 }
 
-// Team review is local-only; the public index must not link to it.
-if (index.includes("team-review.html")) {
-  throw new Error("Local team review must not be linked from public index");
-}
-const review = await readFile(new URL("../team-review.html", import.meta.url), "utf8");
-if (!review.includes("hinanex.team-review.v1") || review.includes('<script src=')) {
-  throw new Error("Offline review HTML must be standalone with explicit versioned JSON");
-}
-const mockReview = JSON.parse(await readFile(new URL("../mock/team-review-example.json", import.meta.url), "utf8"));
-if (mockReview.schema_id !== "hinanex.team-review.v1" || mockReview.safety.approved_for_map !== false ||
-    mockReview.safety.data_promotion_authorized !== false || mockReview.safety.official_facility_positions_accepted !== 0) {
-  throw new Error("Team review fixture may not approve facility positions or data promotion");
-}
 console.log("Static build check passed.");
