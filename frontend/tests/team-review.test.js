@@ -689,3 +689,111 @@ test("team review real HTTP Chrome preserves edits and round-trips an actual dow
       }
     }
   });
+
+
+// Actual HTTP Chrome, synthetic nine-site review and separate PDF report.
+// No real PDF retrieval or facility approval. Keep this existing private path.
+test("PDF triage real HTTP Chrome imports separate files, filters, rejects tampering and exports only review",
+  {timeout:120000},async t=>{
+    const {default:fs}=await import("node:fs/promises");
+    const {default:os}=await import("node:os");
+    const {default:path}=await import("node:path");
+    const {default:http}=await import("node:http");
+    const {default:helper}=await import("./helpers/http-chrome.cjs");
+    const bin=helper.browserBinary();
+    if(!bin){
+      if(process.env.CI||process.env.TEAM_REVIEW_REQUIRE_CHROME==="1")throw Error("Chrome required for PDF triage");
+      t.skip("Chrome unavailable locally");return;
+    }
+    const {review,report}=makeTriageFixture();
+    review.records[0].review={...review.records[0].review,status:"evidence_found",
+      checks:{official_source:true,identity:true,address:true,position_evidence:true},
+      reviewer:"合成班員",notes:"架空の確認記録を維持",evidence_url:"https://example.invalid/evidence",
+      reviewed_at:"2026-10-22T02:30:00.000Z"};
+    check(review);checkTriage(report,review);
+    const temp=await fs.mkdtemp(path.join(os.tmpdir(),"pdf-triage-http-"));
+    let browser,server;
+    const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+    try{
+      const input=path.join(temp,"review.json"),diff=path.join(temp,"triage.json"),bad=path.join(temp,"tampered.json");
+      const downloads=path.join(temp,"downloads");
+      const tampered=clone(report);tampered.safety.approved_for_map=true;
+      await fs.mkdir(downloads);
+      await Promise.all([[input,review],[diff,report],[bad,tampered]].map(([file,obj])=>fs.writeFile(file,JSON.stringify(obj),"utf8")));
+      const requests=[];
+      server=http.createServer((req,res)=>{
+        requests.push(req.url);
+        if(req.method==="GET"&&req.url==="/team-review.html"){
+          res.writeHead(200,{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store"});res.end(page);
+        }else{res.writeHead(404);res.end();}
+      });
+      await new Promise((resolve,reject)=>{server.once("error",reject);server.listen(0,"127.0.0.1",resolve);});
+      const origin="http://127.0.0.1:"+server.address().port,url=origin+"/team-review.html";
+      browser=await helper.launchChrome(bin);
+      const {command,evaluate}=browser;
+      await command("Page.enable");await command("Runtime.enable");await command("Network.enable");await command("DOM.enable");
+      await command("Page.setDownloadBehavior",{behavior:"allow",downloadPath:downloads});
+      async function ready(expr,label){
+        for(let i=0;i<100;i++){if(await evaluate(expr))return;await pause(100);}
+        throw Error("Timed out: "+label);
+      }
+      async function choose(selector,file){
+        const {root}=await command("DOM.getDocument");
+        const {nodeId}=await command("DOM.querySelector",{nodeId:root.nodeId,selector});
+        assert.ok(nodeId,selector);
+        await command("DOM.setFileInputFiles",{nodeId,files:[file]});
+      }
+      const nav=await command("Page.navigate",{url});assert.ok(!nav.errorText);
+      await helper.waitUntil(evaluate,"location.href==="+JSON.stringify(url)+" && document.readyState==='complete' && document.querySelector('#triageInput')?.disabled","initial PDF triage");
+      await choose("#fileInput",input);
+      await ready("!document.querySelector('#workArea').hidden && !document.querySelector('#triageInput').disabled && document.querySelector('#fileInput').value===''","review import");
+      assert.equal(await evaluate("document.querySelector('#triageSummary').hidden"),true);
+      await choose("#triageInput",diff);
+      await ready("!document.querySelector('#triageSummary').hidden && document.querySelector('#triageInput').value==='' && document.querySelector('#feedback').dataset.error==='false'","valid PDF import");
+      const summary=await evaluate("document.querySelector('#triageSummary').textContent");
+      assert.match(summary,/再確認 3件/);assert.match(summary,/承認にはなりません/);
+      await evaluate("{const e=document.querySelector('#triageFilter');e.value='review_required';e.dispatchEvent(new Event('change',{bubbles:true}))}");
+      assert.deepEqual(await evaluate("[...document.querySelectorAll('#facilityList button strong')].map(x=>x.textContent)"),review.records.slice(0,3).map(r=>r.name));
+      await evaluate("document.querySelector('#facilityList button').click()");
+      assert.equal(await evaluate("document.querySelector('#reviewNote').value"),review.records[0].review.notes);
+      assert.equal(await evaluate("document.querySelector('#reviewStatus').value"),"evidence_found");
+      assert.match(await evaluate("document.querySelector('#triageCue').textContent"),/PDF更新：あり/);
+      // Invalid replacement must not erase the current filter, report or review.
+      await choose("#triageInput",bad);
+      await ready("document.querySelector('#triageInput').value==='' && document.querySelector('#feedback').dataset.error==='true'","tampered PDF rejection");
+      assert.equal(await evaluate("document.querySelector('#triageSummary').textContent"),summary);
+      assert.equal(await evaluate("document.querySelector('#triageFilter').value"),"review_required");
+      assert.equal(await evaluate("document.querySelectorAll('#facilityList button').length"),3);
+      assert.equal(await evaluate("document.querySelector('#reviewNote').value"),review.records[0].review.notes);
+      // Unapplied editor changes must survive attempted re-import.
+      await evaluate("document.querySelector('#reviewNote').value='未反映の合成メモ'");
+      await choose("#triageInput",diff);
+      await ready("document.querySelector('#triageInput').value==='' && document.querySelector('#feedback').dataset.error==='true'","unapplied edit rejection");
+      assert.equal(await evaluate("document.querySelector('#reviewNote').value"),"未反映の合成メモ");
+      assert.equal(await evaluate("document.querySelector('#triageSummary').textContent"),summary);
+      await evaluate("document.querySelector('#reviewNote').value="+JSON.stringify(review.records[0].review.notes));
+      await evaluate("{const e=document.querySelector('#triageFilter');e.value='no_diff';e.dispatchEvent(new Event('change',{bubbles:true}));document.querySelector('#needsActionOnly').checked=false;document.querySelector('#needsActionOnly').dispatchEvent(new Event('change',{bubbles:true}))}");
+      assert.deepEqual(await evaluate("[...document.querySelectorAll('#facilityList button strong')].map(x=>x.textContent)"),review.records.slice(3).map(r=>r.name));
+      const click=await command("Runtime.evaluate",{expression:"document.querySelector('#exportButton').click()",userGesture:true,returnByValue:true});
+      assert.ok(!click.exceptionDetails,"export invocation");
+      let saved;
+      for(let i=0;i<100;i++){
+        const names=await fs.readdir(downloads);
+        const json=names.filter(n=>n.endsWith(".json"));
+        if(json.length===1&&!names.some(n=>n.endsWith(".crdownload"))){saved=JSON.parse(await fs.readFile(path.join(downloads,json[0]),"utf8"));break;}
+        await pause(100);
+      }
+      assert.ok(saved,"actual saved file");
+      assert.deepEqual(saved,review,"PDF overlay must not change or join saved review");
+      assert.deepEqual(browser.exceptions,[]);
+      assert.ok(browser.outbound.every(u=>u===url||u===origin+"/favicon.ico"||u.startsWith("blob:"+origin+"/")),JSON.stringify(browser.outbound));
+      assert.ok(requests.every(p=>p==="/team-review.html"||p==="/favicon.ico"),JSON.stringify(requests));
+      console.log("TEAM_REVIEW_PDF_TRIAGE_HTTP: actual file imports, completed-review inclusion, filters, tamper/unapplied rejection, unchanged download PASS");
+    }finally{
+      try{if(browser)await helper.stopChrome(browser.child,browser.profile,browser.ws);}
+      finally{
+        try{if(server?.listening)await new Promise(resolve=>{server.close(resolve);server.closeAllConnections?.();});}
+        finally{await fs.rm(temp,{recursive:true,force:true,maxRetries:3,retryDelay:200});}
+      }
+    }
+  });
