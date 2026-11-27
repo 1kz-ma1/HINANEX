@@ -298,7 +298,7 @@ function validateTriageReport(candidate, reviewData) {
     ]
   ]);
   const used=new Set(), sourceStates=new Map(), indices=new Map();
-  let rowChanged=0, unresolved=0, reviewRequired=0;
+  let rowChanged=0, extractionUnresolved=0, extractionInconsistent=0, reviewRequired=0;
   for (const item of candidate.facilities) {
     exact(item,["ward","name","address","source_url","source_bytes_changed","classification"],"差分の施設");
     textField(item.ward,"区",25);textField(item.name,"施設名",240);
@@ -329,17 +329,24 @@ function validateTriageReport(candidate, reviewData) {
       throw new Error("抽出不整合とPDF変更状態が矛盾しています。");
     used.add(key);indices.set(r.id,item);
     if (item.classification===triageRowChanged) rowChanged++;
-    if (triageUnresolved.includes(item.classification)) unresolved++;
+    if (item.classification==="ROW_EXTRACTION_UNRESOLVED_REVIEW_REQUIRED") extractionUnresolved++;
+    if (item.classification==="SAME_BYTES_DIFFERENT_EXTRACTION_HUMAN_REVIEW_REQUIRED") extractionInconsistent++;
     if (item.classification!==triageNoChange) reviewRequired++;
   }
   if (sourceStates.size!==sourceWard.size) throw new Error("固定の5公式PDFが揃っていません。");
   const sourceChanged=[...sourceStates.values()].filter(Boolean).length;
+  // D #296: only extraction-unresolved rows have at least one unmatched
+  // snapshot. Same-byte inconsistent rows are MATCHED in both snapshots.
+  // The union of the two unmatched sets must contain exactly those unresolved rows.
+  const baselineUnmatched=9-candidate.baseline_extract_matched_count;
+  const currentUnmatched=9-candidate.current_extract_matched_count;
   if (sourceChanged!==candidate.source_changed_count
       || rowChanged!==candidate.row_changed_candidate_count
-      || unresolved!==candidate.unresolved_extraction_count
+      || extractionUnresolved+extractionInconsistent!==candidate.unresolved_extraction_count
       || reviewRequired!==candidate.human_review_required_count
-      || candidate.baseline_extract_matched_count < 9 - unresolved
-      || candidate.current_extract_matched_count < 9 - unresolved)
+      || baselineUnmatched>extractionUnresolved
+      || currentUnmatched>extractionUnresolved
+      || baselineUnmatched+currentUnmatched<extractionUnresolved)
     throw new Error("差分集計値が施設別判定と整合しません。");
   const expected=reviewRequired?"HUMAN_REVIEW_REQUIRED":
     "EXTRACTED_ROW_TEXT_UNCHANGED_NOT_APPROVAL";

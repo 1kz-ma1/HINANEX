@@ -391,6 +391,44 @@ test("all five PDF triage statuses retain distinct human review semantics",()=>{
   assert.equal(checkTriage(report,review).size,9);
   assert.equal(filterTriage(report.facilities[0],"unresolved"),true);
 });
+test("PDF extraction counts distinguish unresolved rows from matched-but-inconsistent rows",()=>{
+  const {review,report}=makeTriageFixture();
+  // All PDFs unchanged; vary only the provider's per-row extraction classifications.
+  report.source_changed_count=0;
+  let cases=0, valid=0;
+  for(let u=0;u<=9;u++){
+    // Enumerate possible snapshot match-count pairs by assigning each unresolved
+    // row baseline-only, current-only, or both unmatched (provider semantics).
+    const possible=new Set();
+    for(let onlyBaseline=0;onlyBaseline<=u;onlyBaseline++){
+      for(let onlyCurrent=0;onlyCurrent<=u-onlyBaseline;onlyCurrent++){
+        const both=u-onlyBaseline-onlyCurrent;
+        possible.add((onlyBaseline+both)+":"+(onlyCurrent+both));
+      }
+    }
+    for(let i=0;i<=9-u;i++){
+      report.facilities.forEach((row,j)=>{
+        row.source_bytes_changed=false;
+        row.classification=j<u?"ROW_EXTRACTION_UNRESOLVED_REVIEW_REQUIRED":
+          j<u+i?"SAME_BYTES_DIFFERENT_EXTRACTION_HUMAN_REVIEW_REQUIRED":
+          "SOURCE_BYTES_UNCHANGED_NOT_OFFICIAL_APPROVAL";
+      });
+      report.unresolved_extraction_count=u+i;
+      report.human_review_required_count=u+i;
+      report.status=u+i?"HUMAN_REVIEW_REQUIRED":"EXTRACTED_ROW_TEXT_UNCHANGED_NOT_APPROVAL";
+      for(let a=0;a<=9;a++)for(let b=0;b<=9;b++){
+        report.baseline_extract_matched_count=9-a;
+        report.current_extract_matched_count=9-b;
+        const label="U="+u+" I="+i+" a="+a+" b="+b;
+        if(possible.has(a+":"+b)){assert.equal(checkTriage(report,review).size,9,label);valid++;}
+        else assert.throws(()=>checkTriage(report,review),/集計値/,label);
+        cases++;
+      }
+    }
+  }
+  assert.equal(cases,5500);
+  assert.equal(valid,715);
+});
 test("triage is optional, offline and not part of reviewer JSON export",()=>{
   assert.match(page,/id="triageInput"/);
   assert.match(page,/id="triageFilter" disabled/);
@@ -536,6 +574,14 @@ test("invalid or stale PDF import preserves previous triage, baseline and review
   assert.throws(()=>h.run("importTriageJson(invalid)"),/日時/);
   assert.equal(h.run("triageReport"),previous);
   assert.equal(h.run("triageByFacility"),priorIndex);
+  const invalidCounts=clone(report);
+  invalidCounts.facilities[0].classification="ROW_EXTRACTION_UNRESOLVED_REVIEW_REQUIRED";
+  invalidCounts.unresolved_extraction_count=1; // both snapshots incorrectly claim all matched
+  h.ctx.invalid=JSON.stringify(invalidCounts);
+  assert.throws(()=>h.run("importTriageJson(invalid)"),/集計値/);
+  assert.equal(h.run("triageReport"),previous);
+  assert.equal(h.run("triageByFacility"),priorIndex);
+  assert.equal(h.run("JSON.stringify(documentData)"),before);
   const delayed=delayedFile(report);h.ctx.file=delayed.file;
   const reading=h.run("loadTriageFile(file)");
   h.get("reviewNote").value="遅延中の新しいメモ";
