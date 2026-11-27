@@ -1802,9 +1802,10 @@ body {
 .scenario-trace summary:focus-visible { outline: 2px solid var(--cyan); outline-offset: 4px; }
 .scenario-trace a { overflow-wrap: anywhere; }
 .scenario-pagination > span { overflow-wrap: anywhere; }
-.scenario-first-result-link { min-height: 44px; justify-self: start; }
+.scenario-result-count { margin: 0; color: var(--muted); }
+.scenario-first-result-jump { min-height: 44px; justify-self: start; }
 #floodScenarioFirstResult { scroll-margin-top: 7rem; }
-.scenario-first-result-link:focus-visible,
+.scenario-first-result-jump:focus-visible,
 #floodScenarioFirstResult:focus,
 .scenario-pagination .source-button:focus-visible,
 .scenario-pagination > span:focus { outline: 3px solid var(--cyan); outline-offset: 4px; }
